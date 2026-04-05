@@ -9,7 +9,7 @@ Go + Gin backend service for product APIs and core business operations.
 - Coordinate application workflows through domain services.
 - Persist system-of-record state in PostgreSQL via GORM.
 - Use Redis where appropriate (cache, rate limit, short-lived state).
-- Publish real-time domain events to RabbitMQ for `services/realtime`.
+- Publish real-time domain events to a Valkey Stream for `services/realtime`.
 
 ## Architecture Principles
 
@@ -47,7 +47,7 @@ services/api/
 			cache/
 				redis.go             # redis client setup
 			messaging/
-				rabbitmq.go          # publisher setup for domain events
+				publisher.go         # Valkey Streams publisher for domain events
 			token/
 				jwt_manager.go       # sign/verify JWT, key rotation strategy
 			authz/
@@ -110,7 +110,7 @@ services/api/
 3. Handler maps DTO -> service input.
 4. Service executes business rules and transaction boundaries.
 5. Repository persists/reads data using GORM.
-6. Service may publish domain events to RabbitMQ.
+6. Service may publish domain events to the Valkey Stream.
 7. Handler returns standardized response DTO.
 
 ## JWT Authentication and Authorization

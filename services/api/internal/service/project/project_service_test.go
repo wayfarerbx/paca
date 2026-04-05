@@ -177,6 +177,22 @@ func TestCreate_SeedsDefaultTaskTypesAndStatuses(t *testing.T) {
 		}
 	}
 
+	// Verify descriptions are set for default task types
+	expectedDescriptions := map[string]string{
+		"Task":  "A general work item that needs to be completed",
+		"Bug":   "An issue or defect that needs to be fixed",
+		"Story": "A user-facing feature or requirement",
+	}
+	for _, tt := range tb.types {
+		if expectedDesc, ok := expectedDescriptions[tt.Name]; ok {
+			if tt.Description == nil {
+				t.Errorf("task type %q missing description", tt.Name)
+			} else if *tt.Description != expectedDesc {
+				t.Errorf("task type %q: expected description %q, got %q", tt.Name, expectedDesc, *tt.Description)
+			}
+		}
+	}
+
 	// Verify 4 default task statuses are created.
 	const wantStatuses = 4
 	if got := len(tb.statuses); got != wantStatuses {

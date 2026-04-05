@@ -19,9 +19,19 @@ func TestTopics_AreNonEmptyAndDistinct(t *testing.T) {
 	}
 }
 
+func TestKeys_NonEmpty(t *testing.T) {
+	if ChannelRealtime == "" {
+		t.Fatal("ChannelRealtime must be non-empty")
+	}
+	if StreamAnalytics == "" {
+		t.Fatal("StreamAnalytics must be non-empty")
+	}
+}
+
 type nopPublisher struct{}
 
-func (nopPublisher) Publish(context.Context, string, any) error { return nil }
+func (nopPublisher) Publish(context.Context, string, any) error        { return nil }
+func (nopPublisher) Append(context.Context, string, string, any) error { return nil }
 
 func TestPublisherInterface_Implemented(_ *testing.T) {
 	var _ Publisher = nopPublisher{}

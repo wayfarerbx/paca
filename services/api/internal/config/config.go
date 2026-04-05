@@ -8,7 +8,6 @@ type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	Redis    RedisConfig
-	RabbitMQ RabbitMQConfig
 	JWT      JWTConfig
 	Admin    AdminConfig
 	Env      string // development | production
@@ -33,11 +32,6 @@ type DatabaseConfig struct {
 
 // RedisConfig holds Redis connection settings.
 type RedisConfig struct {
-	URL string
-}
-
-// RabbitMQConfig holds RabbitMQ connection settings.
-type RabbitMQConfig struct {
 	URL string
 }
 

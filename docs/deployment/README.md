@@ -20,7 +20,6 @@ The development compose file provisions:
 
 - PostgreSQL;
 - Valkey;
-- RabbitMQ with the management UI;
 - optional `api` and `web` service containers that you can run alongside the infra services as needed.
 
 This supports two workflows:
@@ -33,7 +32,7 @@ This supports two workflows:
 The production compose file is intentionally self-hostable:
 
 - it defines the web and API containers;
-- it includes PostgreSQL, Valkey, and RabbitMQ for a complete single-host stack;
+- it includes PostgreSQL and Valkey for a complete single-host stack;
 - it keeps configuration explicit through environment variables and named volumes;
 - it publishes the web and API services by default.
 

@@ -62,10 +62,7 @@ func New(cfg *config.Config) (*App, error) {
 		return nil, fmt.Errorf("bootstrap: %w", err)
 	}
 
-	publisher, err := messaging.NewPublisher(cfg.RabbitMQ.URL, "paca.events", log)
-	if err != nil {
-		return nil, fmt.Errorf("bootstrap: %w", err)
-	}
+	publisher := messaging.NewPublisher(redisClient, log)
 
 	tokenManager := jwttoken.New(cfg.JWT.Secret, cfg.JWT.AccessTTL, cfg.JWT.RefreshTTL)
 	permissionStore := pgRepo.NewAuthzPermissionStore(db)

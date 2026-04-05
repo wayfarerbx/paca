@@ -56,11 +56,6 @@ func Load() (*Config, error) {
 		errs = append(errs, err)
 	}
 
-	rabbitURL, err := requireEnv("RABBITMQ_URL")
-	if err != nil {
-		errs = append(errs, err)
-	}
-
 	adminUser, err := requireEnv("ADMIN_USERNAME")
 	if err != nil {
 		errs = append(errs, err)
@@ -86,9 +81,6 @@ func Load() (*Config, error) {
 		},
 		Redis: RedisConfig{
 			URL: redisURL,
-		},
-		RabbitMQ: RabbitMQConfig{
-			URL: rabbitURL,
 		},
 		JWT: JWTConfig{
 			Secret:            secret,

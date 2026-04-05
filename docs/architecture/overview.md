@@ -13,23 +13,22 @@ Paca is planned as a single open-source monorepo with a small set of clearly sep
 ## Platform Dependencies
 
 - PostgreSQL stores core transactional product data. See [database-schema.md](database-schema.md) for the full schema.
-- Redis supports cache and short-lived coordination state.
-- RabbitMQ carries asynchronous workflows and service messages between backend runtimes.
+- Valkey carries cache, short-lived coordination state, and asynchronous event streams between backend runtimes.
 
 ## Interaction Model
 
 - `apps/web` uses HTTP APIs exposed by `services/api` for request-response workflows.
 - `apps/web` connects to `services/realtime` over Socket.IO for live updates.
 - `apps/e2e` drives a real browser against the full running stack and validates cross-cutting flows that span multiple runtime surfaces.
-- `services/api` remains the system of record for product state and publishes real-time relevant domain events to RabbitMQ.
-- `services/realtime` consumes RabbitMQ messages from `services/api` and fans out client-safe events to connected Socket.IO rooms and users.
+- `services/api` remains the system of record for product state and publishes real-time relevant domain events to a Valkey Stream.
+- `services/realtime` consumes Valkey Stream messages from `services/api` and fans out client-safe events to connected Socket.IO rooms and users.
 - `services/ai-agent` integrates with the core backend and should publish or consume asynchronous events through explicit contracts rather than direct coupling.
 
 ## Architectural Intent
 
 - Keep service boundaries explicit.
 - Keep state-changing business logic in `services/api`, not in the real-time edge service.
-- Use RabbitMQ to decouple event production from Socket.IO delivery.
+- Use Valkey Streams to decouple event production from Socket.IO delivery.
 - Avoid adding shared layers before reuse is proven.
 - Separate product-facing documentation from implementation-facing documentation.
 - Keep the repository easy to read in public from the root.

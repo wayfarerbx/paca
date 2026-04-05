@@ -11,8 +11,8 @@ Keeping those concerns separate makes the repository easier to understand and av
 
 | File | Description |
 |---|---|
-| `docker-compose.dev.yml` | Local development stack with PostgreSQL, Valkey, RabbitMQ, and optional app containers |
-| `docker-compose.prod.yml` | Production-oriented single-host stack for web, API, PostgreSQL, Valkey, and RabbitMQ |
+| `docker-compose.dev.yml` | Local development stack with PostgreSQL, Valkey, and optional app containers |
+| `docker-compose.prod.yml` | Production-oriented single-host stack for web, API, PostgreSQL, and Valkey |
 | `.env.production.example` | Example environment file for `docker-compose.prod.yml` |
 
 Service container definitions live with each service:
@@ -32,10 +32,10 @@ docker compose -f deploy/docker-compose.dev.yml up -d
 Start only shared dependencies:
 
 ```bash
-docker compose -f deploy/docker-compose.dev.yml up -d postgres valkey rabbitmq
+docker compose -f deploy/docker-compose.dev.yml up -d postgres valkey
 ```
 
-For day-to-day coding, contributors can still run the application services directly on the host and use Docker Compose only for PostgreSQL, Valkey, and RabbitMQ.
+For day-to-day coding, contributors can still run the application services directly on the host and use Docker Compose only for PostgreSQL and Valkey.
 
 The Postgres schema is applied automatically on the first container start from `services/api/migrations/`.
 
@@ -44,9 +44,7 @@ The Postgres schema is applied automatically on the first container start from `
 | Service | Port | Notes |
 |---|---|---|
 | PostgreSQL | 5432 | Local database for development |
-| Valkey | 6379 | Local cache / ephemeral state |
-| RabbitMQ (AMQP) | 5672 | Event transport |
-| RabbitMQ (management UI) | 15672 | http://localhost:15672, user `paca`, password `paca` |
+| Valkey | 6379 | Local cache / event streams |
 | API | 8080 | Containerized Go service |
 | Web | 3000 | Containerized TanStack Start app |
 
@@ -66,7 +64,7 @@ docker compose -f deploy/docker-compose.dev.yml down -v
 
 Use [`docker-compose.prod.yml`](./docker-compose.prod.yml) as a self-hosting baseline for open-source deployments.
 
-The production compose includes PostgreSQL, Valkey, and RabbitMQ because a public repository should offer a runnable end-to-end deployment path. It is still a single-host baseline rather than a universal recommendation. Teams using managed services can keep the same application images and point the runtime configuration at external infrastructure instead.
+The production compose includes PostgreSQL and Valkey because a public repository should offer a runnable end-to-end deployment path. It is still a single-host baseline rather than a universal recommendation. Teams using managed services can keep the same application images and point the runtime configuration at external infrastructure instead.
 
 Create a production environment file from the example:
 
@@ -86,4 +84,4 @@ This file is suitable as:
 - a CI/CD handoff artifact;
 - a reference for container image names and required runtime configuration.
 
-By default, the web and API services are published to the host in the production compose. PostgreSQL, Valkey, and RabbitMQ stay on the internal Compose network unless an operator intentionally exposes them.
+By default, the web and API services are published to the host in the production compose. PostgreSQL and Valkey stay on the internal Compose network unless an operator intentionally exposes them.

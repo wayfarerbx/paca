@@ -35,7 +35,7 @@ Planned concerns:
 - business workflows;
 - task, board, and activity APIs;
 - persistence coordination with PostgreSQL and Redis;
-- publication of domain events to RabbitMQ for downstream consumers, including the real-time service;
+- publication of domain events to a Valkey Stream for downstream consumers, including the real-time service;
 - consumption of asynchronous events where API-owned workflows require it.
 
 ## services/realtime
@@ -46,7 +46,7 @@ Planned concerns:
 
 - maintain Socket.IO namespaces, rooms, and client connection lifecycle;
 - authenticate and authorize socket connections using contracts owned by the core backend;
-- consume RabbitMQ messages emitted by `services/api`;
+- consume Valkey Stream messages emitted by `services/api`;
 - transform internal domain events into client-safe real-time payloads;
 - broadcast updates for boards, tasks, comments, and presence-like collaboration signals.
 

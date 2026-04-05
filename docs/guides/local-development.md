@@ -10,7 +10,6 @@
 | `services/ai-agent` | FastAPI + LangGraph | — (not scaffolded) |
 | PostgreSQL | postgres:16-alpine | 5432 |
 | Valkey | valkey/valkey:8-alpine | 6379 |
-| RabbitMQ | rabbitmq:3.13-management | 5672 / 15672 |
 
 ## Prerequisites
 
@@ -20,10 +19,10 @@
 
 ## Start infrastructure
 
-All infra (PostgreSQL, Valkey, RabbitMQ) is defined in `deploy/docker-compose.dev.yml`. Run from the repository root:
+All infra (PostgreSQL, Valkey) is defined in `deploy/docker-compose.dev.yml`. Run from the repository root:
 
 ```bash
-docker compose -f deploy/docker-compose.dev.yml up -d postgres valkey rabbitmq
+docker compose -f deploy/docker-compose.dev.yml up -d postgres valkey
 ```
 
 The Postgres schema is seeded automatically from `services/api/migrations/` on first start.
@@ -71,6 +70,5 @@ Use `down -v` to also remove the Postgres data volume.
 
 ## Architecture notes
 
-- `services/api` owns all persistent state changes and publishes domain events to RabbitMQ.
+- `services/api` owns all persistent state changes and publishes domain events to a Valkey Stream.
 - `services/realtime` will consume those events and fan them out to Socket.IO clients.
-- RabbitMQ management UI is available at http://localhost:15672 (user `paca` / `paca`).

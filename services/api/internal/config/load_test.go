@@ -56,7 +56,6 @@ func TestLoad_Success(t *testing.T) {
 	t.Setenv("JWT_REFRESH_SESSION_TTL", "12h")
 	t.Setenv("DATABASE_URL", "postgres://test")
 	t.Setenv("REDIS_URL", "redis://localhost:6379/0")
-	t.Setenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
 	t.Setenv("ADMIN_USERNAME", "admin")
 	t.Setenv("ADMIN_PASSWORD", "password")
 
@@ -88,7 +87,6 @@ func TestLoad_MissingRequired(t *testing.T) {
 	t.Setenv("JWT_SECRET", "")
 	t.Setenv("DATABASE_URL", "")
 	t.Setenv("REDIS_URL", "")
-	t.Setenv("RABBITMQ_URL", "")
 	t.Setenv("ADMIN_USERNAME", "")
 	t.Setenv("ADMIN_PASSWORD", "")
 
@@ -97,7 +95,7 @@ func TestLoad_MissingRequired(t *testing.T) {
 		t.Fatal("expected error for missing required vars")
 	}
 	msg := err.Error()
-	for _, key := range []string{"JWT_SECRET", "DATABASE_URL", "REDIS_URL", "RABBITMQ_URL", "ADMIN_USERNAME", "ADMIN_PASSWORD"} {
+	for _, key := range []string{"JWT_SECRET", "DATABASE_URL", "REDIS_URL", "ADMIN_USERNAME", "ADMIN_PASSWORD"} {
 		if !strings.Contains(msg, key) {
 			t.Fatalf("expected error to contain %s, got %q", key, msg)
 		}
@@ -108,7 +106,6 @@ func TestLoad_InvalidBoolOrDuration(t *testing.T) {
 	t.Setenv("JWT_SECRET", "secret")
 	t.Setenv("DATABASE_URL", "postgres://test")
 	t.Setenv("REDIS_URL", "redis://localhost:6379/0")
-	t.Setenv("RABBITMQ_URL", "amqp://guest:guest@localhost:5672/")
 	t.Setenv("ADMIN_USERNAME", "admin")
 	t.Setenv("ADMIN_PASSWORD", "password")
 
