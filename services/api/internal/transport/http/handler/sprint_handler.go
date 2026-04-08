@@ -78,10 +78,11 @@ func (h *SprintHandler) CreateSprint(c *gin.Context) {
 	}
 	for _, dv := range defaultViews {
 		_, err := h.viewSvc.CreateView(ctx, sprintdom.CreateViewInput{
-			SprintID: s.ID,
-			Name:     dv.name,
-			ViewType: dv.vt,
-			Position: dv.position,
+			SprintID:  &s.ID,
+			ProjectID: s.ProjectID,
+			Name:      dv.name,
+			ViewType:  dv.vt,
+			Position:  dv.position,
 		})
 		if err != nil {
 			// Non-fatal: the sprint was created; log and continue.

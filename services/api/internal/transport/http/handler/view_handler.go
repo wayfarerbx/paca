@@ -61,13 +61,58 @@ func (h *ViewHandler) CreateView(c *gin.Context) {
 		presenter.Error(c, err)
 		return
 	}
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 
 	var req dto.CreateViewRequest
 	if !middleware.BindJSON(c, &req) {
 		return
 	}
 
-	v, err := h.svc.CreateView(c.Request.Context(), req.ToCreateInput(sprintID))
+	v, err := h.svc.CreateView(c.Request.Context(), req.ToCreateInput(sprintID, projectID))
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	presenter.Created(c, dto.ViewFromEntity(v))
+}
+
+// ListBacklogViews handles GET /projects/:projectId/product-backlog/views.
+func (h *ViewHandler) ListBacklogViews(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	views, err := h.svc.ListBacklogViews(c.Request.Context(), projectID)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	resp := make([]dto.ViewResponse, 0, len(views))
+	for _, v := range views {
+		resp = append(resp, dto.ViewFromEntity(v))
+	}
+	presenter.OK(c, gin.H{"items": resp})
+}
+
+// CreateBacklogView handles POST /projects/:projectId/product-backlog/views.
+func (h *ViewHandler) CreateBacklogView(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
+	var req dto.CreateViewRequest
+	if !middleware.BindJSON(c, &req) {
+		return
+	}
+
+	v, err := h.svc.CreateView(c.Request.Context(), req.ToCreateBacklogInput(projectID))
 	if err != nil {
 		presenter.Error(c, err)
 		return

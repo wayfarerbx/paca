@@ -67,9 +67,11 @@ type ViewConfig struct {
 
 // SprintView is a named, persisted view configuration for a sprint or
 // product-backlog integration.
+// SprintID is nil for product-backlog views; ProjectID is always set.
 type SprintView struct {
 	ID        uuid.UUID
-	SprintID  uuid.UUID
+	SprintID  *uuid.UUID
+	ProjectID uuid.UUID
 	Name      string
 	ViewType  ViewType
 	Config    ViewConfig

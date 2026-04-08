@@ -17,12 +17,13 @@ import (
 // --- GORM models ------------------------------------------------------------
 
 type sprintViewRecord struct {
-	ID        string `gorm:"primarykey;type:uuid"`
-	SprintID  string `gorm:"type:uuid;not null;column:sprint_id"`
-	Name      string `gorm:"not null"`
-	ViewType  string `gorm:"not null;column:view_type;default:table"`
-	Config    []byte `gorm:"type:jsonb;not null;column:config"`
-	Position  int    `gorm:"not null;default:0"`
+	ID        string  `gorm:"primarykey;type:uuid"`
+	SprintID  *string `gorm:"type:uuid;column:sprint_id"`
+	ProjectID string  `gorm:"type:uuid;not null;column:project_id"`
+	Name      string  `gorm:"not null"`
+	ViewType  string  `gorm:"not null;column:view_type;default:table"`
+	Config    []byte  `gorm:"type:jsonb;not null;column:config"`
+	Position  int     `gorm:"not null;default:0"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -86,15 +87,41 @@ func (r *ViewRepository) FindViewByID(ctx context.Context, id uuid.UUID) (*sprin
 	return toViewEntity(&rec)
 }
 
+// ListBacklogViews returns all product-backlog views for a project ordered by position.
+func (r *ViewRepository) ListBacklogViews(ctx context.Context, projectID uuid.UUID) ([]*sprintdom.SprintView, error) {
+	var records []sprintViewRecord
+	if err := r.db.WithContext(ctx).
+		Where("project_id = ? AND sprint_id IS NULL", projectID.String()).
+		Order("position ASC, created_at ASC").
+		Find(&records).Error; err != nil {
+		return nil, fmt.Errorf("view repo: list backlog: %w", err)
+	}
+	out := make([]*sprintdom.SprintView, 0, len(records))
+	for i := range records {
+		v, err := toViewEntity(&records[i])
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, nil
+}
+
 // CreateView persists a new sprint view.
 func (r *ViewRepository) CreateView(ctx context.Context, v *sprintdom.SprintView) error {
 	configBytes, err := json.Marshal(v.Config)
 	if err != nil {
 		return fmt.Errorf("view repo: marshal config: %w", err)
 	}
+	var sprintIDStr *string
+	if v.SprintID != nil {
+		s := v.SprintID.String()
+		sprintIDStr = &s
+	}
 	rec := &sprintViewRecord{
 		ID:        v.ID.String(),
-		SprintID:  v.SprintID.String(),
+		SprintID:  sprintIDStr,
+		ProjectID: v.ProjectID.String(),
 		Name:      v.Name,
 		ViewType:  string(v.ViewType),
 		Config:    configBytes,
@@ -148,6 +175,17 @@ func (r *ViewRepository) CountViews(ctx context.Context, sprintID uuid.UUID) (in
 	return int(count), nil
 }
 
+// CountBacklogViews returns the number of product-backlog views for a project.
+func (r *ViewRepository) CountBacklogViews(ctx context.Context, projectID uuid.UUID) (int, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&sprintViewRecord{}).
+		Where("project_id = ? AND sprint_id IS NULL", projectID.String()).
+		Count(&count).Error; err != nil {
+		return 0, fmt.Errorf("view repo: count backlog: %w", err)
+	}
+	return int(count), nil
+}
+
 // --- Task position methods --------------------------------------------------
 
 // UpsertTaskPosition stores or updates the manual position of a task in a view.
@@ -189,7 +227,12 @@ func (r *ViewRepository) ListTaskPositions(ctx context.Context, viewID uuid.UUID
 
 func toViewEntity(r *sprintViewRecord) (*sprintdom.SprintView, error) {
 	id, _ := uuid.Parse(r.ID)
-	sid, _ := uuid.Parse(r.SprintID)
+	pid, _ := uuid.Parse(r.ProjectID)
+	var sid *uuid.UUID
+	if r.SprintID != nil {
+		parsed, _ := uuid.Parse(*r.SprintID)
+		sid = &parsed
+	}
 	var cfg sprintdom.ViewConfig
 	if len(r.Config) > 0 {
 		if err := json.Unmarshal(r.Config, &cfg); err != nil {
@@ -199,6 +242,7 @@ func toViewEntity(r *sprintViewRecord) (*sprintdom.SprintView, error) {
 	return &sprintdom.SprintView{
 		ID:        id,
 		SprintID:  sid,
+		ProjectID: pid,
 		Name:      r.Name,
 		ViewType:  sprintdom.ViewType(r.ViewType),
 		Config:    cfg,

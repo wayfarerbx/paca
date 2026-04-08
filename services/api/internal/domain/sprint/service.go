@@ -38,6 +38,7 @@ type UpdateSprintInput struct {
 // ViewService defines use cases for sprint views and manual task ordering.
 type ViewService interface {
 	ListViews(ctx context.Context, sprintID uuid.UUID) ([]*SprintView, error)
+	ListBacklogViews(ctx context.Context, projectID uuid.UUID) ([]*SprintView, error)
 	GetView(ctx context.Context, id uuid.UUID) (*SprintView, error)
 	CreateView(ctx context.Context, in CreateViewInput) (*SprintView, error)
 	UpdateView(ctx context.Context, id uuid.UUID, in UpdateViewInput) (*SprintView, error)
@@ -51,12 +52,14 @@ type ViewService interface {
 }
 
 // CreateViewInput carries fields required to create a sprint view.
+// SprintID is nil for product-backlog views; ProjectID is always required.
 type CreateViewInput struct {
-	SprintID uuid.UUID
-	Name     string
-	ViewType ViewType
-	Config   ViewConfig
-	Position int
+	SprintID  *uuid.UUID
+	ProjectID uuid.UUID
+	Name      string
+	ViewType  ViewType
+	Config    ViewConfig
+	Position  int
 }
 
 // UpdateViewInput carries mutable view fields.

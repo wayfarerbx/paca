@@ -25,6 +25,11 @@ func (s *ViewService) ListViews(ctx context.Context, sprintID uuid.UUID) ([]*spr
 	return s.repo.ListViews(ctx, sprintID)
 }
 
+// ListBacklogViews returns all product-backlog views for a project.
+func (s *ViewService) ListBacklogViews(ctx context.Context, projectID uuid.UUID) ([]*sprintdom.SprintView, error) {
+	return s.repo.ListBacklogViews(ctx, projectID)
+}
+
 // GetView returns the view with the given ID.
 func (s *ViewService) GetView(ctx context.Context, id uuid.UUID) (*sprintdom.SprintView, error) {
 	return s.repo.FindViewByID(ctx, id)
@@ -49,6 +54,7 @@ func (s *ViewService) CreateView(ctx context.Context, in sprintdom.CreateViewInp
 	v := &sprintdom.SprintView{
 		ID:        uuid.New(),
 		SprintID:  in.SprintID,
+		ProjectID: in.ProjectID,
 		Name:      name,
 		ViewType:  vt,
 		Config:    in.Config,
@@ -105,7 +111,12 @@ func (s *ViewService) DeleteView(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 
-	count, err := s.repo.CountViews(ctx, v.SprintID)
+	var count int
+	if v.SprintID != nil {
+		count, err = s.repo.CountViews(ctx, *v.SprintID)
+	} else {
+		count, err = s.repo.CountBacklogViews(ctx, v.ProjectID)
+	}
 	if err != nil {
 		return err
 	}

@@ -58,6 +58,9 @@ type fakeViewSvcH struct {
 func (f *fakeViewSvcH) ListViews(_ context.Context, _ uuid.UUID) ([]*sprintdom.SprintView, error) {
 	return nil, nil
 }
+func (f *fakeViewSvcH) ListBacklogViews(_ context.Context, _ uuid.UUID) ([]*sprintdom.SprintView, error) {
+	return nil, nil
+}
 func (f *fakeViewSvcH) GetView(_ context.Context, _ uuid.UUID) (*sprintdom.SprintView, error) {
 	return nil, sprintdom.ErrViewNotFound
 }
@@ -66,6 +69,7 @@ func (f *fakeViewSvcH) CreateView(_ context.Context, in sprintdom.CreateViewInpu
 	v := &sprintdom.SprintView{
 		ID:        uuid.New(),
 		SprintID:  in.SprintID,
+		ProjectID: in.ProjectID,
 		Name:      in.Name,
 		ViewType:  in.ViewType,
 		Position:  in.Position,
@@ -105,7 +109,7 @@ func TestCreateSprint_SeedsDefaultViews(t *testing.T) {
 
 	body, _ := json.Marshal(map[string]any{"name": "Sprint 1"})
 	projectID := uuid.New()
-	req := httptest.NewRequest(http.MethodPost, "/projects/"+projectID.String()+"/sprints", bytes.NewReader(body))
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost, "/projects/"+projectID.String()+"/sprints", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 
@@ -133,8 +137,8 @@ func TestCreateSprint_SeedsDefaultViews(t *testing.T) {
 	// Both views must belong to the newly created sprint.
 	sprintID := sprintSvc.created[0].ID
 	for _, v := range viewSvc.created {
-		if v.SprintID != sprintID {
-			t.Errorf("view %s has wrong sprint ID: want %s, got %s", v.ID, sprintID, v.SprintID)
+		if v.SprintID == nil || *v.SprintID != sprintID {
+			t.Errorf("view %s has wrong sprint ID: want %s, got %v", v.ID, sprintID, v.SprintID)
 		}
 	}
 }

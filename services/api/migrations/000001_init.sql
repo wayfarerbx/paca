@@ -203,6 +203,8 @@ CREATE TABLE IF NOT EXISTS custom_field_definitions (
 -- -------------------------------------------------------------------------
 -- SPRINT VIEWS
 -- Each sprint (or product backlog) can have multiple named views.
+-- sprint_id:  NULL for product-backlog views; set for sprint-scoped views.
+-- project_id: always set — identifies the owning project.
 -- view_type: table | board | roadmap
 -- config: jsonb with optional keys:
 --   fields      text[]   – ordered list of visible column names
@@ -215,7 +217,8 @@ CREATE TABLE IF NOT EXISTS custom_field_definitions (
 
 CREATE TABLE IF NOT EXISTS sprint_views (
     id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    sprint_id  UUID        NOT NULL REFERENCES sprints(id) ON DELETE CASCADE,
+    sprint_id  UUID        REFERENCES sprints(id) ON DELETE CASCADE,
+    project_id UUID        NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     name       TEXT        NOT NULL,
     view_type  TEXT        NOT NULL DEFAULT 'table'
                            CHECK (view_type IN ('table','board','roadmap')),
@@ -225,7 +228,8 @@ CREATE TABLE IF NOT EXISTS sprint_views (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_sprint_views_sprint_id ON sprint_views (sprint_id);
+CREATE INDEX IF NOT EXISTS idx_sprint_views_sprint_id  ON sprint_views (sprint_id);
+CREATE INDEX IF NOT EXISTS idx_sprint_views_project_id ON sprint_views (project_id);
 
 -- -------------------------------------------------------------------------
 -- VIEW TASK POSITIONS

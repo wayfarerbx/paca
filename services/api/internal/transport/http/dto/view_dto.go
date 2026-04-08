@@ -38,7 +38,8 @@ type ViewConfigDTO struct {
 // ViewResponse is the public representation of a sprint view.
 type ViewResponse struct {
 	ID        uuid.UUID          `json:"id"`
-	SprintID  uuid.UUID          `json:"sprint_id"`
+	SprintID  *uuid.UUID         `json:"sprint_id,omitempty"`
+	ProjectID uuid.UUID          `json:"project_id"`
 	Name      string             `json:"name"`
 	ViewType  sprintdom.ViewType `json:"view_type"`
 	Config    ViewConfigDTO      `json:"config"`
@@ -50,10 +51,11 @@ type ViewResponse struct {
 // ViewFromEntity maps a domain SprintView to a ViewResponse DTO.
 func ViewFromEntity(v *sprintdom.SprintView) ViewResponse {
 	return ViewResponse{
-		ID:       v.ID,
-		SprintID: v.SprintID,
-		Name:     v.Name,
-		ViewType: v.ViewType,
+		ID:        v.ID,
+		SprintID:  v.SprintID,
+		ProjectID: v.ProjectID,
+		Name:      v.Name,
+		ViewType:  v.ViewType,
 		Config: ViewConfigDTO{
 			Fields:    v.Config.Fields,
 			ColumnBy:  v.Config.ColumnBy,
@@ -118,18 +120,35 @@ func TaskPositionFromEntity(p *sprintdom.ViewTaskPosition) TaskPositionResponse 
 	}
 }
 
-// ToCreateInput builds the domain input from request data.
-func (r CreateViewRequest) ToCreateInput(sprintID uuid.UUID) sprintdom.CreateViewInput {
+// ToCreateInput builds the domain input for a sprint-scoped view.
+func (r CreateViewRequest) ToCreateInput(sprintID uuid.UUID, projectID uuid.UUID) sprintdom.CreateViewInput {
 	pos := 0
 	if r.Position != nil {
 		pos = *r.Position
 	}
 	return sprintdom.CreateViewInput{
-		SprintID: sprintID,
-		Name:     r.Name,
-		ViewType: r.ViewType,
-		Config:   toViewConfig(r.Config),
-		Position: pos,
+		SprintID:  &sprintID,
+		ProjectID: projectID,
+		Name:      r.Name,
+		ViewType:  r.ViewType,
+		Config:    toViewConfig(r.Config),
+		Position:  pos,
+	}
+}
+
+// ToCreateBacklogInput builds the domain input for a product-backlog view.
+func (r CreateViewRequest) ToCreateBacklogInput(projectID uuid.UUID) sprintdom.CreateViewInput {
+	pos := 0
+	if r.Position != nil {
+		pos = *r.Position
+	}
+	return sprintdom.CreateViewInput{
+		SprintID:  nil,
+		ProjectID: projectID,
+		Name:      r.Name,
+		ViewType:  r.ViewType,
+		Config:    toViewConfig(r.Config),
+		Position:  pos,
 	}
 }
 

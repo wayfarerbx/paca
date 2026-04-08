@@ -339,13 +339,59 @@ func New(deps Deps) *gin.Engine {
 				}
 
 				// Product backlog — tasks not assigned to any sprint
-				project.GET("/product-backlog",
-					httpmw.RequireAnyPermissions(deps.Authorizer,
-						httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
-						httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionTasksRead}},
-					),
-					deps.Task.ListBacklogTasks,
-				)
+				backlog := project.Group("/product-backlog")
+				{
+					backlog.GET("",
+						httpmw.RequireAnyPermissions(deps.Authorizer,
+							httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
+							httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionTasksRead}},
+						),
+						deps.Task.ListBacklogTasks,
+					)
+
+					// Product-backlog views
+					backlogViews := backlog.Group("/views")
+					{
+						backlogViews.GET("",
+							httpmw.RequireAnyPermissions(deps.Authorizer,
+								httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
+								httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionSprintsRead}},
+							),
+							deps.View.ListBacklogViews,
+						)
+						backlogViews.POST("",
+							httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionSprintsWrite),
+							deps.View.CreateBacklogView,
+						)
+						backlogViews.GET("/:viewId",
+							httpmw.RequireAnyPermissions(deps.Authorizer,
+								httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
+								httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionSprintsRead}},
+							),
+							deps.View.GetView,
+						)
+						backlogViews.PATCH("/:viewId",
+							httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionSprintsWrite),
+							deps.View.UpdateView,
+						)
+						backlogViews.DELETE("/:viewId",
+							httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionSprintsWrite),
+							deps.View.DeleteView,
+						)
+						// Manual task ordering within a backlog view
+						backlogViews.GET("/:viewId/task-positions",
+							httpmw.RequireAnyPermissions(deps.Authorizer,
+								httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
+								httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionTasksRead}},
+							),
+							deps.View.ListTaskPositions,
+						)
+						backlogViews.PUT("/:viewId/task-positions/:taskId",
+							httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
+							deps.View.MoveTask,
+						)
+					}
+				}
 
 				// Tasks — core work items
 				tasks := project.Group("/tasks")

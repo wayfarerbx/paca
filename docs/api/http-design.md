@@ -161,6 +161,13 @@ These routes already exist in the Go API service.
 | `GET` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId/task-positions` | Access token (fresh) + `tasks.read` | List manual task ordering positions within a view. |
 | `PUT` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId/task-positions/:taskId` | Access token (fresh) + `tasks.write` | Set or update the manual position of a task within a view. |
 | `GET` | `/api/v1/projects/:projectId/product-backlog` | Access token (fresh) + `tasks.read` | List tasks not yet assigned to any sprint (product backlog view). |
+| `GET` | `/api/v1/projects/:projectId/product-backlog/views` | Access token (fresh) + `sprints.read` | List saved view configurations for the product backlog. |
+| `POST` | `/api/v1/projects/:projectId/product-backlog/views` | Access token (fresh) + `sprints.write` | Create a saved view configuration for the product backlog. Project creation automatically seeds one Board and one Table view. |
+| `GET` | `/api/v1/projects/:projectId/product-backlog/views/:viewId` | Access token (fresh) + `sprints.read` | Get a single product-backlog view configuration. |
+| `PATCH` | `/api/v1/projects/:projectId/product-backlog/views/:viewId` | Access token (fresh) + `sprints.write` | Update a product-backlog view's name or config. |
+| `DELETE` | `/api/v1/projects/:projectId/product-backlog/views/:viewId` | Access token (fresh) + `sprints.write` | Delete a product-backlog view. Fails with `409 VIEW_IS_LAST_VIEW` if it is the only remaining view. |
+| `GET` | `/api/v1/projects/:projectId/product-backlog/views/:viewId/task-positions` | Access token (fresh) + `tasks.read` | List manual task ordering positions within a product-backlog view. |
+| `PUT` | `/api/v1/projects/:projectId/product-backlog/views/:viewId/task-positions/:taskId` | Access token (fresh) + `tasks.write` | Set or update the manual position of a task within a product-backlog view. |
 | `GET` | `/api/v1/projects/:projectId/tasks` | Access token (fresh) + `tasks.read` | List tasks with optional filters (`sprint_id`, `status_id`, `assignee_id`). |
 | `POST` | `/api/v1/projects/:projectId/tasks` | Access token (fresh) + `tasks.write` | Create a task. |
 | `GET` | `/api/v1/projects/:projectId/tasks/:taskId` | Access token (fresh) + `tasks.read` | Get task detail. |
@@ -615,6 +622,136 @@ Success response data:
 Function:
 
 - upsert the manual position of a task within a view;
+- used when `sort_by` is `"manual"` and the user reorders tasks via drag-and-drop.
+
+Request body:
+
+```json
+{
+  "group_key": "status-uuid",
+  "position": 2
+}
+```
+
+Success response: `204 No Content`
+
+---
+
+## Product Backlog View Contracts
+
+Product-backlog views are identical in structure to sprint views, but they are scoped to a project rather than a sprint. The `sprint_id` field is omitted (or `null`) in all responses; `project_id` is always present.
+
+### `GET /api/v1/projects/:projectId/product-backlog/views`
+
+Function:
+
+- list all saved view configurations for the product backlog ordered by `position`;
+- project creation automatically seeds a Board view (position 0) and a Table view (position 1).
+
+Success response data:
+
+```json
+{
+  "items": [
+    {
+      "id": "uuid",
+      "project_id": "uuid",
+      "name": "Board",
+      "view_type": "board",
+      "position": 0,
+      "config": {},
+      "created_at": "2026-03-24T00:00:00Z",
+      "updated_at": "2026-03-24T00:00:00Z"
+    }
+  ]
+}
+```
+
+### `POST /api/v1/projects/:projectId/product-backlog/views`
+
+Function:
+
+- create a new product-backlog view;
+- `view_type` must be one of `board`, `table`, or `roadmap`;
+- `position` defaults to the next available slot.
+
+Request body:
+
+```json
+{
+  "name": "My Table",
+  "view_type": "table",
+  "position": 2,
+  "config": {
+    "sort_by": "manual"
+  }
+}
+```
+
+Success response: `201 Created` with view data.
+
+### `GET /api/v1/projects/:projectId/product-backlog/views/:viewId`
+
+Function:
+
+- get a product-backlog view by ID including its full `config` map.
+
+### `PATCH /api/v1/projects/:projectId/product-backlog/views/:viewId`
+
+Function:
+
+- update a product-backlog view's `name`, `position`, or `config`;
+- only supplied fields are changed.
+
+Request body:
+
+```json
+{
+  "name": "Renamed Board",
+  "config": {
+    "sort_by": "manual"
+  }
+}
+```
+
+Success response: `200 OK` with updated view data.
+
+### `DELETE /api/v1/projects/:projectId/product-backlog/views/:viewId`
+
+Function:
+
+- delete a product-backlog view;
+- returns `409 VIEW_IS_LAST_VIEW` if this is the only remaining view on the project's backlog.
+
+Success response: `204 No Content`
+
+### `GET /api/v1/projects/:projectId/product-backlog/views/:viewId/task-positions`
+
+Function:
+
+- return the manual task ordering positions stored for this view;
+- positions are scoped per `group_key` (e.g. a status column ID) and ordered by `position`.
+
+Success response data:
+
+```json
+{
+  "items": [
+    {
+      "view_id": "uuid",
+      "task_id": "uuid",
+      "group_key": "status-uuid",
+      "position": 0
+    }
+  ]
+}
+```
+
+### `PUT /api/v1/projects/:projectId/product-backlog/views/:viewId/task-positions/:taskId`
+
+Function:
+
+- upsert the manual position of a task within a product-backlog view;
 - used when `sort_by` is `"manual"` and the user reorders tasks via drag-and-drop.
 
 Request body:

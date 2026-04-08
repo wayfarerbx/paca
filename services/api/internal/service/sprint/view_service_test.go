@@ -32,12 +32,28 @@ func posKey(viewID, taskID uuid.UUID) string {
 	return viewID.String() + ":" + taskID.String()
 }
 
+// uuidPtr returns a pointer to the given uuid value.
+func uuidPtr(id uuid.UUID) *uuid.UUID { return &id }
+
 func (r *fakeViewRepo) ListViews(_ context.Context, sprintID uuid.UUID) ([]*sprintdom.SprintView, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	var out []*sprintdom.SprintView
 	for _, v := range r.views {
-		if v.SprintID == sprintID {
+		if v.SprintID != nil && *v.SprintID == sprintID {
+			cp := *v
+			out = append(out, &cp)
+		}
+	}
+	return out, nil
+}
+
+func (r *fakeViewRepo) ListBacklogViews(_ context.Context, projectID uuid.UUID) ([]*sprintdom.SprintView, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var out []*sprintdom.SprintView
+	for _, v := range r.views {
+		if v.SprintID == nil && v.ProjectID == projectID {
 			cp := *v
 			out = append(out, &cp)
 		}
@@ -87,7 +103,19 @@ func (r *fakeViewRepo) CountViews(_ context.Context, sprintID uuid.UUID) (int, e
 	defer r.mu.RUnlock()
 	count := 0
 	for _, v := range r.views {
-		if v.SprintID == sprintID {
+		if v.SprintID != nil && *v.SprintID == sprintID {
+			count++
+		}
+	}
+	return count, nil
+}
+
+func (r *fakeViewRepo) CountBacklogViews(_ context.Context, projectID uuid.UUID) (int, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	count := 0
+	for _, v := range r.views {
+		if v.SprintID == nil && v.ProjectID == projectID {
 			count++
 		}
 	}
@@ -126,7 +154,7 @@ func TestViewService_CreateView_OK(t *testing.T) {
 
 	sprintID := uuid.New()
 	v, err := svc.CreateView(ctx, sprintdom.CreateViewInput{
-		SprintID: sprintID,
+		SprintID: &sprintID,
 		Name:     "Backlog",
 		ViewType: sprintdom.ViewTypeTable,
 	})
@@ -139,7 +167,7 @@ func TestViewService_CreateView_OK(t *testing.T) {
 	if v.ViewType != sprintdom.ViewTypeTable {
 		t.Errorf("expected view_type=table, got %q", v.ViewType)
 	}
-	if v.SprintID != sprintID {
+	if v.SprintID == nil || *v.SprintID != sprintID {
 		t.Errorf("sprint_id mismatch")
 	}
 }
@@ -149,7 +177,7 @@ func TestViewService_CreateView_DefaultTypeIsTable(t *testing.T) {
 	svc := sprintsvc.NewViewService(newFakeViewRepo())
 
 	v, err := svc.CreateView(ctx, sprintdom.CreateViewInput{
-		SprintID: uuid.New(),
+		SprintID: uuidPtr(uuid.New()),
 		Name:     "My View",
 	})
 	if err != nil {
@@ -165,7 +193,7 @@ func TestViewService_CreateView_EmptyNameReturnsError(t *testing.T) {
 	svc := sprintsvc.NewViewService(newFakeViewRepo())
 
 	_, err := svc.CreateView(ctx, sprintdom.CreateViewInput{
-		SprintID: uuid.New(),
+		SprintID: uuidPtr(uuid.New()),
 		Name:     "   ",
 		ViewType: sprintdom.ViewTypeBoard,
 	})
@@ -179,7 +207,7 @@ func TestViewService_CreateView_InvalidTypeReturnsError(t *testing.T) {
 	svc := sprintsvc.NewViewService(newFakeViewRepo())
 
 	_, err := svc.CreateView(ctx, sprintdom.CreateViewInput{
-		SprintID: uuid.New(),
+		SprintID: uuidPtr(uuid.New()),
 		Name:     "Bad",
 		ViewType: "gantt",
 	})
@@ -194,7 +222,7 @@ func TestViewService_GetView_OK(t *testing.T) {
 	svc := sprintsvc.NewViewService(repo)
 
 	created, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{
-		SprintID: uuid.New(),
+		SprintID: uuidPtr(uuid.New()),
 		Name:     "Sprint View",
 		ViewType: sprintdom.ViewTypeBoard,
 	})
@@ -224,7 +252,7 @@ func TestViewService_UpdateView_Name(t *testing.T) {
 	svc := sprintsvc.NewViewService(repo)
 
 	created, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{
-		SprintID: uuid.New(),
+		SprintID: uuidPtr(uuid.New()),
 		Name:     "Old Name",
 		ViewType: sprintdom.ViewTypeTable,
 	})
@@ -245,7 +273,7 @@ func TestViewService_UpdateView_Config(t *testing.T) {
 	svc := sprintsvc.NewViewService(repo)
 
 	created, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{
-		SprintID: uuid.New(),
+		SprintID: uuidPtr(uuid.New()),
 		Name:     "Board View",
 		ViewType: sprintdom.ViewTypeBoard,
 	})
@@ -277,8 +305,8 @@ func TestViewService_DeleteView_OK(t *testing.T) {
 	svc := sprintsvc.NewViewService(repo)
 
 	sprintID := uuid.New()
-	v1, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{SprintID: sprintID, Name: "V1", ViewType: sprintdom.ViewTypeTable})
-	_, _ = svc.CreateView(ctx, sprintdom.CreateViewInput{SprintID: sprintID, Name: "V2", ViewType: sprintdom.ViewTypeBoard})
+	v1, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{SprintID: &sprintID, Name: "V1", ViewType: sprintdom.ViewTypeTable})
+	_, _ = svc.CreateView(ctx, sprintdom.CreateViewInput{SprintID: &sprintID, Name: "V2", ViewType: sprintdom.ViewTypeBoard})
 
 	if err := svc.DeleteView(ctx, v1.ID); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -296,7 +324,7 @@ func TestViewService_DeleteView_LastViewRejected(t *testing.T) {
 	svc := sprintsvc.NewViewService(repo)
 
 	v, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{
-		SprintID: uuid.New(),
+		SprintID: uuidPtr(uuid.New()),
 		Name:     "Only View",
 		ViewType: sprintdom.ViewTypeTable,
 	})
@@ -323,7 +351,7 @@ func TestViewService_MoveTask_OK(t *testing.T) {
 	svc := sprintsvc.NewViewService(repo)
 
 	v, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{
-		SprintID: uuid.New(),
+		SprintID: uuidPtr(uuid.New()),
 		Name:     "V",
 		ViewType: sprintdom.ViewTypeTable,
 	})
@@ -372,8 +400,8 @@ func TestViewService_ListViews_OK(t *testing.T) {
 	svc := sprintsvc.NewViewService(repo)
 
 	sprintID := uuid.New()
-	_, _ = svc.CreateView(ctx, sprintdom.CreateViewInput{SprintID: sprintID, Name: "A", ViewType: sprintdom.ViewTypeTable})
-	_, _ = svc.CreateView(ctx, sprintdom.CreateViewInput{SprintID: sprintID, Name: "B", ViewType: sprintdom.ViewTypeRoadmap})
+	_, _ = svc.CreateView(ctx, sprintdom.CreateViewInput{SprintID: &sprintID, Name: "A", ViewType: sprintdom.ViewTypeTable})
+	_, _ = svc.CreateView(ctx, sprintdom.CreateViewInput{SprintID: &sprintID, Name: "B", ViewType: sprintdom.ViewTypeRoadmap})
 
 	views, err := svc.ListViews(ctx, sprintID)
 	if err != nil {
@@ -381,5 +409,149 @@ func TestViewService_ListViews_OK(t *testing.T) {
 	}
 	if len(views) != 2 {
 		t.Errorf("expected 2 views, got %d", len(views))
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Product-backlog view tests
+// ---------------------------------------------------------------------------
+
+func TestViewService_ListBacklogViews_Empty(t *testing.T) {
+	ctx := context.Background()
+	svc := sprintsvc.NewViewService(newFakeViewRepo())
+
+	views, err := svc.ListBacklogViews(ctx, uuid.New())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(views) != 0 {
+		t.Errorf("expected 0 views, got %d", len(views))
+	}
+}
+
+func TestViewService_ListBacklogViews_ReturnsOnlyBacklogViews(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeViewRepo()
+	svc := sprintsvc.NewViewService(repo)
+
+	projectID := uuid.New()
+	otherProjectID := uuid.New()
+	sprintID := uuid.New()
+
+	// backlog view for our project
+	_, _ = svc.CreateView(ctx, sprintdom.CreateViewInput{ProjectID: projectID, Name: "Backlog Table", ViewType: sprintdom.ViewTypeTable})
+	_, _ = svc.CreateView(ctx, sprintdom.CreateViewInput{ProjectID: projectID, Name: "Backlog Board", ViewType: sprintdom.ViewTypeBoard})
+	// sprint view for same project — should NOT appear in backlog list
+	_, _ = svc.CreateView(ctx, sprintdom.CreateViewInput{SprintID: &sprintID, ProjectID: projectID, Name: "Sprint View", ViewType: sprintdom.ViewTypeTable})
+	// backlog view for a different project — should NOT appear
+	_, _ = svc.CreateView(ctx, sprintdom.CreateViewInput{ProjectID: otherProjectID, Name: "Other Backlog", ViewType: sprintdom.ViewTypeTable})
+
+	views, err := svc.ListBacklogViews(ctx, projectID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(views) != 2 {
+		t.Errorf("expected 2 backlog views, got %d", len(views))
+	}
+	for _, v := range views {
+		if v.SprintID != nil {
+			t.Errorf("backlog view should have nil SprintID, got %v", v.SprintID)
+		}
+		if v.ProjectID != projectID {
+			t.Errorf("backlog view has wrong project_id: %v", v.ProjectID)
+		}
+	}
+}
+
+func TestViewService_CreateBacklogView_NilSprintID(t *testing.T) {
+	ctx := context.Background()
+	svc := sprintsvc.NewViewService(newFakeViewRepo())
+
+	projectID := uuid.New()
+	v, err := svc.CreateView(ctx, sprintdom.CreateViewInput{
+		ProjectID: projectID,
+		Name:      "My Backlog",
+		ViewType:  sprintdom.ViewTypeBoard,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if v.SprintID != nil {
+		t.Errorf("expected SprintID=nil for backlog view, got %v", v.SprintID)
+	}
+	if v.ProjectID != projectID {
+		t.Errorf("expected project_id=%s, got %s", projectID, v.ProjectID)
+	}
+}
+
+func TestViewService_DeleteBacklogView_LastViewRejected(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeViewRepo()
+	svc := sprintsvc.NewViewService(repo)
+
+	projectID := uuid.New()
+	v, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{
+		ProjectID: projectID,
+		Name:      "Only Backlog View",
+		ViewType:  sprintdom.ViewTypeTable,
+	})
+
+	err := svc.DeleteView(ctx, v.ID)
+	if err != sprintdom.ErrViewIsLastView {
+		t.Errorf("expected ErrViewIsLastView, got %v", err)
+	}
+}
+
+func TestViewService_DeleteBacklogView_OK(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeViewRepo()
+	svc := sprintsvc.NewViewService(repo)
+
+	projectID := uuid.New()
+	v1, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{ProjectID: projectID, Name: "BL1", ViewType: sprintdom.ViewTypeTable})
+	_, _ = svc.CreateView(ctx, sprintdom.CreateViewInput{ProjectID: projectID, Name: "BL2", ViewType: sprintdom.ViewTypeBoard})
+
+	if err := svc.DeleteView(ctx, v1.ID); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	_, err := svc.GetView(ctx, v1.ID)
+	if err != sprintdom.ErrViewNotFound {
+		t.Errorf("expected ErrViewNotFound after deletion, got %v", err)
+	}
+}
+
+func TestViewService_BacklogAndSprintViewsDontInterfere(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeViewRepo()
+	svc := sprintsvc.NewViewService(repo)
+
+	projectID := uuid.New()
+	sprintID := uuid.New()
+
+	// Create one sprint view and one backlog view for the same project
+	sv, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{SprintID: &sprintID, ProjectID: projectID, Name: "Sprint Board", ViewType: sprintdom.ViewTypeBoard})
+	bv, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{ProjectID: projectID, Name: "Backlog Table", ViewType: sprintdom.ViewTypeTable})
+
+	// ListViews should only return sprint view
+	sprintViews, _ := svc.ListViews(ctx, sprintID)
+	if len(sprintViews) != 1 || sprintViews[0].ID != sv.ID {
+		t.Errorf("ListViews returned wrong results: %v", sprintViews)
+	}
+
+	// ListBacklogViews should only return backlog view
+	backlogViews, _ := svc.ListBacklogViews(ctx, projectID)
+	if len(backlogViews) != 1 || backlogViews[0].ID != bv.ID {
+		t.Errorf("ListBacklogViews returned wrong results: %v", backlogViews)
+	}
+
+	// Deleting the sprint view should use sprint-scoped count; backlog view is not counted
+	// so deleting sv (1 sprint view) → ErrViewIsLastView
+	if err := svc.DeleteView(ctx, sv.ID); err != sprintdom.ErrViewIsLastView {
+		t.Errorf("expected ErrViewIsLastView for sole sprint view, got %v", err)
+	}
+
+	// Deleting backlog view (1 backlog view) → ErrViewIsLastView
+	if err := svc.DeleteView(ctx, bv.ID); err != sprintdom.ErrViewIsLastView {
+		t.Errorf("expected ErrViewIsLastView for sole backlog view, got %v", err)
 	}
 }
