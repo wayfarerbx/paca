@@ -49,6 +49,13 @@ export const ApiErrorCode = {
 	TaskNotFound: "TASK_NOT_FOUND",
 	TaskTitleInvalid: "TASK_TITLE_INVALID",
 
+	// Custom field domain errors.
+	CustomFieldNotFound: "CUSTOM_FIELD_NOT_FOUND",
+	CustomFieldKeyInvalid: "CUSTOM_FIELD_KEY_INVALID",
+	CustomFieldKeyTaken: "CUSTOM_FIELD_KEY_TAKEN",
+	CustomFieldTypeInvalid: "CUSTOM_FIELD_TYPE_INVALID",
+	CustomFieldNameInvalid: "CUSTOM_FIELD_NAME_INVALID",
+
 	// Generic / request errors.
 	BadRequest: "BAD_REQUEST",
 	InternalError: "INTERNAL_ERROR",

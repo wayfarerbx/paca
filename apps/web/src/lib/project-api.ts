@@ -317,6 +317,88 @@ export async function deleteTaskStatus(
 	);
 }
 
+// ── Custom Field Definitions ─────────────────────────────────────────────────
+
+export type FieldType =
+	| "text"
+	| "number"
+	| "date"
+	| "select"
+	| "multi_select"
+	| "boolean"
+	| "url";
+
+export interface CustomFieldDefinition {
+	id: string;
+	project_id: string;
+	field_key: string;
+	display_name: string;
+	field_type: FieldType;
+	options: string[];
+	is_required: boolean;
+	created_at: string;
+	updated_at: string;
+}
+
+export async function listCustomFieldDefinitions(
+	projectId: string,
+): Promise<CustomFieldDefinition[]> {
+	const { data } = await apiClient.instance.get<
+		SuccessEnvelope<{ items: CustomFieldDefinition[] }>
+	>(`/projects/${projectId}/custom-fields`);
+	return data.data.items;
+}
+
+export async function getCustomFieldDefinition(
+	projectId: string,
+	fieldId: string,
+): Promise<CustomFieldDefinition> {
+	const { data } = await apiClient.instance.get<
+		SuccessEnvelope<CustomFieldDefinition>
+	>(`/projects/${projectId}/custom-fields/${fieldId}`);
+	return data.data;
+}
+
+export async function createCustomFieldDefinition(
+	projectId: string,
+	payload: {
+		display_name: string;
+		field_key: string;
+		field_type: FieldType;
+		options?: string[];
+		is_required?: boolean;
+	},
+): Promise<CustomFieldDefinition> {
+	const { data } = await apiClient.instance.post<
+		SuccessEnvelope<CustomFieldDefinition>
+	>(`/projects/${projectId}/custom-fields`, payload);
+	return data.data;
+}
+
+export async function updateCustomFieldDefinition(
+	projectId: string,
+	fieldId: string,
+	payload: {
+		display_name?: string;
+		options?: string[];
+		is_required?: boolean;
+	},
+): Promise<CustomFieldDefinition> {
+	const { data } = await apiClient.instance.patch<
+		SuccessEnvelope<CustomFieldDefinition>
+	>(`/projects/${projectId}/custom-fields/${fieldId}`, payload);
+	return data.data;
+}
+
+export async function deleteCustomFieldDefinition(
+	projectId: string,
+	fieldId: string,
+): Promise<void> {
+	await apiClient.instance.delete(
+		`/projects/${projectId}/custom-fields/${fieldId}`,
+	);
+}
+
 // ── Query Options ─────────────────────────────────────────────────────────────
 
 export const projectsQueryOptions = (page = 1, pageSize = 50) =>
@@ -354,4 +436,10 @@ export const taskStatusesQueryOptions = (projectId: string) =>
 	queryOptions({
 		queryKey: ["projects", projectId, "task-statuses"],
 		queryFn: () => listTaskStatuses(projectId),
+	});
+
+export const customFieldsQueryOptions = (projectId: string) =>
+	queryOptions({
+		queryKey: ["projects", projectId, "custom-fields"],
+		queryFn: () => listCustomFieldDefinitions(projectId),
 	});
