@@ -15,8 +15,8 @@ import (
 // --- GORM model -------------------------------------------------------------
 
 type sprintRecord struct {
-	ID        string     `gorm:"primarykey;type:uuid"`
-	ProjectID string     `gorm:"type:uuid;not null;column:project_id"`
+	ID        uuid.UUID  `gorm:"primarykey;type:uuid"`
+	ProjectID uuid.UUID  `gorm:"type:uuid;not null;column:project_id"`
 	Name      string     `gorm:"not null"`
 	StartDate *time.Time `gorm:"type:date;column:start_date"`
 	EndDate   *time.Time `gorm:"type:date;column:end_date"`
@@ -46,7 +46,7 @@ func NewSprintRepository(db *gorm.DB) *SprintRepository {
 func (r *SprintRepository) ListSprints(ctx context.Context, projectID uuid.UUID) ([]*sprintdom.Sprint, error) {
 	var records []sprintRecord
 	if err := r.db.WithContext(ctx).
-		Where("project_id = ?", projectID.String()).
+		Where("project_id = ?", projectID).
 		Order("created_at ASC").
 		Find(&records).Error; err != nil {
 		return nil, fmt.Errorf("sprint repo: list: %w", err)
@@ -61,7 +61,7 @@ func (r *SprintRepository) ListSprints(ctx context.Context, projectID uuid.UUID)
 // FindSprintByID returns the sprint with the given ID.
 func (r *SprintRepository) FindSprintByID(ctx context.Context, id uuid.UUID) (*sprintdom.Sprint, error) {
 	var rec sprintRecord
-	err := r.db.WithContext(ctx).Where("id = ?", id.String()).First(&rec).Error
+	err := r.db.WithContext(ctx).Where("id = ?", id).First(&rec).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, sprintdom.ErrSprintNotFound
 	}
@@ -74,8 +74,8 @@ func (r *SprintRepository) FindSprintByID(ctx context.Context, id uuid.UUID) (*s
 // CreateSprint persists a new sprint.
 func (r *SprintRepository) CreateSprint(ctx context.Context, s *sprintdom.Sprint) error {
 	rec := &sprintRecord{
-		ID:        s.ID.String(),
-		ProjectID: s.ProjectID.String(),
+		ID:        s.ID,
+		ProjectID: s.ProjectID,
 		Name:      s.Name,
 		StartDate: s.StartDate,
 		EndDate:   s.EndDate,
@@ -100,18 +100,24 @@ func (r *SprintRepository) UpdateSprint(ctx context.Context, s *sprintdom.Sprint
 		"status":     string(s.Status),
 		"updated_at": s.UpdatedAt,
 	}
-	res := r.db.WithContext(ctx).Model(&sprintRecord{}).Where("id = ?", s.ID.String()).Updates(updates)
+	res := r.db.WithContext(ctx).Model(&sprintRecord{}).Where("id = ?", s.ID).Updates(updates)
 	if res.Error != nil {
 		return fmt.Errorf("sprint repo: update: %w", res.Error)
+	}
+	if res.RowsAffected == 0 {
+		return sprintdom.ErrSprintNotFound
 	}
 	return nil
 }
 
 // DeleteSprint removes a sprint by ID.
 func (r *SprintRepository) DeleteSprint(ctx context.Context, id uuid.UUID) error {
-	res := r.db.WithContext(ctx).Delete(&sprintRecord{}, "id = ?", id.String())
+	res := r.db.WithContext(ctx).Delete(&sprintRecord{}, "id = ?", id)
 	if res.Error != nil {
 		return fmt.Errorf("sprint repo: delete: %w", res.Error)
+	}
+	if res.RowsAffected == 0 {
+		return sprintdom.ErrSprintNotFound
 	}
 	return nil
 }
@@ -119,11 +125,9 @@ func (r *SprintRepository) DeleteSprint(ctx context.Context, id uuid.UUID) error
 // --- Entity converter -------------------------------------------------------
 
 func toSprintEntity(r *sprintRecord) *sprintdom.Sprint {
-	id, _ := uuid.Parse(r.ID)
-	pid, _ := uuid.Parse(r.ProjectID)
 	return &sprintdom.Sprint{
-		ID:        id,
-		ProjectID: pid,
+		ID:        r.ID,
+		ProjectID: r.ProjectID,
 		Name:      r.Name,
 		StartDate: r.StartDate,
 		EndDate:   r.EndDate,
