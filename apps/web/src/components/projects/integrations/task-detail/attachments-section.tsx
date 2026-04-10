@@ -84,10 +84,9 @@ export function AttachmentsSection({
 			)}
 
 			{/* Drop zone */}
-			{/* biome-ignore lint/a11y/noStaticElementInteractions: file drop zone with click to open picker; drag events are primary interaction */}
-			{/* biome-ignore lint/a11y/useKeyWithClickEvents: drag-and-drop file upload zone; keyboard via hidden file input */}
 			{canEdit && (
-				<div
+				<button
+					type="button"
 					onDragOver={(e) => {
 						e.preventDefault();
 						setIsDragOver(true);
@@ -96,7 +95,7 @@ export function AttachmentsSection({
 					onDrop={handleFileDrop}
 					onClick={() => fileInputRef.current?.click()}
 					className={cn(
-						"rounded-xl border-2 border-dashed p-8 text-center transition-all duration-150 cursor-pointer",
+						"w-full rounded-xl border-2 border-dashed p-8 text-center transition-all duration-150 cursor-pointer",
 						isDragOver
 							? "border-primary/50 bg-primary/5 text-primary"
 							: "border-border/40 bg-muted/20 text-muted-foreground/50 hover:border-border/60 hover:bg-muted/30",
@@ -105,7 +104,7 @@ export function AttachmentsSection({
 					<Paperclip className="size-6 mx-auto mb-2.5 opacity-60" />
 					<p className="text-sm font-medium">Drop your files here to upload</p>
 					<p className="text-xs mt-1 opacity-70">or click to browse</p>
-				</div>
+				</button>
 			)}
 		</div>
 	);
