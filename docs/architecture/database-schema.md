@@ -8,8 +8,7 @@ Interactive diagram: [https://dbdiagram.io/d/Paca-69c212ae78c6c4bc7a4fc190](http
 
 | File | Purpose |
 |---|---|
-| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects, project roles/members, task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views` (with `view_type`, `config`, `position`), `view_task_positions` (manual task order), `custom_field_definitions`, `tasks`, seed data |
-| `000002_task_attachments.sql` | Adds `start_date`, `due_date`, `tags` columns to `tasks`; creates `task_attachments` table |
+| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects, project roles/members, task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views` (with `view_type`, `config`, `position`), `view_task_positions` (manual task order), `custom_field_definitions`, `tasks` (with `start_date`, `due_date`, `tags`), `task_attachments`, `task_checklists`, `task_checklist_items`, seed data |
 
 ## Schema (DBML)
 
@@ -227,6 +226,32 @@ Table task_activities {
   created_at timestamp
 }
 
+// --- TASK CHECKLISTS ---
+Table task_checklists {
+  id         uuid [primary key]
+  task_id    uuid [not null, ref: > tasks.id]
+  title      varchar [not null]
+  position   integer [not null, default: 0, note: 'Zero-based order among checklists on the same task']
+  created_by uuid [null, ref: > project_members.id]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table task_checklist_items {
+  id           uuid [primary key]
+  checklist_id uuid [not null, ref: > task_checklists.id]
+  title        text [not null]
+  is_checked   boolean [not null, default: false]
+  checked_by   uuid [null, ref: > project_members.id, note: 'Who checked this item']
+  checked_at   timestamp [null]
+  assignee_id  uuid [null, ref: > project_members.id, note: 'Optional per-item owner']
+  due_date     date [null]
+  position     integer [not null, default: 0, note: 'Zero-based order within the checklist']
+  created_by   uuid [null, ref: > project_members.id]
+  created_at   timestamp
+  updated_at   timestamp
+}
+
 // --- RELATIONSHIPS ---
 Ref: projects.id < project_members.project_id
 Ref: users.id < project_members.user_id
@@ -259,4 +284,10 @@ Ref: project_members.id < task_attachments.uploaded_by
 Ref: sprints.id < sprint_views.sprint_id
 Ref: sprint_views.id < view_task_positions.view_id
 Ref: tasks.id < view_task_positions.task_id
+Ref: tasks.id < task_checklists.task_id
+Ref: project_members.id < task_checklists.created_by
+Ref: task_checklists.id < task_checklist_items.checklist_id
+Ref: project_members.id < task_checklist_items.checked_by
+Ref: project_members.id < task_checklist_items.assignee_id
+Ref: project_members.id < task_checklist_items.created_by
 ```

@@ -283,4 +283,64 @@ CREATE INDEX IF NOT EXISTS idx_tasks_status_id  ON tasks (status_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_sprint_id  ON tasks (sprint_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_deleted_at ON tasks (deleted_at) WHERE deleted_at IS NOT NULL;
 
+-- -------------------------------------------------------------------------
+-- TASK ATTACHMENTS
+-- -------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS task_attachments (
+    id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    task_id     UUID        NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    file_name   TEXT        NOT NULL,
+    file_size   BIGINT      NOT NULL,
+    mime_type   TEXT        NOT NULL,
+    storage_url TEXT        NOT NULL,
+    uploaded_by UUID        REFERENCES project_members(id) ON DELETE SET NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_task_attachments_task_id ON task_attachments (task_id);
+
+-- -------------------------------------------------------------------------
+-- TASK CHECKLISTS
+-- A task can have multiple named checklist groups.
+-- position: zero-based order among checklists on the same task.
+-- -------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS task_checklists (
+    id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    task_id    UUID        NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    title      TEXT        NOT NULL,
+    position   INTEGER     NOT NULL DEFAULT 0,
+    created_by UUID        REFERENCES project_members(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_task_checklists_task_id ON task_checklists (task_id);
+
+-- -------------------------------------------------------------------------
+-- TASK CHECKLIST ITEMS
+-- Individual checkbox items within a checklist group.
+-- checked_by / checked_at: audit trail for who checked the item and when.
+-- assignee_id: optional per-item owner, independent of the parent task assignee.
+-- position: zero-based order within the checklist; lower = higher in list.
+-- -------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS task_checklist_items (
+    id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    checklist_id UUID        NOT NULL REFERENCES task_checklists(id) ON DELETE CASCADE,
+    title        TEXT        NOT NULL,
+    is_checked   BOOLEAN     NOT NULL DEFAULT FALSE,
+    checked_by   UUID        REFERENCES project_members(id) ON DELETE SET NULL,
+    checked_at   TIMESTAMPTZ,
+    assignee_id  UUID        REFERENCES project_members(id) ON DELETE SET NULL,
+    due_date     DATE,
+    position     INTEGER     NOT NULL DEFAULT 0,
+    created_by   UUID        REFERENCES project_members(id) ON DELETE SET NULL,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_task_checklist_items_checklist_id ON task_checklist_items (checklist_id, position);
+
 COMMIT;
