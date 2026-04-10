@@ -106,6 +106,10 @@ type CreateTaskInput struct {
 //   - nil outer pointer  → field was absent in the request; do NOT overwrite
 //   - non-nil outer pointer, inner pointer nil  → explicitly set to null (clear)
 //   - non-nil outer pointer, inner pointer non-nil  → set to the given value
+//
+// For slice/map fields (Tags, CustomFields), a nil pointer means the field was
+// absent and should not be overwritten; a non-nil pointer (even to an empty
+// slice/map) means the field was explicitly set and replaces the stored value.
 type UpdateTaskInput struct {
 	TaskTypeID   **uuid.UUID
 	StatusID     **uuid.UUID
@@ -116,10 +120,10 @@ type UpdateTaskInput struct {
 	Importance   *int
 	AssigneeID   **uuid.UUID
 	ReporterID   **uuid.UUID
-	CustomFields map[string]any
+	CustomFields *map[string]any
 	StartDate    **time.Time
 	DueDate      **time.Time
-	Tags         []string
+	Tags         *[]string
 }
 
 // --- Custom Field Definition Service --------------------------------------

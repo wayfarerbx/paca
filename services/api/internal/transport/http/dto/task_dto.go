@@ -217,20 +217,22 @@ type CreateTaskRequest struct {
 
 // UpdateTaskRequest is the body for PATCH /projects/:projectId/tasks/:taskId.
 // Only fields present in the JSON body are applied; absent fields are left unchanged.
+// For Tags and CustomFields, a nil pointer means absent (don't update); a non-nil
+// pointer (even to an empty slice/map) means the field was explicitly set.
 type UpdateTaskRequest struct {
-	Title        string         `json:"title"`
-	TaskTypeID   OptionalUUID   `json:"task_type_id"`
-	StatusID     OptionalUUID   `json:"status_id"`
-	SprintID     OptionalUUID   `json:"sprint_id"`
-	ParentTaskID OptionalUUID   `json:"parent_task_id"`
-	Description  OptionalString `json:"description"`
-	Importance   *int           `json:"importance"`
-	AssigneeID   OptionalUUID   `json:"assignee_id"`
-	ReporterID   OptionalUUID   `json:"reporter_id"`
-	CustomFields map[string]any `json:"custom_fields"`
-	StartDate    OptionalTime   `json:"start_date"`
-	DueDate      OptionalTime   `json:"due_date"`
-	Tags         []string       `json:"tags"`
+	Title        string          `json:"title"`
+	TaskTypeID   OptionalUUID    `json:"task_type_id"`
+	StatusID     OptionalUUID    `json:"status_id"`
+	SprintID     OptionalUUID    `json:"sprint_id"`
+	ParentTaskID OptionalUUID    `json:"parent_task_id"`
+	Description  OptionalString  `json:"description"`
+	Importance   *int            `json:"importance"`
+	AssigneeID   OptionalUUID    `json:"assignee_id"`
+	ReporterID   OptionalUUID    `json:"reporter_id"`
+	CustomFields *map[string]any `json:"custom_fields"`
+	StartDate    OptionalTime    `json:"start_date"`
+	DueDate      OptionalTime    `json:"due_date"`
+	Tags         *[]string       `json:"tags"`
 }
 
 // TaskResponse is the public representation of a task.

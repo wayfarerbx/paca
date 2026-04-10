@@ -259,7 +259,7 @@ func (s *Service) UpdateTask(ctx context.Context, id uuid.UUID, in taskdom.Updat
 		t.ReporterID = *in.ReporterID
 	}
 	if in.CustomFields != nil {
-		t.CustomFields = in.CustomFields
+		t.CustomFields = *in.CustomFields
 	}
 	if in.StartDate != nil {
 		t.StartDate = *in.StartDate
@@ -268,7 +268,7 @@ func (s *Service) UpdateTask(ctx context.Context, id uuid.UUID, in taskdom.Updat
 		t.DueDate = *in.DueDate
 	}
 	if in.Tags != nil {
-		t.Tags = in.Tags
+		t.Tags = *in.Tags
 	}
 	t.UpdatedAt = time.Now()
 
