@@ -42,9 +42,12 @@ services:
       retries: 10
 
   api:
-    image: golang:1.26-alpine
+    build:
+      context: ../services/api
+      dockerfile: Dockerfile.dev
     working_dir: /workspace
-    command: sh -c "go install github.com/air-verse/air@latest && air"
+    # air is already installed in the image; no per-start download needed.
+    command: air
     environment:
       # Limit parallel package compilation to avoid OOM kills on memory-constrained
       # Docker Desktop VMs (mirrors the -p=1 flag used in the production Dockerfile).
@@ -61,7 +64,10 @@ services:
       ADMIN_PASSWORD: adminpassword
     volumes:
       - ../services/api:/workspace
-      - go_mod_cache:/go/pkg/mod
+      # go modules are pre-downloaded into the image layer; no volume needed.
+      # Persist the Go build cache so the first build after a container restart
+      # reuses previously compiled packages instead of starting cold.
+      - go_build_cache:/root/.cache/go-build
     depends_on:
       postgres:
         condition: service_healthy
@@ -96,6 +102,6 @@ services:
 volumes:
   postgres_data:
   valkey_data:
-  go_mod_cache:
+  go_build_cache:
   web_node_modules:
   bun_cache:
