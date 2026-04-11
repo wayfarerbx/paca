@@ -169,7 +169,7 @@ Every section heading has a horizontal gradient line that fades to transparent:
 ```tsx
 <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 flex items-center gap-2">
   <span>Section Name</span>
-  <div className="flex-1 h-px bg-gradient-to-r from-border/40 to-transparent" />
+  <div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
 </h3>
 ```
 
@@ -284,7 +284,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 <span className="inline-flex items-center gap-2 rounded-full border border-border/40
   bg-muted/40 px-3 py-1 text-[11px] font-semibold text-muted-foreground
   tracking-wide backdrop-blur-sm">
-  <span className="size-[7px] rounded-full shrink-0 ring-2 ring-offset-1 ring-offset-background"
+  <span className="size-1.75 rounded-full shrink-0 ring-2 ring-offset-1 ring-offset-background"
     style={{ background: color, boxShadow: `0 0 6px ${color}40` }} />
   {name}
 </span>
@@ -319,7 +319,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 
 ```tsx
 <div className="flex size-6 items-center justify-center rounded-full
-  bg-gradient-to-br from-primary/20 to-primary/10 text-primary text-[10px] font-bold
+  bg-linear-to-br from-primary/20 to-primary/10 text-primary text-[10px] font-bold
   ring-1 ring-primary/20">
   {initial}
 </div>
@@ -329,7 +329,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 
 ```tsx
 <div className="flex size-6 items-center justify-center rounded-full
-  bg-gradient-to-br from-muted/80 to-muted/40 text-muted-foreground text-[10px] font-bold
+  bg-linear-to-br from-muted/80 to-muted/40 text-muted-foreground text-[10px] font-bold
   ring-1 ring-border/25">
   {initial}
 </div>
@@ -377,7 +377,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 
 ```tsx
 <button className={cn(
-  "flex size-[18px] shrink-0 items-center justify-center rounded-[5px]
+  "flex size-4.5 shrink-0 items-center justify-center rounded-[5px]
     border-2 transition-all duration-200",
   checked
     ? "border-emerald-500 bg-emerald-500 text-white shadow-sm shadow-emerald-500/20"
@@ -390,7 +390,7 @@ Text uses `/opacity` modifiers on semantic color tokens to establish hierarchy:
 ### Dashed Placeholder Checkbox (for "add item" rows)
 
 ```tsx
-<div className="size-[18px] shrink-0 rounded-[5px] border-2 border-dashed border-border/25" />
+<div className="size-4.5 shrink-0 rounded-[5px] border-2 border-dashed border-border/25" />
 ```
 
 ---
@@ -467,7 +467,7 @@ Every content section uses the same heading pattern — uppercase micro text wit
 <h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70
   mb-3 flex items-center gap-2">
   <span>Section Name</span>
-  <div className="flex-1 h-px bg-gradient-to-r from-border/40 to-transparent" />
+  <div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
 </h3>
 ```
 
@@ -517,7 +517,7 @@ For inline empty states:
 
 ```tsx
 <button className="w-full rounded-xl border-2 border-dashed border-border/25 bg-muted/10
-  px-5 py-6 text-left hover:border-border/50 hover:bg-muted/20 hover:border-primary/20
+  px-5 py-6 text-left hover:border-primary/20 hover:bg-muted/20
   transition-all duration-200 group/add">
   <div className="flex items-center gap-3">
     <div className="flex size-8 items-center justify-center rounded-lg bg-muted/40
@@ -617,10 +617,10 @@ For inline empty states:
 ```tsx
 <div className="flex gap-3">
   <div className="flex size-6 shrink-0 items-center justify-center rounded-full
-    bg-gradient-to-br from-primary/20 to-primary/10 text-primary ring-1 ring-primary/15">
+    bg-linear-to-br from-primary/20 to-primary/10 text-primary ring-1 ring-primary/15">
     {initial}
   </div>
-  <div className="rounded-xl rounded-tl-[4px] border border-border/25 bg-card/70 px-3.5 py-2.5">
+  <div className="rounded-xl rounded-tl-lg border border-border/25 bg-card/70 px-3.5 py-2.5">
     <div className="mb-1 flex items-center gap-2">
       <span className="text-[12px] font-semibold text-foreground">{author}</span>
       <span className="text-[10px] text-muted-foreground/50">{timeAgo}</span>
