@@ -15,7 +15,6 @@ const COLUMN_BY_OPTIONS = ["Status", "Assignee", "Priority"];
 const SWIMLANE_OPTIONS = ["None", "Assignee", "Priority", "Type"];
 const SLICE_BY_OPTIONS = ["None", "Assignee", "Priority", "Type"];
 
-/** Converts a display label to a stable storage key: "Story Points" → "story_points" */
 const labelToKey = (label: string) => label.toLowerCase().replace(/\s+/g, "_");
 
 interface ViewSettingsPanelProps {
@@ -35,8 +34,8 @@ function SettingRow({
 	children: React.ReactNode;
 }) {
 	return (
-		<div className="flex items-center justify-between gap-3 py-1.5">
-			<span className="text-xs text-muted-foreground shrink-0 w-20">
+		<div className="flex items-center justify-between gap-3 py-2">
+			<span className="text-[12px] font-medium text-muted-foreground shrink-0 w-20">
 				{label}
 			</span>
 			{children}
@@ -61,7 +60,7 @@ function SettingSelect({
 			onChange={(e) =>
 				onChange(e.target.value === "" ? undefined : e.target.value)
 			}
-			className="flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-primary/30 min-w-0"
+			className="flex-1 rounded-lg border border-border/30 bg-muted/25 px-2.5 py-1.5 text-[12px] font-medium outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/15 transition-all duration-150 min-w-0"
 		>
 			<option value="">{placeholder}</option>
 			{options.map((o) => (
@@ -86,7 +85,7 @@ function SortSelect({
 		<select
 			value={value || "manual"}
 			onChange={(e) => onChange(e.target.value)}
-			className="flex-1 rounded-md border border-border bg-background px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-primary/30 min-w-0"
+			className="flex-1 rounded-lg border border-border/30 bg-muted/25 px-2.5 py-1.5 text-[12px] font-medium outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/15 transition-all duration-150 min-w-0"
 		>
 			{options.map((o) => (
 				<option key={o} value={o.toLowerCase()}>
@@ -152,10 +151,10 @@ export function ViewSettingsPanel({
 						type="button"
 						aria-label="View settings"
 						className={cn(
-							"flex size-7 items-center justify-center rounded-md transition-colors",
+							"flex size-7 items-center justify-center rounded-md transition-all duration-150",
 							open
-								? "bg-primary/10 text-primary"
-								: "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+								? "bg-primary/8 text-primary/80"
+								: "text-muted-foreground/60 hover:text-foreground hover:bg-muted/60",
 						)}
 					/>
 				}
@@ -165,15 +164,15 @@ export function ViewSettingsPanel({
 			<PopoverContent
 				side="bottom"
 				align="end"
-				className="w-72 p-0 gap-0"
+				className="w-72 p-0 gap-0 rounded-xl border border-border/40 shadow-lg"
 				sideOffset={6}
 			>
-				<div className="px-3 py-2.5 border-b border-border/50">
-					<p className="text-xs font-semibold">View settings</p>
+				<div className="px-3 py-2.5 border-b border-border/30">
+					<p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">View settings</p>
 				</div>
-				<div className="p-3 flex flex-col divide-y divide-border/30">
+				<div className="px-3 py-1 flex flex-col divide-y divide-border/20">
 					<SettingRow label="Fields">
-						<span className="text-xs text-foreground flex-1 truncate">
+						<span className="text-[12px] font-medium text-foreground flex-1 truncate">
 							{draft.fields?.join(", ") || "Title, Assignees, Status"}
 						</span>
 					</SettingRow>
@@ -217,11 +216,11 @@ export function ViewSettingsPanel({
 						/>
 					</SettingRow>
 				</div>
-				<div className="flex items-center justify-end gap-2 px-3 py-2.5 border-t border-border/50">
+				<div className="flex items-center justify-end gap-2 px-3 py-2.5 border-t border-border/30">
 					<button
 						type="button"
 						onClick={handleReset}
-						className="px-3 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+						className="flex items-center gap-1.5 rounded-lg bg-muted/40 text-muted-foreground/80 hover:bg-muted/60 hover:text-foreground px-2.5 py-1.5 text-[11px] font-semibold transition-all duration-150"
 					>
 						Reset
 					</button>
@@ -229,7 +228,7 @@ export function ViewSettingsPanel({
 						type="button"
 						onClick={handleSave}
 						disabled={isPending}
-						className="px-3 py-1 rounded-md text-xs font-semibold bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-60"
+						className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground hover:bg-primary/90 shadow-sm disabled:opacity-40 transition-all duration-150"
 					>
 						{isPending ? "Saving…" : "Save"}
 					</button>

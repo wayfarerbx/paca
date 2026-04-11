@@ -33,34 +33,34 @@ export function TaskRow({
 			onClick={onClick}
 			className={cn(
 				"group flex items-center gap-3 px-4 py-2.5 cursor-pointer",
-				"hover:bg-muted/40 transition-colors duration-100 border-b border-border/30 last:border-0",
+				"hover:bg-muted/30 transition-colors duration-150 border-b border-border/20 last:border-0",
 				isDragging && "opacity-40 bg-muted/20",
 			)}
 		>
-			{/* Drag handle */}
 			{showDragHandle && (
-				<GripVertical className="size-3.5 shrink-0 -ml-1.5 text-muted-foreground/30 group-hover:text-muted-foreground/70 cursor-grab" />
+				<GripVertical className="size-3.5 shrink-0 -ml-1.5 text-muted-foreground/30 group-hover:text-muted-foreground/70 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
 			)}
-			{/* Task type badge */}
 			<div className="w-16 shrink-0">
 				{taskType ? (
 					<span
-						className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold leading-tight truncate max-w-full"
+						className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-bold leading-tight tracking-wide border truncate max-w-full"
 						style={{
+							borderColor: taskType.color
+								? `${taskType.color}44`
+								: "var(--border)",
 							backgroundColor: taskType.color
-								? `${taskType.color}22`
-								: "oklch(var(--muted))",
+								? `${taskType.color}15`
+								: "var(--muted)",
 							color: taskType.color ?? "inherit",
 						}}
 					>
 						{taskType.name}
 					</span>
 				) : (
-					<span className="text-xs text-muted-foreground/40">—</span>
+					<span className="text-xs text-muted-foreground/50">—</span>
 				)}
 			</div>
 
-			{/* Priority */}
 			<div className="hidden sm:flex w-20 shrink-0 items-center gap-1">
 				{(() => {
 					const p = getPriority(task.importance);
@@ -70,49 +70,45 @@ export function TaskRow({
 								className="size-2 rounded-full shrink-0"
 								style={{ background: p.color }}
 							/>
-							<span className="text-xs truncate" style={{ color: p.color }}>
+							<span className="text-[11px] font-medium truncate" style={{ color: p.color }}>
 								{p.label}
 							</span>
 						</>
 					) : (
-						<span className="text-xs text-muted-foreground/40">—</span>
+						<span className="text-[11px] text-muted-foreground/50">—</span>
 					);
 				})()}
 			</div>
 
-			{/* Title */}
-			<span className="flex-1 text-sm text-foreground truncate">
+			<span className="flex-1 text-[13px] font-medium text-foreground truncate">
 				{task.title}
 			</span>
 
-			{/* Status */}
 			<div className="hidden sm:flex w-24 shrink-0 items-center gap-1.5">
 				{status ? (
-					<>
+					<span className="inline-flex items-center gap-1.5 rounded-full border border-border/40 bg-muted/40 px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground tracking-wide">
 						<span
-							className="size-2 rounded-full shrink-0"
+							className="size-1.5 rounded-full shrink-0"
 							style={{
 								background: status.color ?? "oklch(var(--muted-foreground))",
+								boxShadow: status.color ? `0 0 4px ${status.color}40` : undefined,
 							}}
 						/>
-						<span className="text-xs text-muted-foreground truncate">
-							{status.name}
-						</span>
-					</>
+						{status.name}
+					</span>
 				) : (
-					<span className="text-xs text-muted-foreground/40">—</span>
+					<span className="text-[11px] text-muted-foreground/50">—</span>
 				)}
 			</div>
 
-			{/* Assignee */}
 			<div className="shrink-0">
 				{task.assignee_id ? (
-					<div className="flex size-6 items-center justify-center rounded-full bg-primary/15 text-primary text-[9px] font-bold ring-1 ring-border/50">
-						<User className="size-3.5" />
+					<div className="flex size-6 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-[10px] font-bold ring-1 ring-primary/20">
+						<User className="size-3" />
 					</div>
 				) : (
-					<div className="flex size-6 items-center justify-center rounded-full border border-dashed border-border/60 text-muted-foreground/30">
-						<User className="size-3.5" />
+					<div className="flex size-6 items-center justify-center rounded-full bg-linear-to-br from-muted/80 to-muted/40 text-muted-foreground text-[10px] font-bold ring-1 ring-border/25">
+						<User className="size-3" />
 					</div>
 				)}
 			</div>

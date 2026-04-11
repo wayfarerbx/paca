@@ -68,9 +68,9 @@ function GroupAddRow({ taskTypes, onAdd }: GroupAddRowProps) {
 			<button
 				type="button"
 				onClick={open_}
-				className="flex items-center gap-1.5 px-4 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors w-full"
+				className="flex items-center gap-1.5 px-4 py-2.5 text-[12px] text-muted-foreground/70 hover:text-foreground hover:bg-muted/30 transition-all duration-150 w-full"
 			>
-				<Plus className="size-3.5" />
+				<Plus className="size-3" />
 				Add task
 			</button>
 		);
@@ -79,24 +79,24 @@ function GroupAddRow({ taskTypes, onAdd }: GroupAddRowProps) {
 	const SelectedIcon = getTaskTypeIconComponent(selectedType?.icon ?? null);
 
 	return (
-		<div className="flex flex-col gap-1 px-4 py-2 border-b border-border/30">
+		<div className="flex flex-col gap-1.5 px-4 py-2.5 border-b border-border/20">
 			<div className="flex items-center gap-2">
 				{taskTypes.length > 0 && selectedType && (
 					<DropdownMenu>
 						<DropdownMenuTrigger
 							className={cn(
-								"flex items-center gap-1 rounded px-1.5 py-1 text-xs transition-colors hover:bg-muted/50 shrink-0",
+								"flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-semibold transition-all duration-150 hover:bg-muted/60 shrink-0",
 							)}
 							style={selectedType.color ? { color: selectedType.color } : undefined}
 						>
 							{SelectedIcon ? (
-								<SelectedIcon className="size-3.5" />
+								<SelectedIcon className="size-3.5 opacity-70" />
 							) : (
-								<span className="text-[10px] font-semibold">{selectedType.name.slice(0, 2)}</span>
+								<span className="text-[10px] font-bold">{selectedType.name.slice(0, 2)}</span>
 							)}
 							<ChevronDown className="size-3 text-muted-foreground/60" />
 						</DropdownMenuTrigger>
-						<DropdownMenuContent align="start" className="w-40">
+						<DropdownMenuContent align="start" className="w-40 rounded-xl border border-border/40 shadow-lg p-1">
 							{taskTypes.map((tt) => {
 								const Icon = getTaskTypeIconComponent(tt.icon);
 								return (
@@ -104,17 +104,17 @@ function GroupAddRow({ taskTypes, onAdd }: GroupAddRowProps) {
 										key={tt.id}
 										onClick={() => setSelectedTypeId(tt.id)}
 										className={cn(
-											"flex items-center gap-2 text-xs",
-											selectedType.id === tt.id && "bg-accent",
+											"flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] hover:bg-muted/60 transition-colors duration-100",
+											selectedType.id === tt.id && "bg-muted/40",
 										)}
 									>
 										{Icon ? (
 											<Icon
-												className="size-3.5 shrink-0"
+												className="size-3.5 shrink-0 text-muted-foreground/80"
 												style={tt.color ? { color: tt.color } : undefined}
 											/>
 										) : (
-											<span className="size-3.5 shrink-0 text-[10px] font-semibold">
+											<span className="size-3.5 shrink-0 text-[10px] font-bold">
 												{tt.name.slice(0, 2)}
 											</span>
 										)}
@@ -134,12 +134,12 @@ function GroupAddRow({ taskTypes, onAdd }: GroupAddRowProps) {
 						if (e.key === "Escape") cancel();
 					}}
 					placeholder="Task title…"
-					className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/50"
+					className="flex-1 bg-transparent text-[13px] font-medium outline-none placeholder:text-muted-foreground/50"
 				/>
 				<button
 					type="button"
 					onClick={cancel}
-					className="px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+					className="flex items-center gap-1.5 rounded-lg bg-muted/40 text-muted-foreground/80 hover:bg-muted/60 hover:text-foreground px-2.5 py-1.5 text-[11px] font-semibold transition-all duration-150"
 				>
 					Cancel
 				</button>
@@ -147,7 +147,7 @@ function GroupAddRow({ taskTypes, onAdd }: GroupAddRowProps) {
 					type="button"
 					onClick={submit}
 					disabled={!value.trim()}
-					className="px-2.5 py-0.5 rounded text-xs font-medium bg-primary text-primary-foreground disabled:opacity-40 hover:opacity-90 transition-opacity"
+					className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground hover:bg-primary/90 shadow-sm disabled:opacity-40 transition-all duration-150"
 				>
 					Create
 				</button>
@@ -191,7 +191,6 @@ function StatusGroup({
 	const [isDropTarget, setIsDropTarget] = useState(false);
 	const [orderedTasks, setOrderedTasks] = useState<Task[]>(tasks);
 
-	// Sync when parent tasks array changes (after API refresh)
 	useEffect(() => {
 		setOrderedTasks(tasks);
 	}, [tasks]);
@@ -209,7 +208,6 @@ function StatusGroup({
 		const sourceStatusId = e.dataTransfer.getData(
 			"application/x-source-status-id",
 		);
-		// Cross-group drop landing on a task row — delegate to group-level handler
 		if (sourceStatusId && sourceStatusId !== status.id) {
 			if (canEdit) onStatusChange?.(taskId, status.id);
 			setDraggingId(null);
@@ -217,7 +215,6 @@ function StatusGroup({
 			setIsDropTarget(false);
 			return;
 		}
-		// Same-group reorder
 		const currentDraggingId = draggingId;
 		if (!currentDraggingId || currentDraggingId === targetTask.id) return;
 		const sourceIndex = orderedTasks.findIndex(
@@ -259,7 +256,7 @@ function StatusGroup({
 		// biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop group container; pointer events only
 		<div
 			className={cn(
-				"border-b border-border/40 last:border-0 transition-colors duration-150",
+				"border-b border-border/25 last:border-0 transition-all duration-150",
 				isDropTarget && "bg-primary/5 ring-inset ring-2 ring-primary/20",
 			)}
 			onDragOver={handleGroupDragOver}
@@ -270,23 +267,24 @@ function StatusGroup({
 			<button
 				type="button"
 				onClick={() => setCollapsed((v) => !v)}
-				className="flex w-full items-center gap-2.5 px-4 py-2.5 hover:bg-muted/30 transition-colors"
+				className="flex w-full items-center gap-2.5 px-4 py-3 hover:bg-muted/30 transition-colors duration-150"
 			>
 				{collapsed ? (
-					<ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
+					<ChevronRight className="size-3.5 text-muted-foreground/60 shrink-0" />
 				) : (
-					<ChevronDown className="size-3.5 text-muted-foreground shrink-0" />
+					<ChevronDown className="size-3.5 text-muted-foreground/60 shrink-0" />
 				)}
 				<span
-					className="size-2 rounded-full shrink-0"
+					className="size-[7px] rounded-full shrink-0"
 					style={{
 						background: status.color ?? "oklch(var(--muted-foreground))",
+						boxShadow: status.color ? `0 0 6px ${status.color}40` : undefined,
 					}}
 				/>
-				<span className="text-xs font-semibold uppercase tracking-wide text-foreground/80">
+				<span className="text-[11px] font-bold uppercase tracking-[0.08em] text-foreground/80">
 					{status.name}
 				</span>
-				<span className="text-xs text-muted-foreground tabular-nums">
+				<span className="rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground/70 tabular-nums">
 					{tasks.length}
 				</span>
 			</button>
@@ -295,28 +293,28 @@ function StatusGroup({
 			{!collapsed && (
 				<>
 					{/* Column headers */}
-					<div className="flex items-center gap-3 px-4 py-1.5 bg-muted/20 border-y border-border/30">
+					<div className="flex items-center gap-3 px-4 py-1.5 bg-muted/20 border-y border-border/25">
 						{isDraggable && <div className="w-3 shrink-0" />}
-						<div className="w-16 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">
+						<div className="w-16 shrink-0 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60">
 							Type
 						</div>
-						<div className="hidden sm:block w-20 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">
+						<div className="hidden sm:block w-20 shrink-0 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60">
 							Priority
 						</div>
-						<div className="flex-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">
+						<div className="flex-1 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60">
 							Title
 						</div>
-						<div className="hidden sm:block w-24 shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">
+						<div className="hidden sm:block w-24 shrink-0 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60">
 							Status
 						</div>
-						<div className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">
+						<div className="shrink-0 text-[10px] font-bold uppercase tracking-[0.08em] text-muted-foreground/60">
 							Assignee
 						</div>
 					</div>
 
 					{tasks.length === 0 ? (
-						<div className="px-4 py-4 text-xs text-muted-foreground/50 text-center">
-							No tasks in this status
+						<div className="flex flex-col items-center py-8 text-muted-foreground/40">
+							<p className="text-[12px] font-medium">No tasks in this status</p>
 						</div>
 					) : (
 						orderedTasks.map((task, index) => (
@@ -402,7 +400,7 @@ export function ListView({
 	const sortedStatuses = [...statuses].sort((a, b) => a.position - b.position);
 
 	return (
-		<div className="flex flex-col divide-y divide-border/30 overflow-auto">
+		<div className="flex flex-col overflow-auto">
 			{sortedStatuses.map((status) => {
 				const groupTasks = filtered.filter((t) => t.status_id === status.id);
 				const isDone = status.category === "done";
@@ -427,14 +425,14 @@ export function ListView({
 
 			{/* Unassigned tasks group */}
 			{filtered.filter((t) => !t.status_id).length > 0 && (
-				<div className="border-b border-border/40 last:border-0">
-					<div className="flex items-center gap-2.5 px-4 py-2.5">
-						<ChevronDown className="size-3.5 text-muted-foreground shrink-0" />
-						<span className="size-2 rounded-full bg-muted-foreground/30 shrink-0" />
-						<span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/50">
+				<div className="border-b border-border/25 last:border-0">
+					<div className="flex items-center gap-2.5 px-4 py-3">
+						<ChevronDown className="size-3.5 text-muted-foreground/60 shrink-0" />
+						<span className="size-[7px] rounded-full bg-muted-foreground/30 shrink-0" />
+						<span className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground/50">
 							No Status
 						</span>
-						<span className="text-xs text-muted-foreground tabular-nums">
+						<span className="rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground/70 tabular-nums">
 							{filtered.filter((t) => !t.status_id).length}
 						</span>
 					</div>

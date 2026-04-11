@@ -15,12 +15,10 @@ interface RoadmapViewProps {
 	onTaskClick: (task: Task) => void;
 }
 
-// Approximate bar width as % of the month based on creation date within a range
 function getBarStyle(task: Task, minMs: number, rangeMs: number) {
 	const created = new Date(task.created_at).getTime();
 	const updated = new Date(task.updated_at).getTime();
 	const left = Math.max(0, Math.min(100, ((created - minMs) / rangeMs) * 100));
-	// Bar width spans created → updated (min 3%)
 	const right = Math.max(0, Math.min(100, ((updated - minMs) / rangeMs) * 100));
 	const width = Math.max(3, right - left);
 	return { left: `${left}%`, width: `${width}%` };
@@ -46,7 +44,6 @@ export function RoadmapView({
 
 	const sortedStatuses = [...statuses].sort((a, b) => a.position - b.position);
 
-	// Compute time range across all tasks for bar positioning
 	const timestamps = filtered.flatMap((t) => [
 		new Date(t.created_at).getTime(),
 		new Date(t.updated_at).getTime(),
@@ -55,9 +52,8 @@ export function RoadmapView({
 		? Math.min(...timestamps)
 		: Date.now() - 30 * 86400_000;
 	const maxMs = timestamps.length ? Math.max(...timestamps) : Date.now();
-	const rangeMs = Math.max(maxMs - minMs, 7 * 86400_000); // at least 7 days
+	const rangeMs = Math.max(maxMs - minMs, 7 * 86400_000);
 
-	// Month labels for the timeline header
 	const startDate = new Date(minMs);
 	const endDate = new Date(maxMs + 86400_000 * 3);
 	const months: { label: string; left: string }[] = [];
@@ -76,18 +72,19 @@ export function RoadmapView({
 	return (
 		<div className="flex h-full flex-col overflow-hidden">
 			{/* Timeline header */}
-			<div className="shrink-0 border-b border-border/40 bg-muted/10">
-				<div className="flex items-center gap-3 px-4 py-2 border-b border-border/30">
-					<CalendarDays className="size-3.5 text-muted-foreground" />
-					<span className="text-xs font-medium text-muted-foreground">
-						Timeline (based on activity)
+			<div className="shrink-0 border-b border-border/25 bg-muted/10">
+				<div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/25">
+					<CalendarDays className="size-3.5 text-muted-foreground/70" />
+					<span className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-[0.08em]">
+						Timeline
 					</span>
+					<div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
 				</div>
 				<div className="relative h-7 overflow-hidden px-4">
 					{months.map((m) => (
 						<span
 							key={m.label}
-							className="absolute top-1.5 text-[10px] font-medium text-muted-foreground/60 whitespace-nowrap"
+							className="absolute top-1.5 text-[10px] font-bold text-muted-foreground/50 whitespace-nowrap"
 							style={{ left: m.left }}
 						>
 							{m.label}
@@ -99,10 +96,9 @@ export function RoadmapView({
 			{/* Task rows with bars */}
 			<div className="flex-1 overflow-auto">
 				{!hasVisibleTasks ? (
-					<div className="flex h-full items-center justify-center">
-						<p className="text-sm text-muted-foreground/50">
-							No tasks to display
-						</p>
+					<div className="flex flex-col items-center py-12 text-muted-foreground/40">
+						<CalendarDays className="size-6 mb-2" />
+						<p className="text-[12px] font-medium">No tasks to display</p>
 					</div>
 				) : (
 					sortedStatuses.map((status) => {
@@ -114,21 +110,22 @@ export function RoadmapView({
 						return (
 							<div
 								key={status.id}
-								className="border-b border-border/40 last:border-0"
+								className="border-b border-border/25 last:border-0"
 							>
 								{/* Group header */}
-								<div className="flex items-center gap-2 px-4 py-2 bg-muted/20 border-b border-border/30">
+								<div className="flex items-center gap-2 px-4 py-2.5 bg-muted/20 border-b border-border/25">
 									<span
-										className="size-2 rounded-full shrink-0"
+										className="size-1.75 rounded-full shrink-0"
 										style={{
 											background:
 												status.color ?? "oklch(var(--muted-foreground))",
+											boxShadow: status.color ? `0 0 6px ${status.color}40` : undefined,
 										}}
 									/>
-									<span className="text-xs font-semibold uppercase tracking-wide text-foreground/80">
+									<span className="text-[11px] font-bold uppercase tracking-[0.08em] text-foreground/80">
 										{status.name}
 									</span>
-									<span className="text-xs text-muted-foreground tabular-nums">
+									<span className="rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground/70 tabular-nums">
 										{groupTasks.length}
 									</span>
 								</div>
@@ -143,12 +140,12 @@ export function RoadmapView({
 										<button
 											type="button"
 											key={task.id}
-											className="grid w-full border-b border-border/20 last:border-0 hover:bg-muted/20 transition-colors cursor-pointer text-left"
+											className="grid w-full border-b border-border/15 last:border-0 hover:bg-muted/30 transition-colors duration-150 cursor-pointer text-left"
 											style={{ gridTemplateColumns: "minmax(220px, 35%) 1fr" }}
 											onClick={() => onTaskClick(task)}
 										>
 											{/* Left: task summary */}
-											<div className="flex items-center gap-2 px-4 py-2.5 border-r border-border/30 min-w-0">
+											<div className="flex items-center gap-2 px-4 py-2.5 border-r border-border/25 min-w-0">
 												{type && (
 													<span
 														className="shrink-0 size-1.5 rounded-full"
@@ -158,7 +155,7 @@ export function RoadmapView({
 														}}
 													/>
 												)}
-												<span className="truncate text-xs">{task.title}</span>
+												<span className="truncate text-[12px] font-medium text-foreground">{task.title}</span>
 											</div>
 
 											{/* Right: timeline bar */}
@@ -166,7 +163,7 @@ export function RoadmapView({
 												<div className="absolute inset-x-4 h-px bg-border/20" />
 												<div
 													className={cn(
-														"absolute h-5 rounded-full opacity-80",
+														"absolute h-5 rounded-full",
 														"bg-primary/60",
 													)}
 													style={barStyle}
@@ -182,13 +179,13 @@ export function RoadmapView({
 
 				{/* Unstatused tasks */}
 				{filtered.filter((t) => !t.status_id).length > 0 && (
-					<div className="border-b border-border/40 last:border-0">
-						<div className="flex items-center gap-2 px-4 py-2 bg-muted/20 border-b border-border/30">
-							<span className="size-2 rounded-full bg-muted-foreground/30 shrink-0" />
-							<span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/50">
+					<div className="border-b border-border/25 last:border-0">
+						<div className="flex items-center gap-2 px-4 py-2.5 bg-muted/20 border-b border-border/25">
+							<span className="size-1.75 rounded-full bg-muted-foreground/30 shrink-0" />
+							<span className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground/50">
 								No Status
 							</span>
-							<span className="text-xs text-muted-foreground tabular-nums">
+							<span className="rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground/70 tabular-nums">
 								{filtered.filter((t) => !t.status_id).length}
 							</span>
 						</div>

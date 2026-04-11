@@ -72,7 +72,6 @@ interface IntegrationLayoutProps {
 	sprintId?: string | null;
 }
 
-// ── Main Layout ────────────────────────────────────────────────────────────────
 export function IntegrationLayout({
 	projectId,
 	integrationKey,
@@ -89,7 +88,6 @@ export function IntegrationLayout({
 	const { data: statuses = [] } = useQuery(taskStatusesQueryOptions(projectId));
 	const { data: taskTypes = [] } = useQuery(taskTypesQueryOptions(projectId));
 
-	// Load views from the API (backlog or sprint)
 	const viewsQuery = useQuery(
 		sprintId
 			? viewsQueryOptions(projectId, sprintId)
@@ -103,7 +101,6 @@ export function IntegrationLayout({
 		? viewsQueryOptions(projectId, sprintId).queryKey
 		: backlogViewsQueryOptions(projectId).queryKey;
 
-	// Seed default views the first time the query succeeds with an empty list.
 	const seedingRef = useRef(false);
 	useEffect(() => {
 		if (!viewsQuery.isSuccess || serverViews.length > 0 || seedingRef.current)
@@ -136,7 +133,6 @@ export function IntegrationLayout({
 		viewsQueryKey,
 	]);
 
-	// Active view: prefer last-selected (stored in localStorage), fall back to first
 	const [previewConfig, setPreviewConfig] = useState<ViewConfig | undefined>(
 		undefined,
 	);
@@ -151,7 +147,6 @@ export function IntegrationLayout({
 	const activeView = views.find((v) => v.id === preferredViewId) ?? views[0];
 	const activeViewId = activeView?.id ?? "";
 
-	// Persist active view preference
 	useEffect(() => {
 		if (!activeViewId) return;
 		try {
@@ -182,7 +177,6 @@ export function IntegrationLayout({
 	const [filterOpen, setFilterOpen] = useState(false);
 	const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
-	// Fetch tasks, embedding view position data when sort is manual and the active view is real
 	const isRealView = !!activeViewId && !activeViewId.startsWith("__default-");
 	const effectiveViewId = isManualSort && isRealView ? activeViewId : undefined;
 	const tasksQueryOpts = sprintId
@@ -192,12 +186,10 @@ export function IntegrationLayout({
 	const tasks = tasksQuery.data?.items ?? [];
 	const tasksLoading = tasksQuery.isLoading;
 
-	// Base query key (no viewId) used for invalidation — matches all viewId variants via prefix
 	const tasksBaseQueryKey = sprintId
 		? ["projects", projectId, "sprints", sprintId, "tasks"]
 		: ["projects", projectId, "backlog-tasks"];
 
-	// Sort tasks by embedded view_position when sort is manual; fall back to created_at
 	const sortedTasks = useMemo(() => {
 		if (!isManualSort) return tasks;
 		return [...tasks].sort((a, b) => {
@@ -214,7 +206,6 @@ export function IntegrationLayout({
 		projectMembersQueryOptions(projectId),
 	);
 
-	// Restore task from URL param once tasks are loaded
 	const restoredFromUrl = useRef(false);
 	useEffect(() => {
 		if (restoredFromUrl.current || tasks.length === 0) return;
@@ -236,7 +227,6 @@ export function IntegrationLayout({
 	const handleTaskClick = (task: Task) => {
 		setSelectedTask(task);
 		onTaskClick?.(task);
-		// Update URL with task id as search param (non-navigating)
 		try {
 			const url = new URL(window.location.href);
 			url.searchParams.set("taskId", task.id);
@@ -246,7 +236,6 @@ export function IntegrationLayout({
 		}
 	};
 
-	// ── Task status change (from list view drag) ─────────────────────────────
 	const updateStatusMutation = useMutation({
 		mutationFn: ({
 			taskId,
@@ -276,7 +265,15 @@ export function IntegrationLayout({
 		[updateStatusMutation, sortedTasks],
 	);
 
-	// ── Task mutation ─────────────────────────────────────────────────────────
+	const handleUpdateTask = useCallback(
+		(taskId: string, payload: Partial<{ task_type_id: string | null; assignee_id: string | null }>) => {
+			updateTask(projectId, taskId, payload).then(() =>
+				qc.invalidateQueries({ queryKey: tasksBaseQueryKey }),
+			);
+		},
+		[projectId, qc, tasksBaseQueryKey],
+	);
+
 	const createTaskMutation = useMutation({
 		mutationFn: (payload: { title: string; statusId: string; taskTypeId?: string | null }) =>
 			createTask(projectId, {
@@ -292,12 +289,9 @@ export function IntegrationLayout({
 		await createTaskMutation.mutateAsync({ title, statusId, taskTypeId });
 	};
 
-	// ── Task reorder ─────────────────────────────────────────────────────────
 	const handleReorderTask = useCallback(
 		(groupKey: string, taskId: string, newIndex: number) => {
 			if (!effectiveViewId) return;
-			// newIndex is the post-removal insertion index: components splice the source out
-			// first, then insert at newIndex. Simulate that to find correct neighbors.
 			const groupTasks = sortedTasks.filter((t) => t.status_id === groupKey);
 			const srcIdx = groupTasks.findIndex((t) => t.id === taskId);
 			const reordered = [...groupTasks];
@@ -334,7 +328,6 @@ export function IntegrationLayout({
 		[effectiveViewId, sortedTasks, sprintId, projectId, qc, tasksBaseQueryKey],
 	);
 
-	// ── View mutations ────────────────────────────────────────────────────────
 	const createViewMutation = useMutation({
 		mutationFn: (payload: { name: string; layout: ViewLayout }) => {
 			const view_type = layoutToViewType(payload.layout);
@@ -368,7 +361,6 @@ export function IntegrationLayout({
 						config: payload.config,
 					}),
 		onSuccess: () => {
-			// After save, clear preview so the view uses the server-returned config
 			setPreviewConfig(undefined);
 			qc.invalidateQueries({ queryKey: viewsQueryKey });
 		},
@@ -396,12 +388,10 @@ export function IntegrationLayout({
 		onSuccess: () => qc.invalidateQueries({ queryKey: viewsQueryKey }),
 	});
 
-	// ── View tab drag-to-reorder ──────────────────────────────────────────────
 	const [tabDragId, setTabDragId] = useState<string | null>(null);
 	const [tabDragOverId, setTabDragOverId] = useState<string | null>(null);
 	const [localViews, setLocalViews] = useState<IntegrationView[] | null>(null);
 
-	// Reset optimistic order whenever the server list refreshes and we're not mid-drag
 	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset local order when server views refresh
 	useEffect(() => {
 		if (!tabDragId) setLocalViews(null);
@@ -418,27 +408,25 @@ export function IntegrationLayout({
 		const next = [...current];
 		const [moved] = next.splice(srcIdx, 1);
 		next.splice(tgtIdx, 0, moved);
-		// Assign fresh sequential positions so the list renders in the new order
 		const withPositions = next.map((v, i) => ({ ...v, position: i }));
 		setLocalViews(withPositions);
-		// Single atomic API call with the full ordered ID list
 		reorderViewMutation.mutate(withPositions.map((v) => v.id));
 	};
 
 	return (
 		<div className="flex h-full flex-col overflow-hidden">
 			{/* Header */}
-			<div className="shrink-0 border-b border-border/50 px-6 py-4">
-				<h1 className="font-[Syne] text-xl font-bold tracking-tight">
+			<div className="shrink-0 border-b border-border/30 px-8 py-5">
+				<h1 className="font-[Syne] text-[26px] font-bold tracking-tight">
 					{title}
 				</h1>
 				{description && (
-					<p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
+					<p className="mt-1 text-[13px] text-muted-foreground">{description}</p>
 				)}
 			</div>
 
 			{/* View tab bar */}
-			<div className="flex shrink-0 items-center gap-1 border-b border-border/40 px-4">
+			<div className="flex shrink-0 items-center gap-1 border-b border-border/25 bg-muted/20 px-4">
 				<div className="flex items-center gap-0.5 overflow-x-auto overflow-y-hidden flex-1 min-w-0">
 					{displayViews.map((view) => {
 						const isActive = view.id === activeView?.id;
@@ -486,10 +474,10 @@ export function IntegrationLayout({
 									type="button"
 									onClick={() => setPreferredViewId(view.id)}
 									className={cn(
-										"flex items-center gap-1.5 px-2 py-2.5 text-xs font-medium transition-all duration-150",
+										"flex items-center gap-1.5 px-2.5 py-2.5 text-[12px] font-medium transition-all duration-150",
 										isActive
-											? "text-foreground"
-											: "text-muted-foreground hover:text-foreground",
+											? "text-primary"
+											: "text-muted-foreground/80 hover:text-foreground",
 									)}
 								>
 									{view.layout === "Board" ? (
@@ -508,7 +496,7 @@ export function IntegrationLayout({
 											render={
 												<button
 													type="button"
-													className="flex size-5 items-center justify-center rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+													className="flex size-6 items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/60 transition-all duration-150"
 												/>
 											}
 										>
@@ -538,7 +526,6 @@ export function IntegrationLayout({
 						);
 					})}
 
-					{/* Add view — sits immediately after the last tab */}
 					{canManageViews && (
 						<NewViewPopover
 							onSubmit={(name, layout) =>
@@ -549,16 +536,16 @@ export function IntegrationLayout({
 					)}
 				</div>
 
-				<div className="flex shrink-0 items-center gap-1 pl-2 border-l border-border/30 ml-1">
+				<div className="flex shrink-0 items-center gap-1 pl-3 border-l border-border/25 ml-2">
 					{searchOpen ? (
-						<div className="flex items-center gap-1 rounded-md border border-border bg-background px-2 py-1">
-							<Search className="size-3.5 text-muted-foreground shrink-0" />
+						<div className="flex items-center gap-1.5 rounded-lg border border-border/30 bg-muted/15 px-3 py-1.5 focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/15 transition-all duration-150">
+							<Search className="size-3.5 text-muted-foreground/60 shrink-0" />
 							<input
 								ref={searchRef}
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
 								placeholder="Search tasks…"
-								className="w-32 bg-transparent text-xs outline-none placeholder:text-muted-foreground/50"
+								className="w-36 bg-transparent text-[12px] font-medium outline-none placeholder:text-muted-foreground/50"
 								onKeyDown={(e) => {
 									if (e.key === "Escape") {
 										setSearchOpen(false);
@@ -572,7 +559,7 @@ export function IntegrationLayout({
 									setSearchOpen(false);
 									setSearchQuery("");
 								}}
-								className="text-muted-foreground hover:text-foreground"
+								className="flex size-5 items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground transition-all duration-150"
 							>
 								<X className="size-3" />
 							</button>
@@ -581,7 +568,7 @@ export function IntegrationLayout({
 						<button
 							type="button"
 							onClick={() => setSearchOpen(true)}
-							className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+							className="flex size-7 items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/60 transition-all duration-150"
 						>
 							<Search className="size-3.5" />
 						</button>
@@ -594,10 +581,10 @@ export function IntegrationLayout({
 								<button
 									type="button"
 									className={cn(
-										"flex size-7 items-center justify-center rounded-md transition-colors",
+										"flex size-7 items-center justify-center rounded-md transition-all duration-150",
 										assigneeFilter
-											? "bg-primary/10 text-primary"
-											: "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+											? "bg-primary/8 text-primary/80"
+											: "text-muted-foreground/60 hover:text-foreground hover:bg-muted/60",
 									)}
 								/>
 							}
@@ -607,11 +594,13 @@ export function IntegrationLayout({
 						<PopoverContent
 							side="bottom"
 							align="end"
-							className="w-52 p-0"
+							className="w-52 p-1 rounded-xl border border-border/40 shadow-lg"
 							sideOffset={6}
 						>
-							<div className="p-2 border-b border-border/50">
-								<p className="text-xs font-semibold">Filter by assignee</p>
+							<div className="px-3 py-2 border-b border-border/30">
+								<p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
+									Filter by assignee
+								</p>
 							</div>
 							<div className="flex flex-col py-1 max-h-52 overflow-y-auto">
 								<button
@@ -621,7 +610,7 @@ export function IntegrationLayout({
 										setFilterOpen(false);
 									}}
 									className={cn(
-										"flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted/40 transition-colors text-left",
+										"flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] hover:bg-muted/60 transition-colors duration-100 text-left",
 										!assigneeFilter && "text-primary font-medium",
 									)}
 								>
@@ -636,12 +625,12 @@ export function IntegrationLayout({
 											setFilterOpen(false);
 										}}
 										className={cn(
-											"flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted/40 transition-colors text-left",
+											"flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] hover:bg-muted/60 transition-colors duration-100 text-left",
 											assigneeFilter === m.user_id &&
 												"text-primary font-medium",
 										)}
 									>
-										<div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary text-[9px] font-bold">
+										<div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-[10px] font-bold ring-1 ring-primary/20">
 											{(m.full_name || m.username).slice(0, 1).toUpperCase()}
 										</div>
 										<span className="truncate">
@@ -650,22 +639,22 @@ export function IntegrationLayout({
 									</button>
 								))}
 								{members.length === 0 && (
-									<p className="px-3 py-2 text-xs text-muted-foreground/50">
+									<p className="px-3 py-2 text-[12px] text-muted-foreground/50">
 										No members
 									</p>
 								)}
 							</div>
 							{assigneeFilter && (
-								<div className="border-t border-border/50 p-2">
+								<div className="border-t border-border/30 p-1">
 									<button
 										type="button"
 										onClick={() => {
 											setAssigneeFilter(null);
 											setFilterOpen(false);
 										}}
-										className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+										className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] text-muted-foreground/80 hover:bg-muted/60 hover:text-foreground transition-colors duration-100"
 									>
-										<X className="size-3" />
+										<X className="size-3.5 text-muted-foreground/80 shrink-0" />
 										Clear filter
 									</button>
 								</div>
@@ -673,7 +662,6 @@ export function IntegrationLayout({
 						</PopoverContent>
 					</Popover>
 
-					{/* View settings — always visible when at least one view is active */}
 					{activeView && (
 						<ViewSettingsPanel
 							view={activeView}
@@ -690,7 +678,7 @@ export function IntegrationLayout({
 			</div>
 
 			{/* View content */}
-			<div className="flex-1 overflow-hidden">
+			<div className="flex flex-1 flex-col overflow-hidden">
 				{tasksLoading ? (
 					<div className="flex h-full items-center justify-center">
 						<div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -701,6 +689,7 @@ export function IntegrationLayout({
 						tasks={sortedTasks}
 						statuses={statuses}
 						taskTypes={taskTypes}
+						members={members}
 						canCreate={canCreate}
 						canEdit={canEdit}
 						searchQuery={searchQuery}
@@ -708,6 +697,7 @@ export function IntegrationLayout({
 						tasksQueryKey={tasksBaseQueryKey}
 						onCreateTask={handleCreateTask}
 						onTaskClick={handleTaskClick}
+						onUpdateTask={canEdit ? handleUpdateTask : undefined}
 						manualSort={isManualSort}
 						onReorderTask={effectiveViewId ? handleReorderTask : undefined}
 					/>
@@ -738,7 +728,6 @@ export function IntegrationLayout({
 				)}
 			</div>
 
-			{/* Rename dialog (state-controlled) */}
 			<RenameViewDialog
 				view={renameTarget}
 				open={renameOpen}
@@ -752,14 +741,12 @@ export function IntegrationLayout({
 				isPending={renameViewMutation.isPending}
 			/>
 
-			{/* Task detail modal */}
 			<TaskDetailModal
 				task={selectedTask}
 				open={!!selectedTask}
 				onOpenChange={(v) => {
 					if (!v) {
 						setSelectedTask(null);
-						// Remove taskId from URL
 						try {
 							const url = new URL(window.location.href);
 							url.searchParams.delete("taskId");

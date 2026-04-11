@@ -38,16 +38,19 @@ export function TaskDetailPanel({
 			>
 				{task && (
 					<>
-						<SheetHeader className="border-b border-border/50 p-5 pb-4 gap-2">
+						<SheetHeader className="border-b border-border/25 px-5 py-4 bg-muted/20 gap-2">
 							{/* Type + Status badges */}
 							<div className="flex items-center gap-2 flex-wrap">
 								{taskType && (
 									<span
-										className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold leading-tight"
+										className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold leading-tight tracking-wide border"
 										style={{
+											borderColor: taskType.color
+												? `${taskType.color}44`
+												: "var(--border)",
 											backgroundColor: taskType.color
-												? `${taskType.color}22`
-												: "oklch(var(--muted))",
+												? `${taskType.color}15`
+												: "var(--muted)",
 											color: taskType.color ?? "inherit",
 										}}
 									>
@@ -55,117 +58,124 @@ export function TaskDetailPanel({
 									</span>
 								)}
 								{status && (
-									<span className="inline-flex items-center gap-1 rounded-full border border-border/50 px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+									<span className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/40 px-3 py-1 text-[11px] font-semibold text-muted-foreground tracking-wide backdrop-blur-sm">
 										<span
-											className="size-1.5 rounded-full shrink-0"
+											className="size-1.75 rounded-full shrink-0 ring-2 ring-offset-1 ring-offset-background"
 											style={{
-												background:
-													status.color ?? "oklch(var(--muted-foreground))",
+												background: status.color ?? "var(--muted-foreground)",
+												boxShadow: status.color ? `0 0 6px ${status.color}40` : undefined,
 											}}
 										/>
 										{status.name}
 									</span>
 								)}
 							</div>
-							<SheetTitle className="text-base font-semibold leading-snug pr-6">
+							<SheetTitle className="font-[Syne] text-[18px] font-bold leading-snug pr-6 tracking-tight">
 								{task.title}
 							</SheetTitle>
 						</SheetHeader>
 
-						<div className="p-5 flex flex-col gap-5">
+						<div className="px-5 py-4 flex flex-col gap-5">
 							{/* Properties */}
-							<div className="flex flex-col gap-3">
-								{/* Priority */}
-								<div className="flex items-center gap-3">
-									<div className="flex items-center gap-1.5 w-28 shrink-0 text-xs text-muted-foreground">
-										<Flag className="size-3.5" />
-										Priority
-									</div>
-									<span
-										className="inline-flex items-center gap-1 text-xs font-medium"
-										style={{ color: priority.color }}
-									>
+							<div>
+								<h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-3 flex items-center gap-2">
+									<span>Properties</span>
+									<div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
+								</h3>
+								<div className="flex flex-col gap-0">
+									{/* Priority */}
+									<div className="grid grid-cols-[9.5rem_1fr] items-center gap-4 py-2.5 px-1 group/field rounded-lg hover:bg-muted/30 transition-colors duration-150">
+										<span className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground leading-snug select-none">
+											<Flag className="size-3.5 opacity-70" />
+											Priority
+										</span>
 										<span
-											className="size-2 rounded-full"
-											style={{ background: priority.color }}
-										/>
-										{priority.label}
-									</span>
-								</div>
-
-								{/* Assignee */}
-								<div className="flex items-center gap-3">
-									<div className="flex items-center gap-1.5 w-28 shrink-0 text-xs text-muted-foreground">
-										<User className="size-3.5" />
-										Assignee
+											className="inline-flex items-center gap-1.5 text-[13px] font-medium"
+											style={{ color: priority.color }}
+										>
+											<span
+												className="size-2 rounded-full"
+												style={{ background: priority.color }}
+											/>
+											{priority.label}
+										</span>
 									</div>
-									{task.assignee_id ? (
-										<div className="flex items-center gap-1.5">
-											<div className="flex size-5 items-center justify-center rounded-full bg-primary/15 text-primary text-[9px] font-bold ring-1 ring-border/50">
-												<User className="size-3" />
+
+									{/* Assignee */}
+									<div className="grid grid-cols-[9.5rem_1fr] items-center gap-4 py-2.5 px-1 group/field rounded-lg hover:bg-muted/30 transition-colors duration-150">
+										<span className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground leading-snug select-none">
+											<User className="size-3.5 opacity-70" />
+											Assignee
+										</span>
+										{task.assignee_id ? (
+											<div className="flex items-center gap-2">
+												<div className="flex size-6 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-[10px] font-bold ring-1 ring-primary/20">
+													<User className="size-3" />
+												</div>
+												<span className="text-[13px] font-medium text-foreground">
+													Assigned
+												</span>
 											</div>
-											<span className="text-xs text-muted-foreground">
-												Assigned
+										) : (
+											<span className="text-[13px] text-muted-foreground/50 italic">
+												Unassigned
+											</span>
+										)}
+									</div>
+
+									{/* Sprint */}
+									{task.sprint_id && (
+										<div className="grid grid-cols-[9.5rem_1fr] items-center gap-4 py-2.5 px-1 group/field rounded-lg hover:bg-muted/30 transition-colors duration-150">
+											<span className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground leading-snug select-none">
+												<GitBranch className="size-3.5 opacity-70" />
+												Sprint
+											</span>
+											<span className="text-[13px] font-medium text-muted-foreground font-[JetBrains_Mono,monospace] tracking-wider truncate">
+												{task.sprint_id}
 											</span>
 										</div>
-									) : (
-										<span className="text-xs text-muted-foreground/50">
-											Unassigned
-										</span>
 									)}
-								</div>
 
-								{/* Sprint */}
-								{task.sprint_id && (
-									<div className="flex items-center gap-3">
-										<div className="flex items-center gap-1.5 w-28 shrink-0 text-xs text-muted-foreground">
-											<GitBranch className="size-3.5" />
-											Sprint
-										</div>
-										<span className="text-xs text-muted-foreground font-mono truncate">
-											{task.sprint_id}
+									{/* Created */}
+									<div className="grid grid-cols-[9.5rem_1fr] items-center gap-4 py-2.5 px-1 group/field rounded-lg hover:bg-muted/30 transition-colors duration-150">
+										<span className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground leading-snug select-none">
+											<Calendar className="size-3.5 opacity-70" />
+											Created
+										</span>
+										<span className="text-[13px] font-medium text-muted-foreground">
+											{new Date(task.created_at).toLocaleDateString(undefined, {
+												year: "numeric",
+												month: "short",
+												day: "numeric",
+											})}
 										</span>
 									</div>
-								)}
 
-								{/* Created */}
-								<div className="flex items-center gap-3">
-									<div className="flex items-center gap-1.5 w-28 shrink-0 text-xs text-muted-foreground">
-										<Calendar className="size-3.5" />
-										Created
+									{/* Updated */}
+									<div className="grid grid-cols-[9.5rem_1fr] items-center gap-4 py-2.5 px-1 group/field rounded-lg hover:bg-muted/30 transition-colors duration-150">
+										<span className="flex items-center gap-1.5 text-[13px] font-medium text-muted-foreground leading-snug select-none">
+											<Calendar className="size-3.5 opacity-70" />
+											Updated
+										</span>
+										<span className="text-[13px] font-medium text-muted-foreground">
+											{new Date(task.updated_at).toLocaleDateString(undefined, {
+												year: "numeric",
+												month: "short",
+												day: "numeric",
+											})}
+										</span>
 									</div>
-									<span className="text-xs text-muted-foreground">
-										{new Date(task.created_at).toLocaleDateString(undefined, {
-											year: "numeric",
-											month: "short",
-											day: "numeric",
-										})}
-									</span>
-								</div>
-
-								{/* Updated */}
-								<div className="flex items-center gap-3">
-									<div className="flex items-center gap-1.5 w-28 shrink-0 text-xs text-muted-foreground">
-										<Calendar className="size-3.5" />
-										Updated
-									</div>
-									<span className="text-xs text-muted-foreground">
-										{new Date(task.updated_at).toLocaleDateString(undefined, {
-											year: "numeric",
-											month: "short",
-											day: "numeric",
-										})}
-									</span>
 								</div>
 							</div>
 
 							{/* Description */}
 							{task.description && (
-								<div className="flex flex-col gap-1.5 border-t border-border/40 pt-4">
-									<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-										Description
-									</p>
-									<p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
+								<div>
+									<h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 mb-3 flex items-center gap-2">
+										<span>Description</span>
+										<div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
+									</h3>
+									<p className="text-[14px] text-foreground/80 whitespace-pre-wrap leading-relaxed">
 										{task.description}
 									</p>
 								</div>

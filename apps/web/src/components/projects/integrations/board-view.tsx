@@ -10,7 +10,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { type Task, updateTask } from "@/lib/integration-api";
-import type { TaskStatus, TaskType } from "@/lib/project-api";
+import type { ProjectMember, TaskStatus, TaskType } from "@/lib/project-api";
 import { cn } from "@/lib/utils";
 
 import { TaskCard } from "./task-card";
@@ -20,6 +20,7 @@ interface BoardViewProps {
 	tasks: Task[];
 	statuses: TaskStatus[];
 	taskTypes: TaskType[];
+	members: ProjectMember[];
 	canCreate: boolean;
 	canEdit: boolean;
 	searchQuery: string;
@@ -27,6 +28,7 @@ interface BoardViewProps {
 	tasksQueryKey: unknown[];
 	onCreateTask: (statusId: string, title: string, taskTypeId?: string | null) => Promise<void>;
 	onTaskClick: (task: Task) => void;
+	onUpdateTask?: (taskId: string, payload: Partial<{ task_type_id: string | null; assignee_id: string | null }>) => void;
 	manualSort?: boolean;
 	onReorderTask?: (statusId: string, taskId: string, newIndex: number) => void;
 }
@@ -70,9 +72,9 @@ function ColumnAddTask({ taskTypes, onAdd }: ColumnAddProps) {
 			<button
 				type="button"
 				onClick={open_}
-				className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+				className="flex w-full items-center gap-1.5 rounded-lg bg-primary/8 text-primary/80 hover:bg-primary/15 hover:text-primary px-2.5 py-1.5 text-[11px] font-semibold transition-all duration-150"
 			>
-				<Plus className="size-3.5" />
+				<Plus className="size-3" />
 				Add task
 			</button>
 		);
@@ -81,22 +83,22 @@ function ColumnAddTask({ taskTypes, onAdd }: ColumnAddProps) {
 	const SelectedIcon = getTaskTypeIconComponent(selectedType?.icon ?? null);
 
 	return (
-		<div className="rounded-lg border border-primary/40 bg-card p-2 shadow-xs">
-			<div className="flex items-center gap-1.5 mb-1.5">
+		<div className="rounded-xl border border-border/30 bg-card/50 p-2.5 shadow-sm">
+			<div className="flex items-center gap-1.5 mb-2">
 				{taskTypes.length > 0 && selectedType && (
 					<DropdownMenu>
 						<DropdownMenuTrigger
-							className="flex items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors hover:bg-muted/50 shrink-0"
+							className="flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-[11px] font-semibold transition-all duration-150 hover:bg-muted/60 shrink-0"
 							style={selectedType.color ? { color: selectedType.color } : undefined}
 						>
 							{SelectedIcon ? (
-								<SelectedIcon className="size-3.5" />
+								<SelectedIcon className="size-3.5 opacity-70" />
 							) : (
-								<span className="text-[10px] font-semibold">{selectedType.name.slice(0, 2)}</span>
+								<span className="text-[10px] font-bold">{selectedType.name.slice(0, 2)}</span>
 							)}
 							<ChevronDown className="size-3 text-muted-foreground/60" />
 						</DropdownMenuTrigger>
-						<DropdownMenuContent align="start" className="w-40">
+						<DropdownMenuContent align="start" className="w-40 rounded-xl border border-border/40 shadow-lg p-1">
 							{taskTypes.map((tt) => {
 								const Icon = getTaskTypeIconComponent(tt.icon);
 								return (
@@ -104,17 +106,17 @@ function ColumnAddTask({ taskTypes, onAdd }: ColumnAddProps) {
 										key={tt.id}
 										onClick={() => setSelectedTypeId(tt.id)}
 										className={cn(
-											"flex items-center gap-2 text-xs",
-											selectedType.id === tt.id && "bg-accent",
+											"flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] hover:bg-muted/60 transition-colors duration-100",
+											selectedType.id === tt.id && "bg-muted/40",
 										)}
 									>
 										{Icon ? (
 											<Icon
-												className="size-3.5 shrink-0"
+												className="size-3.5 shrink-0 text-muted-foreground/80"
 												style={tt.color ? { color: tt.color } : undefined}
 											/>
 										) : (
-											<span className="size-3.5 shrink-0 text-[10px] font-semibold">
+											<span className="size-3.5 shrink-0 text-[10px] font-bold">
 												{tt.name.slice(0, 2)}
 											</span>
 										)}
@@ -125,7 +127,7 @@ function ColumnAddTask({ taskTypes, onAdd }: ColumnAddProps) {
 						</DropdownMenuContent>
 					</DropdownMenu>
 				)}
-				<span className="text-xs text-muted-foreground/50 truncate">
+				<span className="text-[11px] text-muted-foreground/60 truncate">
 					{selectedType?.name ?? "Task"}
 				</span>
 			</div>
@@ -138,13 +140,13 @@ function ColumnAddTask({ taskTypes, onAdd }: ColumnAddProps) {
 					if (e.key === "Escape") cancel();
 				}}
 				placeholder="Task title…"
-				className="w-full rounded px-2 py-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground/50"
+				className="w-full rounded-lg border border-border/30 bg-muted/15 px-3 py-2 text-[13px] font-medium outline-none placeholder:text-muted-foreground/50 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 transition-all duration-150"
 			/>
-			<div className="mt-1.5 flex items-center gap-1.5 justify-end">
+			<div className="mt-2 flex items-center gap-1.5 justify-end">
 				<button
 					type="button"
 					onClick={cancel}
-					className="px-2 py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+					className="flex items-center gap-1.5 rounded-lg bg-muted/40 text-muted-foreground/80 hover:bg-muted/60 hover:text-foreground px-2.5 py-1.5 text-[11px] font-semibold transition-all duration-150"
 				>
 					Cancel
 				</button>
@@ -152,7 +154,7 @@ function ColumnAddTask({ taskTypes, onAdd }: ColumnAddProps) {
 					type="button"
 					onClick={submit}
 					disabled={!value.trim()}
-					className="px-2.5 py-0.5 rounded text-xs font-medium bg-primary text-primary-foreground disabled:opacity-40 hover:opacity-90 transition-opacity"
+					className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground hover:bg-primary/90 shadow-sm disabled:opacity-40 transition-all duration-150"
 				>
 					Create
 				</button>
@@ -166,6 +168,7 @@ export function BoardView({
 	tasks,
 	statuses,
 	taskTypes,
+	members,
 	canCreate,
 	canEdit,
 	searchQuery,
@@ -173,6 +176,7 @@ export function BoardView({
 	tasksQueryKey,
 	onCreateTask,
 	onTaskClick,
+	onUpdateTask,
 	manualSort,
 	onReorderTask,
 }: BoardViewProps) {
@@ -180,7 +184,6 @@ export function BoardView({
 	const [draggingId, setDraggingId] = useState<string | null>(null);
 	const [overStatusId, setOverStatusId] = useState<string | null>(null);
 	const [overCardId, setOverCardId] = useState<string | null>(null);
-	// Per-column manual order (id arrays); reset when parent tasks refresh
 	const [columnOrderMap, setColumnOrderMap] = useState<
 		Record<string, string[]>
 	>({});
@@ -218,7 +221,7 @@ export function BoardView({
 
 	const tasksByStatus = (statusId: string) => {
 		const col = filteredTasks.filter((t) => t.status_id === statusId);
-		if (manualSort) return col; // preserve parent sort order (already sorted by view_position)
+		if (manualSort) return col;
 		return col.sort((a, b) => a.created_at.localeCompare(b.created_at));
 	};
 	const getColumnTasks = (statusId: string): Task[] => {
@@ -287,7 +290,6 @@ export function BoardView({
 				sprintId: task.sprint_id,
 			});
 		} else if (manualSort && taskId !== targetTaskId) {
-			// Optimistic local reorder within column
 			const current = getColumnTasks(targetStatusId);
 			const srcIdx = current.findIndex((t) => t.id === taskId);
 			if (srcIdx !== -1) {
@@ -315,7 +317,7 @@ export function BoardView({
 	const sortedStatuses = [...statuses].sort((a, b) => a.position - b.position);
 
 	return (
-		<div className="flex gap-3 overflow-x-auto px-6 py-4 pb-6">
+		<div className="flex flex-1 min-h-0 gap-4 overflow-x-auto px-6 py-5 pb-8">
 			{sortedStatuses.map((status) => {
 				const columnTasks = getColumnTasks(status.id);
 				const isOver = overStatusId === status.id;
@@ -325,22 +327,23 @@ export function BoardView({
 					<div
 						key={status.id}
 						data-status-id={status.id}
-						className="flex w-72 shrink-0 flex-col gap-2"
+						className="flex w-72 shrink-0 flex-col gap-2.5"
 						onDragOver={(e) => handleDragOver(e, status.id)}
 						onDrop={(e) => handleDrop(e, status.id)}
 					>
 						{/* Column header */}
-						<div className="flex items-center gap-2 px-1">
+						<div className="flex items-center gap-2 px-2">
 							<span
-								className="size-2 rounded-full shrink-0"
+								className="size-1.75 rounded-full shrink-0"
 								style={{
 									background: status.color ?? "oklch(var(--muted-foreground))",
+									boxShadow: status.color ? `0 0 6px ${status.color}40` : undefined,
 								}}
 							/>
-							<span className="text-xs font-semibold text-foreground/80 tracking-wide uppercase">
+							<span className="text-[11px] font-bold text-foreground/80 tracking-[0.08em] uppercase">
 								{status.name}
 							</span>
-							<span className="ml-auto text-xs font-medium text-muted-foreground tabular-nums">
+							<span className="ml-auto rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground/70 tabular-nums">
 								{columnTasks.length}
 							</span>
 						</div>
@@ -348,13 +351,15 @@ export function BoardView({
 						{/* Drop zone */}
 						<div
 							className={cn(
-								"flex flex-col gap-2 rounded-xl p-2 min-h-30 transition-colors duration-150",
-								isOver ? "bg-primary/5 ring-2 ring-primary/20" : "bg-muted/20",
+								"flex flex-col gap-2 rounded-xl p-2 min-h-30 transition-all duration-200",
+								isOver
+									? "bg-primary/8 ring-2 ring-primary/20"
+									: "bg-muted/40 dark:bg-black/30",
 							)}
 						>
-							{columnTasks.length === 0 && !isOver && (
-								<div className="flex flex-1 flex-col items-center justify-center py-6 text-center">
-									<p className="text-xs text-muted-foreground/50">No tasks</p>
+							{columnTasks.length === 0 && (
+								<div className="flex flex-1 flex-col items-center justify-center py-8 text-muted-foreground/40">
+									<p className="text-[12px] font-medium">No tasks</p>
 								</div>
 							)}
 
@@ -381,11 +386,13 @@ export function BoardView({
 										task={task}
 										statuses={statuses}
 										taskTypes={taskTypes}
+										members={members}
 										canEdit={canEdit}
 										isDragging={draggingId === task.id}
 										onDragStart={(e) => handleDragStart(e, task.id)}
 										onDragEnd={handleDragEnd}
 										onClick={() => onTaskClick(task)}
+										onUpdate={onUpdateTask}
 									/>
 								</div>
 							))}
@@ -401,23 +408,24 @@ export function BoardView({
 			})}
 			{/* Catch-all column for unstatused tasks */}
 			{unassignedTasks.length > 0 && (
-				<div className="flex w-72 shrink-0 flex-col gap-2">
-					<div className="flex items-center gap-2 px-1">
-						<span className="size-2 rounded-full bg-muted-foreground/30 shrink-0" />
-						<span className="text-xs font-semibold text-foreground/50 tracking-wide uppercase">
+				<div className="flex w-72 shrink-0 flex-col gap-2.5">
+					<div className="flex items-center gap-2 px-2">
+						<span className="size-1.75 rounded-full bg-muted-foreground/30 shrink-0" />
+						<span className="text-[11px] font-bold text-muted-foreground/50 tracking-[0.08em] uppercase">
 							No Status
 						</span>
-						<span className="ml-auto text-xs text-muted-foreground tabular-nums">
+						<span className="ml-auto rounded-full bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground/70 tabular-nums">
 							{unassignedTasks.length}
 						</span>
 					</div>
-					<div className="flex flex-col gap-2 rounded-xl bg-muted/10 p-2">
+					<div className="flex flex-col gap-2 rounded-xl bg-muted/30 dark:bg-black/30 p-2">
 						{unassignedTasks.map((task) => (
 							<TaskCard
 								key={task.id}
 								task={task}
 								statuses={statuses}
 								taskTypes={taskTypes}
+								members={members}
 								canEdit={false}
 								isDragging={draggingId === task.id}
 								onDragStart={(e) => handleDragStart(e, task.id)}

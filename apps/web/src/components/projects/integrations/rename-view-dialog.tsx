@@ -48,7 +48,7 @@ export function RenameViewDialog({
 					value={name}
 					onChange={(e) => setName(e.target.value)}
 					onKeyDown={(e) => e.key === "Enter" && submit()}
-					className="rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+					className="w-full rounded-lg border border-border/30 bg-muted/15 px-3.5 py-2.5 text-[13px] font-medium outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/15 placeholder:text-muted-foreground/50 transition-all duration-150"
 				/>
 				<DialogFooter>
 					<DialogClose render={<Button variant="outline" size="sm" />}>
