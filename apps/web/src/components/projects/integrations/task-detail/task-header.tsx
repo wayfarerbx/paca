@@ -34,10 +34,10 @@ export function TaskHeader({
 	};
 
 	return (
-		<div className="flex shrink-0 items-center gap-3 border-b border-border/30 px-6 py-2.5 bg-muted/20">
+		<div className="flex shrink-0 items-center gap-2 lg:gap-3 border-b border-border/30 px-4 lg:px-6 py-2.5 bg-muted/20">
 			{/* Breadcrumb (page mode only) */}
 			{mode === "page" && projectName && (
-				<nav className="flex items-center gap-1.5 text-[12px] text-muted-foreground/80 mr-2">
+				<nav className="hidden md:flex items-center gap-1.5 text-[12px] text-muted-foreground/80 mr-2">
 					<span className="hover:text-foreground transition-colors cursor-pointer">
 						{projectName}
 					</span>
@@ -64,7 +64,7 @@ export function TaskHeader({
 				</span>
 			</div>
 
-			<span className="text-[11px] text-muted-foreground/60 font-medium">
+			<span className="hidden md:inline text-[11px] text-muted-foreground/60 font-medium">
 				Created {formatDate(task.created_at)}
 			</span>
 

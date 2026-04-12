@@ -33,7 +33,7 @@ export type {
 } from "./types";
 
 const TITLE_CLASSES =
-	"font-[Syne] text-[26px] font-bold leading-snug text-foreground tracking-tight w-full";
+	"font-[Syne] text-xl lg:text-[26px] font-bold leading-snug text-foreground tracking-tight w-full";
 
 export function TaskDetailModal({
 	task: taskProp,
@@ -157,8 +157,7 @@ export function TaskDetailModal({
 
 	// ── Content ────────────────────────────────────────────────────────────────
 	const content = task ? (
-		<div className="flex h-full flex-col overflow-hidden">
-			{/* ── Header bar (full width, above both panes) ── */}
+		<div className="flex h-full flex-col">
 			<TaskHeader
 				task={task}
 				mode={mode}
@@ -168,11 +167,11 @@ export function TaskDetailModal({
 				onClose={() => onOpenChange(false)}
 			/>
 
-			{/* ── Body: scrollable content + activity pane ── */}
-			<div className="flex flex-1 min-w-0 overflow-hidden">
-				{/* Scrollable content with visible scrollbar */}
-				<div className="flex-1 overflow-y-auto [scrollbar-gutter:stable] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/60 [&::-webkit-scrollbar-thumb]:hover:bg-border">
-					<div className="px-8 py-7 space-y-8 max-w-3xl mx-auto">
+			{/* ── Body: stacks on mobile, side-by-side on lg+ ── */}
+			<div className="flex flex-col lg:flex-row flex-1 min-w-0 overflow-y-auto lg:overflow-hidden">
+				{/* Main content area: no own scroll on mobile (body scrolls), scrollable on lg+ */}
+				<div className="lg:flex-1 lg:overflow-y-auto [scrollbar-gutter:stable] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border/60 [&::-webkit-scrollbar-thumb]:hover:bg-border">
+					<div className="px-4 lg:px-8 py-5 lg:py-7 space-y-6 lg:space-y-8 max-w-3xl mx-auto">
 						{/* Type badge + Status chip + Title */}
 						<div className="space-y-4">
 							<div className="flex items-center gap-2.5 flex-wrap">
@@ -378,9 +377,12 @@ export function TaskDetailModal({
 				aria-modal="true"
 				aria-label={task?.title ?? "Task detail"}
 				className={cn(
-					"fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2",
-					"flex h-[90vh] w-[92vw] max-w-6xl flex-col overflow-hidden",
-					"rounded-2xl border border-border/50 bg-background shadow-[0_25px_60px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.05)_inset]",
+					"fixed z-50",
+					"inset-0 lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2",
+					"flex flex-col overflow-hidden",
+					"lg:h-[90vh] lg:w-[92vw] lg:max-w-6xl",
+					"lg:rounded-2xl lg:border lg:border-border/50 bg-background",
+					"lg:shadow-[0_25px_60px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.05)_inset]",
 					"transition-all duration-200 origin-center",
 					open
 						? "opacity-100 scale-100"

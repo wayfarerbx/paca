@@ -30,7 +30,7 @@ export function ActivityPane({ activities }: ActivityPaneProps) {
 	};
 
 	return (
-		<div className="flex w-80 shrink-0 flex-col overflow-hidden border-l border-border/25 bg-muted/10">
+		<div className="flex w-full lg:w-80 lg:shrink-0 flex-col lg:overflow-hidden border-t lg:border-t-0 lg:border-l border-border/25 bg-muted/10">
 			{/* Header */}
 			<div className="flex shrink-0 items-center gap-2.5 border-b border-border/25 px-5 py-3 bg-muted/20">
 				<MessageSquare className="size-3.5 text-muted-foreground/70" />
@@ -45,7 +45,7 @@ export function ActivityPane({ activities }: ActivityPaneProps) {
 			</div>
 
 			{/* Activity feed */}
-			<ScrollArea className="flex-1 px-4 py-4">
+			<ScrollArea className="lg:flex-1 px-4 py-4 max-h-[40vh] lg:max-h-none">
 				<div className="space-y-3">
 					{activities.map((entry) => (
 						<ActivityItem key={entry.id} entry={entry} />
