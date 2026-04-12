@@ -63,7 +63,9 @@ export function TaskDetailPanel({
 											className="size-1.75 rounded-full shrink-0 ring-2 ring-offset-1 ring-offset-background"
 											style={{
 												background: status.color ?? "var(--muted-foreground)",
-												boxShadow: status.color ? `0 0 6px ${status.color}40` : undefined,
+												boxShadow: status.color
+													? `0 0 6px ${status.color}40`
+													: undefined,
 											}}
 										/>
 										{status.name}

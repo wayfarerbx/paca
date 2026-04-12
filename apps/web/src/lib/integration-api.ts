@@ -381,10 +381,11 @@ export async function listSubtasks(
 	projectId: string,
 	parentTaskId: string,
 ): Promise<Task[]> {
-	const { data } = await apiClient.instance.get<SuccessEnvelope<TaskListResult>>(
-		`/projects/${projectId}/tasks`,
-		{ params: { parent_task_id: parentTaskId, page: 1, page_size: 200 } },
-	);
+	const { data } = await apiClient.instance.get<
+		SuccessEnvelope<TaskListResult>
+	>(`/projects/${projectId}/tasks`, {
+		params: { parent_task_id: parentTaskId, page: 1, page_size: 200 },
+	});
 	return data.data.items;
 }
 

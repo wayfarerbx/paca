@@ -15,8 +15,8 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import {
-	type TaskType,
 	setDefaultTaskType,
+	type TaskType,
 	taskTypesQueryOptions,
 } from "@/lib/project-api";
 

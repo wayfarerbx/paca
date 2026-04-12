@@ -70,7 +70,10 @@ export function TaskRow({
 								className="size-2 rounded-full shrink-0"
 								style={{ background: p.color }}
 							/>
-							<span className="text-[11px] font-medium truncate" style={{ color: p.color }}>
+							<span
+								className="text-[11px] font-medium truncate"
+								style={{ color: p.color }}
+							>
 								{p.label}
 							</span>
 						</>
@@ -91,7 +94,9 @@ export function TaskRow({
 							className="size-1.5 rounded-full shrink-0"
 							style={{
 								background: status.color ?? "oklch(var(--muted-foreground))",
-								boxShadow: status.color ? `0 0 4px ${status.color}40` : undefined,
+								boxShadow: status.color
+									? `0 0 4px ${status.color}40`
+									: undefined,
 							}}
 						/>
 						{status.name}

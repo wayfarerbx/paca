@@ -26,9 +26,19 @@ interface BoardViewProps {
 	searchQuery: string;
 	assigneeFilter: string | null;
 	tasksQueryKey: unknown[];
-	onCreateTask: (statusId: string, title: string, taskTypeId?: string | null) => Promise<void>;
+	onCreateTask: (
+		statusId: string,
+		title: string,
+		taskTypeId?: string | null,
+	) => Promise<void>;
 	onTaskClick: (task: Task) => void;
-	onUpdateTask?: (taskId: string, payload: Partial<{ task_type_id: string | null; assignee_id: string | null }>) => void;
+	onUpdateTask?: (
+		taskId: string,
+		payload: Partial<{
+			task_type_id: string | null;
+			assignee_id: string | null;
+		}>,
+	) => void;
 	manualSort?: boolean;
 	onReorderTask?: (statusId: string, taskId: string, newIndex: number) => void;
 }
@@ -44,8 +54,10 @@ function ColumnAddTask({ taskTypes, onAdd }: ColumnAddProps) {
 	const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 
-	const defaultType = taskTypes.find((tt) => tt.is_default) ?? taskTypes[0] ?? null;
-	const selectedType = taskTypes.find((tt) => tt.id === selectedTypeId) ?? defaultType;
+	const defaultType =
+		taskTypes.find((tt) => tt.is_default) ?? taskTypes[0] ?? null;
+	const selectedType =
+		taskTypes.find((tt) => tt.id === selectedTypeId) ?? defaultType;
 
 	const open_ = () => {
 		setOpen(true);
@@ -89,16 +101,23 @@ function ColumnAddTask({ taskTypes, onAdd }: ColumnAddProps) {
 					<DropdownMenu>
 						<DropdownMenuTrigger
 							className="flex items-center gap-1 rounded-lg px-1.5 py-0.5 text-[11px] font-semibold transition-all duration-150 hover:bg-muted/60 shrink-0"
-							style={selectedType.color ? { color: selectedType.color } : undefined}
+							style={
+								selectedType.color ? { color: selectedType.color } : undefined
+							}
 						>
 							{SelectedIcon ? (
 								<SelectedIcon className="size-3.5 opacity-70" />
 							) : (
-								<span className="text-[10px] font-bold">{selectedType.name.slice(0, 2)}</span>
+								<span className="text-[10px] font-bold">
+									{selectedType.name.slice(0, 2)}
+								</span>
 							)}
 							<ChevronDown className="size-3 text-muted-foreground/60" />
 						</DropdownMenuTrigger>
-						<DropdownMenuContent align="start" className="w-40 rounded-xl border border-border/40 shadow-lg p-1">
+						<DropdownMenuContent
+							align="start"
+							className="w-40 rounded-xl border border-border/40 shadow-lg p-1"
+						>
 							{taskTypes.map((tt) => {
 								const Icon = getTaskTypeIconComponent(tt.icon);
 								return (
@@ -337,7 +356,9 @@ export function BoardView({
 								className="size-1.75 rounded-full shrink-0"
 								style={{
 									background: status.color ?? "oklch(var(--muted-foreground))",
-									boxShadow: status.color ? `0 0 6px ${status.color}40` : undefined,
+									boxShadow: status.color
+										? `0 0 6px ${status.color}40`
+										: undefined,
 								}}
 							/>
 							<span className="text-[11px] font-bold text-foreground/80 tracking-[0.08em] uppercase">
@@ -399,7 +420,9 @@ export function BoardView({
 							{canCreate && (
 								<ColumnAddTask
 									taskTypes={taskTypes}
-									onAdd={(title, typeId) => onCreateTask(status.id, title, typeId)}
+									onAdd={(title, typeId) =>
+										onCreateTask(status.id, title, typeId)
+									}
 								/>
 							)}
 						</div>

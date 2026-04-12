@@ -21,7 +21,11 @@ interface ListViewProps {
 	canCreate: boolean;
 	searchQuery: string;
 	assigneeFilter: string | null;
-	onCreateTask: (statusId: string, title: string, taskTypeId?: string | null) => Promise<void>;
+	onCreateTask: (
+		statusId: string,
+		title: string,
+		taskTypeId?: string | null,
+	) => Promise<void>;
 	onTaskClick: (task: Task) => void;
 	manualSort?: boolean;
 	onReorderTask?: (statusId: string, taskId: string, newIndex: number) => void;
@@ -40,8 +44,10 @@ function GroupAddRow({ taskTypes, onAdd }: GroupAddRowProps) {
 	const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
 
-	const defaultType = taskTypes.find((tt) => tt.is_default) ?? taskTypes[0] ?? null;
-	const selectedType = taskTypes.find((tt) => tt.id === selectedTypeId) ?? defaultType;
+	const defaultType =
+		taskTypes.find((tt) => tt.is_default) ?? taskTypes[0] ?? null;
+	const selectedType =
+		taskTypes.find((tt) => tt.id === selectedTypeId) ?? defaultType;
 
 	const open_ = () => {
 		setOpen(true);
@@ -87,16 +93,23 @@ function GroupAddRow({ taskTypes, onAdd }: GroupAddRowProps) {
 							className={cn(
 								"flex items-center gap-1 rounded-lg px-1.5 py-1 text-[11px] font-semibold transition-all duration-150 hover:bg-muted/60 shrink-0",
 							)}
-							style={selectedType.color ? { color: selectedType.color } : undefined}
+							style={
+								selectedType.color ? { color: selectedType.color } : undefined
+							}
 						>
 							{SelectedIcon ? (
 								<SelectedIcon className="size-3.5 opacity-70" />
 							) : (
-								<span className="text-[10px] font-bold">{selectedType.name.slice(0, 2)}</span>
+								<span className="text-[10px] font-bold">
+									{selectedType.name.slice(0, 2)}
+								</span>
 							)}
 							<ChevronDown className="size-3 text-muted-foreground/60" />
 						</DropdownMenuTrigger>
-						<DropdownMenuContent align="start" className="w-40 rounded-xl border border-border/40 shadow-lg p-1">
+						<DropdownMenuContent
+							align="start"
+							className="w-40 rounded-xl border border-border/40 shadow-lg p-1"
+						>
 							{taskTypes.map((tt) => {
 								const Icon = getTaskTypeIconComponent(tt.icon);
 								return (
@@ -163,7 +176,11 @@ interface StatusGroupProps {
 	taskTypes: TaskType[];
 	canCreate: boolean;
 	defaultCollapsed?: boolean;
-	onCreateTask: (statusId: string, title: string, taskTypeId?: string | null) => Promise<void>;
+	onCreateTask: (
+		statusId: string,
+		title: string,
+		taskTypeId?: string | null,
+	) => Promise<void>;
 	onTaskClick: (task: Task) => void;
 	manualSort?: boolean;
 	onReorderTask?: (statusId: string, taskId: string, newIndex: number) => void;

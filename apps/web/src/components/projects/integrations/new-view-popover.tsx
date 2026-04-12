@@ -52,7 +52,9 @@ export function NewViewPopover({ onSubmit, isPending }: NewViewPopoverProps) {
 				sideOffset={6}
 			>
 				<div className="px-3 py-2.5 border-b border-border/30">
-					<p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">New view</p>
+					<p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
+						New view
+					</p>
 				</div>
 				<div className="p-3 flex flex-col gap-3">
 					<div className="flex flex-col gap-1.5">
@@ -72,7 +74,9 @@ export function NewViewPopover({ onSubmit, isPending }: NewViewPopoverProps) {
 						/>
 					</div>
 					<div className="flex flex-col gap-1.5">
-						<p className="text-[12px] font-medium text-muted-foreground">Layout</p>
+						<p className="text-[12px] font-medium text-muted-foreground">
+							Layout
+						</p>
 						<div className="flex gap-2">
 							{(["Board", "Table", "Roadmap"] as ViewLayout[]).map((l) => (
 								<button

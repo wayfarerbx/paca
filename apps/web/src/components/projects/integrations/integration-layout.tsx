@@ -266,7 +266,13 @@ export function IntegrationLayout({
 	);
 
 	const handleUpdateTask = useCallback(
-		(taskId: string, payload: Partial<{ task_type_id: string | null; assignee_id: string | null }>) => {
+		(
+			taskId: string,
+			payload: Partial<{
+				task_type_id: string | null;
+				assignee_id: string | null;
+			}>,
+		) => {
 			updateTask(projectId, taskId, payload).then(() =>
 				qc.invalidateQueries({ queryKey: tasksBaseQueryKey }),
 			);
@@ -275,7 +281,11 @@ export function IntegrationLayout({
 	);
 
 	const createTaskMutation = useMutation({
-		mutationFn: (payload: { title: string; statusId: string; taskTypeId?: string | null }) =>
+		mutationFn: (payload: {
+			title: string;
+			statusId: string;
+			taskTypeId?: string | null;
+		}) =>
 			createTask(projectId, {
 				title: payload.title,
 				status_id: payload.statusId,
@@ -285,7 +295,11 @@ export function IntegrationLayout({
 		onSuccess: () => qc.invalidateQueries({ queryKey: tasksBaseQueryKey }),
 	});
 
-	const handleCreateTask = async (statusId: string, title: string, taskTypeId?: string | null) => {
+	const handleCreateTask = async (
+		statusId: string,
+		title: string,
+		taskTypeId?: string | null,
+	) => {
 		await createTaskMutation.mutateAsync({ title, statusId, taskTypeId });
 	};
 
@@ -421,7 +435,9 @@ export function IntegrationLayout({
 					{title}
 				</h1>
 				{description && (
-					<p className="mt-1 text-[13px] text-muted-foreground">{description}</p>
+					<p className="mt-1 text-[13px] text-muted-foreground">
+						{description}
+					</p>
 				)}
 			</div>
 

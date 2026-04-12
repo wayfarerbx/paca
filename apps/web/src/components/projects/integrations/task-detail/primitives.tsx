@@ -8,7 +8,7 @@ export function FieldRow({
 	children: React.ReactNode;
 }) {
 	return (
-		<div className="grid grid-cols-[9.5rem_1fr] items-center gap-4 py-2.5 px-1 group/field rounded-lg hover:bg-muted/30 transition-colors duration-150">
+		<div className="grid grid-cols-[9.5rem_1fr] items-center gap-4 py-3 px-2.5 group/field rounded-lg hover:bg-muted/40 transition-colors duration-200">
 			<span className="text-[13px] font-medium text-muted-foreground leading-snug select-none">
 				{label}
 			</span>

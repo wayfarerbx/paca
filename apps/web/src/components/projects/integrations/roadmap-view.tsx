@@ -119,7 +119,9 @@ export function RoadmapView({
 										style={{
 											background:
 												status.color ?? "oklch(var(--muted-foreground))",
-											boxShadow: status.color ? `0 0 6px ${status.color}40` : undefined,
+											boxShadow: status.color
+												? `0 0 6px ${status.color}40`
+												: undefined,
 										}}
 									/>
 									<span className="text-[11px] font-bold uppercase tracking-[0.08em] text-foreground/80">
@@ -155,7 +157,9 @@ export function RoadmapView({
 														}}
 													/>
 												)}
-												<span className="truncate text-[12px] font-medium text-foreground">{task.title}</span>
+												<span className="truncate text-[12px] font-medium text-foreground">
+													{task.title}
+												</span>
 											</div>
 
 											{/* Right: timeline bar */}

@@ -109,7 +109,9 @@ function IntegrationsPage() {
 									{tag}
 								</Badge>
 							</div>
-							<p className="text-[14px] font-semibold text-foreground">{title}</p>
+							<p className="text-[14px] font-semibold text-foreground">
+								{title}
+							</p>
 							<p className="mt-1 text-[12px] text-muted-foreground/70 leading-relaxed">
 								{description}
 							</p>

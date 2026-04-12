@@ -115,9 +115,7 @@ export function TaskCard({
 									}}
 								>
 									<div className="flex size-5 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/10 text-primary text-[9px] font-bold">
-										{(m.full_name || m.username)
-											.slice(0, 1)
-											.toUpperCase()}
+										{(m.full_name || m.username).slice(0, 1).toUpperCase()}
 									</div>
 									<span className="flex-1 text-left truncate">
 										{m.full_name || m.username}
@@ -146,22 +144,28 @@ export function TaskCard({
 							onClick={(e) => e.stopPropagation()}
 							className="flex items-center justify-center rounded-md p-0.5 transition-all duration-150 hover:bg-muted/60"
 						>
-							{taskType ? (() => {
-								const Icon = getTaskTypeIconComponent(taskType.icon);
-								return Icon ? (
-									<Icon
-										className="size-3.5"
-										style={taskType.color ? { color: taskType.color } : undefined}
-									/>
-								) : (
-									<span
-										className="text-[10px] font-bold"
-										style={taskType.color ? { color: taskType.color } : undefined}
-									>
-										{taskType.name.slice(0, 2)}
-									</span>
-								);
-							})() : (
+							{taskType ? (
+								(() => {
+									const Icon = getTaskTypeIconComponent(taskType.icon);
+									return Icon ? (
+										<Icon
+											className="size-3.5"
+											style={
+												taskType.color ? { color: taskType.color } : undefined
+											}
+										/>
+									) : (
+										<span
+											className="text-[10px] font-bold"
+											style={
+												taskType.color ? { color: taskType.color } : undefined
+											}
+										>
+											{taskType.name.slice(0, 2)}
+										</span>
+									);
+								})()
+							) : (
 								<span className="text-[10px] text-muted-foreground/50">--</span>
 							)}
 						</PopoverTrigger>
@@ -197,7 +201,8 @@ export function TaskCard({
 						</PopoverContent>
 					</Popover>
 				) : (
-					taskType && (() => {
+					taskType &&
+					(() => {
 						const Icon = getTaskTypeIconComponent(taskType.icon);
 						return Icon ? (
 							<Icon
