@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	sprintdom "github.com/paca/api/internal/domain/sprint"
+	taskdom "github.com/paca/api/internal/domain/task"
 	"github.com/paca/api/internal/transport/http/handler"
 )
 
@@ -55,10 +56,18 @@ type fakeViewSvcH struct {
 	created []*sprintdom.SprintView
 }
 
+type fakeTaskTypeSvcH struct {
+	taskTypes []*taskdom.TaskType
+}
+
+func (f *fakeTaskTypeSvcH) ListTaskTypes(_ context.Context, _ uuid.UUID) ([]*taskdom.TaskType, error) {
+	return f.taskTypes, nil
+}
+
 func (f *fakeViewSvcH) ListViews(_ context.Context, _ uuid.UUID) ([]*sprintdom.SprintView, error) {
 	return nil, nil
 }
-func (f *fakeViewSvcH) ListBacklogViews(_ context.Context, _ uuid.UUID) ([]*sprintdom.SprintView, error) {
+func (f *fakeViewSvcH) ListProjectViews(_ context.Context, _ uuid.UUID, _ sprintdom.ViewContext) ([]*sprintdom.SprintView, error) {
 	return nil, nil
 }
 func (f *fakeViewSvcH) GetView(_ context.Context, _ uuid.UUID) (*sprintdom.SprintView, error) {
@@ -67,14 +76,16 @@ func (f *fakeViewSvcH) GetView(_ context.Context, _ uuid.UUID) (*sprintdom.Sprin
 func (f *fakeViewSvcH) CreateView(_ context.Context, in sprintdom.CreateViewInput) (*sprintdom.SprintView, error) {
 	now := time.Now()
 	v := &sprintdom.SprintView{
-		ID:        uuid.New(),
-		SprintID:  in.SprintID,
-		ProjectID: in.ProjectID,
-		Name:      in.Name,
-		ViewType:  in.ViewType,
-		Position:  in.Position,
-		CreatedAt: now,
-		UpdatedAt: now,
+		ID:          uuid.New(),
+		SprintID:    in.SprintID,
+		ProjectID:   in.ProjectID,
+		Name:        in.Name,
+		ViewType:    in.ViewType,
+		Config:      in.Config,
+		Position:    in.Position,
+		ViewContext: in.ViewContext,
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	}
 	f.mu.Lock()
 	f.created = append(f.created, v)
@@ -97,7 +108,7 @@ func (f *fakeViewSvcH) ListTaskPositions(_ context.Context, _ uuid.UUID) ([]*spr
 func (f *fakeViewSvcH) ReorderViews(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
 	return nil
 }
-func (f *fakeViewSvcH) ReorderBacklogViews(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+func (f *fakeViewSvcH) ReorderProjectViews(_ context.Context, _ uuid.UUID, _ sprintdom.ViewContext, _ []uuid.UUID) error {
 	return nil
 }
 
@@ -110,8 +121,14 @@ func TestCreateSprint_SeedsDefaultViews(t *testing.T) {
 
 	sprintSvc := &fakeSprintSvcH{}
 	viewSvc := &fakeViewSvcH{}
+	taskTypeSvc := &fakeTaskTypeSvcH{taskTypes: []*taskdom.TaskType{
+		{ID: uuid.New(), Name: "Task"},
+		{ID: uuid.New(), Name: "Bug"},
+		{ID: uuid.New(), Name: "Epic", IsSystem: true},
+		{ID: uuid.New(), Name: "Subtask", IsSystem: true},
+	}}
 
-	h := handler.NewSprintHandler(sprintSvc, viewSvc)
+	h := handler.NewSprintHandler(sprintSvc, viewSvc, handler.WithSprintDefaultTaskTypes(taskTypeSvc))
 
 	r := gin.New()
 	r.POST("/projects/:projectId/sprints", h.CreateSprint)
@@ -149,5 +166,36 @@ func TestCreateSprint_SeedsDefaultViews(t *testing.T) {
 		if v.SprintID == nil || *v.SprintID != sprintID {
 			t.Errorf("view %s has wrong sprint ID: want %s, got %v", v.ID, sprintID, v.SprintID)
 		}
+		if v.ViewContext != sprintdom.ViewContextSprint {
+			t.Errorf("expected sprint view context, got %q", v.ViewContext)
+		}
+	}
+
+	var boardView, tableView *sprintdom.SprintView
+	for _, v := range viewSvc.created {
+		switch v.ViewType {
+		case sprintdom.ViewTypeBoard:
+			boardView = v
+		case sprintdom.ViewTypeTable:
+			tableView = v
+		}
+	}
+	if boardView == nil || tableView == nil {
+		t.Fatal("expected seeded board and table views")
+	}
+	if boardView.Config.ColumnBy != "status" {
+		t.Errorf("expected board column_by=status, got %q", boardView.Config.ColumnBy)
+	}
+	if len(boardView.Config.Filters.TaskTypeIDs) == 0 {
+		t.Error("expected board view to seed task type filters")
+	}
+	if len(boardView.Config.Filters.SprintIDs) != 1 || boardView.Config.Filters.SprintIDs[0] != sprintID.String() {
+		t.Errorf("expected board sprint filter [%s], got %+v", sprintID, boardView.Config.Filters.SprintIDs)
+	}
+	if tableView.Config.ColumnBy != "status" {
+		t.Errorf("expected table column_by=status, got %q", tableView.Config.ColumnBy)
+	}
+	if len(tableView.Config.Filters.SprintIDs) != 1 || tableView.Config.Filters.SprintIDs[0] != sprintID.String() {
+		t.Errorf("expected table sprint filter [%s], got %+v", sprintID, tableView.Config.Filters.SprintIDs)
 	}
 }

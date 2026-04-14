@@ -4,11 +4,11 @@ Feature: Sprint lifecycle management
   is created in the planned state with a system-generated default name
   ("Sprint N") and no dates.  Authorised users start a planned sprint by
   clicking the "Start sprint" button — either from the sprint column header on
-  the product backlog Table view or from the sprint integration page header —
+  the product backlog Table view or from the sprint interaction page header —
   which opens the Start Sprint modal where they confirm (or edit) the name,
   goal, start date, and due date before activating it.  Multiple sprints may
   be active at the same time.  Authorised users complete an active sprint
-  by clicking the "Complete sprint" button on the sprint integration page,
+  by clicking the "Complete sprint" button on the sprint interaction page,
   which opens the Complete Sprint modal prompting them to choose a destination
   sprint for any remaining incomplete tasks.  Sprints in the planned state can
   also be deleted.  Sprint creation is always a quick-create action triggered
@@ -124,7 +124,7 @@ Feature: Sprint lifecycle management
       And the user has the "Manage Sprints" project permission in "E2E_COMPLETE_SPRINT_PROJECT"
       And the user has navigated to the "E2E_COMPLETE_SPRINT" sprint page inside "E2E_COMPLETE_SPRINT_PROJECT"
 
-    Scenario: A "Complete sprint" button is visible on the sprint integration page header
+    Scenario: A "Complete sprint" button is visible on the sprint interaction page header
       Then the sprint page header should contain a "Complete sprint" button
 
     Scenario: Clicking "Complete sprint" opens the Complete Sprint modal

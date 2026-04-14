@@ -2,7 +2,7 @@
 
 This document defines the visual language, component patterns, and interaction conventions used across Paca's web interface. Every page and component should follow these rules to maintain consistency.
 
-**Reference implementation:** `apps/web/src/components/projects/integrations/task-detail/`
+**Reference implementation:** `apps/web/src/components/projects/interactions/task-detail/`
 
 ---
 

@@ -204,7 +204,7 @@ Feature: Project management
     Scenario: Delete project dialog warns about permanent data loss
       When the user clicks the "Delete project" button
       Then the "Delete project" dialog should open
-      And the dialog should warn that all members, roles, and integrations will be lost
+      And the dialog should warn that all members, roles, and interactions will be lost
 
     Scenario: "Delete permanently" button is disabled until the project name is typed
       When the user clicks the "Delete project" button

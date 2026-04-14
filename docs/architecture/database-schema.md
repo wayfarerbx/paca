@@ -8,7 +8,8 @@ Interactive diagram: [https://dbdiagram.io/d/Paca-69c212ae78c6c4bc7a4fc190](http
 
 | File | Purpose |
 |---|---|
-| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects, project roles/members, task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views` (with `view_type`, `config`, `position`), `view_task_positions` (manual task order), `custom_field_definitions`, `tasks` (with `start_date`, `due_date`, `tags`), `task_attachments`, `task_checklists`, `task_checklist_items`, seed data. On project creation the seed inserts three user-manageable task types (Bug, Story, Task — where Task is `is_default = true`) and two system task types (Epic, Subtask — where `is_system = true`). The product backlog gets two views: a Table view at position 0 with `config.column_by = "sprint"` (default), and a Board view at position 1. |
+| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects, project roles/members, task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views` (with `view_type`, `config`, `position`), `view_task_positions` (manual task order), `custom_field_definitions`, `tasks` (with `start_date`, `due_date`, `tags`), `task_attachments`, `task_checklists`, `task_checklist_items`, seed data. On project creation the seed inserts three user-manageable task types (Bug, Story, Task — where Task is `is_default = true`) and two system task types (Epic, Subtask — where `is_system = true`). The API now seeds one backlog Table view with `config.column_by = "sprint"` and non-system task types, plus one timeline Roadmap view filtered to Epics; sprint creation seeds Board and Table views scoped to that sprint. |
+| `000002_add_view_context.sql` | Adds `view_context TEXT NOT NULL` to `sprint_views` with a `CHECK` constraint (`'sprint'\|'backlog'\|'timeline'`). Replaces the previous `is_timeline` boolean approach. Back-fills existing sprint rows to `'sprint'` and project-level (backlog) rows to `'backlog'`. Adds a partial index `idx_sprint_views_context` on `(project_id, view_context) WHERE sprint_id IS NULL` to speed up project-level view lookups. |
 
 ## Schema (DBML)
 
@@ -133,11 +134,12 @@ Table sprints {
 
 Table sprint_views {
   id uuid [primary key]
-  sprint_id uuid [null, note: 'null for product-backlog (project-level) views; set for sprint views']
+  sprint_id uuid [null, note: 'null for project-level views (backlog, timeline); set for sprint views']
   project_id uuid [not null, ref: > projects.id]
   name varchar
   view_type varchar [not null, note: 'Layout: table | board | roadmap']
-  position integer [not null, default: 0, note: 'Zero-based tab order within the integration; lower = further left in the tab bar. Updated on drag-to-reorder.']
+  view_context varchar [not null, note: 'Integration discriminator: sprint | backlog | timeline. sprint rows always have sprint_id set; backlog and timeline rows have sprint_id = null.']
+  position integer [not null, default: 0, note: 'Zero-based tab order within the interaction; lower = further left in the tab bar. Updated on drag-to-reorder.']
   config jsonb [note: '''
     View display settings.  All keys are optional; unset keys fall back to
     per-project or system defaults.

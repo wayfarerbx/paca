@@ -1,4 +1,4 @@
-@projects @integrations @views @settings
+@projects @interactions @views @settings
 Feature: View settings — dynamic fields, grouping, sorting, and aggregation
   The view settings panel lets a user customise how tasks are displayed in
   Board and Table views.  Every setting (Fields, Column by, Swimlanes, Sort by,
@@ -17,7 +17,7 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
   Background:
     Given the user already has a stored authenticated session
     And a project named "E2E_VS_PROJECT" exists
-    And the project has a "Product Backlog" integration with at least one view
+    And the project has a "Product Backlog" interaction with at least one view
     And the user has the "View Sprints" project permission in "E2E_VS_PROJECT"
     And the user has navigated to the "E2E_VS_PROJECT" project
 
@@ -111,8 +111,8 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
   ═══════════════════════════════════════════════════════════════════════════
 
   Scenario: Column by "Status" groups tasks by their status (default)
-    Given the integration has a task "E2E_TASK_TODO" with status "Todo"
-    And the integration has a task "E2E_TASK_IP" with status "In Progress"
+    Given the interaction has a task "E2E_TASK_TODO" with status "Todo"
+    And the interaction has a task "E2E_TASK_IP" with status "In Progress"
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Status" in the "Column by" dropdown
     And the user clicks the "Save" button
@@ -121,8 +121,8 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
     And the "In Progress" column should contain the task "E2E_TASK_IP"
 
   Scenario: Column by "Assignee" groups tasks by their assignee
-    Given the integration has a task "E2E_ALICE_TASK" assigned to "E2E_ALICE"
-    And the integration has a task "E2E_BOB_TASK" assigned to "E2E_BOB"
+    Given the interaction has a task "E2E_ALICE_TASK" assigned to "E2E_ALICE"
+    And the interaction has a task "E2E_BOB_TASK" assigned to "E2E_BOB"
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Assignee" in the "Column by" dropdown
     And the user clicks the "Save" button
@@ -131,8 +131,8 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
     And a column for "E2E_BOB" should contain the task "E2E_BOB_TASK"
 
   Scenario: Column by "Importance" groups tasks by their importance level
-    Given the integration has a task "E2E_LOW_TASK" with importance 1
-    And the integration has a task "E2E_HIGH_TASK" with importance 3
+    Given the interaction has a task "E2E_LOW_TASK" with importance 1
+    And the interaction has a task "E2E_HIGH_TASK" with importance 3
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Importance" in the "Column by" dropdown
     And the user clicks the "Save" button
@@ -141,8 +141,8 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
     And the "High" column should contain the task "E2E_HIGH_TASK"
 
   Scenario: Column by "Type" groups tasks by their task type
-    Given the integration has a task "E2E_STORY_TASK" with type "Story"
-    And the integration has a task "E2E_BUG_TASK" with type "Bug"
+    Given the interaction has a task "E2E_STORY_TASK" with type "Story"
+    And the interaction has a task "E2E_BUG_TASK" with type "Bug"
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Type" in the "Column by" dropdown
     And the user clicks the "Save" button
@@ -152,8 +152,8 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
 
   Scenario: Column by a custom select field groups tasks by the field's options
     Given the project has a custom field "Severity" of type "select" with options "Low,Medium,High,Critical"
-    And the integration has a task "E2E_SEV_HIGH" with custom field "Severity" set to "High"
-    And the integration has a task "E2E_SEV_LOW" with custom field "Severity" set to "Low"
+    And the interaction has a task "E2E_SEV_HIGH" with custom field "Severity" set to "High"
+    And the interaction has a task "E2E_SEV_LOW" with custom field "Severity" set to "Low"
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Severity" in the "Column by" dropdown
     And the user clicks the "Save" button
@@ -163,8 +163,8 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
 
   Scenario: Column by a custom boolean field groups tasks into True and False columns
     Given the project has a custom field "Is Blocked" of type "boolean"
-    And the integration has a task "E2E_BLOCKED_TASK" with custom field "Is Blocked" set to true
-    And the integration has a task "E2E_FREE_TASK" with custom field "Is Blocked" set to false
+    And the interaction has a task "E2E_BLOCKED_TASK" with custom field "Is Blocked" set to true
+    And the interaction has a task "E2E_FREE_TASK" with custom field "Is Blocked" set to false
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Is Blocked" in the "Column by" dropdown
     And the user clicks the "Save" button
@@ -175,8 +175,8 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
 
   Scenario: Column by a custom number field groups tasks by their numeric value
     Given the project has a custom field "Story Points" of type "number"
-    And the integration has a task "E2E_SP_1" with custom field "Story Points" set to 1
-    And the integration has a task "E2E_SP_5" with custom field "Story Points" set to 5
+    And the interaction has a task "E2E_SP_1" with custom field "Story Points" set to 1
+    And the interaction has a task "E2E_SP_5" with custom field "Story Points" set to 5
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Story Points" in the "Column by" dropdown
     And the user clicks the "Save" button
@@ -185,7 +185,7 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
 
   Scenario: Column by a custom multi-select field groups tasks by each selected option
     Given the project has a custom field "Labels" of type "multi_select" with options "frontend,backend,devops"
-    And the integration has a task "E2E_MULTI_TASK" with custom field "Labels" set to ["frontend", "backend"]
+    And the interaction has a task "E2E_MULTI_TASK" with custom field "Labels" set to ["frontend", "backend"]
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Labels" in the "Column by" dropdown
     And the user clicks the "Save" button
@@ -198,7 +198,7 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
 
   Scenario: Column by Status shows all statuses even when they have no tasks
     Given the project has task statuses "Todo", "In Progress", "Done", "Review"
-    And the integration has only tasks with status "Todo"
+    And the interaction has only tasks with status "Todo"
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Status" in the "Column by" dropdown
     And the user clicks the "Save" button
@@ -209,7 +209,7 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
 
   Scenario: Column by a custom select field shows all options even when empty
     Given the project has a custom field "Severity" of type "select" with options "Low,Medium,High,Critical"
-    And the integration has a task "E2E_ONLY_LOW" with custom field "Severity" set to "Low"
+    And the interaction has a task "E2E_ONLY_LOW" with custom field "Severity" set to "Low"
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Severity" in the "Column by" dropdown
     And the user clicks the "Save" button
@@ -219,7 +219,7 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
     And the "Critical" column should be visible with an empty state message
 
   Scenario: Column by Importance shows all importance levels even when some have no tasks
-    Given the integration has a task "E2E_IMP_LOW" with importance 1
+    Given the interaction has a task "E2E_IMP_LOW" with importance 1
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Importance" in the "Column by" dropdown
     And the user clicks the "Save" button
@@ -229,7 +229,7 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
 
   Scenario: Column by Type shows all task types even when some have no tasks
     Given the project has task types "Story", "Bug", "Task", "Epic"
-    And the integration has only tasks of type "Story"
+    And the interaction has only tasks of type "Story"
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Type" in the "Column by" dropdown
     And the user clicks the "Save" button
@@ -237,7 +237,7 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
     And the "Bug" column should be visible with an empty state message
 
   Scenario: Column by Assignee shows an "Unassigned" column for tasks without assignees
-    Given the integration has an unassigned task "E2E_NO_ASSIGNEE"
+    Given the interaction has an unassigned task "E2E_NO_ASSIGNEE"
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Assignee" in the "Column by" dropdown
     And the user clicks the "Save" button
@@ -246,7 +246,7 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
 
   Scenario: Column by a custom boolean field shows both True and False columns even when one is empty
     Given the project has a custom field "Is Blocked" of type "boolean"
-    And the integration has a task "E2E_NOT_BLOCKED" with custom field "Is Blocked" set to false
+    And the interaction has a task "E2E_NOT_BLOCKED" with custom field "Is Blocked" set to false
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Is Blocked" in the "Column by" dropdown
     And the user clicks the "Save" button
@@ -258,9 +258,9 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
   ═══════════════════════════════════════════════════════════════════════════
 
   Scenario: Sort by "Importance" orders tasks by importance descending
-    Given the integration has a task "E2E_LOW_SORT" with importance 1
-    And the integration has a task "E2E_HIGH_SORT" with importance 3
-    And the integration has a task "E2E_MED_SORT" with importance 2
+    Given the interaction has a task "E2E_LOW_SORT" with importance 1
+    And the interaction has a task "E2E_HIGH_SORT" with importance 3
+    And the interaction has a task "E2E_MED_SORT" with importance 2
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Importance" in the "Sort by" dropdown
     And the user clicks the "Save" button
@@ -269,9 +269,9 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
     And "E2E_MED_SORT" should appear before "E2E_LOW_SORT"
 
   Scenario: Sort by "Title" orders tasks alphabetically by title
-    Given the integration has a task "Zebra Task"
-    And the integration has a task "Alpha Task"
-    And the integration has a task "Middle Task"
+    Given the interaction has a task "Zebra Task"
+    And the interaction has a task "Alpha Task"
+    And the interaction has a task "Middle Task"
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Title" in the "Sort by" dropdown
     And the user clicks the "Save" button
@@ -280,8 +280,8 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
     And "Middle Task" should appear before "Zebra Task"
 
   Scenario: Sort by "Created" orders tasks by creation date
-    Given the integration has a task "E2E_OLD_TASK" created on "2025-01-01"
-    And the integration has a task "E2E_NEW_TASK" created on "2025-06-15"
+    Given the interaction has a task "E2E_OLD_TASK" created on "2025-01-01"
+    And the interaction has a task "E2E_NEW_TASK" created on "2025-06-15"
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Created" in the "Sort by" dropdown
     And the user clicks the "Save" button
@@ -289,9 +289,9 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
 
   Scenario: Sort by a custom number field orders tasks numerically
     Given the project has a custom field "Story Points" of type "number"
-    And the integration has a task "E2E_SP_LOW" with custom field "Story Points" set to 1
-    And the integration has a task "E2E_SP_HIGH" with custom field "Story Points" set to 13
-    And the integration has a task "E2E_SP_MID" with custom field "Story Points" set to 5
+    And the interaction has a task "E2E_SP_LOW" with custom field "Story Points" set to 1
+    And the interaction has a task "E2E_SP_HIGH" with custom field "Story Points" set to 13
+    And the interaction has a task "E2E_SP_MID" with custom field "Story Points" set to 5
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Story Points" in the "Sort by" dropdown
     And the user clicks the "Save" button
@@ -299,15 +299,15 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
 
   Scenario: Sort by a custom select field orders tasks by the option order
     Given the project has a custom field "Severity" of type "select" with options "Low,Medium,High,Critical"
-    And the integration has a task "E2E_SEV_HIGH" with custom field "Severity" set to "High"
-    And the integration has a task "E2E_SEV_LOW" with custom field "Severity" set to "Low"
+    And the interaction has a task "E2E_SEV_HIGH" with custom field "Severity" set to "High"
+    And the interaction has a task "E2E_SEV_LOW" with custom field "Severity" set to "Low"
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Severity" in the "Sort by" dropdown
     And the user clicks the "Save" button
     Then tasks should be ordered by the "Severity" field option order
 
   Scenario: Sort by "Manual" enables drag-to-reorder and disables automatic sorting
-    Given the integration has tasks "E2E_TASK_A", "E2E_TASK_B", "E2E_TASK_C" in the "Todo" group
+    Given the interaction has tasks "E2E_TASK_A", "E2E_TASK_B", "E2E_TASK_C" in the "Todo" group
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Manual" in the "Sort by" dropdown
     And the user clicks the "Save" button
@@ -316,7 +316,7 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
 
   Scenario: Changing sort from "Manual" to "Importance" disables drag handles
     Given the view is configured with "Sort by: Manual"
-    And the integration has tasks in the "Todo" group
+    And the interaction has tasks in the "Todo" group
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Importance" in the "Sort by" dropdown
     And the user clicks the "Save" button
@@ -335,8 +335,8 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
     And all tasks should be shown in a single flat list per column
 
   Scenario: Swimlanes by "Assignee" creates horizontal bands per assignee
-    Given the integration has a task "E2E_ALICE_S" assigned to "E2E_ALICE" with status "Todo"
-    And the integration has a task "E2E_BOB_S" assigned to "E2E_BOB" with status "Todo"
+    Given the interaction has a task "E2E_ALICE_S" assigned to "E2E_ALICE" with status "Todo"
+    And the interaction has a task "E2E_BOB_S" assigned to "E2E_BOB" with status "Todo"
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Assignee" in the "Swimlanes" dropdown
     And the user clicks the "Save" button
@@ -345,8 +345,8 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
     And a swimlane band for "E2E_BOB" should contain the task "E2E_BOB_S"
 
   Scenario: Swimlanes by "Importance" creates horizontal bands per importance level
-    Given the integration has a task "E2E_IMP_SW_LOW" with importance 1
-    And the integration has a task "E2E_IMP_SW_HIGH" with importance 3
+    Given the interaction has a task "E2E_IMP_SW_LOW" with importance 1
+    And the interaction has a task "E2E_IMP_SW_HIGH" with importance 3
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Importance" in the "Swimlanes" dropdown
     And the user clicks the "Save" button
@@ -356,8 +356,8 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
 
   Scenario: Swimlanes by a custom select field creates horizontal bands per option
     Given the project has a custom field "Component" of type "select" with options "Frontend,Backend,API"
-    And the integration has a task "E2E_FE_TASK" with custom field "Component" set to "Frontend"
-    And the integration has a task "E2E_BE_TASK" with custom field "Component" set to "Backend"
+    And the interaction has a task "E2E_FE_TASK" with custom field "Component" set to "Frontend"
+    And the interaction has a task "E2E_BE_TASK" with custom field "Component" set to "Backend"
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Component" in the "Swimlanes" dropdown
     And the user clicks the "Save" button
@@ -366,7 +366,7 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
     And the "Backend" swimlane band should contain "E2E_BE_TASK"
 
   Scenario: Swimlanes and Column by can be combined on different fields
-    Given the integration has a task "E2E_COMBO" assigned to "E2E_ALICE" with status "Todo"
+    Given the interaction has a task "E2E_COMBO" assigned to "E2E_ALICE" with status "Todo"
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Status" in the "Column by" dropdown
     And the user selects "Assignee" in the "Swimlanes" dropdown
@@ -379,8 +379,8 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
   ═══════════════════════════════════════════════════════════════════════════
 
   Scenario: Field sum defaults to "Count" showing task totals per group
-    Given the integration has 3 tasks with status "Todo"
-    And the integration has 1 task with status "In Progress"
+    Given the interaction has 3 tasks with status "Todo"
+    And the interaction has 1 task with status "In Progress"
     When the user clicks the "View settings" button in the view toolbar
     Then the "Field sum" dropdown should default to "Count"
     And the "Todo" group heading should show a count of "3"
@@ -388,8 +388,8 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
 
   Scenario: Field sum by a custom numeric field shows the total per group
     Given the project has a custom field "Story Points" of type "number"
-    And the integration has a task "E2E_SP_2" with status "Todo" and custom field "Story Points" set to 2
-    And the integration has a task "E2E_SP_3" with status "Todo" and custom field "Story Points" set to 3
+    And the interaction has a task "E2E_SP_2" with status "Todo" and custom field "Story Points" set to 2
+    And the interaction has a task "E2E_SP_3" with status "Todo" and custom field "Story Points" set to 3
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Story Points" in the "Field sum" dropdown
     And the user clicks the "Save" button
@@ -397,7 +397,7 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
 
   Scenario: Field sum with no matching numeric values shows 0 for empty groups
     Given the project has a custom field "Story Points" of type "number"
-    And the integration has a task "E2E_SP_TASK" with status "Todo" and custom field "Story Points" set to 3
+    And the interaction has a task "E2E_SP_TASK" with status "Todo" and custom field "Story Points" set to 3
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Story Points" in the "Field sum" dropdown
     And the user clicks the "Save" button
@@ -458,8 +458,8 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
     Then all tasks should be visible without any slice-based filtering
 
   Scenario: Slice by "Assignee" shows only tasks for a selected assignee
-    Given the integration has a task "E2E_SLICE_ALICE" assigned to "E2E_ALICE"
-    And the integration has a task "E2E_SLICE_BOB" assigned to "E2E_BOB"
+    Given the interaction has a task "E2E_SLICE_ALICE" assigned to "E2E_ALICE"
+    And the interaction has a task "E2E_SLICE_BOB" assigned to "E2E_BOB"
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Assignee" in the "Slice by" dropdown
     And the user clicks the "Save" button
@@ -470,8 +470,8 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
 
   Scenario: Slice by a custom select field provides a filter for that field's options
     Given the project has a custom field "Component" of type "select" with options "Frontend,Backend,API"
-    And the integration has a task "E2E_FE_SLICE" with custom field "Component" set to "Frontend"
-    And the integration has a task "E2E_BE_SLICE" with custom field "Component" set to "Backend"
+    And the interaction has a task "E2E_FE_SLICE" with custom field "Component" set to "Frontend"
+    And the interaction has a task "E2E_BE_SLICE" with custom field "Component" set to "Backend"
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Component" in the "Slice by" dropdown
     And the user clicks the "Save" button
@@ -568,21 +568,21 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
   Scenario: Dragging a task between status columns updates the task's status
     Given the view is configured with "Column by: Status"
     And the user has the "Edit Tasks" project permission
-    And the integration has a task "E2E_DRAG_STATUS" in column "Todo"
+    And the interaction has a task "E2E_DRAG_STATUS" in column "Todo"
     When the user drags "E2E_DRAG_STATUS" to the "In Progress" column
     Then the task's status should be updated to "In Progress"
 
   Scenario: Dragging a task between importance columns updates the task's importance
     Given the view is configured with "Column by: Importance"
     And the user has the "Edit Tasks" project permission
-    And the integration has a task "E2E_DRAG_IMP" in column "Low"
+    And the interaction has a task "E2E_DRAG_IMP" in column "Low"
     When the user drags "E2E_DRAG_IMP" to the "High" column
     Then the task's importance should be updated to 3 (High)
 
   Scenario: Dragging a task between assignee columns updates the task's assignee
     Given the view is configured with "Column by: Assignee"
     And the user has the "Edit Tasks" project permission
-    And the integration has a task "E2E_DRAG_ASSIGNEE" in column "E2E_ALICE"
+    And the interaction has a task "E2E_DRAG_ASSIGNEE" in column "E2E_ALICE"
     When the user drags "E2E_DRAG_ASSIGNEE" to the "E2E_BOB" column
     Then the task's assignee should be updated to "E2E_BOB"
 
@@ -590,7 +590,7 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
     Given the project has a custom field "Severity" of type "select" with options "Low,Medium,High"
     And the view is configured with "Column by: Severity"
     And the user has the "Edit Tasks" project permission
-    And the integration has a task "E2E_DRAG_SEV" with custom field "Severity" set to "Low"
+    And the interaction has a task "E2E_DRAG_SEV" with custom field "Severity" set to "Low"
     When the user drags "E2E_DRAG_SEV" to the "High" column
     Then the task's "Severity" custom field should be updated to "High"
 
@@ -624,8 +624,8 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
 
   Scenario: Tasks without a value for a custom field appear in an "Unset" or "None" column
     Given the project has a custom field "Severity" of type "select" with options "Low,Medium,High"
-    And the integration has a task "E2E_NO_SEV" without the "Severity" custom field set
-    And the integration has a task "E2E_HAS_SEV" with custom field "Severity" set to "High"
+    And the interaction has a task "E2E_NO_SEV" without the "Severity" custom field set
+    And the interaction has a task "E2E_HAS_SEV" with custom field "Severity" set to "High"
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Severity" in the "Column by" dropdown
     And the user clicks the "Save" button
@@ -635,8 +635,8 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
 
   Scenario: Sorting by a custom field where some tasks lack the field places them last
     Given the project has a custom field "Story Points" of type "number"
-    And the integration has a task "E2E_HAS_SP" with custom field "Story Points" set to 5
-    And the integration has a task "E2E_NO_SP" without the "Story Points" custom field set
+    And the interaction has a task "E2E_HAS_SP" with custom field "Story Points" set to 5
+    And the interaction has a task "E2E_NO_SP" without the "Story Points" custom field set
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Story Points" in the "Sort by" dropdown
     And the user clicks the "Save" button
@@ -645,8 +645,8 @@ Feature: View settings — dynamic fields, grouping, sorting, and aggregation
 
   Scenario: Field sum for a custom field ignores tasks without that field
     Given the project has a custom field "Story Points" of type "number"
-    And the integration has 2 tasks in "Todo" with "Story Points" set to 3 and 5
-    And the integration has 1 task in "Todo" without "Story Points" set
+    And the interaction has 2 tasks in "Todo" with "Story Points" set to 3 and 5
+    And the interaction has 1 task in "Todo" without "Story Points" set
     When the user clicks the "View settings" button in the view toolbar
     And the user selects "Story Points" in the "Field sum" dropdown
     And the user clicks the "Save" button

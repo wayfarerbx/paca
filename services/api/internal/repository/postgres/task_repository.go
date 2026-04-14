@@ -269,19 +269,31 @@ func (r *TaskRepository) ListTasks(ctx context.Context, projectID uuid.UUID, fil
 
 	if filter.ParentTaskID != nil {
 		q = q.Where("parent_task_id = ?", filter.ParentTaskID.String())
+	} else if len(filter.SprintIDs) > 0 {
+		q = q.Where("sprint_id IN ?", uuidSliceToStrSlice(filter.SprintIDs))
 	} else if filter.BacklogOnly {
 		q = q.Where("sprint_id IS NULL")
 	} else if filter.SprintID != nil {
 		q = q.Where("sprint_id = ?", filter.SprintID.String())
 	}
-	if filter.StatusID != nil {
+	if len(filter.StatusIDs) > 0 {
+		q = q.Where("status_id IN ?", uuidSliceToStrSlice(filter.StatusIDs))
+	} else if filter.StatusID != nil {
 		q = q.Where("status_id = ?", filter.StatusID.String())
 	}
-	if filter.AssigneeID != nil {
+	if len(filter.AssigneeIDs) > 0 {
+		q = q.Where("assignee_id IN ?", uuidSliceToStrSlice(filter.AssigneeIDs))
+	} else if filter.AssigneeID != nil {
 		q = q.Where("assignee_id = ?", filter.AssigneeID.String())
+	}
+	if len(filter.TaskTypeIDs) > 0 {
+		q = q.Where("task_type_id IN ?", uuidSliceToStrSlice(filter.TaskTypeIDs))
 	}
 	if filter.ExcludeSystemTypes {
 		q = q.Where("task_type_id IS NULL OR task_type_id NOT IN (SELECT id FROM task_types WHERE is_system = true)")
+	}
+	if filter.EpicsOnly {
+		q = q.Where("task_type_id IN (SELECT id FROM task_types WHERE is_system = true AND name = 'Epic')")
 	}
 
 	var total int64
@@ -679,6 +691,14 @@ func marshalOptions(opts []string) ([]byte, error) {
 }
 
 // --- helpers ----------------------------------------------------------------
+
+func uuidSliceToStrSlice(ids []uuid.UUID) []string {
+	s := make([]string, len(ids))
+	for i, id := range ids {
+		s[i] = id.String()
+	}
+	return s
+}
 
 func uuidPtrToStrPtr(u *uuid.UUID) *string {
 	if u == nil {

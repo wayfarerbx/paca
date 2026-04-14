@@ -37,8 +37,13 @@ type UpdateSprintInput struct {
 
 // ViewService defines use cases for sprint views and manual task ordering.
 type ViewService interface {
+	// ListViews returns all views belonging to a sprint.
 	ListViews(ctx context.Context, sprintID uuid.UUID) ([]*SprintView, error)
-	ListBacklogViews(ctx context.Context, projectID uuid.UUID) ([]*SprintView, error)
+
+	// ListProjectViews returns all views for a project filtered by viewCtx
+	// (ViewContextBacklog or ViewContextTimeline).
+	ListProjectViews(ctx context.Context, projectID uuid.UUID, viewCtx ViewContext) ([]*SprintView, error)
+
 	GetView(ctx context.Context, id uuid.UUID) (*SprintView, error)
 	CreateView(ctx context.Context, in CreateViewInput) (*SprintView, error)
 	UpdateView(ctx context.Context, id uuid.UUID, in UpdateViewInput) (*SprintView, error)
@@ -59,20 +64,23 @@ type ViewService interface {
 	// contain every view ID for that sprint in the desired order.
 	ReorderViews(ctx context.Context, sprintID uuid.UUID, viewIDs []uuid.UUID) error
 
-	// ReorderBacklogViews reorders all product-backlog views for a project.
-	// viewIDs must contain every view ID for that project in the desired order.
-	ReorderBacklogViews(ctx context.Context, projectID uuid.UUID, viewIDs []uuid.UUID) error
+	// ReorderProjectViews reorders all views for a project with the given
+	// context.  viewIDs must contain every view ID for that project+context
+	// in the desired order.
+	ReorderProjectViews(ctx context.Context, projectID uuid.UUID, viewCtx ViewContext, viewIDs []uuid.UUID) error
 }
 
 // CreateViewInput carries fields required to create a sprint view.
-// SprintID is nil for product-backlog views; ProjectID is always required.
+// SprintID is nil for product-backlog and timeline views; ProjectID is always required.
+// ViewContext identifies the interaction this view belongs to.
 type CreateViewInput struct {
-	SprintID  *uuid.UUID
-	ProjectID uuid.UUID
-	Name      string
-	ViewType  ViewType
-	Config    ViewConfig
-	Position  float64
+	SprintID    *uuid.UUID
+	ProjectID   uuid.UUID
+	Name        string
+	ViewType    ViewType
+	Config      ViewConfig
+	Position    float64
+	ViewContext ViewContext
 }
 
 // UpdateViewInput carries mutable view fields.

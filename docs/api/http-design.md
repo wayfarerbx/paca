@@ -154,25 +154,16 @@ These routes already exist in the Go API service.
 | `DELETE` | `/api/v1/projects/:projectId/sprints/:sprintId` | Access token (fresh) + `sprints.write` | Delete a sprint. Fails with `409 SPRINT_IS_ACTIVE` if the sprint is currently active. |
 | `POST` | `/api/v1/projects/:projectId/sprints/:sprintId/start` | Access token (fresh) + `sprints.write` | Start a planned sprint: set name, goal, start date, and due date, then transition `status` to `active`. Multiple sprints may be active simultaneously. Fails with `409 SPRINT_NOT_PLANNED` if the sprint is not in `planned` state. |
 | `POST` | `/api/v1/projects/:projectId/sprints/:sprintId/complete` | Access token (fresh) + `sprints.write` | Complete an active sprint: transition `status` to `completed` and move all incomplete tasks to the specified sprint (or back to no-sprint if `move_to_sprint_id` is `null`). Fails with `409 SPRINT_NOT_ACTIVE` if the sprint is not in `active` state. |
-| `GET` | `/api/v1/projects/:projectId/sprints/:sprintId/tasks` | Access token (fresh) + `tasks.read` | List tasks assigned to a specific sprint (sprint backlog view). Epic and Subtask task types are excluded from this list. |
-| `GET` | `/api/v1/projects/:projectId/sprints/:sprintId/views` | Access token (fresh) + `sprints.read` | List saved view configurations for a sprint. |
-| `POST` | `/api/v1/projects/:projectId/sprints/:sprintId/views` | Access token (fresh) + `sprints.write` | Create a saved view configuration for a sprint. Sprint creation automatically seeds one Board and one Table view. |
-| `GET` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId` | Access token (fresh) + `sprints.read` | Get a single sprint view configuration. |
-| `PATCH` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId` | Access token (fresh) + `sprints.write` | Update a sprint view's name or config. |
-| `DELETE` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId` | Access token (fresh) + `sprints.write` | Delete a sprint view. Fails with `409 VIEW_IS_LAST_VIEW` if it is the only remaining view. |
-| `PUT` | `/api/v1/projects/:projectId/sprints/:sprintId/views/positions` | Access token (fresh) + `sprints.write` | Reorder all views for a sprint. Body: `{ "view_ids": ["<uuid>", ...] }` — must include every view ID in the desired tab order. Returns `400 VIEW_REORDER_INVALID` if the list is missing or contains unknown IDs. |
-| `GET` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId/task-positions` | Access token (fresh) + `tasks.read` | List manual task ordering positions within a view. |
-| `PUT` | `/api/v1/projects/:projectId/sprints/:sprintId/views/:viewId/task-positions/:taskId` | Access token (fresh) + `tasks.write` | Set or update the manual position of a task within a view. |
-| `GET` | `/api/v1/projects/:projectId/product-backlog` | Access token (fresh) + `tasks.read` | List tasks not yet assigned to any sprint (product backlog view). Epic and Subtask task types are excluded from this list. |
-| `GET` | `/api/v1/projects/:projectId/product-backlog/views` | Access token (fresh) + `sprints.read` | List saved view configurations for the product backlog. |
-| `POST` | `/api/v1/projects/:projectId/product-backlog/views` | Access token (fresh) + `sprints.write` | Create a saved view configuration for the product backlog. Project creation automatically seeds a Table view (position 0, `config.column_by = "sprint"`) and a Board view (position 1). |
-| `GET` | `/api/v1/projects/:projectId/product-backlog/views/:viewId` | Access token (fresh) + `sprints.read` | Get a single product-backlog view configuration. |
-| `PATCH` | `/api/v1/projects/:projectId/product-backlog/views/:viewId` | Access token (fresh) + `sprints.write` | Update a product-backlog view's name or config. |
-| `DELETE` | `/api/v1/projects/:projectId/product-backlog/views/:viewId` | Access token (fresh) + `sprints.write` | Delete a product-backlog view. Fails with `409 VIEW_IS_LAST_VIEW` if it is the only remaining view. |
-| `PUT` | `/api/v1/projects/:projectId/product-backlog/views/positions` | Access token (fresh) + `sprints.write` | Reorder all product-backlog views for a project. Body: `{ "view_ids": ["<uuid>", ...] }` — must include every view ID in the desired tab order. Returns `400 VIEW_REORDER_INVALID` if the list is missing or contains unknown IDs. |
-| `GET` | `/api/v1/projects/:projectId/product-backlog/views/:viewId/task-positions` | Access token (fresh) + `tasks.read` | List manual task ordering positions within a product-backlog view. |
-| `PUT` | `/api/v1/projects/:projectId/product-backlog/views/:viewId/task-positions/:taskId` | Access token (fresh) + `tasks.write` | Set or update the manual position of a task within a product-backlog view. |
-| `GET` | `/api/v1/projects/:projectId/tasks` | Access token (fresh) + `tasks.read` | List tasks with optional filters (`sprint_id`, `status_id`, `assignee_id`). Pass `view_id` to include `view_position` and `view_group_key` in each task item. |
+| `GET` | `/api/v1/projects/:projectId/views?context=sprint&sprint_id=:sprintId` | Access token (fresh) + `sprints.read` | List saved view configurations. `context` must be `sprint`, `backlog`, or `timeline`; the `sprint` context requires `sprint_id`. |
+| `POST` | `/api/v1/projects/:projectId/views?context=sprint&sprint_id=:sprintId` | Access token (fresh) + `sprints.write` | Create a saved view configuration. `context` must be `sprint`, `backlog`, or `timeline`; the `sprint` context requires `sprint_id`. Sprint creation seeds one Board and one Table view with `column_by = status`, the current sprint selected, and non-system task types. Project creation seeds one backlog Table view with `column_by = sprint` plus one timeline Roadmap view filtered to Epics. |
+| `GET` | `/api/v1/projects/:projectId/views/:viewId` | Access token (fresh) + `sprints.read` | Get a single view configuration. |
+| `PATCH` | `/api/v1/projects/:projectId/views/:viewId` | Access token (fresh) + `sprints.write` | Update a view's name or config. |
+| `DELETE` | `/api/v1/projects/:projectId/views/:viewId` | Access token (fresh) + `sprints.write` | Delete a view. Fails with `409 VIEW_IS_LAST_VIEW` if it is the only remaining view. |
+| `PUT` | `/api/v1/projects/:projectId/views/positions?context=sprint&sprint_id=:sprintId` | Access token (fresh) + `sprints.write` | Reorder all views for the given context. `context` must be `sprint` (with `sprint_id`), `backlog`, or `timeline`. Body: `{ "view_ids": ["<uuid>", ...] }` — must include every view ID in the desired tab order. Returns `400 VIEW_REORDER_INVALID` if the list is missing or contains unknown IDs. |
+| `GET` | `/api/v1/projects/:projectId/views/:viewId/task-positions` | Access token (fresh) + `tasks.read` | List manual task ordering positions within a view. |
+| `PUT` | `/api/v1/projects/:projectId/views/:viewId/task-positions/:taskId` | Access token (fresh) + `tasks.write` | Set or update the manual position of a task within a view. |
+| `PUT` | `/api/v1/projects/:projectId/views/:viewId/task-positions` | Access token (fresh) + `tasks.write` | Bulk-upsert manual positions of multiple tasks within a view. |
+| `GET` | `/api/v1/projects/:projectId/tasks` | Access token (fresh) + `tasks.read` | List tasks through one shared endpoint. Supported filters include `sprint_id`, `sprint_ids`, `status_id`, `status_ids`, `assignee_id`, `assignee_ids`, `task_type_ids`, and `parent_task_id`. `sprint_id=null` is still supported for unscheduled-only backlog queries. Timeline pages should use `task_type_ids` to request Epic tasks, and manual ordering should be read from `/views/:viewId/task-positions`. |
 | `POST` | `/api/v1/projects/:projectId/tasks` | Access token (fresh) + `tasks.write` | Create a task. |
 | `GET` | `/api/v1/projects/:projectId/tasks/:taskId` | Access token (fresh) + `tasks.read` | Get task detail. |
 | `PATCH` | `/api/v1/projects/:projectId/tasks/:taskId` | Access token (fresh) + `tasks.write` | Update a task. |
@@ -891,6 +882,124 @@ Request body:
 {
   "group_key": "status-uuid",
   "position": 2
+}
+```
+
+Success response: `204 No Content`
+
+---
+
+## Timeline View Contracts
+
+The Timeline interaction surfaces **Epics only** — tasks whose type has `is_system = true AND name = 'Epic'`. Timeline views are stored in `sprint_views` with `view_context = 'timeline'` and `sprint_id = NULL`. The API surface mirrors the Product Backlog contracts.
+
+### `GET /api/v1/projects/:projectId/timeline`
+
+Function:
+
+- list Epics for a project (tasks whose type has `is_system = true AND name = 'Epic'`);
+- supports `status_id`, `assignee_id`, and `view_id` query parameters;
+- when `view_id` is supplied, each task includes its manual `view_position` and `view_group_key`.
+
+Success response data: same envelope as the product-backlog task list.
+
+### `GET /api/v1/projects/:projectId/timeline/views`
+
+Function:
+
+- list all saved view configurations for the timeline ordered by `position`;
+- project creation automatically seeds a single Roadmap view (position 0) as the default.
+
+Success response data: same envelope as the product-backlog views list.
+
+### `POST /api/v1/projects/:projectId/timeline/views`
+
+Function:
+
+- create a new timeline view;
+- `view_type` must be one of `board`, `table`, or `roadmap`;
+- `position` defaults to the next available slot.
+
+Success response: `201 Created` with view data.
+
+### `GET /api/v1/projects/:projectId/timeline/views/:viewId`
+
+Function:
+
+- get a timeline view by ID.
+
+### `PATCH /api/v1/projects/:projectId/timeline/views/:viewId`
+
+Function:
+
+- update a timeline view's `name`, `position`, or `config`;
+- only supplied fields are changed.
+
+Success response: `200 OK` with updated view data.
+
+### `DELETE /api/v1/projects/:projectId/timeline/views/:viewId`
+
+Function:
+
+- delete a timeline view;
+- returns `409 VIEW_IS_LAST_VIEW` if this is the only remaining view.
+
+Success response: `204 No Content`
+
+### `PUT /api/v1/projects/:projectId/timeline/views/positions`
+
+Function:
+
+- reorder all timeline views for a project;
+- body must contain every timeline view ID for the project in the desired tab order.
+
+Request body:
+
+```json
+{ "view_ids": ["<uuid>", "..."] }
+```
+
+Success response: `204 No Content`
+
+### `GET /api/v1/projects/:projectId/timeline/views/:viewId/task-positions`
+
+Function:
+
+- return the manual task (Epic) ordering positions stored for this view.
+
+Success response data: same envelope as the product-backlog task-positions list.
+
+### `PUT /api/v1/projects/:projectId/timeline/views/:viewId/task-positions/:taskId`
+
+Function:
+
+- upsert the manual position of an Epic within a timeline view;
+- used when `sort_by` is `"manual"`.
+
+Request body:
+
+```json
+{
+  "group_key": "status-uuid",
+  "position": 2
+}
+```
+
+Success response: `204 No Content`
+
+### `PUT /api/v1/projects/:projectId/timeline/views/:viewId/task-positions`
+
+Function:
+
+- bulk-upsert the manual positions of multiple Epics within a timeline view in a single request.
+
+Request body:
+
+```json
+{
+  "items": [
+    { "task_id": "<uuid>", "position": 65536, "group_key": "status-uuid" }
+  ]
 }
 ```
 

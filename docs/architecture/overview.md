@@ -34,3 +34,5 @@ Paca is planned as a single open-source monorepo with a small set of clearly sep
 - Keep the repository easy to read in public from the root.
 
 This document is intentionally high level. More detailed decisions should be added only when implementation forces them.
+
+For the shared sprint, backlog, and timeline view model, see [interaction-views.md](interaction-views.md).

@@ -1,4 +1,4 @@
-@projects @integrations @views @settings @fields
+@projects @interactions @views @settings @fields
 Feature: View settings — field visibility on Board and List views
   A user can choose which task fields (built-in and custom) appear on Board
   cards and as List columns through the "Fields" picker inside the View
@@ -19,9 +19,9 @@ Feature: View settings — field visibility on Board and List views
   Background:
     Given the user already has a stored authenticated session
     And a project named "E2E_FIELDS_PROJECT" exists
-    And the project has a "Product Backlog" integration with at least one Board view and one Table view
+    And the project has a "Product Backlog" interaction with at least one Board view and one Table view
     And the user has the "View Sprints" project permission in "E2E_FIELDS_PROJECT"
-    And the user has navigated to the "Product Backlog" integration inside "E2E_FIELDS_PROJECT"
+    And the user has navigated to the "Product Backlog" interaction inside "E2E_FIELDS_PROJECT"
 
   ═══════════════════════════════════════════════════════════════════════════
   Rule: Field picker — content and interaction
@@ -108,7 +108,7 @@ Feature: View settings — field visibility on Board and List views
     And the user should not be able to uncheck "Title"
 
   Scenario: Title is always the primary text on a Board card regardless of field settings
-    Given the integration has a task "E2E_TITLE_TASK"
+    Given the interaction has a task "E2E_TITLE_TASK"
     And the view has only "Title" and "Assignee" as visible fields
     When the user is on the Board view
     Then every task card should display the task title as the primary (top) text
@@ -125,14 +125,14 @@ Feature: View settings — field visibility on Board and List views
   ═══════════════════════════════════════════════════════════════════════════
 
   Scenario: A Board card shows Assignee and Type below the title by default
-    Given the integration has a task "E2E_BOARD_DEFAULT" with type "Story" assigned to "E2E_USER"
+    Given the interaction has a task "E2E_BOARD_DEFAULT" with type "Story" assigned to "E2E_USER"
     When the user is on the Board view
     Then the card for "E2E_BOARD_DEFAULT" should display the task title as the top line
     And below the title the card should display the task type badge for "Story"
     And below the title the card should display the assignee avatar for "E2E_USER"
 
   Scenario: Enabling "Status" on a Board view shows the status badge below the title
-    Given the integration has a task "E2E_BOARD_STATUS" with status "In Progress"
+    Given the interaction has a task "E2E_BOARD_STATUS" with status "In Progress"
     When the user clicks the "View settings" button in the view toolbar
     And the user clicks the "Fields" row
     And the user checks the "Status" field
@@ -140,7 +140,7 @@ Feature: View settings — field visibility on Board and List views
     Then the card for "E2E_BOARD_STATUS" should display a status badge showing "In Progress" below the title
 
   Scenario: Enabling "Importance" on a Board view shows the importance indicator below the title
-    Given the integration has a task "E2E_BOARD_IMPORTANCE" with importance "High"
+    Given the interaction has a task "E2E_BOARD_IMPORTANCE" with importance "High"
     When the user clicks the "View settings" button in the view toolbar
     And the user clicks the "Fields" row
     And the user checks the "Importance" field
@@ -148,7 +148,7 @@ Feature: View settings — field visibility on Board and List views
     Then the card for "E2E_BOARD_IMPORTANCE" should display an importance indicator showing "High" below the title
 
   Scenario: Disabling "Assignee" removes the assignee avatar from Board cards
-    Given the integration has a task "E2E_BOARD_NO_ASSIGNEE" assigned to "E2E_USER"
+    Given the interaction has a task "E2E_BOARD_NO_ASSIGNEE" assigned to "E2E_USER"
     When the user clicks the "View settings" button in the view toolbar
     And the user clicks the "Fields" row
     And the user unchecks the "Assignee" field
@@ -156,7 +156,7 @@ Feature: View settings — field visibility on Board and List views
     Then the card for "E2E_BOARD_NO_ASSIGNEE" should not display an assignee avatar
 
   Scenario: Disabling "Type" removes the task type badge from Board cards
-    Given the integration has a task "E2E_BOARD_NO_TYPE" with type "Bug"
+    Given the interaction has a task "E2E_BOARD_NO_TYPE" with type "Bug"
     When the user clicks the "View settings" button in the view toolbar
     And the user clicks the "Fields" row
     And the user unchecks the "Type" field
@@ -165,7 +165,7 @@ Feature: View settings — field visibility on Board and List views
 
   Scenario: Enabling a custom "select" field shows the selected option on the Board card
     Given the project has a custom field "Severity" of type "select" with options "Low,Medium,High"
-    And the integration has a task "E2E_BOARD_SEV" with custom field "Severity" set to "High"
+    And the interaction has a task "E2E_BOARD_SEV" with custom field "Severity" set to "High"
     When the user clicks the "View settings" button in the view toolbar
     And the user clicks the "Fields" row
     And the user checks the "Severity" field
@@ -174,7 +174,7 @@ Feature: View settings — field visibility on Board and List views
 
   Scenario: Enabling a custom "number" field shows the numeric value on the Board card
     Given the project has a custom field "Story Points" of type "number"
-    And the integration has a task "E2E_BOARD_SP" with custom field "Story Points" set to 8
+    And the interaction has a task "E2E_BOARD_SP" with custom field "Story Points" set to 8
     When the user clicks the "View settings" button in the view toolbar
     And the user clicks the "Fields" row
     And the user checks the "Story Points" field
@@ -183,7 +183,7 @@ Feature: View settings — field visibility on Board and List views
 
   Scenario: Enabling a custom "boolean" field shows a checked or unchecked indicator on the Board card
     Given the project has a custom field "Is Blocked" of type "boolean"
-    And the integration has a task "E2E_BOARD_BLOCKED" with custom field "Is Blocked" set to true
+    And the interaction has a task "E2E_BOARD_BLOCKED" with custom field "Is Blocked" set to true
     When the user clicks the "View settings" button in the view toolbar
     And the user clicks the "Fields" row
     And the user checks the "Is Blocked" field
@@ -192,7 +192,7 @@ Feature: View settings — field visibility on Board and List views
 
   Scenario: Enabling a custom "date" field shows a formatted date on the Board card
     Given the project has a custom field "Target Date" of type "date"
-    And the integration has a task "E2E_BOARD_DATE" with custom field "Target Date" set to "2026-06-30"
+    And the interaction has a task "E2E_BOARD_DATE" with custom field "Target Date" set to "2026-06-30"
     When the user clicks the "View settings" button in the view toolbar
     And the user clicks the "Fields" row
     And the user checks the "Target Date" field
@@ -201,7 +201,7 @@ Feature: View settings — field visibility on Board and List views
 
   Scenario: Enabling a custom "text" field shows a truncated text value on the Board card
     Given the project has a custom field "Notes" of type "text"
-    And the integration has a task "E2E_BOARD_TEXT" with custom field "Notes" set to "A very long description that should be truncated on the card"
+    And the interaction has a task "E2E_BOARD_TEXT" with custom field "Notes" set to "A very long description that should be truncated on the card"
     When the user clicks the "View settings" button in the view toolbar
     And the user clicks the "Fields" row
     And the user checks the "Notes" field
@@ -210,14 +210,14 @@ Feature: View settings — field visibility on Board and List views
 
   Scenario: Tasks with no value for an enabled custom field show an empty placeholder on the Board card
     Given the project has a custom field "Severity" of type "select" with options "Low,Medium,High"
-    And the integration has a task "E2E_BOARD_NO_SEV" without the "Severity" custom field set
+    And the interaction has a task "E2E_BOARD_NO_SEV" without the "Severity" custom field set
     And the view has "Severity" enabled in the field picker
     When the user is on the Board view
     Then the card for "E2E_BOARD_NO_SEV" should show an empty or dash placeholder for "Severity"
     And no error should occur
 
   Scenario: Fields on a Board card appear in the order defined in the field picker
-    Given the integration has a task "E2E_BOARD_ORDER" with type "Story" assigned to "E2E_USER" with importance "Medium"
+    Given the interaction has a task "E2E_BOARD_ORDER" with type "Story" assigned to "E2E_USER" with importance "Medium"
     When the user clicks the "View settings" button in the view toolbar
     And the user clicks the "Fields" row
     And the user reorders the enabled fields so the order is: Title, Importance, Type, Assignee
@@ -229,7 +229,7 @@ Feature: View settings — field visibility on Board and List views
   ═══════════════════════════════════════════════════════════════════════════
 
   Scenario: Default Table view shows Type, Importance, Status, and Assignee columns alongside Title
-    Given the integration has a task "E2E_LIST_DEFAULT"
+    Given the interaction has a task "E2E_LIST_DEFAULT"
     When the user is on the Table view
     Then the table should contain a "Title" column
     And the table should contain a "Type" column
@@ -257,7 +257,7 @@ Feature: View settings — field visibility on Board and List views
 
   Scenario: Toggling a custom "select" field on adds it as a column in the Table view
     Given the project has a custom field "Severity" of type "select" with options "Low,Medium,High"
-    And the integration has a task "E2E_LIST_SEV" with custom field "Severity" set to "Medium"
+    And the interaction has a task "E2E_LIST_SEV" with custom field "Severity" set to "Medium"
     And the user is on the Table view
     When the user clicks the "View settings" button in the view toolbar
     And the user clicks the "Fields" row
@@ -268,7 +268,7 @@ Feature: View settings — field visibility on Board and List views
 
   Scenario: Toggling a custom "number" field on adds it as a column in the Table view
     Given the project has a custom field "Story Points" of type "number"
-    And the integration has a task "E2E_LIST_SP" with custom field "Story Points" set to 13
+    And the interaction has a task "E2E_LIST_SP" with custom field "Story Points" set to 13
     And the user is on the Table view
     When the user clicks the "View settings" button in the view toolbar
     And the user clicks the "Fields" row
@@ -279,7 +279,7 @@ Feature: View settings — field visibility on Board and List views
 
   Scenario: Toggling a custom "boolean" field on adds it as a column in the Table view
     Given the project has a custom field "Is Blocked" of type "boolean"
-    And the integration has a task "E2E_LIST_BLOCKED" with custom field "Is Blocked" set to true
+    And the interaction has a task "E2E_LIST_BLOCKED" with custom field "Is Blocked" set to true
     And the user is on the Table view
     When the user clicks the "View settings" button in the view toolbar
     And the user clicks the "Fields" row
@@ -290,7 +290,7 @@ Feature: View settings — field visibility on Board and List views
 
   Scenario: Toggling a custom "multi_select" field on adds it as a column in the Table view
     Given the project has a custom field "Labels" of type "multi_select" with options "frontend,backend,devops"
-    And the integration has a task "E2E_LIST_LABELS" with custom field "Labels" set to ["frontend", "backend"]
+    And the interaction has a task "E2E_LIST_LABELS" with custom field "Labels" set to ["frontend", "backend"]
     And the user is on the Table view
     When the user clicks the "View settings" button in the view toolbar
     And the user clicks the "Fields" row
@@ -301,7 +301,7 @@ Feature: View settings — field visibility on Board and List views
 
   Scenario: Tasks with no value for an enabled custom field show an empty cell in the Table view
     Given the project has a custom field "Severity" of type "select" with options "Low,Medium,High"
-    And the integration has a task "E2E_LIST_NO_SEV" without the "Severity" custom field set
+    And the interaction has a task "E2E_LIST_NO_SEV" without the "Severity" custom field set
     And the view has "Severity" enabled in the field picker
     When the user is on the Table view
     Then the row for "E2E_LIST_NO_SEV" should display an empty or dash placeholder in the "Severity" column
@@ -319,7 +319,7 @@ Feature: View settings — field visibility on Board and List views
   ═══════════════════════════════════════════════════════════════════════════
 
   Scenario: Hiding a field on the Board view does not affect the Table view's columns
-    Given the user has a "Board" view and a "Table" view in the integration
+    Given the user has a "Board" view and a "Table" view in the interaction
     When the user is on the "Board" view
     And the user clicks the "View settings" button in the view toolbar
     And the user clicks the "Fields" row
@@ -330,7 +330,7 @@ Feature: View settings — field visibility on Board and List views
 
   Scenario: Enabling a custom field on the Table view does not affect the Board view's cards
     Given the project has a custom field "Severity" of type "select" with options "Low,Medium,High"
-    And the user has a "Board" view and a "Table" view in the integration
+    And the user has a "Board" view and a "Table" view in the interaction
     When the user is on the "Table" view
     And the user clicks the "View settings" button in the view toolbar
     And the user clicks the "Fields" row
@@ -341,7 +341,7 @@ Feature: View settings — field visibility on Board and List views
 
   Scenario: Field settings survive a page reload
     Given the user has enabled "Due Date" and disabled "Importance" on the active Table view
-    When the user reloads the page and navigates back to the integration
+    When the user reloads the page and navigates back to the interaction
     Then the table view should display the "Due Date" column
     And the table view should not display the "Importance" column
 

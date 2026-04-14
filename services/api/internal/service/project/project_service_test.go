@@ -156,8 +156,8 @@ func TestCreate_SeedsDefaultTaskTypesAndStatuses(t *testing.T) {
 		t.Fatal("Create returned nil project")
 	}
 
-	// Verify 3 default task types are created.
-	const wantTypes = 3
+	// Verify 5 default task types are created (Task, Bug, Story + Epic, Subtask system types).
+	const wantTypes = 5
 	if got := len(tb.types); got != wantTypes {
 		t.Errorf("expected %d default task types, got %d", wantTypes, got)
 	}
@@ -171,9 +171,22 @@ func TestCreate_SeedsDefaultTaskTypesAndStatuses(t *testing.T) {
 		}
 		typeNames[tt.Name] = true
 	}
-	for _, name := range []string{"Task", "Bug", "Story"} {
+	for _, name := range []string{"Task", "Bug", "Story", "Epic", "Subtask"} {
 		if !typeNames[name] {
 			t.Errorf("missing expected default task type %q", name)
+		}
+	}
+
+	// Verify Epic and Subtask are system types.
+	for _, tt := range tb.types {
+		if tt.Name == "Epic" || tt.Name == "Subtask" {
+			if !tt.IsSystem {
+				t.Errorf("expected task type %q to have IsSystem=true", tt.Name)
+			}
+		} else {
+			if tt.IsSystem {
+				t.Errorf("expected task type %q to have IsSystem=false", tt.Name)
+			}
 		}
 	}
 
@@ -192,9 +205,11 @@ func TestCreate_SeedsDefaultTaskTypesAndStatuses(t *testing.T) {
 
 	// Verify descriptions are set for default task types
 	expectedDescriptions := map[string]string{
-		"Task":  "A general work item that needs to be completed",
-		"Bug":   "An issue or defect that needs to be fixed",
-		"Story": "A user-facing feature or requirement",
+		"Task":    "A general work item that needs to be completed",
+		"Bug":     "An issue or defect that needs to be fixed",
+		"Story":   "A user-facing feature or requirement",
+		"Epic":    "A large body of work that can be broken down into smaller tasks",
+		"Subtask": "A smaller piece of work within a parent task",
 	}
 	for _, tt := range tb.types {
 		if expectedDesc, ok := expectedDescriptions[tt.Name]; ok {

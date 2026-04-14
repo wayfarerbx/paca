@@ -221,20 +221,23 @@ CREATE TABLE IF NOT EXISTS custom_field_definitions (
 -- -------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS sprint_views (
-    id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    sprint_id  UUID        REFERENCES sprints(id) ON DELETE CASCADE,
-    project_id UUID        NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    name       TEXT        NOT NULL,
-    view_type  TEXT        NOT NULL DEFAULT 'table'
-                           CHECK (view_type IN ('table','board','roadmap')),
-    config     JSONB       NOT NULL DEFAULT '{}'::jsonb,
-    position   DOUBLE PRECISION NOT NULL DEFAULT 0,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    sprint_id    UUID        REFERENCES sprints(id) ON DELETE CASCADE,
+    project_id   UUID        NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    name         TEXT        NOT NULL,
+    view_type    TEXT        NOT NULL DEFAULT 'table'
+                             CHECK (view_type IN ('table','board','roadmap')),
+    view_context TEXT        NOT NULL DEFAULT 'sprint'
+                             CHECK (view_context IN ('sprint', 'backlog', 'timeline')),
+    config       JSONB       NOT NULL DEFAULT '{}'::jsonb,
+    position     DOUBLE PRECISION NOT NULL DEFAULT 0,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_sprint_views_sprint_id  ON sprint_views (sprint_id);
 CREATE INDEX IF NOT EXISTS idx_sprint_views_project_id ON sprint_views (project_id);
+CREATE INDEX IF NOT EXISTS idx_sprint_views_context    ON sprint_views (project_id, view_context) WHERE sprint_id IS NULL;
 
 -- -------------------------------------------------------------------------
 -- VIEW TASK POSITIONS

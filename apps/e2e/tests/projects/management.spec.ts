@@ -367,7 +367,7 @@ test.describe('Project Management', () => {
       await expect(page.getByRole('dialog', { name: 'Delete project' })).toBeVisible();
 
       // The dialog should warn about permanent data loss
-      await expect(page.getByRole('dialog', { name: 'Delete project' }).getByText(/members.*roles.*integrations|integrations.*members.*roles/i)).toBeVisible();
+      await expect(page.getByRole('dialog', { name: 'Delete project' }).getByText(/members.*roles.*interactions|interactions.*members.*roles/i)).toBeVisible();
     });
 
     test('"Delete permanently" button is disabled until the project name is typed', async ({ page }) => {

@@ -96,7 +96,7 @@ async function createBacklogView(
   name: string,
   view_type: 'board' | 'table',
 ): Promise<IntegrationView> {
-  const resp = await request.post(`${BASE_URL}/api/v1/projects/${projectId}/product-backlog/views`, {
+  const resp = await request.post(`${BASE_URL}/api/v1/projects/${projectId}/views?context=backlog`, {
     data: { name, view_type },
   });
   const body = await resp.json();
@@ -114,7 +114,7 @@ const signIn = async (page: Page) => {
 };
 
 const navigateToBacklog = async (page: Page, projectId: string) => {
-  await page.goto(`${BASE_URL}/projects/${projectId}/integrations/backlog`);
+  await page.goto(`${BASE_URL}/projects/${projectId}/interactions/backlog`);
   await expect(page.getByRole('heading', { name: 'Product Backlog' })).toBeVisible({ timeout: 10_000 });
 };
 

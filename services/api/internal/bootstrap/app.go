@@ -122,9 +122,9 @@ func New(cfg *config.Config) (*App, error) {
 		Auth:         handler.NewAuthHandler(authService, cookieCfg),
 		User:         handler.NewUserHandler(userService, authService),
 		GlobalRole:   handler.NewGlobalRoleHandler(globalRoleService),
-		Project:      handler.NewProjectHandler(projectService, authorizer),
+		Project:      handler.NewProjectHandler(projectService, authorizer, handler.WithProjectDefaultViews(viewService, taskService)),
 		Task:         handler.NewTaskHandler(taskService, viewService),
-		Sprint:       handler.NewSprintHandler(sprintService, viewService),
+		Sprint:       handler.NewSprintHandler(sprintService, viewService, handler.WithSprintDefaultTaskTypes(taskService)),
 		View:         handler.NewViewHandler(viewService),
 		Log:          log,
 	}

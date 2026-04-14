@@ -74,7 +74,7 @@ export function DangerZone({ projectId }: { projectId: string }) {
 							<span className="font-semibold text-foreground">
 								{project?.name}
 							</span>{" "}
-							and all its data, including members, roles, and integrations. This
+							and all its data, including members, roles, and interactions. This
 							action cannot be undone.
 						</DialogDescription>
 					</DialogHeader>

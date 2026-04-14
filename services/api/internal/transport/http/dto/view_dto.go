@@ -26,13 +26,20 @@ type UpdateViewRequest struct {
 }
 
 // ViewConfigDTO is the JSON representation of sprintdom.ViewConfig.
+type ViewFiltersDTO struct {
+	StatusIDs   []string `json:"status_ids,omitempty"`
+	AssigneeIDs []string `json:"assignee_ids,omitempty"`
+	TaskTypeIDs []string `json:"task_type_ids,omitempty"`
+}
+
 type ViewConfigDTO struct {
-	Fields    []string `json:"fields,omitempty"`
-	ColumnBy  string   `json:"column_by,omitempty"`
-	Swimlanes string   `json:"swimlanes,omitempty"`
-	SortBy    string   `json:"sort_by,omitempty"`
-	FieldSum  string   `json:"field_sum,omitempty"`
-	SliceBy   string   `json:"slice_by,omitempty"`
+	Fields    []string        `json:"fields,omitempty"`
+	ColumnBy  string          `json:"column_by,omitempty"`
+	Swimlanes string          `json:"swimlanes,omitempty"`
+	SortBy    string          `json:"sort_by,omitempty"`
+	FieldSum  string          `json:"field_sum,omitempty"`
+	SliceBy   string          `json:"slice_by,omitempty"`
+	Filters   *ViewFiltersDTO `json:"filters,omitempty"`
 }
 
 // ViewResponse is the public representation of a sprint view.
@@ -63,6 +70,16 @@ func ViewFromEntity(v *sprintdom.SprintView) ViewResponse {
 			SortBy:    v.Config.SortBy,
 			FieldSum:  v.Config.FieldSum,
 			SliceBy:   v.Config.SliceBy,
+			Filters: func() *ViewFiltersDTO {
+				if v.Config.Filters == nil {
+					return nil
+				}
+				return &ViewFiltersDTO{
+					StatusIDs:   v.Config.Filters.StatusIDs,
+					AssigneeIDs: v.Config.Filters.AssigneeIDs,
+					TaskTypeIDs: v.Config.Filters.TaskTypeIDs,
+				}
+			}(),
 		},
 		Position:  v.Position,
 		CreatedAt: v.CreatedAt,
@@ -82,6 +99,16 @@ func toViewConfig(d *ViewConfigDTO) sprintdom.ViewConfig {
 		SortBy:    d.SortBy,
 		FieldSum:  d.FieldSum,
 		SliceBy:   d.SliceBy,
+		Filters: func() *sprintdom.ViewFilters {
+			if d.Filters == nil {
+				return nil
+			}
+			return &sprintdom.ViewFilters{
+				StatusIDs:   d.Filters.StatusIDs,
+				AssigneeIDs: d.Filters.AssigneeIDs,
+				TaskTypeIDs: d.Filters.TaskTypeIDs,
+			}
+		}(),
 	}
 }
 
@@ -139,28 +166,31 @@ func (r CreateViewRequest) ToCreateInput(sprintID uuid.UUID, projectID uuid.UUID
 		pos = *r.Position
 	}
 	return sprintdom.CreateViewInput{
-		SprintID:  &sprintID,
-		ProjectID: projectID,
-		Name:      r.Name,
-		ViewType:  r.ViewType,
-		Config:    toViewConfig(r.Config),
-		Position:  pos,
+		SprintID:    &sprintID,
+		ProjectID:   projectID,
+		Name:        r.Name,
+		ViewType:    r.ViewType,
+		Config:      toViewConfig(r.Config),
+		Position:    pos,
+		ViewContext: sprintdom.ViewContextSprint,
 	}
 }
 
-// ToCreateBacklogInput builds the domain input for a product-backlog view.
-func (r CreateViewRequest) ToCreateBacklogInput(projectID uuid.UUID) sprintdom.CreateViewInput {
+// ToCreateProjectViewInput builds the domain input for a project-level view
+// (backlog or timeline).  viewCtx must be ViewContextBacklog or ViewContextTimeline.
+func (r CreateViewRequest) ToCreateProjectViewInput(projectID uuid.UUID, viewCtx sprintdom.ViewContext) sprintdom.CreateViewInput {
 	pos := 0.0
 	if r.Position != nil {
 		pos = *r.Position
 	}
 	return sprintdom.CreateViewInput{
-		SprintID:  nil,
-		ProjectID: projectID,
-		Name:      r.Name,
-		ViewType:  r.ViewType,
-		Config:    toViewConfig(r.Config),
-		Position:  pos,
+		SprintID:    nil,
+		ProjectID:   projectID,
+		Name:        r.Name,
+		ViewType:    r.ViewType,
+		Config:      toViewConfig(r.Config),
+		Position:    pos,
+		ViewContext: viewCtx,
 	}
 }
 
@@ -177,7 +207,7 @@ func (r UpdateViewRequest) ToUpdateInput() sprintdom.UpdateViewInput {
 // --- Reorder DTOs -----------------------------------------------------------
 
 // ReorderViewsRequest is the body for PUT /views/positions.
-// ViewIDs must list every view for the integration in the desired tab order.
+// ViewIDs must list every view for the interaction in the desired tab order.
 type ReorderViewsRequest struct {
 	ViewIDs []uuid.UUID `json:"view_ids" binding:"required,min=1"`
 }

@@ -645,3 +645,264 @@ func TestE2EBulkBacklogTaskPositionManagement(t *testing.T) {
 		}
 	})
 }
+
+// ---------------------------------------------------------------------------
+// Timeline view helpers
+// ---------------------------------------------------------------------------
+
+// createTimelineViewViaAPI creates a timeline view and returns its ID.
+func createTimelineViewViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, projectID, name, viewType string) string {
+	t.Helper()
+	url := fmt.Sprintf("%s/api/v1/projects/%s/timeline/views", env.base, projectID)
+	body := jsonBody(t, map[string]any{
+		"name":      name,
+		"view_type": viewType,
+	})
+	req := mustRequest(env.ctx, t, http.MethodPost, url, body)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp := mustDo(t, client, req)
+	defer func() { _ = resp.Body.Close() }()
+	assertStatus(t, resp, http.StatusCreated)
+	var env2 envelope
+	decodeJSON(t, resp, &env2)
+	data := assertDataMap(t, env2)
+	id, _ := data["id"].(string)
+	if id == "" {
+		t.Fatal("missing view id in timeline view response")
+	}
+	return id
+}
+
+// listTimelineViewIDsViaAPI returns all view IDs for the timeline.
+func listTimelineViewIDsViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, projectID string) []string {
+	t.Helper()
+	url := fmt.Sprintf("%s/api/v1/projects/%s/timeline/views", env.base, projectID)
+	req := mustRequest(env.ctx, t, http.MethodGet, url, nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp := mustDo(t, client, req)
+	defer func() { _ = resp.Body.Close() }()
+	assertStatus(t, resp, http.StatusOK)
+	var env2 envelope
+	decodeJSON(t, resp, &env2)
+	data := assertDataMap(t, env2)
+	items, _ := data["items"].([]any)
+	var ids []string
+	for _, item := range items {
+		if m, ok := item.(map[string]any); ok {
+			if id, ok := m["id"].(string); ok && id != "" {
+				ids = append(ids, id)
+			}
+		}
+	}
+	return ids
+}
+
+// deleteTimelineViewViaAPI deletes a timeline view, ignoring 404.
+func deleteTimelineViewViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, projectID, viewID string) {
+	t.Helper()
+	url := fmt.Sprintf("%s/api/v1/projects/%s/timeline/views/%s", env.base, projectID, viewID)
+	req := mustRequest(env.ctx, t, http.MethodDelete, url, nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp := mustDo(t, client, req)
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotFound {
+		t.Errorf("deleteTimelineViewViaAPI: unexpected status %d", resp.StatusCode)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Timeline view e2e tests
+// ---------------------------------------------------------------------------
+
+func TestE2ETimelineViewManagement_CRUD(t *testing.T) {
+	env := newE2EEnv(t)
+	seedTaskMemberUser(t, env, "timeline-crud-user", "timelinepass1")
+	client, token := taskMemberLogin(t, env, "timeline-crud-user", "timelinepass1")
+	projID := createProjectForTasksViaAPI(t, env, client, token)
+
+	// Project creation auto-seeds a default timeline view; record its ID.
+	autoSeededViewIDs := listTimelineViewIDsViaAPI(t, env, client, token, projID)
+
+	var viewID string
+	var view2ID string
+
+	t.Run("create_view", func(t *testing.T) {
+		viewID = createTimelineViewViaAPI(t, env, client, token, projID, "Roadmap", "roadmap")
+		if viewID == "" {
+			t.Fatal("expected non-empty view id")
+		}
+	})
+
+	t.Run("list_views", func(t *testing.T) {
+		url := fmt.Sprintf("%s/api/v1/projects/%s/timeline/views", env.base, projID)
+		req := mustRequest(env.ctx, t, http.MethodGet, url, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+		items, _ := data["items"].([]any)
+		if len(items) == 0 {
+			t.Error("expected at least 1 view in list")
+		}
+	})
+
+	t.Run("get_view", func(t *testing.T) {
+		url := fmt.Sprintf("%s/api/v1/projects/%s/timeline/views/%s", env.base, projID, viewID)
+		req := mustRequest(env.ctx, t, http.MethodGet, url, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+		if data["id"] != viewID {
+			t.Errorf("expected id=%s, got %v", viewID, data["id"])
+		}
+	})
+
+	t.Run("update_name", func(t *testing.T) {
+		url := fmt.Sprintf("%s/api/v1/projects/%s/timeline/views/%s", env.base, projID, viewID)
+		body := jsonBody(t, map[string]any{"name": "Renamed Roadmap"})
+		req := mustRequest(env.ctx, t, http.MethodPatch, url, body)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+		if data["name"] != "Renamed Roadmap" {
+			t.Errorf("expected name=Renamed Roadmap, got %v", data["name"])
+		}
+	})
+
+	t.Run("create_second_view", func(t *testing.T) {
+		view2ID = createTimelineViewViaAPI(t, env, client, token, projID, "Timeline Table", "table")
+	})
+
+	t.Run("delete_first_view", func(t *testing.T) {
+		url := fmt.Sprintf("%s/api/v1/projects/%s/timeline/views/%s", env.base, projID, viewID)
+		req := mustRequest(env.ctx, t, http.MethodDelete, url, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusNoContent)
+	})
+
+	t.Run("deleted_view_returns_404", func(t *testing.T) {
+		url := fmt.Sprintf("%s/api/v1/projects/%s/timeline/views/%s", env.base, projID, viewID)
+		req := mustRequest(env.ctx, t, http.MethodGet, url, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusNotFound)
+	})
+
+	// Cleanup: delete view2 and all auto-seeded views (best effort).
+	t.Cleanup(func() {
+		deleteTimelineViewViaAPI(t, env, client, token, projID, view2ID)
+		for _, id := range autoSeededViewIDs {
+			deleteTimelineViewViaAPI(t, env, client, token, projID, id)
+		}
+	})
+}
+
+func TestE2ETimelineViewManagement_DeleteLastViewRejected(t *testing.T) {
+	env := newE2EEnv(t)
+	seedTaskMemberUser(t, env, "timeline-last-user", "timelinepass2")
+	client, token := taskMemberLogin(t, env, "timeline-last-user", "timelinepass2")
+	projID := createProjectForTasksViaAPI(t, env, client, token)
+
+	// Remove all auto-seeded timeline views first so we can control the count.
+	for _, id := range listTimelineViewIDsViaAPI(t, env, client, token, projID) {
+		url := fmt.Sprintf("%s/api/v1/projects/%s/timeline/views/%s", env.base, projID, id)
+		req := mustRequest(env.ctx, t, http.MethodDelete, url, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		_ = resp.Body.Close()
+		// Tolerate 409 (last view) — we'll just use the remaining one.
+		if resp.StatusCode == http.StatusConflict {
+			break
+		}
+	}
+
+	remaining := listTimelineViewIDsViaAPI(t, env, client, token, projID)
+	var onlyViewID string
+	if len(remaining) == 1 {
+		onlyViewID = remaining[0]
+	} else {
+		// Create a fresh one, delete all but one.
+		onlyViewID = createTimelineViewViaAPI(t, env, client, token, projID, "Sole Timeline", "roadmap")
+		for _, id := range remaining {
+			deleteTimelineViewViaAPI(t, env, client, token, projID, id)
+		}
+	}
+
+	t.Run("delete_last_view_returns_409", func(t *testing.T) {
+		url := fmt.Sprintf("%s/api/v1/projects/%s/timeline/views/%s", env.base, projID, onlyViewID)
+		req := mustRequest(env.ctx, t, http.MethodDelete, url, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusConflict)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		if env2.ErrorCode != "VIEW_IS_LAST_VIEW" {
+			t.Errorf("expected error code VIEW_IS_LAST_VIEW, got %q", env2.ErrorCode)
+		}
+	})
+}
+
+func TestE2ETimelineViewManagement_ContextIsolation(t *testing.T) {
+	// Verifies that creating timeline and backlog views for the same project
+	// does not mix them up in their respective list endpoints.
+	env := newE2EEnv(t)
+	seedTaskMemberUser(t, env, "timeline-isolation-user", "timelinepass3")
+	client, token := taskMemberLogin(t, env, "timeline-isolation-user", "timelinepass3")
+	projID := createProjectForTasksViaAPI(t, env, client, token)
+
+	tlViewID := createTimelineViewViaAPI(t, env, client, token, projID, "My Roadmap", "roadmap")
+	blViewID := createBacklogViewViaAPI(t, env, client, token, projID, "My Backlog", "table")
+
+	t.Run("timeline_list_excludes_backlog", func(t *testing.T) {
+		ids := listTimelineViewIDsViaAPI(t, env, client, token, projID)
+		for _, id := range ids {
+			if id == blViewID {
+				t.Errorf("timeline list contains backlog view id %s", blViewID)
+			}
+		}
+		found := false
+		for _, id := range ids {
+			if id == tlViewID {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("timeline list missing expected timeline view %s", tlViewID)
+		}
+	})
+
+	t.Run("backlog_list_excludes_timeline", func(t *testing.T) {
+		ids := listBacklogViewIDsViaAPI(t, env, client, token, projID)
+		for _, id := range ids {
+			if id == tlViewID {
+				t.Errorf("backlog list contains timeline view id %s", tlViewID)
+			}
+		}
+		found := false
+		for _, id := range ids {
+			if id == blViewID {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("backlog list missing expected backlog view %s", blViewID)
+		}
+	})
+}

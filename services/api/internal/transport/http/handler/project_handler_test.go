@@ -16,6 +16,8 @@ import (
 	"github.com/google/uuid"
 	domainauth "github.com/paca/api/internal/domain/auth"
 	projectdom "github.com/paca/api/internal/domain/project"
+	sprintdom "github.com/paca/api/internal/domain/sprint"
+	taskdom "github.com/paca/api/internal/domain/task"
 	"github.com/paca/api/internal/platform/authz"
 	"github.com/paca/api/internal/transport/http/handler"
 	"github.com/paca/api/internal/transport/http/middleware"
@@ -277,6 +279,61 @@ func TestCreateProject_Success(t *testing.T) {
 		jsonBody(t, map[string]any{"name": "beta", "description": "a project"}))
 	if w.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestCreateProject_SeedsDefaultViews(t *testing.T) {
+	projectID := uuid.New()
+	viewSvc := &fakeViewSvcH{}
+	taskTypeSvc := &fakeTaskTypeSvcH{taskTypes: []*taskdom.TaskType{
+		{ID: uuid.New(), Name: "Task"},
+		{ID: uuid.New(), Name: "Bug"},
+		{ID: uuid.New(), Name: "Epic", IsSystem: true},
+		{ID: uuid.New(), Name: "Subtask", IsSystem: true},
+	}}
+	projectSvc := &mockProjectSvc{
+		create: func(_ context.Context, in projectdom.CreateProjectInput) (*projectdom.Project, error) {
+			return &projectdom.Project{ID: projectID, Name: in.Name}, nil
+		},
+	}
+
+	authorizer := authz.NewAuthorizer(nil)
+	r := gin.New()
+	r.Use(adminClaimsMiddleware())
+	h := handler.NewProjectHandler(projectSvc, authorizer, handler.WithProjectDefaultViews(viewSvc, taskTypeSvc))
+	r.POST("/admin/projects", h.CreateProject)
+
+	w := do(t, r, http.MethodPost, "/admin/projects", jsonBody(t, map[string]any{"name": "alpha"}))
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+	if len(viewSvc.created) != 2 {
+		t.Fatalf("expected 2 seeded views, got %d", len(viewSvc.created))
+	}
+
+	var backlogView, timelineView *sprintdom.SprintView
+	for _, view := range viewSvc.created {
+		switch view.ViewContext {
+		case sprintdom.ViewContextBacklog:
+			backlogView = view
+		case sprintdom.ViewContextTimeline:
+			timelineView = view
+		}
+	}
+	if backlogView == nil || timelineView == nil {
+		t.Fatal("expected both backlog and timeline default views")
+	}
+	if backlogView.ViewType != sprintdom.ViewTypeTable || backlogView.Config.ColumnBy != "sprint" {
+		t.Fatalf("unexpected backlog default view: %+v", backlogView)
+	}
+	if timelineView.ViewType != sprintdom.ViewTypeRoadmap {
+		t.Fatalf("expected roadmap timeline view, got %+v", timelineView.ViewType)
+	}
+	if len(backlogView.Config.Filters.TaskTypeIDs) != 2 {
+		t.Fatalf("expected non-system task type defaults on backlog view, got %+v", backlogView.Config.Filters.TaskTypeIDs)
+	}
+	if len(timelineView.Config.Filters.TaskTypeIDs) != 1 {
+		t.Fatalf("expected epic-only timeline default, got %+v", timelineView.Config.Filters.TaskTypeIDs)
 	}
 }
 

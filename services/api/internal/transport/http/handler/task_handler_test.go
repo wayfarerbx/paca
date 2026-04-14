@@ -23,9 +23,11 @@ import (
 // ---------------------------------------------------------------------------
 
 type fakeTaskSvc struct {
-	mu    sync.RWMutex
-	tasks map[uuid.UUID]*taskdom.Task
-	types map[uuid.UUID]*taskdom.TaskType
+	mu            sync.RWMutex
+	tasks         map[uuid.UUID]*taskdom.Task
+	types         map[uuid.UUID]*taskdom.TaskType
+	lastProjectID uuid.UUID
+	lastFilter    taskdom.TaskFilter
 }
 
 func newFakeTaskSvc() *fakeTaskSvc {
@@ -94,7 +96,11 @@ func (f *fakeTaskSvc) DeleteTaskStatus(_ context.Context, _ uuid.UUID) error { r
 
 // -- TaskService --
 
-func (f *fakeTaskSvc) ListTasks(_ context.Context, _ uuid.UUID, _ taskdom.TaskFilter, _, _ int) ([]*taskdom.Task, int64, error) {
+func (f *fakeTaskSvc) ListTasks(_ context.Context, projectID uuid.UUID, filter taskdom.TaskFilter, _, _ int) ([]*taskdom.Task, int64, error) {
+	f.mu.Lock()
+	f.lastProjectID = projectID
+	f.lastFilter = filter
+	f.mu.Unlock()
 	return nil, 0, nil
 }
 
@@ -208,7 +214,7 @@ func (f *fakeViewSvcTask) ListViews(_ context.Context, _ uuid.UUID) ([]*sprintdo
 	return nil, nil
 }
 
-func (f *fakeViewSvcTask) ListBacklogViews(_ context.Context, _ uuid.UUID) ([]*sprintdom.SprintView, error) {
+func (f *fakeViewSvcTask) ListProjectViews(_ context.Context, _ uuid.UUID, _ sprintdom.ViewContext) ([]*sprintdom.SprintView, error) {
 	return nil, nil
 }
 
@@ -242,7 +248,7 @@ func (f *fakeViewSvcTask) ReorderViews(_ context.Context, _ uuid.UUID, _ []uuid.
 	return nil
 }
 
-func (f *fakeViewSvcTask) ReorderBacklogViews(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+func (f *fakeViewSvcTask) ReorderProjectViews(_ context.Context, _ uuid.UUID, _ sprintdom.ViewContext, _ []uuid.UUID) error {
 	return nil
 }
 
@@ -314,6 +320,104 @@ func decodeTaskField(t *testing.T, body []byte, field string) any {
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
+
+func TestTaskHandler_ListTasks_UsesUnifiedFilters(t *testing.T) {
+	svc := newFakeTaskSvc()
+	r := buildTaskHandlerRouter(svc)
+
+	projectID := uuid.New()
+	sprintID := uuid.New()
+	statusID := uuid.New()
+	assigneeID := uuid.New()
+	taskType1 := uuid.New()
+	taskType2 := uuid.New()
+
+	path := fmt.Sprintf(
+		"/projects/%s/tasks?sprint_id=%s&status_ids=%s&assignee_ids=%s&task_type_ids=%s,%s",
+		projectID,
+		sprintID,
+		statusID,
+		assigneeID,
+		taskType1,
+		taskType2,
+	)
+	w := doTaskRequest(r, http.MethodGet, path, nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if svc.lastProjectID != projectID {
+		t.Fatalf("expected project id %s, got %s", projectID, svc.lastProjectID)
+	}
+	if svc.lastFilter.SprintID == nil || *svc.lastFilter.SprintID != sprintID {
+		t.Fatalf("expected sprint filter %s, got %+v", sprintID, svc.lastFilter.SprintID)
+	}
+	if svc.lastFilter.ExcludeSystemTypes {
+		t.Fatal("expected ExcludeSystemTypes=false; task type filtering should come from explicit filters")
+	}
+	if len(svc.lastFilter.StatusIDs) != 1 || svc.lastFilter.StatusIDs[0] != statusID {
+		t.Fatalf("unexpected status ids: %+v", svc.lastFilter.StatusIDs)
+	}
+	if len(svc.lastFilter.AssigneeIDs) != 1 || svc.lastFilter.AssigneeIDs[0] != assigneeID {
+		t.Fatalf("unexpected assignee ids: %+v", svc.lastFilter.AssigneeIDs)
+	}
+	if len(svc.lastFilter.TaskTypeIDs) != 2 || svc.lastFilter.TaskTypeIDs[0] != taskType1 || svc.lastFilter.TaskTypeIDs[1] != taskType2 {
+		t.Fatalf("unexpected task type ids: %+v", svc.lastFilter.TaskTypeIDs)
+	}
+}
+
+func TestTaskHandler_ListTasks_SprintIDsTakePriority(t *testing.T) {
+	svc := newFakeTaskSvc()
+	r := buildTaskHandlerRouter(svc)
+	projectID := uuid.New()
+	sprintID1 := uuid.New()
+	sprintID2 := uuid.New()
+
+	w := doTaskRequest(r, http.MethodGet, fmt.Sprintf("/projects/%s/tasks?sprint_id=null&sprint_ids=%s,%s", projectID, sprintID1, sprintID2), nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if svc.lastFilter.BacklogOnly {
+		t.Fatal("expected BacklogOnly=false when sprint_ids are provided")
+	}
+	if len(svc.lastFilter.SprintIDs) != 2 || svc.lastFilter.SprintIDs[0] != sprintID1 || svc.lastFilter.SprintIDs[1] != sprintID2 {
+		t.Fatalf("unexpected sprint ids: %+v", svc.lastFilter.SprintIDs)
+	}
+}
+
+func TestTaskHandler_ListTasks_SprintNullMeansBacklog(t *testing.T) {
+	svc := newFakeTaskSvc()
+	r := buildTaskHandlerRouter(svc)
+	projectID := uuid.New()
+
+	w := doTaskRequest(r, http.MethodGet, fmt.Sprintf("/projects/%s/tasks?sprint_id=null", projectID), nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if !svc.lastFilter.BacklogOnly {
+		t.Fatal("expected BacklogOnly=true when sprint_id=null")
+	}
+	if svc.lastFilter.ExcludeSystemTypes {
+		t.Fatal("expected ExcludeSystemTypes=false; backlog filtering should come from explicit filters")
+	}
+}
+
+func TestTaskHandler_ListTasks_TaskTypeIDsDriveFiltering(t *testing.T) {
+	svc := newFakeTaskSvc()
+	r := buildTaskHandlerRouter(svc)
+	projectID := uuid.New()
+	taskTypeID := uuid.New()
+
+	w := doTaskRequest(r, http.MethodGet, fmt.Sprintf("/projects/%s/tasks?task_type_ids=%s", projectID, taskTypeID), nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if svc.lastFilter.EpicsOnly {
+		t.Fatal("expected EpicsOnly=false; timeline filtering should come from task_type_ids")
+	}
+	if len(svc.lastFilter.TaskTypeIDs) != 1 || svc.lastFilter.TaskTypeIDs[0] != taskTypeID {
+		t.Fatalf("unexpected task type ids: %+v", svc.lastFilter.TaskTypeIDs)
+	}
+}
 
 func TestTaskHandler_CreateTask_Returns201(t *testing.T) {
 	svc := newFakeTaskSvc()

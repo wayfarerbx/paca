@@ -34,7 +34,7 @@ In practice that means **billions of drag-and-drop operations inside the same ga
 
 ## Position Assignment Rules
 
-All logic lives in `handleReorderTask` in [`integration-layout.tsx`](../../apps/web/src/components/projects/integrations/integration-layout.tsx).
+All logic lives in `handleReorderTask` in [`interaction-layout.tsx`](../../apps/web/src/components/projects/interactions/interaction-layout.tsx).
 
 All positions are confined to the open interval **(0, `Number.MAX_SAFE_INTEGER`)** by always computing midpoints toward the boundaries. This makes two classes of bug structurally impossible:
 
@@ -126,8 +126,7 @@ The `position` column on `sprint_views` is also `DOUBLE PRECISION`. However, vie
 ### Bulk-move tasks (preferred)
 
 ```
-PUT /projects/:projectId/sprints/:sprintId/views/:viewId/task-positions
-PUT /projects/:projectId/product-backlog/views/:viewId/task-positions
+PUT /projects/:projectId/views/:viewId/task-positions
 
 Body:
 {
@@ -144,8 +143,7 @@ Use this endpoint whenever a drag operation must write positions for more than o
 ### Move a single task
 
 ```
-PUT /projects/:projectId/sprints/:sprintId/views/:viewId/task-positions/:taskId
-PUT /projects/:projectId/product-backlog/views/:viewId/task-positions/:taskId
+PUT /projects/:projectId/views/:viewId/task-positions/:taskId
 
 Body:
 {
@@ -158,18 +156,13 @@ Single-task upsert. Still available but the bulk endpoint is preferred on the cl
 
 ### Read positions
 
-Positions are returned inline on task list responses when the caller includes `?view_id=<uuid>`:
+Manual ordering is read from the shared view positions endpoint:
 
-```json
-{
-  "id": "...",
-  "title": "My task",
-  "view_position": 98304.0,
-  "view_group_key": "status-uuid"
-}
+```text
+GET /projects/:projectId/views/:viewId/task-positions
 ```
 
-Tasks with no recorded position in the view have `view_position` omitted (`null`) and sort after all positioned tasks (client-side, by `created_at`).
+Each item returns the task id, position, and optional group key for that view. Tasks with no recorded position in the view sort after all positioned tasks on the client, using creation time as the fallback.
 
 ---
 
@@ -194,7 +187,7 @@ This can be triggered from a maintenance script or a future admin API endpoint.
 ## Sorting on the Client
 
 ```typescript
-// In integration-layout.tsx
+// In interaction-layout.tsx
 const sortedTasks = useMemo(() => {
   if (isManualSort) {
     return [...tasks].sort((a, b) => {

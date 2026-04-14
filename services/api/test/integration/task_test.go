@@ -1147,8 +1147,8 @@ func TestIntegrationTask_UnauthenticatedReturns401(t *testing.T) {
 		{http.MethodGet, fmt.Sprintf("/api/v1/projects/%s/task-statuses", projectID)},
 		{http.MethodGet, fmt.Sprintf("/api/v1/projects/%s/sprints", projectID)},
 		{http.MethodGet, fmt.Sprintf("/api/v1/projects/%s/sprints/%s", projectID, uuid.New())},
-		{http.MethodGet, fmt.Sprintf("/api/v1/projects/%s/sprints/%s/tasks", projectID, uuid.New())},
-		{http.MethodGet, fmt.Sprintf("/api/v1/projects/%s/product-backlog", projectID)},
+		{http.MethodGet, fmt.Sprintf("/api/v1/projects/%s/tasks?sprint_id=%s", projectID, uuid.New())},
+		{http.MethodGet, fmt.Sprintf("/api/v1/projects/%s/tasks?sprint_id=null", projectID)},
 		{http.MethodGet, fmt.Sprintf("/api/v1/projects/%s/tasks", projectID)},
 	}
 	for _, ep := range endpoints {
@@ -1301,9 +1301,9 @@ func TestIntegrationSprints_GetSprintTasks(t *testing.T) {
 		t.Fatalf("seed backlog task: %v", err)
 	}
 
-	// GET /sprints/:sprintId/tasks — should return only the sprint task
+	// GET /tasks?sprint_id=:sprintId — should return only the sprint task
 	w := serve(r, authedJSONReq(t.Context(), http.MethodGet,
-		fmt.Sprintf("/api/v1/projects/%s/sprints/%s/tasks", projectID, sprintID), tok, nil))
+		fmt.Sprintf("/api/v1/projects/%s/tasks?sprint_id=%s", projectID, sprintID), tok, nil))
 	if w.Code != http.StatusOK {
 		t.Fatalf("get sprint tasks: expected 200, got %d (%s)", w.Code, w.Body.String())
 	}
@@ -1363,9 +1363,9 @@ func TestIntegrationTasks_Backlog(t *testing.T) {
 		}
 	}
 
-	// GET /product-backlog — should return only the 3 backlog tasks
+	// GET /tasks?sprint_id=null — should return only the 3 backlog tasks
 	w := serve(r, authedJSONReq(t.Context(), http.MethodGet,
-		fmt.Sprintf("/api/v1/projects/%s/product-backlog", projectID), tok, nil))
+		fmt.Sprintf("/api/v1/projects/%s/tasks?sprint_id=null", projectID), tok, nil))
 	if w.Code != http.StatusOK {
 		t.Fatalf("list backlog: expected 200, got %d (%s)", w.Code, w.Body.String())
 	}
@@ -1375,10 +1375,10 @@ func TestIntegrationTasks_Backlog(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ListTasks with view_id — manual position enrichment
+// ListTasks no longer embeds positions; use the dedicated view positions API.
 // ---------------------------------------------------------------------------
 
-func TestIntegrationTasks_ListWithViewID(t *testing.T) {
+func TestIntegrationTasks_ListAndViewPositions(t *testing.T) {
 	taskRepo := newFakeTaskRepoIT()
 	viewRepo := newFakeViewRepoIT()
 	projectID := uuid.New()
@@ -1454,8 +1454,8 @@ func TestIntegrationTasks_ListWithViewID(t *testing.T) {
 		}
 	})
 
-	t.Run("with_view_id_positions_are_present", func(t *testing.T) {
-		url := fmt.Sprintf("%s?view_id=%s", base, viewID)
+	t.Run("view_positions_are_available_from_the_dedicated_endpoint", func(t *testing.T) {
+		url := fmt.Sprintf("/api/v1/projects/%s/views/%s/task-positions", projectID, viewID)
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, url, tok, nil))
 		if w.Code != http.StatusOK {
 			t.Fatalf("expected 200, got %d (%s)", w.Code, w.Body.String())
@@ -1471,26 +1471,26 @@ func TestIntegrationTasks_ListWithViewID(t *testing.T) {
 		posMap := make(map[string]float64)
 		groupMap := make(map[string]any)
 		for _, item := range env.Data.Items {
-			id, _ := item["id"].(string)
-			if pos, ok := item["view_position"]; ok {
+			id, _ := item["task_id"].(string)
+			if pos, ok := item["position"]; ok {
 				posMap[id] = pos.(float64)
 			}
-			groupMap[id] = item["view_group_key"]
+			groupMap[id] = item["group_key"]
 		}
 
 		if posMap[task1ID] != 10 {
-			t.Errorf("expected task1 view_position=10, got %v", posMap[task1ID])
+			t.Errorf("expected task1 position=10, got %v", posMap[task1ID])
 		}
 		if posMap[task2ID] != 20 {
-			t.Errorf("expected task2 view_position=20, got %v", posMap[task2ID])
+			t.Errorf("expected task2 position=20, got %v", posMap[task2ID])
 		}
 		if groupMap[task1ID] != "status-col" {
-			t.Errorf("expected task1 view_group_key=status-col, got %v", groupMap[task1ID])
+			t.Errorf("expected task1 group_key=status-col, got %v", groupMap[task1ID])
 		}
 	})
 
 	t.Run("invalid_view_id_returns_400", func(t *testing.T) {
-		url := fmt.Sprintf("%s?view_id=not-a-uuid", base)
+		url := fmt.Sprintf("/api/v1/projects/%s/views/not-a-uuid/task-positions", projectID)
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, url, tok, nil))
 		if w.Code != http.StatusBadRequest {
 			t.Fatalf("expected 400, got %d (%s)", w.Code, w.Body.String())
@@ -1498,7 +1498,7 @@ func TestIntegrationTasks_ListWithViewID(t *testing.T) {
 	})
 
 	t.Run("unknown_view_id_returns_404", func(t *testing.T) {
-		url := fmt.Sprintf("%s?view_id=%s", base, uuid.New())
+		url := fmt.Sprintf("/api/v1/projects/%s/views/%s/task-positions", projectID, uuid.New())
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, url, tok, nil))
 		if w.Code != http.StatusNotFound {
 			t.Fatalf("expected 404 for non-existent view_id, got %d (%s)", w.Code, w.Body.String())
@@ -1510,10 +1510,10 @@ func TestIntegrationTasks_ListWithViewID(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// GetSprintTasks with view_id — manual position enrichment
+// Sprint-scoped task listing + dedicated view positions endpoint.
 // ---------------------------------------------------------------------------
 
-func TestIntegrationSprints_GetSprintTasksWithViewID(t *testing.T) {
+func TestIntegrationSprints_GetSprintTasksWithViewPositions(t *testing.T) {
 	taskRepo := newFakeTaskRepoIT()
 	viewRepo := newFakeViewRepoIT()
 	sprintRepo := newFakeSprintRepoIT()
@@ -1594,7 +1594,7 @@ func TestIntegrationSprints_GetSprintTasksWithViewID(t *testing.T) {
 		t.Fatalf("seed position task2: %v", err)
 	}
 
-	base := fmt.Sprintf("/api/v1/projects/%s/sprints/%s/tasks", projectID, sprintID)
+	base := fmt.Sprintf("/api/v1/projects/%s/tasks?sprint_id=%s", projectID, sprintID)
 
 	t.Run("without_view_id_no_positions_returned", func(t *testing.T) {
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, base, tok, nil))
@@ -1616,8 +1616,8 @@ func TestIntegrationSprints_GetSprintTasksWithViewID(t *testing.T) {
 		}
 	})
 
-	t.Run("with_view_id_positions_are_present", func(t *testing.T) {
-		url := fmt.Sprintf("%s?view_id=%s", base, viewID)
+	t.Run("view_positions_are_available_from_the_dedicated_endpoint", func(t *testing.T) {
+		url := fmt.Sprintf("/api/v1/projects/%s/views/%s/task-positions", projectID, viewID)
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, url, tok, nil))
 		if w.Code != http.StatusOK {
 			t.Fatalf("expected 200, got %d (%s)", w.Code, w.Body.String())
@@ -1633,27 +1633,27 @@ func TestIntegrationSprints_GetSprintTasksWithViewID(t *testing.T) {
 		posMap := make(map[string]float64)
 		groupMap := make(map[string]any)
 		for _, item := range env.Data.Items {
-			id, _ := item["id"].(string)
-			if pos, ok := item["view_position"]; ok {
+			id, _ := item["task_id"].(string)
+			if pos, ok := item["position"]; ok {
 				posMap[id] = pos.(float64)
 			}
-			groupMap[id] = item["view_group_key"]
+			groupMap[id] = item["group_key"]
 		}
 		task1Str := task1.ID.String()
 		task2Str := task2.ID.String()
 		if posMap[task1Str] != 5 {
-			t.Errorf("expected task1 view_position=5, got %v", posMap[task1Str])
+			t.Errorf("expected task1 position=5, got %v", posMap[task1Str])
 		}
 		if posMap[task2Str] != 15 {
-			t.Errorf("expected task2 view_position=15, got %v", posMap[task2Str])
+			t.Errorf("expected task2 position=15, got %v", posMap[task2Str])
 		}
 		if groupMap[task1Str] != "col-todo" {
-			t.Errorf("expected task1 view_group_key=col-todo, got %v", groupMap[task1Str])
+			t.Errorf("expected task1 group_key=col-todo, got %v", groupMap[task1Str])
 		}
 	})
 
 	t.Run("invalid_view_id_returns_400", func(t *testing.T) {
-		url := fmt.Sprintf("%s?view_id=not-a-uuid", base)
+		url := fmt.Sprintf("/api/v1/projects/%s/views/not-a-uuid/task-positions", projectID)
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, url, tok, nil))
 		if w.Code != http.StatusBadRequest {
 			t.Fatalf("expected 400, got %d (%s)", w.Code, w.Body.String())
@@ -1661,7 +1661,7 @@ func TestIntegrationSprints_GetSprintTasksWithViewID(t *testing.T) {
 	})
 
 	t.Run("unknown_view_id_returns_404", func(t *testing.T) {
-		url := fmt.Sprintf("%s?view_id=%s", base, uuid.New())
+		url := fmt.Sprintf("/api/v1/projects/%s/views/%s/task-positions", projectID, uuid.New())
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, url, tok, nil))
 		if w.Code != http.StatusNotFound {
 			t.Fatalf("expected 404, got %d (%s)", w.Code, w.Body.String())
@@ -1673,10 +1673,10 @@ func TestIntegrationSprints_GetSprintTasksWithViewID(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ListBacklogTasks with view_id — manual position enrichment
+// Backlog task listing + dedicated view positions endpoint.
 // ---------------------------------------------------------------------------
 
-func TestIntegrationTasks_BacklogWithViewID(t *testing.T) {
+func TestIntegrationTasks_BacklogWithViewPositions(t *testing.T) {
 	taskRepo := newFakeTaskRepoIT()
 	viewRepo := newFakeViewRepoIT()
 	projectID := uuid.New()
@@ -1741,7 +1741,7 @@ func TestIntegrationTasks_BacklogWithViewID(t *testing.T) {
 		t.Fatalf("seed position task2: %v", err)
 	}
 
-	base := fmt.Sprintf("/api/v1/projects/%s/product-backlog", projectID)
+	base := fmt.Sprintf("/api/v1/projects/%s/tasks?sprint_id=null", projectID)
 
 	t.Run("without_view_id_no_positions_returned", func(t *testing.T) {
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, base, tok, nil))
@@ -1763,8 +1763,8 @@ func TestIntegrationTasks_BacklogWithViewID(t *testing.T) {
 		}
 	})
 
-	t.Run("with_view_id_positions_are_present", func(t *testing.T) {
-		url := fmt.Sprintf("%s?view_id=%s", base, viewID)
+	t.Run("view_positions_are_available_from_the_dedicated_endpoint", func(t *testing.T) {
+		url := fmt.Sprintf("/api/v1/projects/%s/views/%s/task-positions", projectID, viewID)
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, url, tok, nil))
 		if w.Code != http.StatusOK {
 			t.Fatalf("expected 200, got %d (%s)", w.Code, w.Body.String())
@@ -1780,27 +1780,27 @@ func TestIntegrationTasks_BacklogWithViewID(t *testing.T) {
 		posMap := make(map[string]float64)
 		groupMap := make(map[string]any)
 		for _, item := range env.Data.Items {
-			id, _ := item["id"].(string)
-			if pos, ok := item["view_position"]; ok {
+			id, _ := item["task_id"].(string)
+			if pos, ok := item["position"]; ok {
 				posMap[id] = pos.(float64)
 			}
-			groupMap[id] = item["view_group_key"]
+			groupMap[id] = item["group_key"]
 		}
 		task1Str := task1.ID.String()
 		task2Str := task2.ID.String()
 		if posMap[task1Str] != 1 {
-			t.Errorf("expected task1 view_position=1, got %v", posMap[task1Str])
+			t.Errorf("expected task1 position=1, got %v", posMap[task1Str])
 		}
 		if posMap[task2Str] != 2 {
-			t.Errorf("expected task2 view_position=2, got %v", posMap[task2Str])
+			t.Errorf("expected task2 position=2, got %v", posMap[task2Str])
 		}
 		if groupMap[task1Str] != "backlog-col" {
-			t.Errorf("expected task1 view_group_key=backlog-col, got %v", groupMap[task1Str])
+			t.Errorf("expected task1 group_key=backlog-col, got %v", groupMap[task1Str])
 		}
 	})
 
 	t.Run("invalid_view_id_returns_400", func(t *testing.T) {
-		url := fmt.Sprintf("%s?view_id=not-a-uuid", base)
+		url := fmt.Sprintf("/api/v1/projects/%s/views/not-a-uuid/task-positions", projectID)
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, url, tok, nil))
 		if w.Code != http.StatusBadRequest {
 			t.Fatalf("expected 400, got %d (%s)", w.Code, w.Body.String())
@@ -1808,7 +1808,7 @@ func TestIntegrationTasks_BacklogWithViewID(t *testing.T) {
 	})
 
 	t.Run("unknown_view_id_returns_404", func(t *testing.T) {
-		url := fmt.Sprintf("%s?view_id=%s", base, uuid.New())
+		url := fmt.Sprintf("/api/v1/projects/%s/views/%s/task-positions", projectID, uuid.New())
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, url, tok, nil))
 		if w.Code != http.StatusNotFound {
 			t.Fatalf("expected 404, got %d (%s)", w.Code, w.Body.String())

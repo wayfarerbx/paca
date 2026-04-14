@@ -1,4 +1,4 @@
-@projects @integrations @task-detail
+@projects @interactions @task-detail
 Feature: Task detail
   The task detail view is the primary interface for viewing and editing a
   single task.  It opens as a modal dialog when a task card (Board view)
@@ -17,8 +17,8 @@ Feature: Task detail
     Background:
       Given the user already has a stored authenticated session
       And a project named "E2E_MODAL_PROJECT" exists
-      And the project has a "Product Backlog" integration with a "Board" view and a "Table" view
-      And the integration has a task named "E2E_MODAL_TASK"
+      And the project has a "Product Backlog" interaction with a "Board" view and a "Table" view
+      And the interaction has a task named "E2E_MODAL_TASK"
 
     Scenario: Clicking a task card in the Board view opens the task detail as a modal
       Given the user has navigated to the "Product Backlog" board view inside "E2E_MODAL_PROJECT"
@@ -44,8 +44,8 @@ Feature: Task detail
     Background:
       Given the user already has a stored authenticated session
       And a project named "E2E_PAGE_PROJECT" exists
-      And the project has a "Product Backlog" integration
-      And the integration has a task named "E2E_PAGE_TASK"
+      And the project has a "Product Backlog" interaction
+      And the interaction has a task named "E2E_PAGE_TASK"
 
     Scenario: Navigating directly to a task URL renders the full-page layout
       When the user navigates directly to the task detail URL for "E2E_PAGE_TASK"
@@ -53,11 +53,11 @@ Feature: Task detail
       And the page should not be overlaid on any view
       And the page should display the title "E2E_PAGE_TASK"
 
-    Scenario: The task detail page shows a breadcrumb with project and integration context
+    Scenario: The task detail page shows a breadcrumb with project and interaction context
       When the user navigates directly to the task detail URL for "E2E_PAGE_TASK"
       Then a breadcrumb should be visible in the page header
       And the breadcrumb should include the project name "E2E_PAGE_PROJECT"
-      And the breadcrumb should include the integration name
+      And the breadcrumb should include the interaction name
 
     Scenario: Navigating to a non-existent task URL shows a not-found state
       When the user navigates directly to a task detail URL for a task that does not exist
@@ -69,8 +69,8 @@ Feature: Task detail
     Background:
       Given the user already has a stored authenticated session
       And a project named "E2E_LAYOUT_PROJECT" exists
-      And the project has a "Product Backlog" integration with a "Board" view
-      And the integration has a task named "E2E_LAYOUT_TASK"
+      And the project has a "Product Backlog" interaction with a "Board" view
+      And the interaction has a task named "E2E_LAYOUT_TASK"
       And the user has navigated to the "Product Backlog" board view inside "E2E_LAYOUT_PROJECT"
 
     Scenario: The content pane and activity pane are displayed side by side
@@ -104,27 +104,27 @@ Feature: Task detail
     Background:
       Given the user already has a stored authenticated session
       And a project named "E2E_HEADER_PROJECT" exists
-      And the project has a "Product Backlog" integration with a "Board" view
+      And the project has a "Product Backlog" interaction with a "Board" view
       And the user has navigated to the "Product Backlog" board view inside "E2E_HEADER_PROJECT"
 
     Scenario: Task type badge is shown when a task has a type assigned
-      Given the integration has a task "E2E_TYPED_TASK" with the task type "Bug"
+      Given the interaction has a task "E2E_TYPED_TASK" with the task type "Bug"
       When the user opens the task detail for "E2E_TYPED_TASK"
       Then the task detail should display a type badge labelled "Bug"
       And the badge should be styled with the colour associated with the "Bug" type
 
     Scenario: Task type badge is hidden when a task has no type assigned
-      Given the integration has a task "E2E_UNTYPED_TASK" with no task type
+      Given the interaction has a task "E2E_UNTYPED_TASK" with no task type
       When the user opens the task detail for "E2E_UNTYPED_TASK"
       Then the task detail should not display a type badge
 
     Scenario: Status chip is displayed in the header when a task has a status
-      Given the integration has a task "E2E_STATUS_TASK" with status "In Progress"
+      Given the interaction has a task "E2E_STATUS_TASK" with status "In Progress"
       When the user opens the task detail for "E2E_STATUS_TASK"
       Then the task detail header should display a status chip labelled "In Progress"
 
     Scenario: Task title is always present and prominently displayed
-      Given the integration has a task "E2E_TITLE_TASK"
+      Given the interaction has a task "E2E_TITLE_TASK"
       When the user opens the task detail for "E2E_TITLE_TASK"
       Then the task detail should display the title "E2E_TITLE_TASK"
 
@@ -134,8 +134,8 @@ Feature: Task detail
     Background:
       Given the user already has a stored authenticated session
       And a project named "E2E_PROPS_PROJECT" exists
-      And the project has a "Product Backlog" integration with a "Board" view
-      And the integration has a task named "E2E_PROPS_TASK"
+      And the project has a "Product Backlog" interaction with a "Board" view
+      And the interaction has a task named "E2E_PROPS_TASK"
       And the user has navigated to the "Product Backlog" board view inside "E2E_PROPS_PROJECT"
 
     Scenario: The properties section is rendered as a two-column label-value grid
@@ -152,7 +152,7 @@ Feature: Task detail
       And the "Dates" field should display a "Start" date input and a "Due" date input
 
     Scenario: Start and due date values are shown when set
-      Given the integration has a task "E2E_DATED_TASK" with start date "2026-05-01" and due date "2026-05-31"
+      Given the interaction has a task "E2E_DATED_TASK" with start date "2026-05-01" and due date "2026-05-31"
       When the user opens the task detail for "E2E_DATED_TASK"
       Then the "Dates" field should display "May 1, 2026" as the start date
       And the "Dates" field should display "May 31, 2026" as the due date
@@ -178,68 +178,68 @@ Feature: Task detail
       Then the properties section should contain a "Tags" field
 
     Scenario: Importance level "None" (0) is displayed correctly
-      Given the integration has a task "E2E_IMPORTANCE_NONE_TASK" with importance "None"
+      Given the interaction has a task "E2E_IMPORTANCE_NONE_TASK" with importance "None"
       When the user opens the task detail for "E2E_IMPORTANCE_NONE_TASK"
       Then the "Importance" field should display the label "None"
 
     Scenario: Importance level "Low" (1) is displayed correctly
-      Given the integration has a task "E2E_IMPORTANCE_LOW_TASK" with importance "Low"
+      Given the interaction has a task "E2E_IMPORTANCE_LOW_TASK" with importance "Low"
       When the user opens the task detail for "E2E_IMPORTANCE_LOW_TASK"
       Then the "Importance" field should display the label "Low"
 
     Scenario: Importance level "Medium" (2) is displayed correctly
-      Given the integration has a task "E2E_IMPORTANCE_MEDIUM_TASK" with importance "Medium"
+      Given the interaction has a task "E2E_IMPORTANCE_MEDIUM_TASK" with importance "Medium"
       When the user opens the task detail for "E2E_IMPORTANCE_MEDIUM_TASK"
       Then the "Importance" field should display the label "Medium"
 
     Scenario: Importance level "High" (3) is displayed correctly
-      Given the integration has a task "E2E_IMPORTANCE_HIGH_TASK" with importance "High"
+      Given the interaction has a task "E2E_IMPORTANCE_HIGH_TASK" with importance "High"
       When the user opens the task detail for "E2E_IMPORTANCE_HIGH_TASK"
       Then the "Importance" field should display the label "High"
 
     Scenario: Importance level "Critical" (4) is displayed correctly
-      Given the integration has a task "E2E_IMPORTANCE_CRITICAL_TASK" with importance "Critical"
+      Given the interaction has a task "E2E_IMPORTANCE_CRITICAL_TASK" with importance "Critical"
       When the user opens the task detail for "E2E_IMPORTANCE_CRITICAL_TASK"
       Then the "Importance" field should display the label "Critical"
 
     Scenario: Assignees field shows the member name when an assignee is set
-      Given the integration has a task "E2E_ASSIGNED_TASK" assigned to a project member
+      Given the interaction has a task "E2E_ASSIGNED_TASK" assigned to a project member
       When the user opens the task detail for "E2E_ASSIGNED_TASK"
       Then the "Assignees" field should show the member's name or avatar
 
     Scenario: Assignees field shows "Empty" when no assignee is set
-      Given the integration has a task "E2E_UNASSIGNED_TASK" with no assignee
+      Given the interaction has a task "E2E_UNASSIGNED_TASK" with no assignee
       When the user opens the task detail for "E2E_UNASSIGNED_TASK"
       Then the "Assignees" field should show an "Empty" placeholder
 
     Scenario: Tags field displays tag values when tags are set
-      Given the integration has a task "E2E_TAGGED_TASK" with tags "design" and "frontend"
+      Given the interaction has a task "E2E_TAGGED_TASK" with tags "design" and "frontend"
       When the user opens the task detail for "E2E_TAGGED_TASK"
       Then the "Tags" field should display "design" and "frontend"
 
     Scenario: Tags field shows "Empty" when no tags are set
-      Given the integration has a task "E2E_UNTAGGED_TASK" with no tags
+      Given the interaction has a task "E2E_UNTAGGED_TASK" with no tags
       When the user opens the task detail for "E2E_UNTAGGED_TASK"
       Then the "Tags" field should show an "Empty" placeholder
 
     Scenario: Reporter field is shown when a reporter is set on the task
-      Given the integration has a task "E2E_REPORTER_TASK" whose reporter is a project member
+      Given the interaction has a task "E2E_REPORTER_TASK" whose reporter is a project member
       When the user opens the task detail for "E2E_REPORTER_TASK"
       Then the properties section should show a "Reporter" field with the member's name
 
     Scenario: Sprint field is shown when the task belongs to a sprint
-      Given the integration has a task "E2E_SPRINT_TASK" in an active sprint "E2E_DETAIL_SPRINT"
+      Given the interaction has a task "E2E_SPRINT_TASK" in an active sprint "E2E_DETAIL_SPRINT"
       When the user opens the task detail for "E2E_SPRINT_TASK"
       Then the properties section should show a "Sprint" field with the sprint name "E2E_DETAIL_SPRINT"
 
     Scenario: Parent task field is shown when a task has a parent
-      Given the integration has a task "E2E_PARENT_TASK"
-      And the integration has a sub-task "E2E_CHILD_TASK" whose parent is "E2E_PARENT_TASK"
+      Given the interaction has a task "E2E_PARENT_TASK"
+      And the interaction has a sub-task "E2E_CHILD_TASK" whose parent is "E2E_PARENT_TASK"
       When the user opens the task detail for "E2E_CHILD_TASK"
       Then the properties section should show a "Parent task" field with the title "E2E_PARENT_TASK"
 
     Scenario: Reporter, Sprint, and Parent task fields are hidden when their values are not set
-      Given the integration has a task "E2E_MINIMAL_TASK" with no reporter, no sprint, and no parent
+      Given the interaction has a task "E2E_MINIMAL_TASK" with no reporter, no sprint, and no parent
       When the user opens the task detail for "E2E_MINIMAL_TASK"
       Then the properties section should not show a "Reporter" field
       And the properties section should not show a "Sprint" field
@@ -251,40 +251,40 @@ Feature: Task detail
     Background:
       Given the user already has a stored authenticated session
       And a project named "E2E_INLINE_CUSTOM_PROJECT" exists
-      And the project has a "Product Backlog" integration with a "Board" view
+      And the project has a "Product Backlog" interaction with a "Board" view
       And the user has navigated to the "Product Backlog" board view inside "E2E_INLINE_CUSTOM_PROJECT"
 
     Scenario: A custom field with a value appears inside the same properties grid as built-in fields
       Given the project has a custom field with display name "E2E Release Tag" and field key "release_tag" of type "Text"
-      And the integration has a task "E2E_CUSTOM_INLINE_TASK" with "release_tag" set to "v2.1.0" in its custom_fields
+      And the interaction has a task "E2E_CUSTOM_INLINE_TASK" with "release_tag" set to "v2.1.0" in its custom_fields
       When the user opens the task detail for "E2E_CUSTOM_INLINE_TASK"
       Then the properties section should contain an "E2E Release Tag" field with value "v2.1.0"
       And the "E2E Release Tag" field should appear within the same grid as the "Status" and "Assignees" fields
 
     Scenario: A custom field with no value shows an "Empty" placeholder in the shared grid
       Given the project has a custom field with display name "E2E Release Tag" and field key "release_tag" of type "Text"
-      And the integration has a task "E2E_CUSTOM_EMPTY_TASK" whose custom_fields does not contain "release_tag"
+      And the interaction has a task "E2E_CUSTOM_EMPTY_TASK" whose custom_fields does not contain "release_tag"
       When the user opens the task detail for "E2E_CUSTOM_EMPTY_TASK"
       Then the properties section should contain an "E2E Release Tag" field showing an "Empty" placeholder
 
     Scenario: Multiple custom fields each appear as separate rows in the shared grid
       Given the project has a custom field with display name "E2E Severity" and field key "severity" of type "Select"
       And the project has a custom field with display name "E2E Story Points" and field key "story_points" of type "Number"
-      And the integration has a task "E2E_MULTI_CUSTOM_TASK" with "severity" set to "High" and "story_points" set to "5"
+      And the interaction has a task "E2E_MULTI_CUSTOM_TASK" with "severity" set to "High" and "story_points" set to "5"
       When the user opens the task detail for "E2E_MULTI_CUSTOM_TASK"
       Then the properties section should contain an "E2E Severity" field with value "High"
       And the properties section should contain an "E2E Story Points" field with value "5"
 
     Scenario: There is no separate "Custom fields" heading — all fields share one grid
       Given the project has a custom field with display name "E2E Extra Info" and field key "extra_info" of type "Text"
-      And the integration has a task "E2E_NO_SEPARATE_SECTION_TASK" with "extra_info" set to "some value"
+      And the interaction has a task "E2E_NO_SEPARATE_SECTION_TASK" with "extra_info" set to "some value"
       When the user opens the task detail for "E2E_NO_SEPARATE_SECTION_TASK"
       Then the task detail should not contain a heading labelled "Custom fields"
       And the "E2E Extra Info" field should be visible within the properties section
 
     Scenario: Deleting a custom field definition removes it from the properties grid
       Given the project has a custom field with display name "E2E Removed Field" and field key "removed_field" of type "Text"
-      And the integration has a task "E2E_REMOVED_FIELD_TASK" with "removed_field" set to "old value"
+      And the interaction has a task "E2E_REMOVED_FIELD_TASK" with "removed_field" set to "old value"
       When an admin deletes the "E2E Removed Field" custom field from the project settings
       And the user opens the task detail for "E2E_REMOVED_FIELD_TASK"
       Then the properties section should not contain an "E2E Removed Field" field
@@ -295,8 +295,8 @@ Feature: Task detail
     Background:
       Given the user already has a stored authenticated session
       And a project named "E2E_ADD_FIELDS_PROJECT" exists
-      And the project has a "Product Backlog" integration with a "Board" view
-      And the integration has a task named "E2E_ADD_FIELDS_TASK"
+      And the project has a "Product Backlog" interaction with a "Board" view
+      And the interaction has a task named "E2E_ADD_FIELDS_TASK"
       And the user has navigated to the "Product Backlog" board view inside "E2E_ADD_FIELDS_PROJECT"
 
     Scenario: An "Add fields" control is visible below the properties grid
@@ -314,21 +314,21 @@ Feature: Task detail
     Background:
       Given the user already has a stored authenticated session
       And a project named "E2E_DESC_PROJECT" exists
-      And the project has a "Product Backlog" integration with a "Board" view
+      And the project has a "Product Backlog" interaction with a "Board" view
       And the user has navigated to the "Product Backlog" board view inside "E2E_DESC_PROJECT"
 
     Scenario: Description content is displayed when a task has a description
-      Given the integration has a task "E2E_WITH_DESC_TASK" with description "This is the task description."
+      Given the interaction has a task "E2E_WITH_DESC_TASK" with description "This is the task description."
       When the user opens the task detail for "E2E_WITH_DESC_TASK"
       Then the description area should display "This is the task description."
 
     Scenario: An "Add description" prompt is shown when no description is set
-      Given the integration has a task "E2E_NO_DESC_TASK" with no description
+      Given the interaction has a task "E2E_NO_DESC_TASK" with no description
       When the user opens the task detail for "E2E_NO_DESC_TASK"
       Then the description area should show an "Add description" prompt
 
     Scenario: A "Write with AI" action is shown alongside the description area
-      Given the integration has a task "E2E_AI_DESC_TASK"
+      Given the interaction has a task "E2E_AI_DESC_TASK"
       When the user opens the task detail for "E2E_AI_DESC_TASK"
       Then the description area should show a "Write with AI" action
 
@@ -338,17 +338,17 @@ Feature: Task detail
     Background:
       Given the user already has a stored authenticated session
       And a project named "E2E_SUBTASK_PROJECT" exists
-      And the project has a "Product Backlog" integration with a "Board" view
+      And the project has a "Product Backlog" interaction with a "Board" view
       And the user has navigated to the "Product Backlog" board view inside "E2E_SUBTASK_PROJECT"
 
     Scenario: Subtasks section is always visible with an "Add Task" button
-      Given the integration has a task "E2E_PARENT_TASK"
+      Given the interaction has a task "E2E_PARENT_TASK"
       When the user opens the task detail for "E2E_PARENT_TASK"
       Then the task detail should display a subtasks section labelled "Add subtask"
       And the section should contain an "Add Task" button
 
     Scenario: Existing subtasks are listed in the subtasks section
-      Given the integration has a task "E2E_TASK_WITH_SUBTASKS"
+      Given the interaction has a task "E2E_TASK_WITH_SUBTASKS"
       And the task has a subtask named "E2E_SUBTASK_ONE"
       And the task has a subtask named "E2E_SUBTASK_TWO"
       When the user opens the task detail for "E2E_TASK_WITH_SUBTASKS"
@@ -356,7 +356,7 @@ Feature: Task detail
       And the subtasks section should display "E2E_SUBTASK_TWO"
 
     Scenario: Subtasks section shows only the "Add Task" button when no subtasks exist
-      Given the integration has a task "E2E_NO_SUBTASK_TASK" with no subtasks
+      Given the interaction has a task "E2E_NO_SUBTASK_TASK" with no subtasks
       When the user opens the task detail for "E2E_NO_SUBTASK_TASK"
       Then the subtasks section should show only the "Add Task" button and no task rows
 
@@ -366,11 +366,11 @@ Feature: Task detail
     Background:
       Given the user already has a stored authenticated session
       And a project named "E2E_CHECKLIST_PROJECT" exists
-      And the project has a "Product Backlog" integration with a "Board" view
+      And the project has a "Product Backlog" interaction with a "Board" view
       And the user has navigated to the "Product Backlog" board view inside "E2E_CHECKLIST_PROJECT"
 
     Scenario: Checklists section is always visible with a "Create checklist" control
-      Given the integration has a task "E2E_CHECKLIST_BASE_TASK"
+      Given the interaction has a task "E2E_CHECKLIST_BASE_TASK"
       When the user opens the task detail for "E2E_CHECKLIST_BASE_TASK"
       Then the task detail should display a "Checklists" section
       And the section should contain a "Create checklist" button
@@ -381,8 +381,8 @@ Feature: Task detail
     Background:
       Given the user already has a stored authenticated session
       And a project named "E2E_ATTACH_PROJECT" exists
-      And the project has a "Product Backlog" integration with a "Board" view
-      And the integration has a task named "E2E_ATTACH_TASK"
+      And the project has a "Product Backlog" interaction with a "Board" view
+      And the interaction has a task named "E2E_ATTACH_TASK"
       And the user has navigated to the "Product Backlog" board view inside "E2E_ATTACH_PROJECT"
 
     Scenario: Attachments section is always visible in the content pane
@@ -427,8 +427,8 @@ Feature: Task detail
     Background:
       Given the user already has a stored authenticated session
       And a project named "E2E_ACTIVITY_PROJECT" exists
-      And the project has a "Product Backlog" integration with a "Board" view
-      And the integration has a task named "E2E_ACTIVITY_TASK"
+      And the project has a "Product Backlog" interaction with a "Board" view
+      And the interaction has a task named "E2E_ACTIVITY_TASK"
       And the user has navigated to the "Product Backlog" board view inside "E2E_ACTIVITY_PROJECT"
 
     Scenario: Activity log shows a "created this task" event for a new task
@@ -460,8 +460,8 @@ Feature: Task detail
     Background:
       Given the user already has a stored authenticated session
       And a project named "E2E_CLOSE_PROJECT" exists
-      And the project has a "Product Backlog" integration with a "Board" view
-      And the integration has a task named "E2E_CLOSE_TASK"
+      And the project has a "Product Backlog" interaction with a "Board" view
+      And the interaction has a task named "E2E_CLOSE_TASK"
       And the user has navigated to the "Product Backlog" board view inside "E2E_CLOSE_PROJECT"
       And the user has opened the task detail modal for "E2E_CLOSE_TASK"
 

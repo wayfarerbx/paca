@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
 
-import { TaskDetailModal } from "@/components/projects/integrations/task-detail-modal";
-import { taskQueryOptions } from "@/lib/integration-api";
+import { TaskDetailModal } from "@/components/projects/interactions/task-detail-modal";
+import { taskQueryOptions } from "@/lib/interaction-api";
 import {
 	projectMembersQueryOptions,
 	projectQueryOptions,

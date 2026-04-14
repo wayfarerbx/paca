@@ -20,14 +20,58 @@ func NewViewHandler(svc sprintdom.ViewService) *ViewHandler {
 	return &ViewHandler{svc: svc}
 }
 
-// ListViews handles GET /sprints/:sprintId/views.
+// viewContextFromQuery reads the ?context query param (sprint | backlog | timeline).
+// Returns an error for unknown values. Defaults to "sprint" when omitted.
+func viewContextFromQuery(c *gin.Context) (sprintdom.ViewContext, error) {
+	raw := c.DefaultQuery("context", string(sprintdom.ViewContextSprint))
+	vc := sprintdom.ViewContext(raw)
+	switch vc {
+	case sprintdom.ViewContextSprint, sprintdom.ViewContextBacklog, sprintdom.ViewContextTimeline:
+		return vc, nil
+	default:
+		return "", apierr.New(apierr.CodeBadRequest, "invalid context: must be sprint, backlog, or timeline")
+	}
+}
+
+// parseQueryUUID reads a named UUID from the request query string.
+func parseQueryUUID(c *gin.Context, param string) (uuid.UUID, error) {
+	raw := c.Query(param)
+	if raw == "" {
+		return uuid.Nil, apierr.New(apierr.CodeBadRequest, param+" is required")
+	}
+	id, err := uuid.Parse(raw)
+	if err != nil {
+		return uuid.Nil, apierr.New(apierr.CodeBadRequest, "invalid "+param)
+	}
+	return id, nil
+}
+
+// ListViews handles GET /projects/:projectId/views?context=sprint|backlog|timeline.
+// Sprint context additionally requires ?sprint_id=<uuid>.
 func (h *ViewHandler) ListViews(c *gin.Context) {
-	sprintID, err := parseSprintID(c)
+	viewCtx, err := viewContextFromQuery(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
-	views, err := h.svc.ListViews(c.Request.Context(), sprintID)
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
+	var views []*sprintdom.SprintView
+	if viewCtx == sprintdom.ViewContextSprint {
+		var sprintID uuid.UUID
+		sprintID, err = parseQueryUUID(c, "sprint_id")
+		if err != nil {
+			presenter.Error(c, err)
+			return
+		}
+		views, err = h.svc.ListViews(c.Request.Context(), sprintID)
+	} else {
+		views, err = h.svc.ListProjectViews(c.Request.Context(), projectID, viewCtx)
+	}
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -39,7 +83,7 @@ func (h *ViewHandler) ListViews(c *gin.Context) {
 	presenter.OK(c, gin.H{"items": resp})
 }
 
-// GetView handles GET /sprints/:sprintId/views/:viewId.
+// GetView handles GET /projects/:projectId/views/:viewId.
 func (h *ViewHandler) GetView(c *gin.Context) {
 	viewID, err := parseViewID(c)
 	if err != nil {
@@ -54,9 +98,10 @@ func (h *ViewHandler) GetView(c *gin.Context) {
 	presenter.OK(c, dto.ViewFromEntity(v))
 }
 
-// CreateView handles POST /sprints/:sprintId/views.
+// CreateView handles POST /projects/:projectId/views?context=sprint|backlog|timeline.
+// Sprint context additionally requires ?sprint_id=<uuid>.
 func (h *ViewHandler) CreateView(c *gin.Context) {
-	sprintID, err := parseSprintID(c)
+	viewCtx, err := viewContextFromQuery(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -72,47 +117,19 @@ func (h *ViewHandler) CreateView(c *gin.Context) {
 		return
 	}
 
-	v, err := h.svc.CreateView(c.Request.Context(), req.ToCreateInput(sprintID, projectID))
-	if err != nil {
-		presenter.Error(c, err)
-		return
-	}
-	presenter.Created(c, dto.ViewFromEntity(v))
-}
-
-// ListBacklogViews handles GET /projects/:projectId/product-backlog/views.
-func (h *ViewHandler) ListBacklogViews(c *gin.Context) {
-	projectID, err := parseProjectID(c)
-	if err != nil {
-		presenter.Error(c, err)
-		return
-	}
-	views, err := h.svc.ListBacklogViews(c.Request.Context(), projectID)
-	if err != nil {
-		presenter.Error(c, err)
-		return
-	}
-	resp := make([]dto.ViewResponse, 0, len(views))
-	for _, v := range views {
-		resp = append(resp, dto.ViewFromEntity(v))
-	}
-	presenter.OK(c, gin.H{"items": resp})
-}
-
-// CreateBacklogView handles POST /projects/:projectId/product-backlog/views.
-func (h *ViewHandler) CreateBacklogView(c *gin.Context) {
-	projectID, err := parseProjectID(c)
-	if err != nil {
-		presenter.Error(c, err)
-		return
+	var input sprintdom.CreateViewInput
+	if viewCtx == sprintdom.ViewContextSprint {
+		sprintID, err := parseQueryUUID(c, "sprint_id")
+		if err != nil {
+			presenter.Error(c, err)
+			return
+		}
+		input = req.ToCreateInput(sprintID, projectID)
+	} else {
+		input = req.ToCreateProjectViewInput(projectID, viewCtx)
 	}
 
-	var req dto.CreateViewRequest
-	if !middleware.BindJSON(c, &req) {
-		return
-	}
-
-	v, err := h.svc.CreateView(c.Request.Context(), req.ToCreateBacklogInput(projectID))
+	v, err := h.svc.CreateView(c.Request.Context(), input)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -252,30 +269,14 @@ func parseTaskIDParam(c *gin.Context, param string) (uuid.UUID, error) {
 	return id, nil
 }
 
-// ReorderViews handles PUT /sprints/:sprintId/views/positions.
-// The body must contain all view IDs for the sprint in the desired order.
+// ReorderViews handles PUT /projects/:projectId/views/positions?context=sprint|backlog|timeline.
+// Sprint context additionally requires ?sprint_id=<uuid>.
 func (h *ViewHandler) ReorderViews(c *gin.Context) {
-	sprintID, err := parseSprintID(c)
+	viewCtx, err := viewContextFromQuery(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
-
-	var req dto.ReorderViewsRequest
-	if !middleware.BindJSON(c, &req) {
-		return
-	}
-
-	if err := h.svc.ReorderViews(c.Request.Context(), sprintID, req.ViewIDs); err != nil {
-		presenter.Error(c, err)
-		return
-	}
-	presenter.NoContent(c)
-}
-
-// ReorderBacklogViews handles PUT /product-backlog/views/positions.
-// The body must contain all backlog view IDs for the project in the desired order.
-func (h *ViewHandler) ReorderBacklogViews(c *gin.Context) {
 	projectID, err := parseProjectID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -287,7 +288,18 @@ func (h *ViewHandler) ReorderBacklogViews(c *gin.Context) {
 		return
 	}
 
-	if err := h.svc.ReorderBacklogViews(c.Request.Context(), projectID, req.ViewIDs); err != nil {
+	if viewCtx == sprintdom.ViewContextSprint {
+		var sprintID uuid.UUID
+		sprintID, err = parseQueryUUID(c, "sprint_id")
+		if err != nil {
+			presenter.Error(c, err)
+			return
+		}
+		err = h.svc.ReorderViews(c.Request.Context(), sprintID, req.ViewIDs)
+	} else {
+		err = h.svc.ReorderProjectViews(c.Request.Context(), projectID, viewCtx, req.ViewIDs)
+	}
+	if err != nil {
 		presenter.Error(c, err)
 		return
 	}

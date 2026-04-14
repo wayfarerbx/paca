@@ -12,5 +12,5 @@ var (
 	ErrViewNameInvalid    = errors.New("sprint view: name is empty or invalid")
 	ErrViewTypeInvalid    = errors.New("sprint view: invalid view type")
 	ErrViewIsLastView     = errors.New("sprint view: cannot delete the last remaining view")
-	ErrViewReorderInvalid = errors.New("sprint view: provided view IDs do not match integration views")
+	ErrViewReorderInvalid = errors.New("sprint view: provided view IDs do not match interaction views")
 )

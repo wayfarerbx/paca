@@ -25,9 +25,9 @@ func (s *ViewService) ListViews(ctx context.Context, sprintID uuid.UUID) ([]*spr
 	return s.repo.ListViews(ctx, sprintID)
 }
 
-// ListBacklogViews returns all product-backlog views for a project.
-func (s *ViewService) ListBacklogViews(ctx context.Context, projectID uuid.UUID) ([]*sprintdom.SprintView, error) {
-	return s.repo.ListBacklogViews(ctx, projectID)
+// ListProjectViews returns all views for a project filtered by viewCtx.
+func (s *ViewService) ListProjectViews(ctx context.Context, projectID uuid.UUID, viewCtx sprintdom.ViewContext) ([]*sprintdom.SprintView, error) {
+	return s.repo.ListProjectViews(ctx, projectID, viewCtx)
 }
 
 // GetView returns the view with the given ID.
@@ -52,15 +52,16 @@ func (s *ViewService) CreateView(ctx context.Context, in sprintdom.CreateViewInp
 
 	now := time.Now()
 	v := &sprintdom.SprintView{
-		ID:        uuid.New(),
-		SprintID:  in.SprintID,
-		ProjectID: in.ProjectID,
-		Name:      name,
-		ViewType:  vt,
-		Config:    in.Config,
-		Position:  in.Position,
-		CreatedAt: now,
-		UpdatedAt: now,
+		ID:          uuid.New(),
+		SprintID:    in.SprintID,
+		ProjectID:   in.ProjectID,
+		Name:        name,
+		ViewType:    vt,
+		Config:      in.Config,
+		Position:    in.Position,
+		ViewContext: in.ViewContext,
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	}
 
 	if err := s.repo.CreateView(ctx, v); err != nil {
@@ -115,7 +116,7 @@ func (s *ViewService) DeleteView(ctx context.Context, id uuid.UUID) error {
 	if v.SprintID != nil {
 		count, err = s.repo.CountViews(ctx, *v.SprintID)
 	} else {
-		count, err = s.repo.CountBacklogViews(ctx, v.ProjectID)
+		count, err = s.repo.CountProjectViews(ctx, v.ProjectID, v.ViewContext)
 	}
 	if err != nil {
 		return err
@@ -179,10 +180,10 @@ func (s *ViewService) ReorderViews(ctx context.Context, sprintID uuid.UUID, view
 	return s.validateAndReorder(ctx, existing, viewIDs)
 }
 
-// ReorderBacklogViews reorders all product-backlog views for a project.
-// viewIDs must contain exactly the IDs of all backlog views in the desired order.
-func (s *ViewService) ReorderBacklogViews(ctx context.Context, projectID uuid.UUID, viewIDs []uuid.UUID) error {
-	existing, err := s.repo.ListBacklogViews(ctx, projectID)
+// ReorderProjectViews reorders all views for a project+context.
+// viewIDs must contain exactly the IDs of all views for that project+context in the desired order.
+func (s *ViewService) ReorderProjectViews(ctx context.Context, projectID uuid.UUID, viewCtx sprintdom.ViewContext, viewIDs []uuid.UUID) error {
+	existing, err := s.repo.ListProjectViews(ctx, projectID, viewCtx)
 	if err != nil {
 		return err
 	}

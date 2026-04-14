@@ -7,6 +7,7 @@ import {
 	ChevronRight,
 	FileText,
 	FolderKanban,
+	GanttChart,
 	Home,
 	KanbanSquare,
 	LayoutDashboard,
@@ -50,7 +51,7 @@ import { useThemeMode } from "@/hooks/use-theme-mode";
 import {
 	sprintsQueryOptions,
 	updateTask,
-} from "@/lib/integration-api";
+} from "@/lib/interaction-api";
 import { projectQueryOptions, projectsQueryOptions } from "@/lib/project-api";
 import { cn } from "@/lib/utils";
 
@@ -193,7 +194,7 @@ function NavItem({
 // ── Project Nav ───────────────────────────────────────────────────────────────
 const PROJECT_NAV_ITEMS = [
 	{ segment: "", icon: LayoutDashboard, label: "Dashboard" },
-	{ segment: "integrations", icon: BookOpen, label: "Integrations" },
+	{ segment: "interactions", icon: BookOpen, label: "Interactions" },
 	{ segment: "docs", icon: FileText, label: "Docs" },
 	{ segment: "team", icon: Users, label: "Team" },
 	{ segment: "settings", icon: Settings, label: "Settings" },
@@ -261,7 +262,7 @@ function ProjectNavItems({ projectId }: { projectId: string }) {
 }
 
 // ── Project Integrations Section ───────────────────────────────────────────────
-function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
+function ProjectInteractionsSection({ projectId }: { projectId: string }) {
 	const location = useRouterState({ select: (s) => s.location.pathname });
 	const { hasPermission } = usePermissions();
 	const qc = useQueryClient();
@@ -269,7 +270,7 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 		try {
 			return (
 				localStorage.getItem(
-					`paca:sidebar-integrations-collapsed:${projectId}`,
+					`paca:sidebar-interactions-collapsed:${projectId}`,
 				) === "true"
 			);
 		} catch {
@@ -280,14 +281,14 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 	const canViewSprints = hasPermission("sprints.read");
 	const canEditTasks = hasPermission("tasks.write");
 
-	const [dragOverIntegrationId, setDragOverIntegrationId] = useState<
+	const [dragOverInteractionId, setDragOverInteractionId] = useState<
 		string | null
 	>(null);
 
 	// Clear the drop-target highlight whenever any drag ends (covers drag-cancel
 	// and mouse-release outside a valid target, where dragleave may not fire).
 	useEffect(() => {
-		const handleDragEnd = () => setDragOverIntegrationId(null);
+		const handleDragEnd = () => setDragOverInteractionId(null);
 		document.addEventListener("dragend", handleDragEnd);
 		return () => document.removeEventListener("dragend", handleDragEnd);
 	}, []);
@@ -311,34 +312,34 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 		},
 	});
 
-	const handleIntegrationDragOver = (
+	const handleInteractionDragOver = (
 		e: React.DragEvent,
-		integrationId: string,
+		interactionId: string,
 	) => {
 		if (!canEditTasks) return;
 		if (!e.dataTransfer.types.includes("application/x-paca-task-id")) return;
 		e.preventDefault();
 		e.dataTransfer.dropEffect = "move";
-		setDragOverIntegrationId(integrationId);
+		setDragOverInteractionId(interactionId);
 	};
 
-	const handleIntegrationDragLeave = (e: React.DragEvent) => {
+	const handleInteractionDragLeave = (e: React.DragEvent) => {
 		// Clear whenever leaving the item. If the cursor moves to a child element
 		// within the same item, dragover immediately re-fires on the parent and
 		// restores the highlight, so the brief gap is imperceptible.
 		if (
 			!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)
 		) {
-			setDragOverIntegrationId(null);
+			setDragOverInteractionId(null);
 		}
 	};
 
-	const handleIntegrationDrop = (
+	const handleInteractionDrop = (
 		e: React.DragEvent,
 		sprintId: string | null,
 	) => {
 		e.preventDefault();
-		setDragOverIntegrationId(null);
+		setDragOverInteractionId(null);
 		if (!canEditTasks) return;
 		const taskId = e.dataTransfer.getData("text/plain");
 		if (!taskId) return;
@@ -359,15 +360,18 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 		.filter((s) => s.status === "active")
 		.sort((a, b) => a.name.localeCompare(b.name));
 
-	const backlogHref = `/projects/${projectId}/integrations/backlog`;
+	const backlogHref = `/projects/${projectId}/interactions/backlog`;
 	const isBacklogActive = location.startsWith(backlogHref);
+
+	const timelineHref = `/projects/${projectId}/interactions/timeline`;
+	const isTimelineActive = location.startsWith(timelineHref);
 
 	const toggle = () => {
 		setCollapsed((prev) => {
 			const next = !prev;
 			try {
 				localStorage.setItem(
-					`paca:sidebar-integrations-collapsed:${projectId}`,
+					`paca:sidebar-interactions-collapsed:${projectId}`,
 					String(next),
 				);
 			} catch {
@@ -398,9 +402,9 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 						<SidebarMenu>
 							{/* Product Backlog — always shown */}
 							<SidebarMenuItem
-								onDragOver={(e) => handleIntegrationDragOver(e, "backlog")}
-								onDragLeave={handleIntegrationDragLeave}
-								onDrop={(e) => handleIntegrationDrop(e, null)}
+								onDragOver={(e) => handleInteractionDragOver(e, "backlog")}
+								onDragLeave={handleInteractionDragLeave}
+								onDrop={(e) => handleInteractionDrop(e, null)}
 							>
 								<SidebarMenuButton
 									isActive={isBacklogActive}
@@ -411,7 +415,7 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 										isBacklogActive
 											? "bg-primary/10 text-primary font-medium before:absolute before:left-0 before:inset-y-2 before:w-0.75 before:rounded-full before:bg-primary"
 											: "hover:bg-sidebar-accent/60",
-										dragOverIntegrationId === "backlog" &&
+										dragOverInteractionId === "backlog" &&
 											"ring-2 ring-primary/40 bg-primary/5 text-primary",
 									)}
 								>
@@ -419,17 +423,33 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 									<span>Product Backlog</span>
 								</SidebarMenuButton>
 							</SidebarMenuItem>
-
+						{/* Timeline */}
+						<SidebarMenuItem>
+							<SidebarMenuButton
+								isActive={isTimelineActive}
+								tooltip="Timeline"
+								render={<Link to={timelineHref} />}
+								className={cn(
+									"relative transition-all duration-150",
+									isTimelineActive
+										? "bg-primary/10 text-primary font-medium before:absolute before:left-0 before:inset-y-2 before:w-0.75 before:rounded-full before:bg-primary"
+										: "hover:bg-sidebar-accent/60",
+								)}
+							>
+								<GanttChart className="size-4" />
+								<span>Timeline</span>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
 							{/* Open sprints */}
 							{openSprints.map((sprint) => {
-								const sprintHref = `/projects/${projectId}/integrations/sprints/${sprint.id}`;
+								const sprintHref = `/projects/${projectId}/interactions/sprints/${sprint.id}`;
 								const isActive = location.startsWith(sprintHref);
 								return (
 									<SidebarMenuItem
 										key={sprint.id}
-										onDragOver={(e) => handleIntegrationDragOver(e, sprint.id)}
-										onDragLeave={handleIntegrationDragLeave}
-										onDrop={(e) => handleIntegrationDrop(e, sprint.id)}
+										onDragOver={(e) => handleInteractionDragOver(e, sprint.id)}
+										onDragLeave={handleInteractionDragLeave}
+										onDrop={(e) => handleInteractionDrop(e, sprint.id)}
 									>
 										<SidebarMenuButton
 											isActive={isActive}
@@ -440,7 +460,7 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 												isActive
 													? "bg-primary/10 text-primary font-medium before:absolute before:left-0 before:inset-y-2 before:w-0.75 before:rounded-full before:bg-primary"
 													: "hover:bg-sidebar-accent/60",
-												dragOverIntegrationId === sprint.id &&
+												dragOverInteractionId === sprint.id &&
 													"ring-2 ring-primary/40 bg-primary/5 text-primary",
 											)}
 										>
@@ -571,7 +591,7 @@ export function AppSidebar() {
 						<SidebarSeparator />
 						<ProjectNavItems projectId={projectId} />
 						<SidebarSeparator />
-						<ProjectIntegrationsSection projectId={projectId} />
+						<ProjectInteractionsSection projectId={projectId} />
 					</>
 				) : (
 					<>

@@ -102,7 +102,7 @@ const (
 	CodeViewTypeInvalid Code = "VIEW_TYPE_INVALID"
 	// CodeViewIsLastView indicates the view cannot be deleted because it is the last remaining view.
 	CodeViewIsLastView Code = "VIEW_IS_LAST_VIEW"
-	// CodeViewReorderInvalid indicates the provided view IDs do not match the integration's views.
+	// CodeViewReorderInvalid indicates the provided view IDs do not match the interaction's views.
 	CodeViewReorderInvalid Code = "VIEW_REORDER_INVALID"
 
 	// CodeCustomFieldNotFound indicates the requested custom field definition does not exist.
