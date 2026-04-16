@@ -420,11 +420,16 @@ func (s *Service) CreateBDDScenario(ctx context.Context, in taskdom.CreateBDDSce
 		return nil, err
 	}
 
+	title := strings.TrimSpace(in.Title)
+	if title == "" {
+		return nil, taskdom.ErrBDDScenarioTitleInvalid
+	}
+
 	now := time.Now()
 	scenario := &taskdom.BDDScenario{
 		ID:        uuid.New(),
 		TaskID:    in.TaskID,
-		Title:     in.Title,
+		Title:     title,
 		Given:     in.Given,
 		When:      in.When,
 		Then:      in.Then,
