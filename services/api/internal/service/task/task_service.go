@@ -450,7 +450,11 @@ func (s *Service) UpdateBDDScenario(ctx context.Context, id uuid.UUID, in taskdo
 	}
 
 	if in.Title != nil {
-		scenario.Title = *in.Title
+		title := strings.TrimSpace(*in.Title)
+		if title == "" {
+			return nil, taskdom.ErrBDDScenarioTitleInvalid
+		}
+		scenario.Title = title
 	}
 	if in.Given != nil {
 		scenario.Given = *in.Given
