@@ -247,6 +247,10 @@ func httpStatusForCode(code apierr.Code) int {
 		return http.StatusNotFound
 	case apierr.CodeUploadNotPending,
 		apierr.CodeAttachmentInvalid,
+		apierr.CodeMultipartUploadIDRequired,
+		apierr.CodeNotMultipartUpload,
+		apierr.CodeUploadIDMismatch,
+		apierr.CodeMultipartPartsEmpty,
 		apierr.CodeTaskTitleInvalid,
 		apierr.CodeTaskTypeNameInvalid,
 		apierr.CodeTaskStatusNameInvalid,
