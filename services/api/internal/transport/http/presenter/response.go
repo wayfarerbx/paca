@@ -106,6 +106,8 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusConflict, apierr.CodeProjectNameTaken
 	case errors.Is(err, projectdom.ErrNameInvalid):
 		return http.StatusBadRequest, apierr.CodeProjectNameInvalid
+	case errors.Is(err, projectdom.ErrPrefixInvalid):
+		return http.StatusBadRequest, apierr.CodeProjectPrefixInvalid
 	case errors.Is(err, projectdom.ErrRoleNotFound):
 		return http.StatusNotFound, apierr.CodeProjectRoleNotFound
 	case errors.Is(err, projectdom.ErrRoleNameTaken):
@@ -126,6 +128,10 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusNotFound, apierr.CodeTaskTypeNotFound
 	case errors.Is(err, taskdom.ErrTypeNameInvalid):
 		return http.StatusBadRequest, apierr.CodeTaskTypeNameInvalid
+	case errors.Is(err, taskdom.ErrTypeIsSystem):
+		return http.StatusForbidden, apierr.CodeTaskTypeIsSystem
+	case errors.Is(err, taskdom.ErrTypeNameReserved):
+		return http.StatusConflict, apierr.CodeTaskTypeNameReserved
 	case errors.Is(err, taskdom.ErrStatusNotFound):
 		return http.StatusNotFound, apierr.CodeTaskStatusNotFound
 	case errors.Is(err, taskdom.ErrStatusNameInvalid):
@@ -138,6 +144,8 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusBadRequest, apierr.CodeSprintNameInvalid
 	case errors.Is(err, sprintdom.ErrSprintStatusInvalid):
 		return http.StatusBadRequest, apierr.CodeSprintStatusInvalid
+	case errors.Is(err, sprintdom.ErrSprintAlreadyComplete):
+		return http.StatusConflict, apierr.CodeSprintAlreadyComplete
 	case errors.Is(err, sprintdom.ErrViewNotFound):
 		return http.StatusNotFound, apierr.CodeViewNotFound
 	case errors.Is(err, sprintdom.ErrViewNameInvalid):
@@ -189,7 +197,8 @@ func httpStatusForCode(code apierr.Code) int {
 		return http.StatusNotFound
 	case apierr.CodeProjectNameTaken:
 		return http.StatusConflict
-	case apierr.CodeProjectNameInvalid:
+	case apierr.CodeProjectNameInvalid,
+		apierr.CodeProjectPrefixInvalid:
 		return http.StatusBadRequest
 	case apierr.CodeProjectRoleNotFound:
 		return http.StatusNotFound
@@ -224,8 +233,12 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodeCustomFieldNameInvalid:
 		return http.StatusBadRequest
 	case apierr.CodeViewIsLastView,
-		apierr.CodeCustomFieldKeyTaken:
+		apierr.CodeSprintAlreadyComplete,
+		apierr.CodeCustomFieldKeyTaken,
+		apierr.CodeTaskTypeNameReserved:
 		return http.StatusConflict
+	case apierr.CodeTaskTypeIsSystem:
+		return http.StatusForbidden
 	case apierr.CodeBadRequest:
 		return http.StatusBadRequest
 	case apierr.CodePasswordChangeRequired:

@@ -29,6 +29,7 @@ export const ApiErrorCode = {
 	ProjectNotFound: "PROJECT_NOT_FOUND",
 	ProjectNameTaken: "PROJECT_NAME_TAKEN",
 	ProjectNameInvalid: "PROJECT_NAME_INVALID",
+	ProjectPrefixInvalid: "PROJECT_PREFIX_INVALID",
 	ProjectRoleNotFound: "PROJECT_ROLE_NOT_FOUND",
 	ProjectRoleNameTaken: "PROJECT_ROLE_NAME_TAKEN",
 	ProjectRoleNameInvalid: "PROJECT_ROLE_NAME_INVALID",
@@ -39,6 +40,8 @@ export const ApiErrorCode = {
 	// Task type domain errors.
 	TaskTypeNotFound: "TASK_TYPE_NOT_FOUND",
 	TaskTypeNameInvalid: "TASK_TYPE_NAME_INVALID",
+	TaskTypeIsSystem: "TASK_TYPE_IS_SYSTEM",
+	TaskTypeNameReserved: "TASK_TYPE_NAME_RESERVED",
 
 	// Task status domain errors.
 	TaskStatusNotFound: "TASK_STATUS_NOT_FOUND",

@@ -9,7 +9,7 @@ import (
 // createViewViaAPI creates a sprint view and returns its ID.
 func createViewViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, projectID, sprintID, name, viewType string) string {
 	t.Helper()
-	url := fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/views", env.base, projectID, sprintID)
+	url := fmt.Sprintf("%s/api/v1/projects/%s/views?sprint_id=%s", env.base, projectID, sprintID)
 	body := jsonBody(t, map[string]any{
 		"name":      name,
 		"view_type": viewType,
@@ -33,7 +33,7 @@ func createViewViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, pro
 // listViewIDsViaAPI returns all view IDs for a sprint.
 func listViewIDsViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, projectID, sprintID string) []string {
 	t.Helper()
-	url := fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/views", env.base, projectID, sprintID)
+	url := fmt.Sprintf("%s/api/v1/projects/%s/views?sprint_id=%s", env.base, projectID, sprintID)
 	req := mustRequest(env.ctx, t, http.MethodGet, url, nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	resp := mustDo(t, client, req)
@@ -55,9 +55,9 @@ func listViewIDsViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, pr
 }
 
 // deleteViewViaAPI deletes a view, ignoring 404 (already gone).
-func deleteViewViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, projectID, sprintID, viewID string) {
+func deleteViewViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, projectID, _ string, viewID string) {
 	t.Helper()
-	url := fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/views/%s", env.base, projectID, sprintID, viewID)
+	url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projectID, viewID)
 	req := mustRequest(env.ctx, t, http.MethodDelete, url, nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	resp := mustDo(t, client, req)
@@ -89,7 +89,7 @@ func TestE2EViewManagement_CRUD(t *testing.T) {
 	})
 
 	t.Run("list_views", func(t *testing.T) {
-		url := fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/views", env.base, projID, sprintID)
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views?sprint_id=%s", env.base, projID, sprintID)
 		req := mustRequest(env.ctx, t, http.MethodGet, url, nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp := mustDo(t, client, req)
@@ -105,7 +105,7 @@ func TestE2EViewManagement_CRUD(t *testing.T) {
 	})
 
 	t.Run("get_view", func(t *testing.T) {
-		url := fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/views/%s", env.base, projID, sprintID, viewID)
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projID, viewID)
 		req := mustRequest(env.ctx, t, http.MethodGet, url, nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp := mustDo(t, client, req)
@@ -120,7 +120,7 @@ func TestE2EViewManagement_CRUD(t *testing.T) {
 	})
 
 	t.Run("update_name", func(t *testing.T) {
-		url := fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/views/%s", env.base, projID, sprintID, viewID)
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projID, viewID)
 		body := jsonBody(t, map[string]any{"name": "Renamed Board"})
 		req := mustRequest(env.ctx, t, http.MethodPatch, url, body)
 		req.Header.Set("Content-Type", "application/json")
@@ -137,7 +137,7 @@ func TestE2EViewManagement_CRUD(t *testing.T) {
 	})
 
 	t.Run("update_config", func(t *testing.T) {
-		url := fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/views/%s", env.base, projID, sprintID, viewID)
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projID, viewID)
 		body := jsonBody(t, map[string]any{
 			"config": map[string]any{
 				"column_by": "status",
@@ -175,7 +175,7 @@ func TestE2EViewManagement_CRUD(t *testing.T) {
 	})
 
 	t.Run("delete_last_view_rejected", func(t *testing.T) {
-		url := fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/views/%s", env.base, projID, sprintID, view2ID)
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projID, view2ID)
 		req := mustRequest(env.ctx, t, http.MethodDelete, url, nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp := mustDo(t, client, req)
@@ -201,8 +201,8 @@ func TestE2ETaskPositionManagement(t *testing.T) {
 	taskID := "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 
 	t.Run("move_task", func(t *testing.T) {
-		url := fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/views/%s/task-positions/%s",
-			env.base, projID, sprintID, viewID, taskID)
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s/task-positions/%s",
+			env.base, projID, viewID, taskID)
 		body := jsonBody(t, map[string]any{
 			"position":  2,
 			"group_key": "in-progress",
@@ -216,8 +216,8 @@ func TestE2ETaskPositionManagement(t *testing.T) {
 	})
 
 	t.Run("list_positions", func(t *testing.T) {
-		url := fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/views/%s/task-positions",
-			env.base, projID, sprintID, viewID)
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s/task-positions",
+			env.base, projID, viewID)
 		req := mustRequest(env.ctx, t, http.MethodGet, url, nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp := mustDo(t, client, req)
@@ -237,8 +237,8 @@ func TestE2ETaskPositionManagement(t *testing.T) {
 	})
 
 	t.Run("move_to_different_group", func(t *testing.T) {
-		url := fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/views/%s/task-positions/%s",
-			env.base, projID, sprintID, viewID, taskID)
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s/task-positions/%s",
+			env.base, projID, viewID, taskID)
 		body := jsonBody(t, map[string]any{
 			"position":  0,
 			"group_key": "done",
@@ -251,8 +251,8 @@ func TestE2ETaskPositionManagement(t *testing.T) {
 		assertStatus(t, resp, http.StatusNoContent)
 
 		// Verify updated
-		listURL := fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/views/%s/task-positions",
-			env.base, projID, sprintID, viewID)
+		listURL := fmt.Sprintf("%s/api/v1/projects/%s/views/%s/task-positions",
+			env.base, projID, viewID)
 		req2 := mustRequest(env.ctx, t, http.MethodGet, listURL, nil)
 		req2.Header.Set("Authorization", "Bearer "+token)
 		resp2 := mustDo(t, client, req2)
@@ -279,7 +279,7 @@ func TestE2ETaskPositionManagement(t *testing.T) {
 // createBacklogViewViaAPI creates a product-backlog view and returns its ID.
 func createBacklogViewViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, projectID, name, viewType string) string {
 	t.Helper()
-	url := fmt.Sprintf("%s/api/v1/projects/%s/product-backlog/views", env.base, projectID)
+	url := fmt.Sprintf("%s/api/v1/projects/%s/views?context=backlog", env.base, projectID)
 	body := jsonBody(t, map[string]any{
 		"name":      name,
 		"view_type": viewType,
@@ -303,7 +303,7 @@ func createBacklogViewViaAPI(t *testing.T, env *e2eEnv, client *http.Client, tok
 // listBacklogViewIDsViaAPI returns all view IDs for the product backlog.
 func listBacklogViewIDsViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, projectID string) []string {
 	t.Helper()
-	url := fmt.Sprintf("%s/api/v1/projects/%s/product-backlog/views", env.base, projectID)
+	url := fmt.Sprintf("%s/api/v1/projects/%s/views?context=backlog", env.base, projectID)
 	req := mustRequest(env.ctx, t, http.MethodGet, url, nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	resp := mustDo(t, client, req)
@@ -327,7 +327,7 @@ func listBacklogViewIDsViaAPI(t *testing.T, env *e2eEnv, client *http.Client, to
 // deleteBacklogViewViaAPI deletes a product-backlog view, ignoring 404.
 func deleteBacklogViewViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, projectID, viewID string) {
 	t.Helper()
-	url := fmt.Sprintf("%s/api/v1/projects/%s/product-backlog/views/%s", env.base, projectID, viewID)
+	url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projectID, viewID)
 	req := mustRequest(env.ctx, t, http.MethodDelete, url, nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	resp := mustDo(t, client, req)
@@ -361,7 +361,7 @@ func TestE2EBacklogViewManagement_CRUD(t *testing.T) {
 	})
 
 	t.Run("response_has_no_sprint_id", func(t *testing.T) {
-		url := fmt.Sprintf("%s/api/v1/projects/%s/product-backlog/views/%s", env.base, projID, viewID)
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projID, viewID)
 		req := mustRequest(env.ctx, t, http.MethodGet, url, nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp := mustDo(t, client, req)
@@ -386,7 +386,7 @@ func TestE2EBacklogViewManagement_CRUD(t *testing.T) {
 	})
 
 	t.Run("update_name", func(t *testing.T) {
-		url := fmt.Sprintf("%s/api/v1/projects/%s/product-backlog/views/%s", env.base, projID, viewID)
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projID, viewID)
 		body := jsonBody(t, map[string]any{"name": "Renamed Backlog Board"})
 		req := mustRequest(env.ctx, t, http.MethodPatch, url, body)
 		req.Header.Set("Content-Type", "application/json")
@@ -414,7 +414,7 @@ func TestE2EBacklogViewManagement_CRUD(t *testing.T) {
 	})
 
 	t.Run("delete_last_view_rejected", func(t *testing.T) {
-		url := fmt.Sprintf("%s/api/v1/projects/%s/product-backlog/views/%s", env.base, projID, view2ID)
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projID, view2ID)
 		req := mustRequest(env.ctx, t, http.MethodDelete, url, nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp := mustDo(t, client, req)
@@ -438,7 +438,7 @@ func TestE2EBacklogTaskPositionManagement(t *testing.T) {
 	taskID := "cccccccc-dddd-eeee-ffff-aaaaaaaaaaaa"
 
 	t.Run("move_task", func(t *testing.T) {
-		url := fmt.Sprintf("%s/api/v1/projects/%s/product-backlog/views/%s/task-positions/%s",
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s/task-positions/%s",
 			env.base, projID, viewID, taskID)
 		body := jsonBody(t, map[string]any{
 			"position":  1,
@@ -453,7 +453,7 @@ func TestE2EBacklogTaskPositionManagement(t *testing.T) {
 	})
 
 	t.Run("list_positions", func(t *testing.T) {
-		url := fmt.Sprintf("%s/api/v1/projects/%s/product-backlog/views/%s/task-positions",
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s/task-positions",
 			env.base, projID, viewID)
 		req := mustRequest(env.ctx, t, http.MethodGet, url, nil)
 		req.Header.Set("Authorization", "Bearer "+token)
@@ -474,7 +474,7 @@ func TestE2EBacklogTaskPositionManagement(t *testing.T) {
 	})
 
 	t.Run("update_group", func(t *testing.T) {
-		url := fmt.Sprintf("%s/api/v1/projects/%s/product-backlog/views/%s/task-positions/%s",
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s/task-positions/%s",
 			env.base, projID, viewID, taskID)
 		body := jsonBody(t, map[string]any{
 			"position":  0,
@@ -487,7 +487,7 @@ func TestE2EBacklogTaskPositionManagement(t *testing.T) {
 		defer func() { _ = resp.Body.Close() }()
 		assertStatus(t, resp, http.StatusNoContent)
 
-		listURL := fmt.Sprintf("%s/api/v1/projects/%s/product-backlog/views/%s/task-positions",
+		listURL := fmt.Sprintf("%s/api/v1/projects/%s/views/%s/task-positions",
 			env.base, projID, viewID)
 		req2 := mustRequest(env.ctx, t, http.MethodGet, listURL, nil)
 		req2.Header.Set("Authorization", "Bearer "+token)
@@ -506,4 +506,516 @@ func TestE2EBacklogTaskPositionManagement(t *testing.T) {
 			t.Errorf("expected group_key=in-progress, got %v", pos["group_key"])
 		}
 	})
+}
+
+func TestE2EBulkTaskPositionManagement(t *testing.T) {
+	env := newE2EEnv(t)
+	seedTaskMemberUser(t, env, "bulk-pos-user", "bulkpass1")
+	client, token := taskMemberLogin(t, env, "bulk-pos-user", "bulkpass1")
+	projID := createProjectForTasksViaAPI(t, env, client, token)
+	sprintID := createSprintViaAPI(t, env, client, token, projID, "Sprint for Bulk Positions")
+	viewID := createViewViaAPI(t, env, client, token, projID, sprintID, "Bulk Position View", "table")
+
+	// Fixed UUIDs — do not need to exist as actual tasks for position tracking
+	task1 := "11111111-1111-1111-1111-111111111111"
+	task2 := "22222222-2222-2222-2222-222222222222"
+	task3 := "33333333-3333-3333-3333-333333333333"
+
+	bulkURL := fmt.Sprintf("%s/api/v1/projects/%s/views/%s/task-positions",
+		env.base, projID, viewID)
+
+	t.Run("bulk_move_three_tasks", func(t *testing.T) {
+		body := jsonBody(t, map[string]any{
+			"items": []map[string]any{
+				{"task_id": task1, "position": 65536, "group_key": "todo"},
+				{"task_id": task2, "position": 131072, "group_key": "todo"},
+				{"task_id": task3, "position": 196608, "group_key": "in-progress"},
+			},
+		})
+		req := mustRequest(env.ctx, t, http.MethodPut, bulkURL, body)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusNoContent)
+	})
+
+	t.Run("list_shows_all_three", func(t *testing.T) {
+		req := mustRequest(env.ctx, t, http.MethodGet, bulkURL, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+		items, _ := data["items"].([]any)
+		if len(items) != 3 {
+			t.Fatalf("expected 3 positions, got %d", len(items))
+		}
+	})
+
+	t.Run("bulk_upsert_overwrites_position", func(t *testing.T) {
+		body := jsonBody(t, map[string]any{
+			"items": []map[string]any{
+				{"task_id": task1, "position": 32768, "group_key": "done"},
+			},
+		})
+		req := mustRequest(env.ctx, t, http.MethodPut, bulkURL, body)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusNoContent)
+
+		// Verify task1 was updated and the other two still exist
+		req2 := mustRequest(env.ctx, t, http.MethodGet, bulkURL, nil)
+		req2.Header.Set("Authorization", "Bearer "+token)
+		resp2 := mustDo(t, client, req2)
+		defer func() { _ = resp2.Body.Close() }()
+		assertStatus(t, resp2, http.StatusOK)
+		var env2 envelope
+		decodeJSON(t, resp2, &env2)
+		data := assertDataMap(t, env2)
+		items, _ := data["items"].([]any)
+		if len(items) != 3 {
+			t.Fatalf("expected 3 positions after upsert, got %d", len(items))
+		}
+		for _, raw := range items {
+			item, _ := raw.(map[string]any)
+			if item["task_id"] == task1 {
+				if item["group_key"] != "done" {
+					t.Errorf("task1 group_key: expected done, got %v", item["group_key"])
+				}
+			}
+		}
+	})
+
+	t.Run("empty_items_rejected", func(t *testing.T) {
+		body := jsonBody(t, map[string]any{"items": []any{}})
+		req := mustRequest(env.ctx, t, http.MethodPut, bulkURL, body)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusBadRequest)
+	})
+}
+
+func TestE2EBulkBacklogTaskPositionManagement(t *testing.T) {
+	env := newE2EEnv(t)
+	seedTaskMemberUser(t, env, "bulk-backlog-user", "bulkblpass1")
+	client, token := taskMemberLogin(t, env, "bulk-backlog-user", "bulkblpass1")
+	projID := createProjectForTasksViaAPI(t, env, client, token)
+	viewID := createBacklogViewViaAPI(t, env, client, token, projID, "Bulk Backlog View", "table")
+
+	task1 := "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+	task2 := "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+
+	bulkURL := fmt.Sprintf("%s/api/v1/projects/%s/views/%s/task-positions",
+		env.base, projID, viewID)
+
+	t.Run("bulk_move", func(t *testing.T) {
+		body := jsonBody(t, map[string]any{
+			"items": []map[string]any{
+				{"task_id": task1, "position": 65536, "group_key": "todo"},
+				{"task_id": task2, "position": 131072},
+			},
+		})
+		req := mustRequest(env.ctx, t, http.MethodPut, bulkURL, body)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusNoContent)
+	})
+
+	t.Run("list_shows_both", func(t *testing.T) {
+		req := mustRequest(env.ctx, t, http.MethodGet, bulkURL, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+		items, _ := data["items"].([]any)
+		if len(items) != 2 {
+			t.Fatalf("expected 2 backlog positions, got %d", len(items))
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Timeline view helpers
+// ---------------------------------------------------------------------------
+
+// createTimelineViewViaAPI creates a timeline view and returns its ID.
+func createTimelineViewViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, projectID, name, viewType string) string {
+	t.Helper()
+	url := fmt.Sprintf("%s/api/v1/projects/%s/views?context=timeline", env.base, projectID)
+	body := jsonBody(t, map[string]any{
+		"name":      name,
+		"view_type": viewType,
+	})
+	req := mustRequest(env.ctx, t, http.MethodPost, url, body)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp := mustDo(t, client, req)
+	defer func() { _ = resp.Body.Close() }()
+	assertStatus(t, resp, http.StatusCreated)
+	var env2 envelope
+	decodeJSON(t, resp, &env2)
+	data := assertDataMap(t, env2)
+	id, _ := data["id"].(string)
+	if id == "" {
+		t.Fatal("missing view id in timeline view response")
+	}
+	return id
+}
+
+// listTimelineViewIDsViaAPI returns all view IDs for the timeline.
+func listTimelineViewIDsViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, projectID string) []string {
+	t.Helper()
+	url := fmt.Sprintf("%s/api/v1/projects/%s/views?context=timeline", env.base, projectID)
+	req := mustRequest(env.ctx, t, http.MethodGet, url, nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp := mustDo(t, client, req)
+	defer func() { _ = resp.Body.Close() }()
+	assertStatus(t, resp, http.StatusOK)
+	var env2 envelope
+	decodeJSON(t, resp, &env2)
+	data := assertDataMap(t, env2)
+	items, _ := data["items"].([]any)
+	var ids []string
+	for _, item := range items {
+		if m, ok := item.(map[string]any); ok {
+			if id, ok := m["id"].(string); ok && id != "" {
+				ids = append(ids, id)
+			}
+		}
+	}
+	return ids
+}
+
+// deleteTimelineViewViaAPI deletes a timeline view, ignoring 404.
+func deleteTimelineViewViaAPI(t *testing.T, env *e2eEnv, client *http.Client, token, projectID, viewID string) {
+	t.Helper()
+	url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projectID, viewID)
+	req := mustRequest(env.ctx, t, http.MethodDelete, url, nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp := mustDo(t, client, req)
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusNotFound {
+		t.Errorf("deleteTimelineViewViaAPI: unexpected status %d", resp.StatusCode)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Timeline view e2e tests
+// ---------------------------------------------------------------------------
+
+func TestE2ETimelineViewManagement_CRUD(t *testing.T) {
+	env := newE2EEnv(t)
+	seedTaskMemberUser(t, env, "timeline-crud-user", "timelinepass1")
+	client, token := taskMemberLogin(t, env, "timeline-crud-user", "timelinepass1")
+	projID := createProjectForTasksViaAPI(t, env, client, token)
+
+	var viewID string
+
+	t.Run("create_view", func(t *testing.T) {
+		viewID = createTimelineViewViaAPI(t, env, client, token, projID, "Roadmap", "roadmap")
+		if viewID == "" {
+			t.Fatal("expected non-empty view id")
+		}
+	})
+
+	t.Run("list_views", func(t *testing.T) {
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views?context=timeline", env.base, projID)
+		req := mustRequest(env.ctx, t, http.MethodGet, url, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+		items, _ := data["items"].([]any)
+		if len(items) == 0 {
+			t.Error("expected at least 1 view in list")
+		}
+	})
+
+	t.Run("get_view", func(t *testing.T) {
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projID, viewID)
+		req := mustRequest(env.ctx, t, http.MethodGet, url, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+		if data["id"] != viewID {
+			t.Errorf("expected id=%s, got %v", viewID, data["id"])
+		}
+	})
+
+	t.Run("update_name", func(t *testing.T) {
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projID, viewID)
+		body := jsonBody(t, map[string]any{"name": "Renamed Roadmap"})
+		req := mustRequest(env.ctx, t, http.MethodPatch, url, body)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+		if data["name"] != "Renamed Roadmap" {
+			t.Errorf("expected name=Renamed Roadmap, got %v", data["name"])
+		}
+	})
+
+	t.Run("create_second_view", func(t *testing.T) {
+		_ = createTimelineViewViaAPI(t, env, client, token, projID, "Timeline Table", "table")
+	})
+
+	t.Run("delete_first_view", func(t *testing.T) {
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projID, viewID)
+		req := mustRequest(env.ctx, t, http.MethodDelete, url, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusNoContent)
+	})
+
+	t.Run("deleted_view_returns_404", func(t *testing.T) {
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projID, viewID)
+		req := mustRequest(env.ctx, t, http.MethodGet, url, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusNotFound)
+	})
+}
+
+func TestE2ETimelineViewManagement_DeleteLastViewRejected(t *testing.T) {
+	env := newE2EEnv(t)
+	seedTaskMemberUser(t, env, "timeline-last-user", "timelinepass2")
+	client, token := taskMemberLogin(t, env, "timeline-last-user", "timelinepass2")
+	projID := createProjectForTasksViaAPI(t, env, client, token)
+
+	// Remove all auto-seeded timeline views first so we can control the count.
+	for _, id := range listTimelineViewIDsViaAPI(t, env, client, token, projID) {
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projID, id)
+		req := mustRequest(env.ctx, t, http.MethodDelete, url, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		_ = resp.Body.Close()
+		// Tolerate 409 (last view) — we'll just use the remaining one.
+		if resp.StatusCode == http.StatusConflict {
+			break
+		}
+	}
+
+	remaining := listTimelineViewIDsViaAPI(t, env, client, token, projID)
+	var onlyViewID string
+	if len(remaining) == 1 {
+		onlyViewID = remaining[0]
+	} else {
+		// Create a fresh one, delete all but one.
+		onlyViewID = createTimelineViewViaAPI(t, env, client, token, projID, "Sole Timeline", "roadmap")
+		for _, id := range remaining {
+			deleteTimelineViewViaAPI(t, env, client, token, projID, id)
+		}
+	}
+
+	t.Run("delete_last_view_returns_409", func(t *testing.T) {
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projID, onlyViewID)
+		req := mustRequest(env.ctx, t, http.MethodDelete, url, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusConflict)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		if env2.ErrorCode != "VIEW_IS_LAST_VIEW" {
+			t.Errorf("expected error code VIEW_IS_LAST_VIEW, got %q", env2.ErrorCode)
+		}
+	})
+}
+
+func TestE2ETimelineViewManagement_ContextIsolation(t *testing.T) {
+	// Verifies that creating timeline and backlog views for the same project
+	// does not mix them up in their respective list endpoints.
+	env := newE2EEnv(t)
+	seedTaskMemberUser(t, env, "timeline-isolation-user", "timelinepass3")
+	client, token := taskMemberLogin(t, env, "timeline-isolation-user", "timelinepass3")
+	projID := createProjectForTasksViaAPI(t, env, client, token)
+
+	tlViewID := createTimelineViewViaAPI(t, env, client, token, projID, "My Roadmap", "roadmap")
+	blViewID := createBacklogViewViaAPI(t, env, client, token, projID, "My Backlog", "table")
+
+	t.Run("timeline_list_excludes_backlog", func(t *testing.T) {
+		ids := listTimelineViewIDsViaAPI(t, env, client, token, projID)
+		for _, id := range ids {
+			if id == blViewID {
+				t.Errorf("timeline list contains backlog view id %s", blViewID)
+			}
+		}
+		found := false
+		for _, id := range ids {
+			if id == tlViewID {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("timeline list missing expected timeline view %s", tlViewID)
+		}
+	})
+
+	t.Run("backlog_list_excludes_timeline", func(t *testing.T) {
+		ids := listBacklogViewIDsViaAPI(t, env, client, token, projID)
+		for _, id := range ids {
+			if id == tlViewID {
+				t.Errorf("backlog list contains timeline view id %s", tlViewID)
+			}
+		}
+		found := false
+		for _, id := range ids {
+			if id == blViewID {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("backlog list missing expected backlog view %s", blViewID)
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// View filter persistence E2E tests
+// ---------------------------------------------------------------------------
+
+// TestE2EViewFilters_TaskTypesRoundtrip verifies that a view's
+// config.filters.task_types FilterConfig (using the "normal" virtual group)
+// persists through PATCH and is returned by a subsequent GET.
+func TestE2EViewFilters_TaskTypesRoundtrip(t *testing.T) {
+	env := newE2EEnv(t)
+	seedTaskMemberUser(t, env, "vf-mode-user", "vfmodepass1")
+	client, token := taskMemberLogin(t, env, "vf-mode-user", "vfmodepass1")
+	projID := createProjectForTasksViaAPI(t, env, client, token)
+	sprintID := createSprintViaAPI(t, env, client, token, projID, "Filter Mode Sprint")
+	viewID := createViewViaAPI(t, env, client, token, projID, sprintID, "FilterTestView", "board")
+
+	// PATCH the view config with a task_types FilterConfig using the "normal" group.
+	patchURL := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projID, viewID)
+	body := jsonBody(t, map[string]any{
+		"config": map[string]any{
+			"filters": map[string]any{
+				"task_types": map[string]any{
+					"all":   false,
+					"items": map[string]any{"normal": map[string]any{"all": true}},
+				},
+			},
+		},
+	})
+	req := mustRequest(env.ctx, t, http.MethodPatch, patchURL, body)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	patchResp := mustDo(t, client, req)
+	defer func() { _ = patchResp.Body.Close() }()
+	assertStatus(t, patchResp, http.StatusOK)
+
+	// GET the view back and verify task_types FilterConfig is preserved.
+	getURL := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projID, viewID)
+	req2 := mustRequest(env.ctx, t, http.MethodGet, getURL, nil)
+	req2.Header.Set("Authorization", "Bearer "+token)
+	getResp := mustDo(t, client, req2)
+	defer func() { _ = getResp.Body.Close() }()
+	assertStatus(t, getResp, http.StatusOK)
+	var env2 envelope
+	decodeJSON(t, getResp, &env2)
+	data := assertDataMap(t, env2)
+	cfg, _ := data["config"].(map[string]any)
+	if cfg == nil {
+		t.Fatal("expected non-nil config in view response")
+	}
+	filters, _ := cfg["filters"].(map[string]any)
+	if filters == nil {
+		t.Fatal("expected non-nil config.filters in view response")
+	}
+	taskTypes, _ := filters["task_types"].(map[string]any)
+	if taskTypes == nil {
+		t.Fatalf("expected task_types in filters, got %v", filters)
+	}
+	items, _ := taskTypes["items"].(map[string]any)
+	normalGroup, _ := items["normal"].(map[string]any)
+	if normalGroup == nil || normalGroup["all"] != true {
+		t.Errorf("expected task_types.items.normal={all:true}, got %v", items["normal"])
+	}
+}
+
+// TestE2EViewFilters_SprintIDsRoundtrip verifies that sprint_ids saved in
+// config.filters persist correctly (covers the previously-missing SprintIDs
+// DTO field serialisation bug).
+func TestE2EViewFilters_SprintIDsRoundtrip(t *testing.T) {
+	env := newE2EEnv(t)
+	seedTaskMemberUser(t, env, "vf-sprintids-user", "vfsprintpass1")
+	client, token := taskMemberLogin(t, env, "vf-sprintids-user", "vfsprintpass1")
+	projID := createProjectForTasksViaAPI(t, env, client, token)
+	sprintID := createSprintViaAPI(t, env, client, token, projID, "SprintIDs Filter Sprint")
+	viewID := createViewViaAPI(t, env, client, token, projID, sprintID, "SprintFilterView", "table")
+
+	// PATCH with sprints FilterConfig.
+	fakeSprintID1 := "00000000-0000-0000-0000-000000000001"
+	fakeSprintID2 := "00000000-0000-0000-0000-000000000002"
+	patchURL := fmt.Sprintf("%s/api/v1/projects/%s/views/%s", env.base, projID, viewID)
+	body := jsonBody(t, map[string]any{
+		"config": map[string]any{
+			"filters": map[string]any{
+				"sprints": map[string]any{
+					"all": false,
+					"items": map[string]any{
+						fakeSprintID1: true,
+						fakeSprintID2: true,
+					},
+				},
+			},
+		},
+	})
+	req := mustRequest(env.ctx, t, http.MethodPatch, patchURL, body)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	patchResp := mustDo(t, client, req)
+	defer func() { _ = patchResp.Body.Close() }()
+	assertStatus(t, patchResp, http.StatusOK)
+
+	// GET the view back and verify the sprints FilterConfig is preserved.
+	req2 := mustRequest(env.ctx, t, http.MethodGet, patchURL, nil)
+	req2.Header.Set("Authorization", "Bearer "+token)
+	getResp := mustDo(t, client, req2)
+	defer func() { _ = getResp.Body.Close() }()
+	assertStatus(t, getResp, http.StatusOK)
+	var env2 envelope
+	decodeJSON(t, getResp, &env2)
+	data := assertDataMap(t, env2)
+	cfg, _ := data["config"].(map[string]any)
+	if cfg == nil {
+		t.Fatal("expected non-nil config in view response")
+	}
+	filters, _ := cfg["filters"].(map[string]any)
+	if filters == nil {
+		t.Fatal("expected non-nil config.filters in view response")
+	}
+	sprintsFilter, _ := filters["sprints"].(map[string]any)
+	if sprintsFilter == nil {
+		t.Fatalf("expected sprints filter in config.filters, got %v", filters)
+	}
+	sprintItems, _ := sprintsFilter["items"].(map[string]any)
+	if len(sprintItems) != 2 {
+		t.Errorf("expected 2 sprint items, got %d: %v", len(sprintItems), sprintItems)
+	}
 }

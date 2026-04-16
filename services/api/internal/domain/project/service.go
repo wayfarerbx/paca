@@ -8,17 +8,19 @@ import (
 
 // CreateProjectInput carries fields required to create a new project.
 type CreateProjectInput struct {
-	Name        string
-	Description string
-	Settings    map[string]any
-	CreatedBy   *uuid.UUID
+	Name         string
+	Description  string
+	TaskIDPrefix string
+	Settings     map[string]any
+	CreatedBy    *uuid.UUID
 }
 
 // UpdateProjectInput carries mutable project fields.
 type UpdateProjectInput struct {
-	Name        string
-	Description string
-	Settings    map[string]any
+	Name         string
+	Description  string
+	TaskIDPrefix string
+	Settings     map[string]any
 }
 
 // Service is the combined project management service contract.

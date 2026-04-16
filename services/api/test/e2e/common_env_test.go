@@ -169,7 +169,7 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 	projectService := projectsvc.New(projectRepo, taskRepo)
 	taskService := tasksvc.New(taskRepo)
 	sprintRepo := pgRepo.NewSprintRepository(db)
-	sprintService := sprintsvc.New(sprintRepo)
+	sprintService := sprintsvc.New(sprintRepo, taskRepo)
 	viewRepo := pgRepo.NewViewRepository(db)
 	viewService := sprintsvc.NewViewService(viewRepo)
 

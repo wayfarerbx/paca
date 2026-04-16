@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { Edit2, Plus, Tag, Trash2 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Edit2, Plus, Star, Tag, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { DeleteTaskTypeDialog } from "@/components/projects/task-types/DeleteTaskTypeDialog";
 import { TaskTypeFormDialog } from "@/components/projects/task-types/TaskTypeFormDialog";
@@ -14,7 +14,11 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import { type TaskType, taskTypesQueryOptions } from "@/lib/project-api";
+import {
+	setDefaultTaskType,
+	type TaskType,
+	taskTypesQueryOptions,
+} from "@/lib/project-api";
 
 export function TaskTypesSettings({
 	projectId,
@@ -24,9 +28,19 @@ export function TaskTypesSettings({
 	canWrite: boolean;
 }) {
 	const { data: types, isLoading } = useQuery(taskTypesQueryOptions(projectId));
+	const queryClient = useQueryClient();
 	const [createOpen, setCreateOpen] = useState(false);
 	const [editType, setEditType] = useState<TaskType | null>(null);
 	const [deleteType, setDeleteType] = useState<TaskType | null>(null);
+
+	const setDefaultMutation = useMutation({
+		mutationFn: (typeId: string) => setDefaultTaskType(projectId, typeId),
+		onSuccess: () => {
+			queryClient.invalidateQueries({
+				queryKey: taskTypesQueryOptions(projectId).queryKey,
+			});
+		},
+	});
 
 	return (
 		<div className="rounded-xl border border-border/60 bg-card p-6">
@@ -104,6 +118,9 @@ export function TaskTypesSettings({
 								<TableHead className="px-5 text-xs font-semibold uppercase tracking-wide">
 									Description
 								</TableHead>
+								<TableHead className="px-5 text-xs font-semibold uppercase tracking-wide">
+									Default
+								</TableHead>
 								<TableHead className="w-20 px-5 text-xs font-semibold uppercase tracking-wide" />
 							</TableRow>
 						</TableHeader>
@@ -146,13 +163,34 @@ export function TaskTypesSettings({
 										)}
 									</TableCell>
 									<TableCell className="px-5">
+										{type.is_default ? (
+											<span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+												<Star className="size-3 fill-current" />
+												Default
+											</span>
+										) : null}
+									</TableCell>
+									<TableCell className="px-5">
 										{canWrite ? (
 											<div className="flex items-center justify-end gap-0.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+												{!type.is_default ? (
+													<Button
+														variant="ghost"
+														size="icon-sm"
+														onClick={() => setDefaultMutation.mutate(type.id)}
+														disabled={setDefaultMutation.isPending}
+														title="Set as default type"
+														aria-label="Set as default type"
+													>
+														<Star className="size-3.5" />
+													</Button>
+												) : null}
 												<Button
 													variant="ghost"
 													size="icon-sm"
 													onClick={() => setEditType(type)}
 													title="Edit type"
+													aria-label="Edit type"
 												>
 													<Edit2 className="size-3.5" />
 												</Button>
@@ -162,6 +200,7 @@ export function TaskTypesSettings({
 													className="text-destructive hover:text-destructive hover:bg-destructive/10"
 													onClick={() => setDeleteType(type)}
 													title="Delete type"
+													aria-label="Delete type"
 												>
 													<Trash2 className="size-3.5" />
 												</Button>

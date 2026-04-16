@@ -113,10 +113,10 @@ Feature: Project management
       When the user clicks the card for "E2E_NAV_PROJECT"
       Then the user should be on the "E2E_NAV_PROJECT" dashboard page
 
-    Scenario: Project sidebar shows Dashboard, Integrations, Docs, Team, and Settings links
+    Scenario: Project sidebar shows Dashboard, Interactions, Docs, Team, and Settings links
       Given the user is inside project "E2E_NAV_PROJECT"
       Then the sidebar should contain a "Dashboard" link
-      And the sidebar should contain an "Integrations" link
+      And the sidebar should contain an "Interactions" link
       And the sidebar should contain a "Docs" link
       And the sidebar should contain a "Team" link
       And the sidebar should contain a "Settings" link
@@ -204,7 +204,7 @@ Feature: Project management
     Scenario: Delete project dialog warns about permanent data loss
       When the user clicks the "Delete project" button
       Then the "Delete project" dialog should open
-      And the dialog should warn that all members, roles, and integrations will be lost
+      And the dialog should warn that all members, roles, and interactions will be lost
 
     Scenario: "Delete permanently" button is disabled until the project name is typed
       When the user clicks the "Delete project" button

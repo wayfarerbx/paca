@@ -36,6 +36,7 @@ type fakeTaskRepo struct {
 	statuses     map[uuid.UUID]*taskdom.TaskStatus
 	tasks        map[uuid.UUID]*taskdom.Task
 	customFields map[uuid.UUID]*taskdom.CustomFieldDefinition
+	counters     map[uuid.UUID]int64
 }
 
 func newFakeTaskRepoIT() *fakeTaskRepo {
@@ -44,6 +45,7 @@ func newFakeTaskRepoIT() *fakeTaskRepo {
 		statuses:     make(map[uuid.UUID]*taskdom.TaskStatus),
 		tasks:        make(map[uuid.UUID]*taskdom.Task),
 		customFields: make(map[uuid.UUID]*taskdom.CustomFieldDefinition),
+		counters:     make(map[uuid.UUID]int64),
 	}
 }
 
@@ -94,6 +96,26 @@ func (r *fakeTaskRepo) DeleteTaskType(_ context.Context, id uuid.UUID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	delete(r.types, id)
+	return nil
+}
+
+func (r *fakeTaskRepo) SetDefaultTaskType(_ context.Context, projectID, typeID uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	found := false
+	for _, t := range r.types {
+		if t.ProjectID == projectID {
+			if t.ID == typeID {
+				t.IsDefault = true
+				found = true
+			} else {
+				t.IsDefault = false
+			}
+		}
+	}
+	if !found {
+		return taskdom.ErrTypeNotFound
+	}
 	return nil
 }
 
@@ -193,9 +215,23 @@ func (r *fakeTaskRepo) FindTaskByID(_ context.Context, id uuid.UUID) (*taskdom.T
 	return &cp, nil
 }
 
+func (r *fakeTaskRepo) FindTaskByNumber(_ context.Context, projectID uuid.UUID, taskNumber int64) (*taskdom.Task, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for _, t := range r.tasks {
+		if t.ProjectID == projectID && t.TaskNumber == taskNumber && t.DeletedAt == nil {
+			cp := *t
+			return &cp, nil
+		}
+	}
+	return nil, taskdom.ErrTaskNotFound
+}
+
 func (r *fakeTaskRepo) CreateTask(_ context.Context, t *taskdom.Task) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.counters[t.ProjectID]++
+	t.TaskNumber = r.counters[t.ProjectID]
 	cp := *t
 	r.tasks[t.ID] = &cp
 	return nil
@@ -221,6 +257,28 @@ func (r *fakeTaskRepo) DeleteTask(_ context.Context, id uuid.UUID) error {
 	}
 	now := time.Now()
 	t.DeletedAt = &now
+	return nil
+}
+
+// BulkMoveSprintTasks moves non-done tasks in sourceSprintID to targetSprintID.
+func (r *fakeTaskRepo) BulkMoveSprintTasks(_ context.Context, projectID, sourceSprintID uuid.UUID, targetSprintID *uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, t := range r.tasks {
+		if t.ProjectID != projectID || t.DeletedAt != nil {
+			continue
+		}
+		if t.SprintID == nil || *t.SprintID != sourceSprintID {
+			continue
+		}
+		// Leave tasks whose status has category "done" in place.
+		if t.StatusID != nil {
+			if s, ok := r.statuses[*t.StatusID]; ok && s.Category == taskdom.StatusCategoryDone {
+				continue
+			}
+		}
+		t.SprintID = targetSprintID
+	}
 	return nil
 }
 
@@ -362,7 +420,7 @@ func buildTaskTestRouterWithSprints(taskRepo *fakeTaskRepo, sprintRepo *fakeSpri
 	projectRepo := newFakeProjectRepo()
 	projectService := projectsvc.New(projectRepo, taskRepo)
 	taskService := tasksvc.New(taskRepo)
-	sprintService := sprintsvc.New(sprintRepo)
+	sprintService := sprintsvc.New(sprintRepo, taskRepo)
 	viewService := sprintsvc.NewViewService(viewRepo)
 	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
@@ -521,6 +579,182 @@ func TestIntegrationTaskTypes_DeleteNotFoundReturns404(t *testing.T) {
 	// Accept either 200 (idempotent) or 404.
 	if w.Code != http.StatusOK && w.Code != http.StatusNotFound {
 		t.Fatalf("expected 200 or 404, got %d (%s)", w.Code, w.Body.String())
+	}
+}
+
+func TestIntegrationTaskTypes_SetDefault(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/task-types", projectID)
+
+	// Create two task types.
+	createW1 := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{"name": "Task"}))
+	if createW1.Code != http.StatusCreated {
+		t.Fatalf("create type 1: expected 201, got %d (%s)", createW1.Code, createW1.Body.String())
+	}
+	typeID1 := taskIDFrom(t, "task-type", createW1.Body.Bytes())
+
+	createW2 := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{"name": "Bug"}))
+	if createW2.Code != http.StatusCreated {
+		t.Fatalf("create type 2: expected 201, got %d (%s)", createW2.Code, createW2.Body.String())
+	}
+	taskIDFrom(t, "task-type", createW2.Body.Bytes())
+
+	// Set type 1 as default.
+	setDefaultW := serve(r, authedJSONReq(t.Context(), http.MethodPut, base+"/"+typeID1+"/set-default", tok, nil))
+	if setDefaultW.Code != http.StatusOK {
+		t.Fatalf("set default: expected 200, got %d (%s)", setDefaultW.Code, setDefaultW.Body.String())
+	}
+
+	// Verify the response has is_default: true.
+	var setEnv struct {
+		Data map[string]any `json:"data"`
+	}
+	if err := json.Unmarshal(setDefaultW.Body.Bytes(), &setEnv); err != nil {
+		t.Fatalf("decode set-default response: %v", err)
+	}
+	if isDefault, _ := setEnv.Data["is_default"].(bool); !isDefault {
+		t.Errorf("expected is_default=true in set-default response, got %v", setEnv.Data["is_default"])
+	}
+
+	// Verify listing shows exactly one default type and it's type 1.
+	listW := serve(r, authedJSONReq(t.Context(), http.MethodGet, base, tok, nil))
+	if listW.Code != http.StatusOK {
+		t.Fatalf("list types: expected 200, got %d (%s)", listW.Code, listW.Body.String())
+	}
+	var listEnv struct {
+		Data struct {
+			Items []map[string]any `json:"items"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(listW.Body.Bytes(), &listEnv); err != nil {
+		t.Fatalf("decode list response: %v", err)
+	}
+	defaultCount := 0
+	for _, item := range listEnv.Data.Items {
+		if d, _ := item["is_default"].(bool); d {
+			defaultCount++
+			if id, _ := item["id"].(string); id != typeID1 {
+				t.Errorf("expected default type id=%s, got %s", typeID1, id)
+			}
+		}
+	}
+	if defaultCount != 1 {
+		t.Errorf("expected exactly 1 default type, got %d", defaultCount)
+	}
+}
+
+func TestIntegrationTaskTypes_SetDefault_NotFound(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+
+	w := serve(r, authedJSONReq(t.Context(), http.MethodPut,
+		fmt.Sprintf("/api/v1/projects/%s/task-types/%s/set-default", projectID, uuid.New()), tok, nil))
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404 for non-existent type, got %d (%s)", w.Code, w.Body.String())
+	}
+}
+
+func TestIntegrationTaskTypes_SystemTypeCannotBeUpdated(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/task-types", projectID)
+
+	// Seed a system type directly in the repo.
+	sysType := &taskdom.TaskType{
+		ID:        uuid.New(),
+		ProjectID: projectID,
+		Name:      "Epic",
+		IsSystem:  true,
+	}
+	if err := taskRepo.CreateTaskType(t.Context(), sysType); err != nil {
+		t.Fatalf("seed system type: %v", err)
+	}
+
+	// Attempt to update the system type — should return 403.
+	patchW := serve(r, authedJSONReq(t.Context(), http.MethodPatch, base+"/"+sysType.ID.String(), tok, map[string]any{
+		"name": "Epic Renamed",
+	}))
+	if patchW.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for updating system type, got %d (%s)", patchW.Code, patchW.Body.String())
+	}
+	if code := decodeErrorCode(t, patchW); code != "TASK_TYPE_IS_SYSTEM" {
+		t.Errorf("expected TASK_TYPE_IS_SYSTEM, got %q", code)
+	}
+}
+
+func TestIntegrationTaskTypes_SystemTypeCannotBeDeleted(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/task-types", projectID)
+
+	sysType := &taskdom.TaskType{
+		ID:        uuid.New(),
+		ProjectID: projectID,
+		Name:      "Subtask",
+		IsSystem:  true,
+	}
+	if err := taskRepo.CreateTaskType(t.Context(), sysType); err != nil {
+		t.Fatalf("seed system type: %v", err)
+	}
+
+	delW := serve(r, authedJSONReq(t.Context(), http.MethodDelete, base+"/"+sysType.ID.String(), tok, nil))
+	if delW.Code != http.StatusForbidden {
+		t.Fatalf("expected 403 for deleting system type, got %d (%s)", delW.Code, delW.Body.String())
+	}
+	if code := decodeErrorCode(t, delW); code != "TASK_TYPE_IS_SYSTEM" {
+		t.Errorf("expected TASK_TYPE_IS_SYSTEM, got %q", code)
+	}
+}
+
+func TestIntegrationTaskTypes_ReservedNameRejected(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/task-types", projectID)
+
+	for _, reserved := range []string{"Epic", "Subtask"} {
+		w := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{"name": reserved}))
+		if w.Code != http.StatusConflict {
+			t.Fatalf("expected 409 for reserved name %q, got %d (%s)", reserved, w.Code, w.Body.String())
+		}
+		if code := decodeErrorCode(t, w); code != "TASK_TYPE_NAME_RESERVED" {
+			t.Errorf("expected TASK_TYPE_NAME_RESERVED for %q, got %q", reserved, code)
+		}
 	}
 }
 
@@ -935,8 +1169,8 @@ func TestIntegrationTask_UnauthenticatedReturns401(t *testing.T) {
 		{http.MethodGet, fmt.Sprintf("/api/v1/projects/%s/task-statuses", projectID)},
 		{http.MethodGet, fmt.Sprintf("/api/v1/projects/%s/sprints", projectID)},
 		{http.MethodGet, fmt.Sprintf("/api/v1/projects/%s/sprints/%s", projectID, uuid.New())},
-		{http.MethodGet, fmt.Sprintf("/api/v1/projects/%s/sprints/%s/tasks", projectID, uuid.New())},
-		{http.MethodGet, fmt.Sprintf("/api/v1/projects/%s/product-backlog", projectID)},
+		{http.MethodGet, fmt.Sprintf("/api/v1/projects/%s/tasks?sprint_id=%s", projectID, uuid.New())},
+		{http.MethodGet, fmt.Sprintf("/api/v1/projects/%s/tasks?sprint_id=null", projectID)},
 		{http.MethodGet, fmt.Sprintf("/api/v1/projects/%s/tasks", projectID)},
 	}
 	for _, ep := range endpoints {
@@ -1089,9 +1323,9 @@ func TestIntegrationSprints_GetSprintTasks(t *testing.T) {
 		t.Fatalf("seed backlog task: %v", err)
 	}
 
-	// GET /sprints/:sprintId/tasks — should return only the sprint task
+	// GET /tasks?sprint_id=:sprintId — should return only the sprint task
 	w := serve(r, authedJSONReq(t.Context(), http.MethodGet,
-		fmt.Sprintf("/api/v1/projects/%s/sprints/%s/tasks", projectID, sprintID), tok, nil))
+		fmt.Sprintf("/api/v1/projects/%s/tasks?sprint_id=%s", projectID, sprintID), tok, nil))
 	if w.Code != http.StatusOK {
 		t.Fatalf("get sprint tasks: expected 200, got %d (%s)", w.Code, w.Body.String())
 	}
@@ -1151,9 +1385,9 @@ func TestIntegrationTasks_Backlog(t *testing.T) {
 		}
 	}
 
-	// GET /product-backlog — should return only the 3 backlog tasks
+	// GET /tasks?sprint_id=null — should return only the 3 backlog tasks
 	w := serve(r, authedJSONReq(t.Context(), http.MethodGet,
-		fmt.Sprintf("/api/v1/projects/%s/product-backlog", projectID), tok, nil))
+		fmt.Sprintf("/api/v1/projects/%s/tasks?sprint_id=null", projectID), tok, nil))
 	if w.Code != http.StatusOK {
 		t.Fatalf("list backlog: expected 200, got %d (%s)", w.Code, w.Body.String())
 	}
@@ -1163,10 +1397,10 @@ func TestIntegrationTasks_Backlog(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ListTasks with view_id — manual position enrichment
+// ListTasks no longer embeds positions; use the dedicated view positions API.
 // ---------------------------------------------------------------------------
 
-func TestIntegrationTasks_ListWithViewID(t *testing.T) {
+func TestIntegrationTasks_ListAndViewPositions(t *testing.T) {
 	taskRepo := newFakeTaskRepoIT()
 	viewRepo := newFakeViewRepoIT()
 	projectID := uuid.New()
@@ -1242,8 +1476,8 @@ func TestIntegrationTasks_ListWithViewID(t *testing.T) {
 		}
 	})
 
-	t.Run("with_view_id_positions_are_present", func(t *testing.T) {
-		url := fmt.Sprintf("%s?view_id=%s", base, viewID)
+	t.Run("view_positions_are_available_from_the_dedicated_endpoint", func(t *testing.T) {
+		url := fmt.Sprintf("/api/v1/projects/%s/views/%s/task-positions", projectID, viewID)
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, url, tok, nil))
 		if w.Code != http.StatusOK {
 			t.Fatalf("expected 200, got %d (%s)", w.Code, w.Body.String())
@@ -1259,26 +1493,26 @@ func TestIntegrationTasks_ListWithViewID(t *testing.T) {
 		posMap := make(map[string]float64)
 		groupMap := make(map[string]any)
 		for _, item := range env.Data.Items {
-			id, _ := item["id"].(string)
-			if pos, ok := item["view_position"]; ok {
+			id, _ := item["task_id"].(string)
+			if pos, ok := item["position"]; ok {
 				posMap[id] = pos.(float64)
 			}
-			groupMap[id] = item["view_group_key"]
+			groupMap[id] = item["group_key"]
 		}
 
 		if posMap[task1ID] != 10 {
-			t.Errorf("expected task1 view_position=10, got %v", posMap[task1ID])
+			t.Errorf("expected task1 position=10, got %v", posMap[task1ID])
 		}
 		if posMap[task2ID] != 20 {
-			t.Errorf("expected task2 view_position=20, got %v", posMap[task2ID])
+			t.Errorf("expected task2 position=20, got %v", posMap[task2ID])
 		}
 		if groupMap[task1ID] != "status-col" {
-			t.Errorf("expected task1 view_group_key=status-col, got %v", groupMap[task1ID])
+			t.Errorf("expected task1 group_key=status-col, got %v", groupMap[task1ID])
 		}
 	})
 
 	t.Run("invalid_view_id_returns_400", func(t *testing.T) {
-		url := fmt.Sprintf("%s?view_id=not-a-uuid", base)
+		url := fmt.Sprintf("/api/v1/projects/%s/views/not-a-uuid/task-positions", projectID)
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, url, tok, nil))
 		if w.Code != http.StatusBadRequest {
 			t.Fatalf("expected 400, got %d (%s)", w.Code, w.Body.String())
@@ -1286,7 +1520,7 @@ func TestIntegrationTasks_ListWithViewID(t *testing.T) {
 	})
 
 	t.Run("unknown_view_id_returns_404", func(t *testing.T) {
-		url := fmt.Sprintf("%s?view_id=%s", base, uuid.New())
+		url := fmt.Sprintf("/api/v1/projects/%s/views/%s/task-positions", projectID, uuid.New())
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, url, tok, nil))
 		if w.Code != http.StatusNotFound {
 			t.Fatalf("expected 404 for non-existent view_id, got %d (%s)", w.Code, w.Body.String())
@@ -1298,10 +1532,10 @@ func TestIntegrationTasks_ListWithViewID(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// GetSprintTasks with view_id — manual position enrichment
+// Sprint-scoped task listing + dedicated view positions endpoint.
 // ---------------------------------------------------------------------------
 
-func TestIntegrationSprints_GetSprintTasksWithViewID(t *testing.T) {
+func TestIntegrationSprints_GetSprintTasksWithViewPositions(t *testing.T) {
 	taskRepo := newFakeTaskRepoIT()
 	viewRepo := newFakeViewRepoIT()
 	sprintRepo := newFakeSprintRepoIT()
@@ -1382,7 +1616,7 @@ func TestIntegrationSprints_GetSprintTasksWithViewID(t *testing.T) {
 		t.Fatalf("seed position task2: %v", err)
 	}
 
-	base := fmt.Sprintf("/api/v1/projects/%s/sprints/%s/tasks", projectID, sprintID)
+	base := fmt.Sprintf("/api/v1/projects/%s/tasks?sprint_id=%s", projectID, sprintID)
 
 	t.Run("without_view_id_no_positions_returned", func(t *testing.T) {
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, base, tok, nil))
@@ -1404,8 +1638,8 @@ func TestIntegrationSprints_GetSprintTasksWithViewID(t *testing.T) {
 		}
 	})
 
-	t.Run("with_view_id_positions_are_present", func(t *testing.T) {
-		url := fmt.Sprintf("%s?view_id=%s", base, viewID)
+	t.Run("view_positions_are_available_from_the_dedicated_endpoint", func(t *testing.T) {
+		url := fmt.Sprintf("/api/v1/projects/%s/views/%s/task-positions", projectID, viewID)
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, url, tok, nil))
 		if w.Code != http.StatusOK {
 			t.Fatalf("expected 200, got %d (%s)", w.Code, w.Body.String())
@@ -1421,27 +1655,27 @@ func TestIntegrationSprints_GetSprintTasksWithViewID(t *testing.T) {
 		posMap := make(map[string]float64)
 		groupMap := make(map[string]any)
 		for _, item := range env.Data.Items {
-			id, _ := item["id"].(string)
-			if pos, ok := item["view_position"]; ok {
+			id, _ := item["task_id"].(string)
+			if pos, ok := item["position"]; ok {
 				posMap[id] = pos.(float64)
 			}
-			groupMap[id] = item["view_group_key"]
+			groupMap[id] = item["group_key"]
 		}
 		task1Str := task1.ID.String()
 		task2Str := task2.ID.String()
 		if posMap[task1Str] != 5 {
-			t.Errorf("expected task1 view_position=5, got %v", posMap[task1Str])
+			t.Errorf("expected task1 position=5, got %v", posMap[task1Str])
 		}
 		if posMap[task2Str] != 15 {
-			t.Errorf("expected task2 view_position=15, got %v", posMap[task2Str])
+			t.Errorf("expected task2 position=15, got %v", posMap[task2Str])
 		}
 		if groupMap[task1Str] != "col-todo" {
-			t.Errorf("expected task1 view_group_key=col-todo, got %v", groupMap[task1Str])
+			t.Errorf("expected task1 group_key=col-todo, got %v", groupMap[task1Str])
 		}
 	})
 
 	t.Run("invalid_view_id_returns_400", func(t *testing.T) {
-		url := fmt.Sprintf("%s?view_id=not-a-uuid", base)
+		url := fmt.Sprintf("/api/v1/projects/%s/views/not-a-uuid/task-positions", projectID)
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, url, tok, nil))
 		if w.Code != http.StatusBadRequest {
 			t.Fatalf("expected 400, got %d (%s)", w.Code, w.Body.String())
@@ -1449,7 +1683,7 @@ func TestIntegrationSprints_GetSprintTasksWithViewID(t *testing.T) {
 	})
 
 	t.Run("unknown_view_id_returns_404", func(t *testing.T) {
-		url := fmt.Sprintf("%s?view_id=%s", base, uuid.New())
+		url := fmt.Sprintf("/api/v1/projects/%s/views/%s/task-positions", projectID, uuid.New())
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, url, tok, nil))
 		if w.Code != http.StatusNotFound {
 			t.Fatalf("expected 404, got %d (%s)", w.Code, w.Body.String())
@@ -1461,10 +1695,10 @@ func TestIntegrationSprints_GetSprintTasksWithViewID(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ListBacklogTasks with view_id — manual position enrichment
+// Backlog task listing + dedicated view positions endpoint.
 // ---------------------------------------------------------------------------
 
-func TestIntegrationTasks_BacklogWithViewID(t *testing.T) {
+func TestIntegrationTasks_BacklogWithViewPositions(t *testing.T) {
 	taskRepo := newFakeTaskRepoIT()
 	viewRepo := newFakeViewRepoIT()
 	projectID := uuid.New()
@@ -1529,7 +1763,7 @@ func TestIntegrationTasks_BacklogWithViewID(t *testing.T) {
 		t.Fatalf("seed position task2: %v", err)
 	}
 
-	base := fmt.Sprintf("/api/v1/projects/%s/product-backlog", projectID)
+	base := fmt.Sprintf("/api/v1/projects/%s/tasks?sprint_id=null", projectID)
 
 	t.Run("without_view_id_no_positions_returned", func(t *testing.T) {
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, base, tok, nil))
@@ -1551,8 +1785,8 @@ func TestIntegrationTasks_BacklogWithViewID(t *testing.T) {
 		}
 	})
 
-	t.Run("with_view_id_positions_are_present", func(t *testing.T) {
-		url := fmt.Sprintf("%s?view_id=%s", base, viewID)
+	t.Run("view_positions_are_available_from_the_dedicated_endpoint", func(t *testing.T) {
+		url := fmt.Sprintf("/api/v1/projects/%s/views/%s/task-positions", projectID, viewID)
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, url, tok, nil))
 		if w.Code != http.StatusOK {
 			t.Fatalf("expected 200, got %d (%s)", w.Code, w.Body.String())
@@ -1568,27 +1802,27 @@ func TestIntegrationTasks_BacklogWithViewID(t *testing.T) {
 		posMap := make(map[string]float64)
 		groupMap := make(map[string]any)
 		for _, item := range env.Data.Items {
-			id, _ := item["id"].(string)
-			if pos, ok := item["view_position"]; ok {
+			id, _ := item["task_id"].(string)
+			if pos, ok := item["position"]; ok {
 				posMap[id] = pos.(float64)
 			}
-			groupMap[id] = item["view_group_key"]
+			groupMap[id] = item["group_key"]
 		}
 		task1Str := task1.ID.String()
 		task2Str := task2.ID.String()
 		if posMap[task1Str] != 1 {
-			t.Errorf("expected task1 view_position=1, got %v", posMap[task1Str])
+			t.Errorf("expected task1 position=1, got %v", posMap[task1Str])
 		}
 		if posMap[task2Str] != 2 {
-			t.Errorf("expected task2 view_position=2, got %v", posMap[task2Str])
+			t.Errorf("expected task2 position=2, got %v", posMap[task2Str])
 		}
 		if groupMap[task1Str] != "backlog-col" {
-			t.Errorf("expected task1 view_group_key=backlog-col, got %v", groupMap[task1Str])
+			t.Errorf("expected task1 group_key=backlog-col, got %v", groupMap[task1Str])
 		}
 	})
 
 	t.Run("invalid_view_id_returns_400", func(t *testing.T) {
-		url := fmt.Sprintf("%s?view_id=not-a-uuid", base)
+		url := fmt.Sprintf("/api/v1/projects/%s/views/not-a-uuid/task-positions", projectID)
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, url, tok, nil))
 		if w.Code != http.StatusBadRequest {
 			t.Fatalf("expected 400, got %d (%s)", w.Code, w.Body.String())
@@ -1596,7 +1830,7 @@ func TestIntegrationTasks_BacklogWithViewID(t *testing.T) {
 	})
 
 	t.Run("unknown_view_id_returns_404", func(t *testing.T) {
-		url := fmt.Sprintf("%s?view_id=%s", base, uuid.New())
+		url := fmt.Sprintf("/api/v1/projects/%s/views/%s/task-positions", projectID, uuid.New())
 		w := serve(r, authedJSONReq(t.Context(), http.MethodGet, url, tok, nil))
 		if w.Code != http.StatusNotFound {
 			t.Fatalf("expected 404, got %d (%s)", w.Code, w.Body.String())
@@ -1987,5 +2221,299 @@ func TestIntegrationTasks_PatchTitleOnlyPreservesAllFields(t *testing.T) {
 	}
 	if env.Data.Description == nil || *env.Data.Description != "keep me" {
 		t.Errorf("expected description preserved, got %v", env.Data.Description)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Task Number integration tests
+// ---------------------------------------------------------------------------
+
+func TestIntegrationTasks_TaskNumberIncrementsPerProject(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/tasks", projectID)
+
+	type taskResp struct {
+		Data struct {
+			TaskNumber float64 `json:"task_number"`
+		} `json:"data"`
+	}
+
+	var prev float64
+	for i := 1; i <= 3; i++ {
+		w := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{
+			"title": fmt.Sprintf("Task %d", i),
+		}))
+		if w.Code != http.StatusCreated {
+			t.Fatalf("create task %d: expected 201, got %d (%s)", i, w.Code, w.Body.String())
+		}
+		var resp taskResp
+		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("decode response: %v", err)
+		}
+		num := resp.Data.TaskNumber
+		if num != float64(i) {
+			t.Errorf("task %d: expected task_number=%d, got %g", i, i, num)
+		}
+		if num <= prev {
+			t.Errorf("task_number must be strictly increasing: prev=%g, got=%g", prev, num)
+		}
+		prev = num
+	}
+}
+
+func TestIntegrationTasks_TaskNumberScopedToProject(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projA := uuid.New()
+	projB := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projA: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+			projB: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+
+	decodeTaskNumber := func(body []byte) float64 {
+		var env struct {
+			Data struct {
+				TaskNumber float64 `json:"task_number"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(body, &env); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		return env.Data.TaskNumber
+	}
+
+	// Create two tasks in projA
+	wA1 := serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		fmt.Sprintf("/api/v1/projects/%s/tasks", projA), tok, map[string]any{"title": "A-1"}))
+	wA2 := serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		fmt.Sprintf("/api/v1/projects/%s/tasks", projA), tok, map[string]any{"title": "A-2"}))
+	// Create one task in projB
+	wB1 := serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		fmt.Sprintf("/api/v1/projects/%s/tasks", projB), tok, map[string]any{"title": "B-1"}))
+
+	if n := decodeTaskNumber(wA1.Body.Bytes()); n != 1 {
+		t.Errorf("projA first task: expected task_number=1, got %g", n)
+	}
+	if n := decodeTaskNumber(wA2.Body.Bytes()); n != 2 {
+		t.Errorf("projA second task: expected task_number=2, got %g", n)
+	}
+	if n := decodeTaskNumber(wB1.Body.Bytes()); n != 1 {
+		t.Errorf("projB first task: expected task_number=1 (independent counter), got %g", n)
+	}
+}
+
+func TestIntegrationTasks_GetByNumber_OK(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/tasks", projectID)
+
+	// Create task
+	createW := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{
+		"title": "Lookup me by number",
+	}))
+	if createW.Code != http.StatusCreated {
+		t.Fatalf("create: got %d", createW.Code)
+	}
+	originalID := taskIDFrom(t, "task", createW.Body.Bytes())
+
+	var createEnv struct {
+		Data struct {
+			TaskNumber float64 `json:"task_number"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(createW.Body.Bytes(), &createEnv); err != nil {
+		t.Fatalf("decode create: %v", err)
+	}
+	taskNum := int64(createEnv.Data.TaskNumber)
+
+	// Get by number
+	getByNumW := serve(r, authedJSONReq(t.Context(), http.MethodGet,
+		fmt.Sprintf("%s/by-number/%d", base, taskNum), tok, nil))
+	if getByNumW.Code != http.StatusOK {
+		t.Fatalf("get by number: expected 200, got %d (%s)", getByNumW.Code, getByNumW.Body.String())
+	}
+	gotID := taskIDFrom(t, "task", getByNumW.Body.Bytes())
+	if gotID != originalID {
+		t.Errorf("expected id=%s, got %s", originalID, gotID)
+	}
+}
+
+func TestIntegrationTasks_GetByNumber_NotFound(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+
+	w := serve(r, authedJSONReq(t.Context(), http.MethodGet,
+		fmt.Sprintf("/api/v1/projects/%s/tasks/by-number/9999", projectID), tok, nil))
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d (%s)", w.Code, w.Body.String())
+	}
+	if code := decodeErrorCode(t, w); code != "TASK_NOT_FOUND" {
+		t.Errorf("expected TASK_NOT_FOUND, got %q", code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// CompleteSprint integration tests
+// ---------------------------------------------------------------------------
+
+func TestIntegrationCompleteSprint_MovesToBacklog(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	sprintRepo := newFakeSprintRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionSprintsWrite, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouterWithSprints(taskRepo, sprintRepo, newFakeViewRepoIT(), store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s", projectID)
+
+	// Create an active sprint directly in the fake repo.
+	sprintID := uuid.New()
+	sprintRepo.sprints[sprintID] = &sprintdom.Sprint{
+		ID:        sprintID,
+		ProjectID: projectID,
+		Name:      "Sprint Active",
+		Status:    sprintdom.SprintStatusActive,
+	}
+
+	// Seed two tasks in the sprint.
+	for range 2 {
+		id := uuid.New()
+		taskRepo.tasks[id] = &taskdom.Task{
+			ID:        id,
+			ProjectID: projectID,
+			SprintID:  &sprintID,
+			Title:     "incomplete",
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+	}
+
+	// Call complete endpoint with no destination (backlog).
+	w := serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		fmt.Sprintf("%s/sprints/%s/complete", base, sprintID), tok, map[string]any{}))
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d (%s)", w.Code, w.Body.String())
+	}
+
+	// Sprint must be completed.
+	sp := sprintRepo.sprints[sprintID]
+	if sp.Status != sprintdom.SprintStatusCompleted {
+		t.Errorf("expected sprint completed, got %q", sp.Status)
+	}
+
+	// All tasks must now be in the backlog.
+	for _, task := range taskRepo.tasks {
+		if task.ProjectID != projectID {
+			continue
+		}
+		if task.SprintID != nil {
+			t.Errorf("task %s still assigned to sprint %s, expected backlog", task.ID, *task.SprintID)
+		}
+	}
+}
+
+func TestIntegrationCompleteSprint_AlreadyCompleted(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	sprintRepo := newFakeSprintRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionSprintsWrite},
+		},
+	}
+	r := buildTaskTestRouterWithSprints(taskRepo, sprintRepo, newFakeViewRepoIT(), store)
+	tok := issueTaskToken(t, uuid.NewString())
+
+	sprintID := uuid.New()
+	sprintRepo.sprints[sprintID] = &sprintdom.Sprint{
+		ID:        sprintID,
+		ProjectID: projectID,
+		Name:      "Done Sprint",
+		Status:    sprintdom.SprintStatusCompleted,
+	}
+
+	w := serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		fmt.Sprintf("/api/v1/projects/%s/sprints/%s/complete", projectID, sprintID), tok, map[string]any{}))
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected 409, got %d (%s)", w.Code, w.Body.String())
+	}
+	if code := decodeErrorCode(t, w); code != "SPRINT_ALREADY_COMPLETE" {
+		t.Errorf("expected SPRINT_ALREADY_COMPLETE, got %q", code)
+	}
+}
+
+func TestIntegrationCompleteSprint_NotFound(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	sprintRepo := newFakeSprintRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionSprintsWrite},
+		},
+	}
+	r := buildTaskTestRouterWithSprints(taskRepo, sprintRepo, newFakeViewRepoIT(), store)
+	tok := issueTaskToken(t, uuid.NewString())
+
+	w := serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		fmt.Sprintf("/api/v1/projects/%s/sprints/%s/complete", projectID, uuid.New()), tok, map[string]any{}))
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d (%s)", w.Code, w.Body.String())
+	}
+}
+
+func TestIntegrationCompleteSprint_Forbidden(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	sprintRepo := newFakeSprintRepoIT()
+	projectID := uuid.New()
+	// No sprints.write permission.
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionSprintsRead},
+		},
+	}
+	r := buildTaskTestRouterWithSprints(taskRepo, sprintRepo, newFakeViewRepoIT(), store)
+	tok := issueTaskToken(t, uuid.NewString())
+
+	sprintID := uuid.New()
+	sprintRepo.sprints[sprintID] = &sprintdom.Sprint{
+		ID:        sprintID,
+		ProjectID: projectID,
+		Name:      "Active",
+		Status:    sprintdom.SprintStatusActive,
+	}
+
+	w := serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		fmt.Sprintf("/api/v1/projects/%s/sprints/%s/complete", projectID, sprintID), tok, map[string]any{}))
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d (%s)", w.Code, w.Body.String())
 	}
 }

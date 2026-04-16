@@ -49,6 +49,8 @@ const (
 	CodeProjectNameTaken Code = "PROJECT_NAME_TAKEN"
 	// CodeProjectNameInvalid indicates the project name is empty or invalid.
 	CodeProjectNameInvalid Code = "PROJECT_NAME_INVALID"
+	// CodeProjectPrefixInvalid indicates the task ID prefix is not valid.
+	CodeProjectPrefixInvalid Code = "PROJECT_PREFIX_INVALID"
 
 	// CodeProjectRoleNotFound indicates the requested project role does not exist.
 	CodeProjectRoleNotFound Code = "PROJECT_ROLE_NOT_FOUND"
@@ -73,6 +75,10 @@ const (
 	CodeTaskTypeNotFound Code = "TASK_TYPE_NOT_FOUND"
 	// CodeTaskTypeNameInvalid indicates an empty or invalid task type name.
 	CodeTaskTypeNameInvalid Code = "TASK_TYPE_NAME_INVALID"
+	// CodeTaskTypeIsSystem indicates an attempt to modify a system task type.
+	CodeTaskTypeIsSystem Code = "TASK_TYPE_IS_SYSTEM"
+	// CodeTaskTypeNameReserved indicates an attempt to use a reserved system type name.
+	CodeTaskTypeNameReserved Code = "TASK_TYPE_NAME_RESERVED"
 
 	// CodeTaskStatusNotFound indicates the requested task status does not exist.
 	CodeTaskStatusNotFound Code = "TASK_STATUS_NOT_FOUND"
@@ -87,6 +93,8 @@ const (
 	CodeSprintNameInvalid Code = "SPRINT_NAME_INVALID"
 	// CodeSprintStatusInvalid indicates an invalid sprint status value.
 	CodeSprintStatusInvalid Code = "SPRINT_STATUS_INVALID"
+	// CodeSprintAlreadyComplete indicates the sprint is already completed.
+	CodeSprintAlreadyComplete Code = "SPRINT_ALREADY_COMPLETE"
 
 	// CodeViewNotFound indicates the requested sprint view does not exist.
 	CodeViewNotFound Code = "VIEW_NOT_FOUND"
@@ -96,7 +104,7 @@ const (
 	CodeViewTypeInvalid Code = "VIEW_TYPE_INVALID"
 	// CodeViewIsLastView indicates the view cannot be deleted because it is the last remaining view.
 	CodeViewIsLastView Code = "VIEW_IS_LAST_VIEW"
-	// CodeViewReorderInvalid indicates the provided view IDs do not match the integration's views.
+	// CodeViewReorderInvalid indicates the provided view IDs do not match the interaction's views.
 	CodeViewReorderInvalid Code = "VIEW_REORDER_INVALID"
 
 	// CodeCustomFieldNotFound indicates the requested custom field definition does not exist.

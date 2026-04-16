@@ -43,9 +43,9 @@ const COMING_SOON_FEATURES = [
 
 const PROJECT_PAGES = [
 	{
-		to: "/projects/$projectId/integrations",
+		to: "/projects/$projectId/interactions/backlog",
 		icon: BookOpen,
-		label: "Integrations",
+		label: "Interactions",
 		description: "Product backlog & sprints",
 	},
 	{

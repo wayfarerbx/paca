@@ -1,5 +1,4 @@
 import { expect, test, type Page } from "@playwright/test";
-import { AUTH_FILE } from "../../playwright.config";
 
 const USERNAME = process.env.E2E_USERNAME ?? "admin";
 const PASSWORD = process.env.E2E_PASSWORD ?? "e2e-admin-password";
@@ -24,7 +23,13 @@ function profileMenuButton(page: Page) {
 /* ─── Pre-authenticated tests ─────────────────────────────────────── */
 
 test.describe("Session Management — authenticated", () => {
-	test.use({ storageState: AUTH_FILE });
+	/*
+	 * Do NOT use `storageState: AUTH_FILE` here.  Tests in this group
+	 * intentionally log out, which invalidates the server-side session.
+	 * If they shared AUTH_FILE's token with other parallel spec files those
+	 * files would fail mid-run.  The beforeEach below handles login from
+	 * scratch so these tests are fully self-contained.
+	 */
 
 	test.beforeEach(async ({ page }) => {
 		await page.goto("/home");

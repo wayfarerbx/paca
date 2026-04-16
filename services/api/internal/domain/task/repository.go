@@ -21,6 +21,9 @@ type TaskTypeRepository interface {
 	CreateTaskType(ctx context.Context, t *TaskType) error
 	UpdateTaskType(ctx context.Context, t *TaskType) error
 	DeleteTaskType(ctx context.Context, id uuid.UUID) error
+	// SetDefaultTaskType atomically clears is_default for every type in the
+	// project and then marks the given type as the default.
+	SetDefaultTaskType(ctx context.Context, projectID, typeID uuid.UUID) error
 }
 
 // TaskStatusRepository defines persistence operations for task statuses.
@@ -36,17 +39,27 @@ type TaskStatusRepository interface {
 type TaskRepository interface {
 	ListTasks(ctx context.Context, projectID uuid.UUID, filter TaskFilter, offset, limit int) ([]*Task, int64, error)
 	FindTaskByID(ctx context.Context, id uuid.UUID) (*Task, error)
+	FindTaskByNumber(ctx context.Context, projectID uuid.UUID, taskNumber int64) (*Task, error)
 	CreateTask(ctx context.Context, t *Task) error
 	UpdateTask(ctx context.Context, t *Task) error
 	DeleteTask(ctx context.Context, id uuid.UUID) error
+	// BulkMoveSprintTasks reassigns all non-done tasks in sourceSprintID to
+	// targetSprintID. A nil targetSprintID moves tasks to the backlog (sprint_id = NULL).
+	// Tasks whose status has category "done" are not moved.
+	BulkMoveSprintTasks(ctx context.Context, projectID, sourceSprintID uuid.UUID, targetSprintID *uuid.UUID) error
 }
 
 // TaskFilter carries optional criteria for listing tasks.
 type TaskFilter struct {
-	SprintID    *uuid.UUID
-	StatusID    *uuid.UUID
-	AssigneeID  *uuid.UUID
-	BacklogOnly bool // true → only tasks where sprint_id IS NULL
+	SprintID     *uuid.UUID  // single-value compat; ignored when SprintIDs is non-empty
+	SprintIDs    []uuid.UUID // multi-value; takes priority over SprintID and BacklogOnly
+	StatusID     *uuid.UUID  // single-value compat; ignored when StatusIDs is non-empty
+	StatusIDs    []uuid.UUID // multi-value; takes priority over StatusID
+	AssigneeID   *uuid.UUID  // single-value compat; ignored when AssigneeIDs is non-empty
+	AssigneeIDs  []uuid.UUID // multi-value; takes priority over AssigneeID
+	ParentTaskID *uuid.UUID  // non-nil → only subtasks of this parent
+	TaskTypeIDs  []uuid.UUID // multi-value; when non-empty, only tasks of these types
+	BacklogOnly  bool        // true → only tasks where sprint_id IS NULL
 }
 
 // CustomFieldDefinitionRepository defines persistence operations for custom

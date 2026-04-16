@@ -3,13 +3,76 @@ package projectsvc
 
 import (
 	"context"
+	"regexp"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
 	projectdom "github.com/paca/api/internal/domain/project"
 	taskdom "github.com/paca/api/internal/domain/task"
 )
+
+// prefixRe validates that a task ID prefix contains only uppercase letters and digits.
+var prefixRe = regexp.MustCompile(`^[A-Z0-9]{1,10}$`)
+
+// validatePrefix returns ErrPrefixInvalid if the provided prefix is non-empty
+// but does not match the allowed pattern.
+func validatePrefix(p string) error {
+	if p != "" && !prefixRe.MatchString(p) {
+		return projectdom.ErrPrefixInvalid
+	}
+	return nil
+}
+
+// suggestPrefix derives a short uppercase identifier from the project name.
+// Rules (matches JIRA-style behavior):
+//  1. Split by whitespace/hyphens/underscores.
+//  2. If single word: first 4 letters (or all if shorter), stripped of non-alpha.
+//  3. If multiple words: first letter of each word, up to 4, uppercase.
+//  4. Remove non-alphanumeric characters and return uppercase.
+func suggestPrefix(name string) string {
+	// Strip non-alphanumeric/space characters (keep letters, digits, spaces).
+	var sb strings.Builder
+	for _, r := range name {
+		if unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsSpace(r) {
+			sb.WriteRune(r)
+		}
+	}
+	clean := strings.TrimSpace(sb.String())
+	words := strings.Fields(clean)
+	if len(words) == 0 {
+		return "PROJ"
+	}
+	var prefix string
+	if len(words) == 1 {
+		// Single word: up to 4 leading letters/digits.
+		count := 0
+		for _, r := range words[0] {
+			if count >= 4 {
+				break
+			}
+			if unicode.IsLetter(r) || unicode.IsDigit(r) {
+				prefix += string(r)
+				count++
+			}
+		}
+	} else {
+		// Multiple words: first letter of each, up to 4 words.
+		for i, w := range words {
+			if i >= 4 {
+				break
+			}
+			for _, r := range w {
+				if unicode.IsLetter(r) || unicode.IsDigit(r) {
+					prefix += string(r)
+					break
+				}
+			}
+		}
+	}
+	return strings.ToUpper(prefix)
+}
 
 // taskBootstrapper is the minimal persistence interface the project service
 // needs to seed default task types and statuses at project creation time.
@@ -67,14 +130,23 @@ func (s *Service) Create(ctx context.Context, in projectdom.CreateProjectInput) 
 		return nil, projectdom.ErrNameInvalid
 	}
 
+	prefix := strings.ToUpper(strings.TrimSpace(in.TaskIDPrefix))
+	if prefix == "" {
+		prefix = suggestPrefix(name)
+	}
+	if err := validatePrefix(prefix); err != nil {
+		return nil, err
+	}
+
 	now := time.Now()
 	p := &projectdom.Project{
-		ID:          uuid.New(),
-		Name:        name,
-		Description: strings.TrimSpace(in.Description),
-		Settings:    cloneSettings(in.Settings),
-		CreatedBy:   in.CreatedBy,
-		CreatedAt:   now,
+		ID:           uuid.New(),
+		Name:         name,
+		Description:  strings.TrimSpace(in.Description),
+		TaskIDPrefix: prefix,
+		Settings:     cloneSettings(in.Settings),
+		CreatedBy:    in.CreatedBy,
+		CreatedAt:    now,
 	}
 
 	if err := s.repo.Create(ctx, p); err != nil {
@@ -163,12 +235,16 @@ func (s *Service) Create(ctx context.Context, in projectdom.CreateProjectInput) 
 
 func ptr[T any](v T) *T { return &v }
 
-// seedDefaultTaskTypes creates the three built-in task types for a new project.
+// seedDefaultTaskTypes creates the three built-in task types for a new project
+// plus two system-managed types (Epic, Subtask). The "Task" type is marked as
+// the default. System types are read-only and cannot be modified by users.
 func (s *Service) seedDefaultTaskTypes(ctx context.Context, projectID uuid.UUID, now time.Time) error {
 	defaults := []*taskdom.TaskType{
-		{ID: uuid.New(), ProjectID: projectID, Name: "Task", Icon: ptr("CheckSquare"), Color: ptr("#3b82f6"), Description: ptr("A general work item that needs to be completed"), CreatedAt: now, UpdatedAt: now},
+		{ID: uuid.New(), ProjectID: projectID, Name: "Task", Icon: ptr("CheckSquare"), Color: ptr("#3b82f6"), Description: ptr("A general work item that needs to be completed"), IsDefault: true, CreatedAt: now, UpdatedAt: now},
 		{ID: uuid.New(), ProjectID: projectID, Name: "Bug", Icon: ptr("Bug"), Color: ptr("#ef4444"), Description: ptr("An issue or defect that needs to be fixed"), CreatedAt: now, UpdatedAt: now},
 		{ID: uuid.New(), ProjectID: projectID, Name: "Story", Icon: ptr("BookOpen"), Color: ptr("#22c55e"), Description: ptr("A user-facing feature or requirement"), CreatedAt: now, UpdatedAt: now},
+		{ID: uuid.New(), ProjectID: projectID, Name: "Epic", Icon: ptr("Layers"), Color: ptr("#a855f7"), Description: ptr("A large body of work that can be broken down into smaller tasks"), IsSystem: true, CreatedAt: now, UpdatedAt: now},
+		{ID: uuid.New(), ProjectID: projectID, Name: "Subtask", Icon: ptr("ClipboardList"), Color: ptr("#64748b"), Description: ptr("A smaller piece of work within a parent task"), IsSystem: true, CreatedAt: now, UpdatedAt: now},
 	}
 	for _, tt := range defaults {
 		if err := s.taskRepo.CreateTaskType(ctx, tt); err != nil {
@@ -208,6 +284,12 @@ func (s *Service) Update(ctx context.Context, id uuid.UUID, in projectdom.Update
 	desc := strings.TrimSpace(in.Description)
 	if desc != "" {
 		p.Description = desc
+	}
+	if rawPrefix := strings.ToUpper(strings.TrimSpace(in.TaskIDPrefix)); rawPrefix != "" {
+		if err := validatePrefix(rawPrefix); err != nil {
+			return nil, err
+		}
+		p.TaskIDPrefix = rawPrefix
 	}
 	if in.Settings != nil {
 		p.Settings = cloneSettings(in.Settings)

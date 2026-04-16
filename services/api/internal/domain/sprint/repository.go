@@ -18,8 +18,13 @@ type SprintRepository interface {
 // ViewRepository defines persistence operations for sprint views and manual
 // task ordering within those views.
 type ViewRepository interface {
+	// ListViews returns all views belonging to a sprint.
 	ListViews(ctx context.Context, sprintID uuid.UUID) ([]*SprintView, error)
-	ListBacklogViews(ctx context.Context, projectID uuid.UUID) ([]*SprintView, error)
+
+	// ListProjectViews returns all views for a project with the given context
+	// (ViewContextBacklog or ViewContextTimeline).
+	ListProjectViews(ctx context.Context, projectID uuid.UUID, viewCtx ViewContext) ([]*SprintView, error)
+
 	FindViewByID(ctx context.Context, id uuid.UUID) (*SprintView, error)
 	CreateView(ctx context.Context, v *SprintView) error
 	UpdateView(ctx context.Context, v *SprintView) error
@@ -29,12 +34,17 @@ type ViewRepository interface {
 	// guard deletion of the last remaining view.
 	CountViews(ctx context.Context, sprintID uuid.UUID) (int, error)
 
-	// CountBacklogViews returns the number of product-backlog views for a project.
-	CountBacklogViews(ctx context.Context, projectID uuid.UUID) (int, error)
+	// CountProjectViews returns the number of views for a project with the
+	// given context.  Used to guard deletion of the last remaining view.
+	CountProjectViews(ctx context.Context, projectID uuid.UUID, viewCtx ViewContext) (int, error)
 
 	// UpsertTaskPosition stores or updates the manual position of a task
 	// within a view.
 	UpsertTaskPosition(ctx context.Context, pos *ViewTaskPosition) error
+
+	// BulkUpsertTaskPositions stores or updates multiple task positions within a
+	// view in a single transaction.
+	BulkUpsertTaskPositions(ctx context.Context, positions []*ViewTaskPosition) error
 
 	// ListTaskPositions returns all manual positions for a view, ordered by
 	// position ASC.
@@ -48,5 +58,5 @@ type ViewRepository interface {
 // ViewReorderItem carries the new position for a single view.
 type ViewReorderItem struct {
 	ID       uuid.UUID
-	Position int
+	Position float64
 }

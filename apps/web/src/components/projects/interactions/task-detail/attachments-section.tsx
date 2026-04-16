@@ -1,0 +1,125 @@
+import { Paperclip, Upload } from "lucide-react";
+import { useRef, useState } from "react";
+import { cn } from "@/lib/utils";
+import { AttachmentItem } from "./attachment-item";
+import type { Attachment } from "./types";
+
+interface AttachmentsSectionProps {
+	canEdit?: boolean;
+}
+
+export function AttachmentsSection({
+	canEdit = true,
+}: AttachmentsSectionProps) {
+	const [attachments, setAttachments] = useState<Attachment[]>([]);
+	const [isDragOver, setIsDragOver] = useState(false);
+	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	const addFiles = (files: File[]) => {
+		if (!canEdit) return;
+		const newAttachments: Attachment[] = files.map((f) => ({
+			id: crypto.randomUUID(),
+			name: f.name,
+			size: f.size,
+			uploaded_at: new Date().toISOString(),
+		}));
+		setAttachments((a) => [...a, ...newAttachments]);
+	};
+
+	const handleFileDrop = (e: React.DragEvent) => {
+		e.preventDefault();
+		setIsDragOver(false);
+		if (!canEdit) return;
+		addFiles(Array.from(e.dataTransfer.files));
+	};
+
+	const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+		addFiles(Array.from(e.target.files ?? []));
+		if (e.target) e.target.value = "";
+	};
+
+	const handleDelete = (id: string) => {
+		setAttachments((a) => a.filter((att) => att.id !== id));
+	};
+
+	return (
+		<div className="space-y-3">
+			<div className="flex items-center justify-between">
+				<h3 className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 flex items-center gap-2">
+					<span>Attachments</span>
+					<div className="flex-1 h-px bg-gradient-to-r from-border/40 to-transparent" />
+				</h3>
+				{canEdit && (
+					<>
+						<button
+							type="button"
+							onClick={() => fileInputRef.current?.click()}
+							className="flex size-7 items-center justify-center rounded-lg text-muted-foreground/60 hover:text-foreground hover:bg-muted/50 transition-all duration-150"
+							aria-label="Upload attachment"
+						>
+							<Upload className="size-3.5" />
+						</button>
+						<input
+							ref={fileInputRef}
+							type="file"
+							multiple
+							className="sr-only"
+							onChange={handleFileInput}
+						/>
+					</>
+				)}
+			</div>
+
+			{/* Attachment list */}
+			{attachments.length > 0 && (
+				<div className="space-y-2">
+					{attachments.map((att) => (
+						<AttachmentItem
+							key={att.id}
+							attachment={att}
+							canDelete={canEdit}
+							onDelete={handleDelete}
+						/>
+					))}
+				</div>
+			)}
+
+			{/* Drop zone */}
+			{canEdit && (
+				<button
+					type="button"
+					onDragOver={(e) => {
+						e.preventDefault();
+						setIsDragOver(true);
+					}}
+					onDragLeave={() => setIsDragOver(false)}
+					onDrop={handleFileDrop}
+					onClick={() => fileInputRef.current?.click()}
+					className={cn(
+						"w-full rounded-xl border-2 border-dashed p-8 text-center transition-all duration-200 cursor-pointer group/drop",
+						isDragOver
+							? "border-primary/50 bg-primary/5 text-primary shadow-sm shadow-primary/10"
+							: "border-border/20 bg-muted/5 text-muted-foreground/50 hover:border-border/40 hover:bg-muted/10",
+					)}
+				>
+					<div
+						className={cn(
+							"mx-auto mb-3 flex size-10 items-center justify-center rounded-xl transition-all duration-200",
+							isDragOver
+								? "bg-primary/10 text-primary"
+								: "bg-muted/30 text-muted-foreground/45 group-hover/drop:bg-muted/40 group-hover/drop:text-muted-foreground/70",
+						)}
+					>
+						<Paperclip className="size-5" />
+					</div>
+					<p className="text-[13px] font-medium text-muted-foreground/70 group-hover/drop:text-muted-foreground transition-colors">
+						Drop your files here to upload
+					</p>
+					<p className="text-[11px] mt-1.5 text-muted-foreground/45 transition-colors">
+						or click to browse
+					</p>
+				</button>
+			)}
+		</div>
+	);
+}

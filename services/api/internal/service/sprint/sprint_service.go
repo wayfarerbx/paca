@@ -8,16 +8,18 @@ import (
 
 	"github.com/google/uuid"
 	sprintdom "github.com/paca/api/internal/domain/sprint"
+	taskdom "github.com/paca/api/internal/domain/task"
 )
 
 // Service is the concrete implementation of sprintdom.SprintService.
 type Service struct {
-	repo sprintdom.SprintRepository
+	repo     sprintdom.SprintRepository
+	taskRepo taskdom.TaskRepository
 }
 
 // New returns a configured sprint service.
-func New(repo sprintdom.SprintRepository) *Service {
-	return &Service{repo: repo}
+func New(repo sprintdom.SprintRepository, taskRepo taskdom.TaskRepository) *Service {
+	return &Service{repo: repo, taskRepo: taskRepo}
 }
 
 // ListSprints returns all sprints for a project.
@@ -97,4 +99,30 @@ func (s *Service) DeleteSprint(ctx context.Context, id uuid.UUID) error {
 		return err
 	}
 	return s.repo.DeleteSprint(ctx, id)
+}
+
+// CompleteSprint bulk-moves all non-done tasks out of the sprint and marks
+// the sprint as completed in two sequential writes.  Tasks whose status
+// has category "done" are left in place.
+func (s *Service) CompleteSprint(ctx context.Context, id uuid.UUID, in sprintdom.CompleteSprintInput) (*sprintdom.Sprint, error) {
+	sp, err := s.repo.FindSprintByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if sp.Status == sprintdom.SprintStatusCompleted {
+		return nil, sprintdom.ErrSprintAlreadyComplete
+	}
+
+	// Move non-done tasks first so a subsequent failure leaves the sprint
+	// in its original state (retrying the complete is then still possible).
+	if err := s.taskRepo.BulkMoveSprintTasks(ctx, sp.ProjectID, id, in.MoveToSprintID); err != nil {
+		return nil, err
+	}
+
+	sp.Status = sprintdom.SprintStatusCompleted
+	sp.UpdatedAt = time.Now()
+	if err := s.repo.UpdateSprint(ctx, sp); err != nil {
+		return nil, err
+	}
+	return sp, nil
 }

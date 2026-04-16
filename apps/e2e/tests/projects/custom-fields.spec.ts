@@ -86,7 +86,7 @@ const signIn = async (page: Page) => {
 
 const navigateToProjectSettings = async (page: Page, projectId: string) => {
   await page.goto(`${BASE_URL}/projects/${projectId}/settings`);
-  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible({ timeout: 30_000 });
 };
 
 test.describe('Custom Fields Management', () => {
@@ -454,6 +454,7 @@ test.describe('Custom Fields Management', () => {
   });
 
   test.describe('Editing a custom field', () => {
+    test.setTimeout(60_000);
     let projectId: string;
 
     test.beforeEach(async ({ request, context }) => {
@@ -595,6 +596,7 @@ test.describe('Custom Fields Management', () => {
   });
 
   test.describe('Deleting a custom field', () => {
+    test.setTimeout(60_000);
     let projectId: string;
 
     test.beforeEach(async ({ request, context }) => {

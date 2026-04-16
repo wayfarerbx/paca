@@ -27,6 +27,12 @@ type UpdateSprintRequest struct {
 	Status    *sprintdom.SprintStatus `json:"status"`
 }
 
+// CompleteSprintRequest is the body for POST /projects/:projectId/sprints/:sprintId/complete.
+// MoveToSprintID, when omitted or null, moves incomplete tasks to the backlog.
+type CompleteSprintRequest struct {
+	MoveToSprintID *uuid.UUID `json:"move_to_sprint_id"`
+}
+
 // SprintResponse is the public representation of a sprint.
 type SprintResponse struct {
 	ID        uuid.UUID              `json:"id"`

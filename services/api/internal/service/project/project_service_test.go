@@ -156,8 +156,8 @@ func TestCreate_SeedsDefaultTaskTypesAndStatuses(t *testing.T) {
 		t.Fatal("Create returned nil project")
 	}
 
-	// Verify 3 default task types are created.
-	const wantTypes = 3
+	// Verify 5 default task types are created (Task, Bug, Story + Epic, Subtask system types).
+	const wantTypes = 5
 	if got := len(tb.types); got != wantTypes {
 		t.Errorf("expected %d default task types, got %d", wantTypes, got)
 	}
@@ -171,17 +171,45 @@ func TestCreate_SeedsDefaultTaskTypesAndStatuses(t *testing.T) {
 		}
 		typeNames[tt.Name] = true
 	}
-	for _, name := range []string{"Task", "Bug", "Story"} {
+	for _, name := range []string{"Task", "Bug", "Story", "Epic", "Subtask"} {
 		if !typeNames[name] {
 			t.Errorf("missing expected default task type %q", name)
 		}
 	}
 
+	// Verify Epic and Subtask are system types.
+	for _, tt := range tb.types {
+		if tt.Name == "Epic" || tt.Name == "Subtask" {
+			if !tt.IsSystem {
+				t.Errorf("expected task type %q to have IsSystem=true", tt.Name)
+			}
+		} else {
+			if tt.IsSystem {
+				t.Errorf("expected task type %q to have IsSystem=false", tt.Name)
+			}
+		}
+	}
+
+	// Verify "Task" is the only default type.
+	for _, tt := range tb.types {
+		if tt.Name == "Task" {
+			if !tt.IsDefault {
+				t.Errorf("expected task type %q to have IsDefault=true", tt.Name)
+			}
+		} else {
+			if tt.IsDefault {
+				t.Errorf("expected task type %q to have IsDefault=false", tt.Name)
+			}
+		}
+	}
+
 	// Verify descriptions are set for default task types
 	expectedDescriptions := map[string]string{
-		"Task":  "A general work item that needs to be completed",
-		"Bug":   "An issue or defect that needs to be fixed",
-		"Story": "A user-facing feature or requirement",
+		"Task":    "A general work item that needs to be completed",
+		"Bug":     "An issue or defect that needs to be fixed",
+		"Story":   "A user-facing feature or requirement",
+		"Epic":    "A large body of work that can be broken down into smaller tasks",
+		"Subtask": "A smaller piece of work within a parent task",
 	}
 	for _, tt := range tb.types {
 		if expectedDesc, ok := expectedDescriptions[tt.Name]; ok {
@@ -259,5 +287,106 @@ func TestCreate_NilTaskRepo_DoesNotPanic(t *testing.T) {
 	_, err := svc.Create(ctx, projectdom.CreateProjectInput{Name: "No Task Repo"})
 	if err != nil {
 		t.Fatalf("expected no error with nil task repo, got: %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Task ID prefix tests
+// ---------------------------------------------------------------------------
+
+func TestCreate_AutoGeneratesPrefix_SingleWord(t *testing.T) {
+	ctx := context.Background()
+	svc := New(newFakeProjectRepo(), nil)
+
+	p, err := svc.Create(ctx, projectdom.CreateProjectInput{Name: "paca"})
+	if err != nil {
+		t.Fatalf("Create error: %v", err)
+	}
+	if p.TaskIDPrefix != "PACA" {
+		t.Errorf("expected prefix PACA, got %q", p.TaskIDPrefix)
+	}
+}
+
+func TestCreate_AutoGeneratesPrefix_MultiWord(t *testing.T) {
+	ctx := context.Background()
+	svc := New(newFakeProjectRepo(), nil)
+
+	p, err := svc.Create(ctx, projectdom.CreateProjectInput{Name: "My Awesome Project"})
+	if err != nil {
+		t.Fatalf("Create error: %v", err)
+	}
+	if p.TaskIDPrefix != "MAP" {
+		t.Errorf("expected prefix MAP, got %q", p.TaskIDPrefix)
+	}
+}
+
+func TestCreate_ExplicitPrefixUsed(t *testing.T) {
+	ctx := context.Background()
+	svc := New(newFakeProjectRepo(), nil)
+
+	p, err := svc.Create(ctx, projectdom.CreateProjectInput{Name: "My Project", TaskIDPrefix: "MP2"})
+	if err != nil {
+		t.Fatalf("Create error: %v", err)
+	}
+	if p.TaskIDPrefix != "MP2" {
+		t.Errorf("expected prefix MP2, got %q", p.TaskIDPrefix)
+	}
+}
+
+func TestCreate_InvalidPrefixReturnsError(t *testing.T) {
+	ctx := context.Background()
+	svc := New(newFakeProjectRepo(), nil)
+
+	_, err := svc.Create(ctx, projectdom.CreateProjectInput{Name: "My Project", TaskIDPrefix: "my prefix!"})
+	if err == nil {
+		t.Fatal("expected error for invalid prefix, got nil")
+	}
+}
+
+func TestUpdate_PrefixUpdated(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeProjectRepo()
+	svc := New(repo, nil)
+
+	p, _ := svc.Create(ctx, projectdom.CreateProjectInput{Name: "MyProj"})
+
+	updated, err := svc.Update(ctx, p.ID, projectdom.UpdateProjectInput{TaskIDPrefix: "XYZ"})
+	if err != nil {
+		t.Fatalf("Update error: %v", err)
+	}
+	if updated.TaskIDPrefix != "XYZ" {
+		t.Errorf("expected prefix XYZ after update, got %q", updated.TaskIDPrefix)
+	}
+}
+
+func TestUpdate_InvalidPrefixReturnsError(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeProjectRepo()
+	svc := New(repo, nil)
+
+	p, _ := svc.Create(ctx, projectdom.CreateProjectInput{Name: "MyProj"})
+
+	_, err := svc.Update(ctx, p.ID, projectdom.UpdateProjectInput{TaskIDPrefix: "bad prefix"})
+	if err == nil {
+		t.Fatal("expected error for invalid prefix on update, got nil")
+	}
+}
+
+func TestSuggestPrefix_Cases(t *testing.T) {
+	cases := []struct {
+		name string
+		want string
+	}{
+		{"PACA", "PACA"},
+		{"Platform v3", "PV"},
+		{"my project roadmap design", "MPRD"},
+		{"", "PROJ"},
+		{"  ", "PROJ"},
+	}
+	for _, tc := range cases {
+		got := suggestPrefix(tc.name)
+		if got != tc.want {
+			t.Errorf("suggestPrefix(%q) = %q, want %q", tc.name, got, tc.want)
+		}
 	}
 }

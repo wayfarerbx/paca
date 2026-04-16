@@ -23,9 +23,11 @@ import (
 // ---------------------------------------------------------------------------
 
 type fakeTaskSvc struct {
-	mu    sync.RWMutex
-	tasks map[uuid.UUID]*taskdom.Task
-	types map[uuid.UUID]*taskdom.TaskType
+	mu            sync.RWMutex
+	tasks         map[uuid.UUID]*taskdom.Task
+	types         map[uuid.UUID]*taskdom.TaskType
+	lastProjectID uuid.UUID
+	lastFilter    taskdom.TaskFilter
 }
 
 func newFakeTaskSvc() *fakeTaskSvc {
@@ -63,6 +65,10 @@ func (f *fakeTaskSvc) UpdateTaskType(_ context.Context, _ uuid.UUID, _ taskdom.U
 
 func (f *fakeTaskSvc) DeleteTaskType(_ context.Context, _ uuid.UUID) error { return nil }
 
+func (f *fakeTaskSvc) SetDefaultTaskType(_ context.Context, _, _ uuid.UUID) (*taskdom.TaskType, error) {
+	return &taskdom.TaskType{}, nil
+}
+
 // -- TaskStatusService --
 
 func (f *fakeTaskSvc) ListTaskStatuses(_ context.Context, _ uuid.UUID) ([]*taskdom.TaskStatus, error) {
@@ -90,7 +96,11 @@ func (f *fakeTaskSvc) DeleteTaskStatus(_ context.Context, _ uuid.UUID) error { r
 
 // -- TaskService --
 
-func (f *fakeTaskSvc) ListTasks(_ context.Context, _ uuid.UUID, _ taskdom.TaskFilter, _, _ int) ([]*taskdom.Task, int64, error) {
+func (f *fakeTaskSvc) ListTasks(_ context.Context, projectID uuid.UUID, filter taskdom.TaskFilter, _, _ int) ([]*taskdom.Task, int64, error) {
+	f.mu.Lock()
+	f.lastProjectID = projectID
+	f.lastFilter = filter
+	f.mu.Unlock()
 	return nil, 0, nil
 }
 
@@ -105,14 +115,30 @@ func (f *fakeTaskSvc) GetTask(_ context.Context, id uuid.UUID) (*taskdom.Task, e
 	return &cp, nil
 }
 
+func (f *fakeTaskSvc) GetTaskByNumber(_ context.Context, projectID uuid.UUID, taskNumber int64) (*taskdom.Task, error) {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+	for _, t := range f.tasks {
+		if t.ProjectID == projectID && t.TaskNumber == taskNumber {
+			cp := *t
+			return &cp, nil
+		}
+	}
+	return nil, taskdom.ErrTaskNotFound
+}
+
 func (f *fakeTaskSvc) CreateTask(_ context.Context, in taskdom.CreateTaskInput) (*taskdom.Task, error) {
 	if in.Title == "" {
 		return nil, taskdom.ErrTaskTitleInvalid
 	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	taskNum := int64(len(f.tasks) + 1)
 	now := time.Now()
 	t := &taskdom.Task{
 		ID:           uuid.New(),
 		ProjectID:    in.ProjectID,
+		TaskNumber:   taskNum,
 		Title:        in.Title,
 		SprintID:     in.SprintID,
 		StatusID:     in.StatusID,
@@ -121,9 +147,7 @@ func (f *fakeTaskSvc) CreateTask(_ context.Context, in taskdom.CreateTaskInput) 
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
-	f.mu.Lock()
 	f.tasks[t.ID] = t
-	f.mu.Unlock()
 	return t, nil
 }
 
@@ -190,7 +214,7 @@ func (f *fakeViewSvcTask) ListViews(_ context.Context, _ uuid.UUID) ([]*sprintdo
 	return nil, nil
 }
 
-func (f *fakeViewSvcTask) ListBacklogViews(_ context.Context, _ uuid.UUID) ([]*sprintdom.SprintView, error) {
+func (f *fakeViewSvcTask) ListProjectViews(_ context.Context, _ uuid.UUID, _ sprintdom.ViewContext) ([]*sprintdom.SprintView, error) {
 	return nil, nil
 }
 
@@ -212,6 +236,10 @@ func (f *fakeViewSvcTask) MoveTask(_ context.Context, _ uuid.UUID, _ sprintdom.M
 	return nil
 }
 
+func (f *fakeViewSvcTask) BulkMoveTasks(_ context.Context, _ uuid.UUID, _ []sprintdom.MoveTaskInput) error {
+	return nil
+}
+
 func (f *fakeViewSvcTask) ListTaskPositions(_ context.Context, _ uuid.UUID) ([]*sprintdom.ViewTaskPosition, error) {
 	return nil, nil
 }
@@ -220,7 +248,7 @@ func (f *fakeViewSvcTask) ReorderViews(_ context.Context, _ uuid.UUID, _ []uuid.
 	return nil
 }
 
-func (f *fakeViewSvcTask) ReorderBacklogViews(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+func (f *fakeViewSvcTask) ReorderProjectViews(_ context.Context, _ uuid.UUID, _ sprintdom.ViewContext, _ []uuid.UUID) error {
 	return nil
 }
 
@@ -239,6 +267,7 @@ func buildTaskHandlerRouter(svc *fakeTaskSvc) *gin.Engine {
 	projectGroup.DELETE("/task-types/:typeId", h.DeleteTaskType)
 	projectGroup.GET("/tasks", h.ListTasks)
 	projectGroup.POST("/tasks", h.CreateTask)
+	projectGroup.GET("/tasks/by-number/:taskNumber", h.GetTaskByNumber)
 	projectGroup.GET("/tasks/:taskId", h.GetTask)
 	projectGroup.PATCH("/tasks/:taskId", h.UpdateTask)
 	projectGroup.DELETE("/tasks/:taskId", h.DeleteTask)
@@ -291,6 +320,95 @@ func decodeTaskField(t *testing.T, body []byte, field string) any {
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
+
+func TestTaskHandler_ListTasks_UsesUnifiedFilters(t *testing.T) {
+	svc := newFakeTaskSvc()
+	r := buildTaskHandlerRouter(svc)
+
+	projectID := uuid.New()
+	sprintID := uuid.New()
+	statusID := uuid.New()
+	assigneeID := uuid.New()
+	taskType1 := uuid.New()
+	taskType2 := uuid.New()
+
+	path := fmt.Sprintf(
+		"/projects/%s/tasks?sprint_id=%s&status_ids=%s&assignee_ids=%s&task_type_ids=%s,%s",
+		projectID,
+		sprintID,
+		statusID,
+		assigneeID,
+		taskType1,
+		taskType2,
+	)
+	w := doTaskRequest(r, http.MethodGet, path, nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if svc.lastProjectID != projectID {
+		t.Fatalf("expected project id %s, got %s", projectID, svc.lastProjectID)
+	}
+	if svc.lastFilter.SprintID == nil || *svc.lastFilter.SprintID != sprintID {
+		t.Fatalf("expected sprint filter %s, got %+v", sprintID, svc.lastFilter.SprintID)
+	}
+	if len(svc.lastFilter.StatusIDs) != 1 || svc.lastFilter.StatusIDs[0] != statusID {
+		t.Fatalf("unexpected status ids: %+v", svc.lastFilter.StatusIDs)
+	}
+	if len(svc.lastFilter.AssigneeIDs) != 1 || svc.lastFilter.AssigneeIDs[0] != assigneeID {
+		t.Fatalf("unexpected assignee ids: %+v", svc.lastFilter.AssigneeIDs)
+	}
+	if len(svc.lastFilter.TaskTypeIDs) != 2 || svc.lastFilter.TaskTypeIDs[0] != taskType1 || svc.lastFilter.TaskTypeIDs[1] != taskType2 {
+		t.Fatalf("unexpected task type ids: %+v", svc.lastFilter.TaskTypeIDs)
+	}
+}
+
+func TestTaskHandler_ListTasks_SprintIDsTakePriority(t *testing.T) {
+	svc := newFakeTaskSvc()
+	r := buildTaskHandlerRouter(svc)
+	projectID := uuid.New()
+	sprintID1 := uuid.New()
+	sprintID2 := uuid.New()
+
+	w := doTaskRequest(r, http.MethodGet, fmt.Sprintf("/projects/%s/tasks?sprint_id=null&sprint_ids=%s,%s", projectID, sprintID1, sprintID2), nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if svc.lastFilter.BacklogOnly {
+		t.Fatal("expected BacklogOnly=false when sprint_ids are provided")
+	}
+	if len(svc.lastFilter.SprintIDs) != 2 || svc.lastFilter.SprintIDs[0] != sprintID1 || svc.lastFilter.SprintIDs[1] != sprintID2 {
+		t.Fatalf("unexpected sprint ids: %+v", svc.lastFilter.SprintIDs)
+	}
+}
+
+func TestTaskHandler_ListTasks_SprintNullMeansBacklog(t *testing.T) {
+	svc := newFakeTaskSvc()
+	r := buildTaskHandlerRouter(svc)
+	projectID := uuid.New()
+
+	w := doTaskRequest(r, http.MethodGet, fmt.Sprintf("/projects/%s/tasks?sprint_id=null", projectID), nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if !svc.lastFilter.BacklogOnly {
+		t.Fatal("expected BacklogOnly=true when sprint_id=null")
+	}
+}
+
+func TestTaskHandler_ListTasks_TaskTypeIDsDriveFiltering(t *testing.T) {
+	svc := newFakeTaskSvc()
+	r := buildTaskHandlerRouter(svc)
+	projectID := uuid.New()
+	taskTypeID := uuid.New()
+
+	w := doTaskRequest(r, http.MethodGet, fmt.Sprintf("/projects/%s/tasks?task_type_ids=%s", projectID, taskTypeID), nil)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if len(svc.lastFilter.TaskTypeIDs) != 1 || svc.lastFilter.TaskTypeIDs[0] != taskTypeID {
+		t.Fatalf("unexpected task type ids: %+v", svc.lastFilter.TaskTypeIDs)
+	}
+}
 
 func TestTaskHandler_CreateTask_Returns201(t *testing.T) {
 	svc := newFakeTaskSvc()
@@ -488,5 +606,88 @@ func TestTaskHandler_InvalidTaskID_Returns400(t *testing.T) {
 	)
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for invalid task id, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Task Number handler tests
+// ---------------------------------------------------------------------------
+
+func TestTaskHandler_CreateTask_ResponseContainsTaskNumber(t *testing.T) {
+	svc := newFakeTaskSvc()
+	r := buildTaskHandlerRouter(svc)
+	projectID := uuid.New()
+
+	w := doTaskRequest(r, http.MethodPost,
+		fmt.Sprintf("/projects/%s/tasks", projectID),
+		map[string]any{"title": "Numbered Task"},
+	)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+	taskNum := decodeTaskField(t, w.Body.Bytes(), "task_number")
+	if taskNum == nil {
+		t.Fatal("expected task_number in response")
+	}
+	if taskNum.(float64) < 1 {
+		t.Errorf("expected task_number >= 1, got %v", taskNum)
+	}
+}
+
+func TestTaskHandler_GetTaskByNumber_Returns200(t *testing.T) {
+	svc := newFakeTaskSvc()
+	r := buildTaskHandlerRouter(svc)
+	projectID := uuid.New()
+
+	// Create task first to get a task number.
+	createW := doTaskRequest(r, http.MethodPost,
+		fmt.Sprintf("/projects/%s/tasks", projectID),
+		map[string]any{"title": "Task by number"},
+	)
+	if createW.Code != http.StatusCreated {
+		t.Fatalf("create: got %d", createW.Code)
+	}
+	taskNum := decodeTaskField(t, createW.Body.Bytes(), "task_number").(float64)
+	originalID := decodeTaskID(t, createW.Body.Bytes())
+
+	// Look up by task number.
+	getW := doTaskRequest(r, http.MethodGet,
+		fmt.Sprintf("/projects/%s/tasks/by-number/%d", projectID, int64(taskNum)),
+		nil,
+	)
+	if getW.Code != http.StatusOK {
+		t.Fatalf("get by number: expected 200, got %d: %s", getW.Code, getW.Body.String())
+	}
+	gotID := decodeTaskID(t, getW.Body.Bytes())
+	if gotID != originalID {
+		t.Errorf("expected id %s, got %s", originalID, gotID)
+	}
+}
+
+func TestTaskHandler_GetTaskByNumber_NotFoundReturns404(t *testing.T) {
+	svc := newFakeTaskSvc()
+	r := buildTaskHandlerRouter(svc)
+	projectID := uuid.New()
+
+	w := doTaskRequest(r, http.MethodGet,
+		fmt.Sprintf("/projects/%s/tasks/by-number/9999", projectID),
+		nil,
+	)
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestTaskHandler_GetTaskByNumber_InvalidNumberReturns400(t *testing.T) {
+	svc := newFakeTaskSvc()
+	r := buildTaskHandlerRouter(svc)
+	projectID := uuid.New()
+
+	w := doTaskRequest(r, http.MethodGet,
+		fmt.Sprintf("/projects/%s/tasks/by-number/not-a-number", projectID),
+		nil,
+	)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid task number, got %d: %s", w.Code, w.Body.String())
 	}
 }

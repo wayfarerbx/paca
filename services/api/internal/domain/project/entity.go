@@ -9,10 +9,11 @@ import (
 
 // Project is the core project aggregate.
 type Project struct {
-	ID          uuid.UUID
-	Name        string
-	Description string
-	Settings    map[string]any
-	CreatedBy   *uuid.UUID
-	CreatedAt   time.Time
+	ID           uuid.UUID
+	Name         string
+	Description  string
+	TaskIDPrefix string
+	Settings     map[string]any
+	CreatedBy    *uuid.UUID
+	CreatedAt    time.Time
 }

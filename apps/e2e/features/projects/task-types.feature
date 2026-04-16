@@ -7,8 +7,10 @@ Feature: Task types management
   Feature, Story, Epic, Task, Idea, Security, Chore, Branch, Critical,
   Important, Goal, Warning, Doc, Feedback, Package, Build, Test,
   Improvement, Refactor, Generic, Ticket, Checklist), an optional colour,
-  and an optional description.  A default set of types (Bug, Story, Task)
-  is created with every new project.
+  and an optional description.  A default set of user-manageable types
+  (Bug, Story, Task) is created with every new project.  Two system types
+  (Epic, Subtask) are also seeded at project creation; these are read-only
+  and cannot be created, edited, or deleted by users.
 
   @authenticated
   Rule: Viewing task types
@@ -23,20 +25,34 @@ Feature: Task types management
       Then the "Task Types" section heading should be visible
       And the section should display a description mentioning categorising tasks with custom types
 
-    Scenario: Default task types are pre-populated for a new project
+    Scenario: Default user-manageable task types are pre-populated for a new project
       When the user clicks "Task Types" in the settings sidebar
       Then the task types table should contain a type named "Bug"
       And the task types table should contain a type named "Story"
       And the task types table should contain a type named "Task"
 
+    Scenario: System task types Epic and Subtask are shown in a separate read-only section
+      When the user clicks "Task Types" in the settings sidebar
+      Then a "System types" read-only section should be visible below the user-manageable types table
+      And the system types section should contain a type named "Epic"
+      And the system types section should contain a type named "Subtask"
+      And the system types section should display a note that these types cannot be modified
+
     Scenario: Task types table shows the expected columns
       When the user clicks "Task Types" in the settings sidebar
       Then the task types table should have columns "Icon", "Name", and "Description"
 
-    Scenario: Each task type row has Edit and Delete action buttons
+    Scenario: User-manageable type rows have Edit and Delete action buttons
       When the user clicks "Task Types" in the settings sidebar
-      Then every task type row should have an "Edit type" button
-      And every task type row should have a "Delete type" button
+      Then every user-manageable task type row should have an "Edit type" button
+      And every user-manageable task type row should have a "Delete type" button
+
+    Scenario: System type rows do not have Edit or Delete action buttons
+      When the user clicks "Task Types" in the settings sidebar
+      Then the "Epic" system type row should not have an "Edit type" button
+      And the "Epic" system type row should not have a "Delete type" button
+      And the "Subtask" system type row should not have an "Edit type" button
+      And the "Subtask" system type row should not have a "Delete type" button
 
     Scenario: "New type" button is visible on the Task Types section
       When the user clicks "Task Types" in the settings sidebar
@@ -206,3 +222,24 @@ Feature: Task types management
       And the user clicks the Close button on the dialog
       Then the "Delete task type" dialog should close
       And the task types table should still contain a type named "E2E Delete Me Type"
+
+  @authenticated
+  Rule: System task types are protected from modification
+
+    Background:
+      Given the user already has a stored authenticated session
+      And a project named "E2E_SYSTEM_TYPE_PROJECT" exists
+      And the user has navigated to the "E2E_SYSTEM_TYPE_PROJECT" Settings page
+      And the user clicks "Task Types" in the settings sidebar
+
+    Scenario: The "New type" button cannot create a type named "Epic" or "Subtask"
+      When the user clicks the "New type" button
+      And the user fills the type name with "Epic"
+      And the user clicks "Create type"
+      Then an error message should indicate that "Epic" is a reserved system type name
+
+    Scenario: The "New type" button cannot create a type named "Subtask"
+      When the user clicks the "New type" button
+      And the user fills the type name with "Subtask"
+      And the user clicks "Create type"
+      Then an error message should indicate that "Subtask" is a reserved system type name

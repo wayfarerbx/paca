@@ -8,8 +8,8 @@ Interactive diagram: [https://dbdiagram.io/d/Paca-69c212ae78c6c4bc7a4fc190](http
 
 | File | Purpose |
 |---|---|
-| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects, project roles/members, task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views` (with `view_type`, `config`, `position`), `view_task_positions` (manual task order), `custom_field_definitions`, `tasks`, seed data |
-| `000002_task_attachments.sql` | Adds `start_date`, `due_date`, `tags` columns to `tasks`; creates `task_attachments` table |
+| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects, project roles/members, task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views` (with `view_type`, `config`, `position`), `view_task_positions` (manual task order), `custom_field_definitions`, `tasks` (with `start_date`, `due_date`, `tags`), `task_attachments`, `task_checklists`, `task_checklist_items`, seed data. On project creation the seed inserts three user-manageable task types (Bug, Story, Task — where Task is `is_default = true`) and two system task types (Epic, Subtask — where `is_system = true`). The API now seeds one backlog Table view with `config.column_by = "sprint"` and non-system task types, plus one timeline Roadmap view filtered to Epics; sprint creation seeds Board and Table views scoped to that sprint. |
+| `000002_add_view_context.sql` | Adds `view_context TEXT NOT NULL` to `sprint_views` with a `CHECK` constraint (`'sprint'\|'backlog'\|'timeline'`). Replaces the previous `is_timeline` boolean approach. Back-fills existing sprint rows to `'sprint'` and project-level (backlog) rows to `'backlog'`. Adds a partial index `idx_sprint_views_context` on `(project_id, view_context) WHERE sprint_id IS NULL` to speed up project-level view lookups. |
 
 ## Schema (DBML)
 
@@ -71,6 +71,8 @@ Table task_types {
   icon varchar
   color varchar
   description text
+  is_default boolean [not null, default: false, note: 'True for the single default type seeded at project creation (Task). Only one type per project should have is_default = true.']
+  is_system boolean [not null, default: false, note: 'True for system-managed types (Epic, Subtask). System types are seeded at project creation and cannot be created, edited, or deleted by users. They are displayed in a read-only section on the Task Types settings page and are excluded from inline task creation type pickers unless explicitly supported.']
 }
 
 Table task_statuses {
@@ -127,16 +129,17 @@ Table sprints {
   start_date date
   end_date date
   goal text
-  status varchar
+  status varchar [note: 'planned | active | completed. Multiple sprints per project may be active simultaneously.']
 }
 
 Table sprint_views {
   id uuid [primary key]
-  sprint_id uuid [null, note: 'null for product-backlog (project-level) views; set for sprint views']
+  sprint_id uuid [null, note: 'null for project-level views (backlog, timeline); set for sprint views']
   project_id uuid [not null, ref: > projects.id]
   name varchar
   view_type varchar [not null, note: 'Layout: table | board | roadmap']
-  position integer [not null, default: 0, note: 'Zero-based tab order within the integration; lower = further left in the tab bar. Updated on drag-to-reorder.']
+  view_context varchar [not null, note: 'Interaction discriminator: sprint | backlog | timeline. sprint rows always have sprint_id set; backlog and timeline rows have sprint_id = null.']
+  position integer [not null, default: 0, note: 'Zero-based tab order within the interaction; lower = further left in the tab bar. Updated on drag-to-reorder.']
   config jsonb [note: '''
     View display settings.  All keys are optional; unset keys fall back to
     per-project or system defaults.
@@ -144,7 +147,11 @@ Table sprint_views {
     fields      array<string>  Ordered list of visible column names.
                                e.g. ["title","assignees","status","importance"]
     column_by   string         Field used to group board columns or table
-                               groups.  e.g. "status" (default), "assignee".
+                               groups.  e.g. "status" (default for board/sprint
+                               views), "sprint" (default for product-backlog
+                               Table view — groups tasks into sprint columns
+                               plus an "Unassigned" column for tasks with no
+                               sprint).
     swimlanes   string|null    Field used to create horizontal swimlane bands
                                across the view.  null = no swimlanes.
     sort_by     string         "manual" = user-defined drag order stored in
@@ -227,6 +234,32 @@ Table task_activities {
   created_at timestamp
 }
 
+// --- TASK CHECKLISTS ---
+Table task_checklists {
+  id         uuid [primary key]
+  task_id    uuid [not null, ref: > tasks.id]
+  title      varchar [not null]
+  position   integer [not null, default: 0, note: 'Zero-based order among checklists on the same task']
+  created_by uuid [null, ref: > project_members.id]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table task_checklist_items {
+  id           uuid [primary key]
+  checklist_id uuid [not null, ref: > task_checklists.id]
+  title        text [not null]
+  is_checked   boolean [not null, default: false]
+  checked_by   uuid [null, ref: > project_members.id, note: 'Who checked this item']
+  checked_at   timestamp [null]
+  assignee_id  uuid [null, ref: > project_members.id, note: 'Optional per-item owner']
+  due_date     date [null]
+  position     integer [not null, default: 0, note: 'Zero-based order within the checklist']
+  created_by   uuid [null, ref: > project_members.id]
+  created_at   timestamp
+  updated_at   timestamp
+}
+
 // --- RELATIONSHIPS ---
 Ref: projects.id < project_members.project_id
 Ref: users.id < project_members.user_id
@@ -259,4 +292,10 @@ Ref: project_members.id < task_attachments.uploaded_by
 Ref: sprints.id < sprint_views.sprint_id
 Ref: sprint_views.id < view_task_positions.view_id
 Ref: tasks.id < view_task_positions.task_id
+Ref: tasks.id < task_checklists.task_id
+Ref: project_members.id < task_checklists.created_by
+Ref: task_checklists.id < task_checklist_items.checklist_id
+Ref: project_members.id < task_checklist_items.checked_by
+Ref: project_members.id < task_checklist_items.assignee_id
+Ref: project_members.id < task_checklist_items.created_by
 ```

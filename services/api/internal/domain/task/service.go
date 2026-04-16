@@ -24,6 +24,9 @@ type TaskTypeService interface {
 	CreateTaskType(ctx context.Context, in CreateTaskTypeInput) (*TaskType, error)
 	UpdateTaskType(ctx context.Context, id uuid.UUID, in UpdateTaskTypeInput) (*TaskType, error)
 	DeleteTaskType(ctx context.Context, id uuid.UUID) error
+	// SetDefaultTaskType marks typeID as the project's default task type,
+	// clearing the flag on all other types in the same project.
+	SetDefaultTaskType(ctx context.Context, projectID, typeID uuid.UUID) (*TaskType, error)
 }
 
 // CreateTaskTypeInput carries fields required to create a task type.
@@ -77,6 +80,7 @@ type UpdateTaskStatusInput struct {
 type TaskService interface {
 	ListTasks(ctx context.Context, projectID uuid.UUID, filter TaskFilter, page, pageSize int) ([]*Task, int64, error)
 	GetTask(ctx context.Context, id uuid.UUID) (*Task, error)
+	GetTaskByNumber(ctx context.Context, projectID uuid.UUID, taskNumber int64) (*Task, error)
 	CreateTask(ctx context.Context, in CreateTaskInput) (*Task, error)
 	UpdateTask(ctx context.Context, id uuid.UUID, in UpdateTaskInput) (*Task, error)
 	DeleteTask(ctx context.Context, id uuid.UUID) error

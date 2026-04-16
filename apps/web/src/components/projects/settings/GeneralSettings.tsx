@@ -20,7 +20,9 @@ export function GeneralSettings({
 
 	const [name, setName] = useState(project?.name ?? "");
 	const [description, setDescription] = useState(project?.description ?? "");
+	const [prefix, setPrefix] = useState(project?.task_id_prefix ?? "");
 	const [nameError, setNameError] = useState<string | null>(null);
+	const [prefixError, setPrefixError] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [saved, setSaved] = useState(false);
 
@@ -29,6 +31,7 @@ export function GeneralSettings({
 			updateProject(projectId, {
 				name: name.trim(),
 				description: description.trim(),
+				task_id_prefix: prefix.trim() || undefined,
 			}),
 		onSuccess: async (updated) => {
 			await queryClient.invalidateQueries({
@@ -38,8 +41,10 @@ export function GeneralSettings({
 			await queryClient.invalidateQueries({ queryKey: ["projects"] });
 			setName(updated.name);
 			setDescription(updated.description);
+			setPrefix(updated.task_id_prefix);
 			setError(null);
 			setNameError(null);
+			setPrefixError(null);
 			setSaved(true);
 			setTimeout(() => setSaved(false), 2500);
 		},
@@ -53,13 +58,20 @@ export function GeneralSettings({
 				setNameError("Project name is empty or invalid.");
 				return;
 			}
+			if (code === ApiErrorCode.ProjectPrefixInvalid) {
+				setPrefixError(
+					"Prefix must be 1–10 uppercase letters/digits (e.g. PACA).",
+				);
+				return;
+			}
 			setError("Failed to update project. Please try again.");
 		},
 	});
 
 	const isDirty =
 		name.trim() !== (project?.name ?? "") ||
-		description.trim() !== (project?.description ?? "");
+		description.trim() !== (project?.description ?? "") ||
+		prefix.trim() !== (project?.task_id_prefix ?? "");
 
 	return (
 		<div className="rounded-xl border border-border/60 bg-card p-6">
@@ -84,6 +96,35 @@ export function GeneralSettings({
 					/>
 					{nameError ? (
 						<p className="text-xs text-destructive">{nameError}</p>
+					) : null}
+				</div>
+
+				<div className="space-y-1.5">
+					<Label htmlFor="project-prefix">
+						Task ID prefix{" "}
+						<span className="text-muted-foreground font-normal text-xs">
+							e.g. PACA → PACA-1, PACA-2…
+						</span>
+					</Label>
+					<Input
+						id="project-prefix"
+						value={prefix}
+						onChange={(e) => {
+							setPrefix(
+								e.target.value
+									.toUpperCase()
+									.replace(/[^A-Z0-9]/g, "")
+									.slice(0, 10),
+							);
+							setPrefixError(null);
+						}}
+						placeholder="PROJ"
+						disabled={!canEdit}
+						className={`font-[JetBrains_Mono,monospace] uppercase w-32${prefixError ? " border-destructive focus-visible:ring-destructive/30" : ""}`}
+						maxLength={10}
+					/>
+					{prefixError ? (
+						<p className="text-xs text-destructive">{prefixError}</p>
 					) : null}
 				</div>
 

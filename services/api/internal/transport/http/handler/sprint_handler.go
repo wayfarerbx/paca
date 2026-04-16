@@ -12,13 +12,30 @@ import (
 
 // SprintHandler handles sprint management endpoints.
 type SprintHandler struct {
-	svc     sprintdom.SprintService
-	viewSvc sprintdom.ViewService
+	svc         sprintdom.SprintService
+	viewSvc     sprintdom.ViewService
+	taskTypeSvc taskTypeLister
+}
+
+// SprintHandlerOption customizes optional sprint-handler dependencies.
+type SprintHandlerOption func(*SprintHandler)
+
+// WithSprintDefaultTaskTypes enables sprint default-view seeding with explicit task-type filters.
+func WithSprintDefaultTaskTypes(taskTypeSvc taskTypeLister) SprintHandlerOption {
+	return func(h *SprintHandler) {
+		h.taskTypeSvc = taskTypeSvc
+	}
 }
 
 // NewSprintHandler returns a SprintHandler wired to the sprint and view services.
-func NewSprintHandler(svc sprintdom.SprintService, viewSvc sprintdom.ViewService) *SprintHandler {
-	return &SprintHandler{svc: svc, viewSvc: viewSvc}
+func NewSprintHandler(svc sprintdom.SprintService, viewSvc sprintdom.ViewService, opts ...SprintHandlerOption) *SprintHandler {
+	h := &SprintHandler{svc: svc, viewSvc: viewSvc}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(h)
+		}
+	}
+	return h
 }
 
 // ListSprints handles GET /projects/:projectId/sprints.
@@ -68,23 +85,12 @@ func (h *SprintHandler) CreateSprint(c *gin.Context) {
 
 	// Seed default views for every new sprint.
 	ctx := c.Request.Context()
-	defaultViews := []struct {
-		name     string
-		vt       sprintdom.ViewType
-		position int
-	}{
-		{name: "Board", vt: sprintdom.ViewTypeBoard, position: 0},
-		{name: "Table", vt: sprintdom.ViewTypeTable, position: 1},
+	taskTypes, loadErr := loadTaskTypes(ctx, h.taskTypeSvc, s.ProjectID)
+	if loadErr != nil {
+		c.Error(loadErr) //nolint:errcheck
 	}
-	for _, dv := range defaultViews {
-		_, err := h.viewSvc.CreateView(ctx, sprintdom.CreateViewInput{
-			SprintID:  &s.ID,
-			ProjectID: s.ProjectID,
-			Name:      dv.name,
-			ViewType:  dv.vt,
-			Position:  dv.position,
-		})
-		if err != nil {
+	for _, input := range defaultSprintViewInputs(s.ProjectID, s.ID, taskTypes) {
+		if _, err := h.viewSvc.CreateView(ctx, input); err != nil {
 			// Non-fatal: the sprint was created; log and continue.
 			c.Error(err) //nolint:errcheck
 		}
@@ -132,6 +138,31 @@ func (h *SprintHandler) DeleteSprint(c *gin.Context) {
 		return
 	}
 	presenter.OK(c, gin.H{"message": "sprint deleted"})
+}
+
+// CompleteSprint handles POST /projects/:projectId/sprints/:sprintId/complete.
+// It bulk-moves all non-done tasks to the requested destination sprint (or the
+// backlog when move_to_sprint_id is absent/null) and marks the sprint completed.
+func (h *SprintHandler) CompleteSprint(c *gin.Context) {
+	sprintID, err := parseSprintID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
+	var req dto.CompleteSprintRequest
+	if !middleware.BindJSON(c, &req) {
+		return
+	}
+
+	s, err := h.svc.CompleteSprint(c.Request.Context(), sprintID, sprintdom.CompleteSprintInput{
+		MoveToSprintID: req.MoveToSprintID,
+	})
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	presenter.OK(c, dto.SprintFromEntity(s))
 }
 
 // parseSprintID extracts and validates the :sprintId path parameter.

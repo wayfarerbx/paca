@@ -7,8 +7,10 @@ var (
 	ErrTaskNotFound     = errors.New("task: not found")
 	ErrTaskTitleInvalid = errors.New("task: title is empty or invalid")
 
-	ErrTypeNotFound    = errors.New("task type: not found")
-	ErrTypeNameInvalid = errors.New("task type: name is empty or invalid")
+	ErrTypeNotFound     = errors.New("task type: not found")
+	ErrTypeNameInvalid  = errors.New("task type: name is empty or invalid")
+	ErrTypeIsSystem     = errors.New("task type: system types cannot be modified")
+	ErrTypeNameReserved = errors.New("task type: name is reserved for system types")
 
 	ErrStatusNotFound        = errors.New("task status: not found")
 	ErrStatusNameInvalid     = errors.New("task status: name is empty or invalid")

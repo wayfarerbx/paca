@@ -143,7 +143,7 @@ test.describe('Sidebar Navigation', () => {
     }
   });
 
-  test('Theme Switcher Integration', async ({ page }) => {
+  test('Theme Switcher Interaction', async ({ page }) => {
     await signInAsAdmin(page);
 
     const viewport = page.viewportSize();

@@ -38,6 +38,7 @@ import {
 	type Project,
 	projectsQueryOptions,
 } from "@/lib/project-api";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/home/")({
 	loader: async ({ context: { queryClient } }) => {
@@ -47,6 +48,20 @@ export const Route = createFileRoute("/_authenticated/home/")({
 });
 
 // ── Create Project Dialog ─────────────────────────────────────────────────────
+
+/** Mirrors the backend suggestPrefix logic: first letter of each word (up to 4)
+ *  or first 4 chars of a single word, uppercased. */
+function suggestPrefix(name: string): string {
+	const clean = name.replace(/[^a-zA-Z0-9 ]/g, " ").trim();
+	const words = clean.split(/\s+/).filter(Boolean);
+	if (words.length === 0) return "";
+	if (words.length === 1) return words[0].slice(0, 4).toUpperCase();
+	return words
+		.slice(0, 4)
+		.map((w) => w[0])
+		.join("")
+		.toUpperCase();
+}
 
 function CreateProjectDialog({
 	open,
@@ -58,13 +73,19 @@ function CreateProjectDialog({
 	const queryClient = useQueryClient();
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
+	const [prefix, setPrefix] = useState("");
+	const [prefixTouched, setPrefixTouched] = useState(false);
 	const [nameError, setNameError] = useState<string | null>(null);
+	const [prefixError, setPrefixError] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
 	const reset = () => {
 		setName("");
 		setDescription("");
+		setPrefix("");
+		setPrefixTouched(false);
 		setNameError(null);
+		setPrefixError(null);
 		setError(null);
 	};
 
@@ -74,6 +95,7 @@ function CreateProjectDialog({
 			return createProject({
 				name: name.trim(),
 				description: description.trim() || undefined,
+				task_id_prefix: prefix.trim() || undefined,
 			});
 		},
 		onSuccess: async () => {
@@ -83,6 +105,7 @@ function CreateProjectDialog({
 		},
 		onError: (err: unknown) => {
 			setNameError(null);
+			setPrefixError(null);
 			setError(null);
 			if ((err as Error).message === "name_required") {
 				setNameError("Project name is required.");
@@ -95,6 +118,12 @@ function CreateProjectDialog({
 			}
 			if (code === ApiErrorCode.ProjectNameInvalid) {
 				setNameError("Project name is empty or invalid.");
+				return;
+			}
+			if (code === ApiErrorCode.ProjectPrefixInvalid) {
+				setPrefixError(
+					"Prefix must be 1–10 uppercase letters/digits (e.g. PACA).",
+				);
 				return;
 			}
 			setError("Something went wrong. Please try again.");
@@ -127,8 +156,12 @@ function CreateProjectDialog({
 							id="project-name"
 							value={name}
 							onChange={(e) => {
-								setName(e.target.value);
+								const val = e.target.value;
+								setName(val);
 								setNameError(null);
+								if (!prefixTouched) {
+									setPrefix(suggestPrefix(val));
+								}
 							}}
 							placeholder="e.g. Platform v3"
 							autoFocus
@@ -143,6 +176,54 @@ function CreateProjectDialog({
 						/>
 						{nameError ? (
 							<p className="text-xs text-destructive">{nameError}</p>
+						) : null}
+					</div>
+					<div className="space-y-1.5">
+						<Label htmlFor="project-prefix">
+							Task ID prefix{" "}
+							<span className="text-muted-foreground font-normal">
+								(e.g. PACA)
+							</span>
+						</Label>
+						<div className="flex items-center gap-2">
+							<Input
+								id="project-prefix"
+								value={prefix}
+								onChange={(e) => {
+									setPrefix(
+										e.target.value
+											.toUpperCase()
+											.replace(/[^A-Z0-9]/g, "")
+											.slice(0, 10),
+									);
+									setPrefixTouched(true);
+									setPrefixError(null);
+								}}
+								placeholder="PROJ"
+								className={cn(
+									"font-[JetBrains_Mono,monospace] uppercase w-32",
+									prefixError
+										? "border-destructive focus-visible:ring-destructive/30"
+										: "",
+								)}
+								maxLength={10}
+							/>
+							{prefix ? (
+								<span className="text-xs text-muted-foreground">
+									Tasks will be labelled{" "}
+									<span className="font-[JetBrains_Mono,monospace] font-semibold text-foreground">
+										{prefix}-1
+									</span>
+									,{" "}
+									<span className="font-[JetBrains_Mono,monospace] font-semibold text-foreground">
+										{prefix}-2
+									</span>
+									…
+								</span>
+							) : null}
+						</div>
+						{prefixError ? (
+							<p className="text-xs text-destructive">{prefixError}</p>
 						) : null}
 					</div>
 					<div className="space-y-1.5">

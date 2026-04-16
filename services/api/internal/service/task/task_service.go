@@ -10,6 +10,11 @@ import (
 	taskdom "github.com/paca/api/internal/domain/task"
 )
 
+var reservedSystemTypeNames = map[string]bool{
+	"Epic":    true,
+	"Subtask": true,
+}
+
 // Service is the concrete implementation of taskdom.Service.
 type Service struct {
 	repo taskdom.Repository
@@ -38,6 +43,9 @@ func (s *Service) CreateTaskType(ctx context.Context, in taskdom.CreateTaskTypeI
 	if name == "" {
 		return nil, taskdom.ErrTypeNameInvalid
 	}
+	if reservedSystemTypeNames[name] {
+		return nil, taskdom.ErrTypeNameReserved
+	}
 
 	now := time.Now()
 	t := &taskdom.TaskType{
@@ -63,6 +71,9 @@ func (s *Service) UpdateTaskType(ctx context.Context, id uuid.UUID, in taskdom.U
 	if err != nil {
 		return nil, err
 	}
+	if t.IsSystem {
+		return nil, taskdom.ErrTypeIsSystem
+	}
 
 	if name := strings.TrimSpace(in.Name); name != "" {
 		t.Name = name
@@ -80,10 +91,23 @@ func (s *Service) UpdateTaskType(ctx context.Context, id uuid.UUID, in taskdom.U
 
 // DeleteTaskType removes a task type by ID.
 func (s *Service) DeleteTaskType(ctx context.Context, id uuid.UUID) error {
-	if _, err := s.repo.FindTaskTypeByID(ctx, id); err != nil {
+	t, err := s.repo.FindTaskTypeByID(ctx, id)
+	if err != nil {
 		return err
 	}
+	if t.IsSystem {
+		return taskdom.ErrTypeIsSystem
+	}
 	return s.repo.DeleteTaskType(ctx, id)
+}
+
+// SetDefaultTaskType marks typeID as the project's default task type,
+// clearing the flag on all other types in the same project.
+func (s *Service) SetDefaultTaskType(ctx context.Context, projectID, typeID uuid.UUID) (*taskdom.TaskType, error) {
+	if err := s.repo.SetDefaultTaskType(ctx, projectID, typeID); err != nil {
+		return nil, err
+	}
+	return s.repo.FindTaskTypeByID(ctx, typeID)
 }
 
 // --- Task Statuses ----------------------------------------------------------
@@ -179,6 +203,11 @@ func (s *Service) ListTasks(ctx context.Context, projectID uuid.UUID, filter tas
 // GetTask returns the task with the given ID.
 func (s *Service) GetTask(ctx context.Context, id uuid.UUID) (*taskdom.Task, error) {
 	return s.repo.FindTaskByID(ctx, id)
+}
+
+// GetTaskByNumber returns the task with the given project-scoped sequential number.
+func (s *Service) GetTaskByNumber(ctx context.Context, projectID uuid.UUID, taskNumber int64) (*taskdom.Task, error) {
+	return s.repo.FindTaskByNumber(ctx, projectID, taskNumber)
 }
 
 // CreateTask creates a new task.

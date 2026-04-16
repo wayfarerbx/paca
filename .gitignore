@@ -25,3 +25,6 @@ playwright
 
 # VS Code settings
 .vscode/
+
+# Kilo settings
+.kilo/

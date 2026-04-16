@@ -11,26 +11,29 @@ import (
 
 // CreateProjectRequest is the body for POST /projects.
 type CreateProjectRequest struct {
-	Name        string         `json:"name" binding:"required"`
-	Description string         `json:"description"`
-	Settings    map[string]any `json:"settings"`
+	Name         string         `json:"name" binding:"required"`
+	Description  string         `json:"description"`
+	TaskIDPrefix string         `json:"task_id_prefix"`
+	Settings     map[string]any `json:"settings"`
 }
 
 // UpdateProjectRequest is the body for PATCH /projects/:projectId.
 type UpdateProjectRequest struct {
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-	Settings    map[string]any `json:"settings"`
+	Name         string         `json:"name"`
+	Description  string         `json:"description"`
+	TaskIDPrefix string         `json:"task_id_prefix"`
+	Settings     map[string]any `json:"settings"`
 }
 
 // ProjectResponse is the public representation of a project.
 type ProjectResponse struct {
-	ID          uuid.UUID      `json:"id"`
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-	Settings    map[string]any `json:"settings"`
-	CreatedBy   *uuid.UUID     `json:"created_by,omitempty"`
-	CreatedAt   time.Time      `json:"created_at"`
+	ID           uuid.UUID      `json:"id"`
+	Name         string         `json:"name"`
+	Description  string         `json:"description"`
+	TaskIDPrefix string         `json:"task_id_prefix"`
+	Settings     map[string]any `json:"settings"`
+	CreatedBy    *uuid.UUID     `json:"created_by,omitempty"`
+	CreatedAt    time.Time      `json:"created_at"`
 }
 
 // ProjectFromEntity maps a domain Project to a ProjectResponse DTO.
@@ -40,11 +43,12 @@ func ProjectFromEntity(p *projectdom.Project) ProjectResponse {
 		settings = map[string]any{}
 	}
 	return ProjectResponse{
-		ID:          p.ID,
-		Name:        p.Name,
-		Description: p.Description,
-		Settings:    settings,
-		CreatedBy:   p.CreatedBy,
-		CreatedAt:   p.CreatedAt,
+		ID:           p.ID,
+		Name:         p.Name,
+		Description:  p.Description,
+		TaskIDPrefix: p.TaskIDPrefix,
+		Settings:     settings,
+		CreatedBy:    p.CreatedBy,
+		CreatedAt:    p.CreatedAt,
 	}
 }

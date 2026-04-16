@@ -17,15 +17,16 @@ import (
 // --- GORM models ------------------------------------------------------------
 
 type sprintViewRecord struct {
-	ID        string  `gorm:"primarykey;type:uuid"`
-	SprintID  *string `gorm:"type:uuid;column:sprint_id"`
-	ProjectID string  `gorm:"type:uuid;not null;column:project_id"`
-	Name      string  `gorm:"not null"`
-	ViewType  string  `gorm:"not null;column:view_type;default:table"`
-	Config    []byte  `gorm:"type:jsonb;not null;column:config"`
-	Position  int     `gorm:"not null;default:0"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID          string  `gorm:"primarykey;type:uuid"`
+	SprintID    *string `gorm:"type:uuid;column:sprint_id"`
+	ProjectID   string  `gorm:"type:uuid;not null;column:project_id"`
+	Name        string  `gorm:"not null"`
+	ViewType    string  `gorm:"not null;column:view_type;default:table"`
+	Config      []byte  `gorm:"type:jsonb;not null;column:config"`
+	Position    float64 `gorm:"not null;default:0"`
+	ViewContext string  `gorm:"not null;column:view_context;default:sprint"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 func (sprintViewRecord) TableName() string { return "sprint_views" }
@@ -34,7 +35,7 @@ type viewTaskPositionRecord struct {
 	ID       string  `gorm:"primarykey;type:uuid"`
 	ViewID   string  `gorm:"type:uuid;not null;column:view_id"`
 	TaskID   string  `gorm:"type:uuid;not null;column:task_id"`
-	Position int     `gorm:"not null;default:0"`
+	Position float64 `gorm:"not null;default:0"`
 	GroupKey *string `gorm:"type:text;column:group_key"`
 }
 
@@ -87,14 +88,15 @@ func (r *ViewRepository) FindViewByID(ctx context.Context, id uuid.UUID) (*sprin
 	return toViewEntity(&rec)
 }
 
-// ListBacklogViews returns all product-backlog views for a project ordered by position.
-func (r *ViewRepository) ListBacklogViews(ctx context.Context, projectID uuid.UUID) ([]*sprintdom.SprintView, error) {
+// ListProjectViews returns all views for a project filtered by viewCtx,
+// ordered by position.  Use ViewContextBacklog or ViewContextTimeline.
+func (r *ViewRepository) ListProjectViews(ctx context.Context, projectID uuid.UUID, viewCtx sprintdom.ViewContext) ([]*sprintdom.SprintView, error) {
 	var records []sprintViewRecord
 	if err := r.db.WithContext(ctx).
-		Where("project_id = ? AND sprint_id IS NULL", projectID.String()).
+		Where("project_id = ? AND view_context = ?", projectID.String(), viewCtx).
 		Order("position ASC, created_at ASC").
 		Find(&records).Error; err != nil {
-		return nil, fmt.Errorf("view repo: list backlog: %w", err)
+		return nil, fmt.Errorf("view repo: list project views (%s): %w", viewCtx, err)
 	}
 	out := make([]*sprintdom.SprintView, 0, len(records))
 	for i := range records {
@@ -119,15 +121,16 @@ func (r *ViewRepository) CreateView(ctx context.Context, v *sprintdom.SprintView
 		sprintIDStr = &s
 	}
 	rec := &sprintViewRecord{
-		ID:        v.ID.String(),
-		SprintID:  sprintIDStr,
-		ProjectID: v.ProjectID.String(),
-		Name:      v.Name,
-		ViewType:  string(v.ViewType),
-		Config:    configBytes,
-		Position:  v.Position,
-		CreatedAt: v.CreatedAt,
-		UpdatedAt: v.UpdatedAt,
+		ID:          v.ID.String(),
+		SprintID:    sprintIDStr,
+		ProjectID:   v.ProjectID.String(),
+		Name:        v.Name,
+		ViewType:    string(v.ViewType),
+		Config:      configBytes,
+		Position:    v.Position,
+		ViewContext: string(v.ViewContext),
+		CreatedAt:   v.CreatedAt,
+		UpdatedAt:   v.UpdatedAt,
 	}
 	if err := r.db.WithContext(ctx).Create(rec).Error; err != nil {
 		return fmt.Errorf("view repo: create: %w", err)
@@ -175,13 +178,13 @@ func (r *ViewRepository) CountViews(ctx context.Context, sprintID uuid.UUID) (in
 	return int(count), nil
 }
 
-// CountBacklogViews returns the number of product-backlog views for a project.
-func (r *ViewRepository) CountBacklogViews(ctx context.Context, projectID uuid.UUID) (int, error) {
+// CountProjectViews returns the number of views for a project with the given viewCtx.
+func (r *ViewRepository) CountProjectViews(ctx context.Context, projectID uuid.UUID, viewCtx sprintdom.ViewContext) (int, error) {
 	var count int64
 	if err := r.db.WithContext(ctx).Model(&sprintViewRecord{}).
-		Where("project_id = ? AND sprint_id IS NULL", projectID.String()).
+		Where("project_id = ? AND view_context = ?", projectID.String(), viewCtx).
 		Count(&count).Error; err != nil {
-		return 0, fmt.Errorf("view repo: count backlog: %w", err)
+		return 0, fmt.Errorf("view repo: count project views (%s): %w", viewCtx, err)
 	}
 	return int(count), nil
 }
@@ -203,6 +206,32 @@ func (r *ViewRepository) UpsertTaskPosition(ctx context.Context, pos *sprintdom.
 	}).Create(rec)
 	if result.Error != nil {
 		return fmt.Errorf("view repo: upsert task position: %w", result.Error)
+	}
+	return nil
+}
+
+// BulkUpsertTaskPositions stores or updates multiple task positions in a single
+// transaction.  A single INSERT … ON CONFLICT statement is used when possible.
+func (r *ViewRepository) BulkUpsertTaskPositions(ctx context.Context, positions []*sprintdom.ViewTaskPosition) error {
+	if len(positions) == 0 {
+		return nil
+	}
+	recs := make([]viewTaskPositionRecord, 0, len(positions))
+	for _, pos := range positions {
+		recs = append(recs, viewTaskPositionRecord{
+			ID:       pos.ID.String(),
+			ViewID:   pos.ViewID.String(),
+			TaskID:   pos.TaskID.String(),
+			Position: pos.Position,
+			GroupKey: pos.GroupKey,
+		})
+	}
+	result := r.db.WithContext(ctx).Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "view_id"}, {Name: "task_id"}},
+		DoUpdates: clause.AssignmentColumns([]string{"position", "group_key"}),
+	}).Create(&recs)
+	if result.Error != nil {
+		return fmt.Errorf("view repo: bulk upsert task positions: %w", result.Error)
 	}
 	return nil
 }
@@ -256,15 +285,16 @@ func toViewEntity(r *sprintViewRecord) (*sprintdom.SprintView, error) {
 		}
 	}
 	return &sprintdom.SprintView{
-		ID:        id,
-		SprintID:  sid,
-		ProjectID: pid,
-		Name:      r.Name,
-		ViewType:  sprintdom.ViewType(r.ViewType),
-		Config:    cfg,
-		Position:  r.Position,
-		CreatedAt: r.CreatedAt,
-		UpdatedAt: r.UpdatedAt,
+		ID:          id,
+		SprintID:    sid,
+		ProjectID:   pid,
+		Name:        r.Name,
+		ViewType:    sprintdom.ViewType(r.ViewType),
+		Config:      cfg,
+		Position:    r.Position,
+		ViewContext: sprintdom.ViewContext(r.ViewContext),
+		CreatedAt:   r.CreatedAt,
+		UpdatedAt:   r.UpdatedAt,
 	}, nil
 }
 

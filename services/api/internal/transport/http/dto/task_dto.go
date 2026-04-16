@@ -134,6 +134,8 @@ type TaskTypeResponse struct {
 	Icon        *string   `json:"icon,omitempty"`
 	Color       *string   `json:"color,omitempty"`
 	Description *string   `json:"description,omitempty"`
+	IsDefault   bool      `json:"is_default"`
+	IsSystem    bool      `json:"is_system"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -147,6 +149,8 @@ func TaskTypeFromEntity(t *taskdom.TaskType) TaskTypeResponse {
 		Icon:        t.Icon,
 		Color:       t.Color,
 		Description: t.Description,
+		IsDefault:   t.IsDefault,
+		IsSystem:    t.IsSystem,
 		CreatedAt:   t.CreatedAt,
 		UpdatedAt:   t.UpdatedAt,
 	}
@@ -242,6 +246,7 @@ type UpdateTaskRequest struct {
 type TaskResponse struct {
 	ID           uuid.UUID      `json:"id"`
 	ProjectID    uuid.UUID      `json:"project_id"`
+	TaskNumber   int64          `json:"task_number"`
 	Title        string         `json:"title"`
 	TaskTypeID   *uuid.UUID     `json:"task_type_id,omitempty"`
 	StatusID     *uuid.UUID     `json:"status_id,omitempty"`
@@ -255,7 +260,7 @@ type TaskResponse struct {
 	StartDate    *time.Time     `json:"start_date,omitempty"`
 	DueDate      *time.Time     `json:"due_date,omitempty"`
 	Tags         []string       `json:"tags"`
-	ViewPosition *int           `json:"view_position,omitempty"`
+	ViewPosition *float64       `json:"view_position,omitempty"`
 	ViewGroupKey *string        `json:"view_group_key,omitempty"`
 	CreatedAt    time.Time      `json:"created_at"`
 	UpdatedAt    time.Time      `json:"updated_at"`
@@ -274,6 +279,7 @@ func TaskFromEntity(t *taskdom.Task) TaskResponse {
 	return TaskResponse{
 		ID:           t.ID,
 		ProjectID:    t.ProjectID,
+		TaskNumber:   t.TaskNumber,
 		Title:        t.Title,
 		TaskTypeID:   t.TaskTypeID,
 		StatusID:     t.StatusID,

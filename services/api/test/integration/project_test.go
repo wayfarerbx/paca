@@ -677,7 +677,7 @@ func TestIntegrationProjectCreation_DefaultTaskRecords(t *testing.T) {
 	if err := json.NewDecoder(typesW.Body).Decode(&typesEnv); err != nil {
 		t.Fatalf("decode task types: %v", err)
 	}
-	const wantTypes = 3
+	const wantTypes = 5
 	if got := len(typesEnv.Data.Items); got != wantTypes {
 		t.Errorf("expected %d default task types, got %d", wantTypes, got)
 	}
@@ -686,9 +686,36 @@ func TestIntegrationProjectCreation_DefaultTaskRecords(t *testing.T) {
 		name, _ := item["name"].(string)
 		gotTypeNames[name] = true
 	}
-	for _, name := range []string{"Task", "Bug", "Story"} {
+	for _, name := range []string{"Task", "Bug", "Story", "Epic", "Subtask"} {
 		if !gotTypeNames[name] {
 			t.Errorf("missing default task type %q", name)
+		}
+	}
+
+	// "Task" should be the only type with is_default: true.
+	for _, item := range typesEnv.Data.Items {
+		name, _ := item["name"].(string)
+		isDefault, _ := item["is_default"].(bool)
+		if name == "Task" && !isDefault {
+			t.Errorf("expected task type %q to have is_default=true", name)
+		}
+		if name != "Task" && isDefault {
+			t.Errorf("expected task type %q to have is_default=false", name)
+		}
+	}
+
+	// "Epic" and "Subtask" should have is_system: true; others false.
+	for _, item := range typesEnv.Data.Items {
+		name, _ := item["name"].(string)
+		isSystem, _ := item["is_system"].(bool)
+		if name == "Epic" || name == "Subtask" {
+			if !isSystem {
+				t.Errorf("expected task type %q to have is_system=true", name)
+			}
+		} else {
+			if isSystem {
+				t.Errorf("expected task type %q to have is_system=false", name)
+			}
 		}
 	}
 

@@ -7,6 +7,7 @@ import {
 	ChevronRight,
 	FileText,
 	FolderKanban,
+	GanttChart,
 	Home,
 	KanbanSquare,
 	LayoutDashboard,
@@ -18,18 +19,9 @@ import {
 	Sun,
 	Users,
 } from "lucide-react";
-import { type ComponentType, useEffect, useRef, useState } from "react";
+import { type ComponentType, useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-	Dialog,
-	DialogClose,
-	DialogContent,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -56,11 +48,7 @@ import {
 import { usePermissions } from "@/hooks/use-permissions";
 import type { ThemeMode } from "@/hooks/use-theme-mode";
 import { useThemeMode } from "@/hooks/use-theme-mode";
-import {
-	createSprint,
-	sprintsQueryOptions,
-	updateTask,
-} from "@/lib/integration-api";
+import { sprintsQueryOptions, updateTask } from "@/lib/interaction-api";
 import { projectQueryOptions, projectsQueryOptions } from "@/lib/project-api";
 import { cn } from "@/lib/utils";
 
@@ -203,7 +191,6 @@ function NavItem({
 // ── Project Nav ───────────────────────────────────────────────────────────────
 const PROJECT_NAV_ITEMS = [
 	{ segment: "", icon: LayoutDashboard, label: "Dashboard" },
-	{ segment: "integrations", icon: BookOpen, label: "Integrations" },
 	{ segment: "docs", icon: FileText, label: "Docs" },
 	{ segment: "team", icon: Users, label: "Team" },
 	{ segment: "settings", icon: Settings, label: "Settings" },
@@ -270,8 +257,8 @@ function ProjectNavItems({ projectId }: { projectId: string }) {
 	);
 }
 
-// ── Project Integrations Section ───────────────────────────────────────────────
-function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
+// ── Project Interactions Section ───────────────────────────────────────────────
+function ProjectInteractionsSection({ projectId }: { projectId: string }) {
 	const location = useRouterState({ select: (s) => s.location.pathname });
 	const { hasPermission } = usePermissions();
 	const qc = useQueryClient();
@@ -279,32 +266,25 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 		try {
 			return (
 				localStorage.getItem(
-					`paca:sidebar-integrations-collapsed:${projectId}`,
+					`paca:sidebar-interactions-collapsed:${projectId}`,
 				) === "true"
 			);
 		} catch {
 			return false;
 		}
 	});
-	const [createOpen, setCreateOpen] = useState(false);
-	const [sprintName, setSprintName] = useState("");
-	const [sprintGoal, setSprintGoal] = useState("");
-	const [startDate, setStartDate] = useState("");
-	const [endDate, setEndDate] = useState("");
-	const nameRef = useRef<HTMLInputElement>(null);
 
 	const canViewSprints = hasPermission("sprints.read");
-	const canCreateSprint = hasPermission("sprints.write");
 	const canEditTasks = hasPermission("tasks.write");
 
-	const [dragOverIntegrationId, setDragOverIntegrationId] = useState<
+	const [dragOverInteractionId, setDragOverInteractionId] = useState<
 		string | null
 	>(null);
 
 	// Clear the drop-target highlight whenever any drag ends (covers drag-cancel
 	// and mouse-release outside a valid target, where dragleave may not fire).
 	useEffect(() => {
-		const handleDragEnd = () => setDragOverIntegrationId(null);
+		const handleDragEnd = () => setDragOverInteractionId(null);
 		document.addEventListener("dragend", handleDragEnd);
 		return () => document.removeEventListener("dragend", handleDragEnd);
 	}, []);
@@ -319,40 +299,40 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 		}) => updateTask(projectId, taskId, { sprint_id: sprintId }),
 		onSuccess: () => {
 			qc.invalidateQueries({
-				queryKey: ["projects", projectId, "backlog-tasks"],
+				queryKey: ["projects", projectId, "tasks"],
 			});
 			qc.invalidateQueries({ queryKey: ["projects", projectId, "sprints"] });
 		},
 	});
 
-	const handleIntegrationDragOver = (
+	const handleInteractionDragOver = (
 		e: React.DragEvent,
-		integrationId: string,
+		interactionId: string,
 	) => {
 		if (!canEditTasks) return;
 		if (!e.dataTransfer.types.includes("application/x-paca-task-id")) return;
 		e.preventDefault();
 		e.dataTransfer.dropEffect = "move";
-		setDragOverIntegrationId(integrationId);
+		setDragOverInteractionId(interactionId);
 	};
 
-	const handleIntegrationDragLeave = (e: React.DragEvent) => {
+	const handleInteractionDragLeave = (e: React.DragEvent) => {
 		// Clear whenever leaving the item. If the cursor moves to a child element
 		// within the same item, dragover immediately re-fires on the parent and
 		// restores the highlight, so the brief gap is imperceptible.
 		if (
 			!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null)
 		) {
-			setDragOverIntegrationId(null);
+			setDragOverInteractionId(null);
 		}
 	};
 
-	const handleIntegrationDrop = (
+	const handleInteractionDrop = (
 		e: React.DragEvent,
 		sprintId: string | null,
 	) => {
 		e.preventDefault();
-		setDragOverIntegrationId(null);
+		setDragOverInteractionId(null);
 		if (!canEditTasks) return;
 		const taskId = e.dataTransfer.getData("text/plain");
 		if (!taskId) return;
@@ -366,44 +346,25 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 		refetchInterval: 30_000,
 	});
 
-	const createMutation = useMutation({
-		mutationFn: (name: string) =>
-			createSprint(projectId, {
-				name,
-				goal: sprintGoal.trim() || null,
-				status: "planned",
-				start_date: startDate || null,
-				end_date: endDate || null,
-			}),
-		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: ["projects", projectId, "sprints"] });
-			setSprintName("");
-			setSprintGoal("");
-			setStartDate("");
-			setEndDate("");
-			setCreateOpen(false);
-		},
-	});
-
 	// Hide entire section if user lacks the "View Sprints" permission
 	if (!canViewSprints) return null;
 
 	const openSprints = sprints
-		.filter((s) => s.status !== "completed")
-		.sort((a, b) => {
-			if (a.status === b.status) return a.name.localeCompare(b.name);
-			return a.status === "active" ? -1 : 1;
-		});
+		.filter((s) => s.status === "active")
+		.sort((a, b) => a.name.localeCompare(b.name));
 
-	const backlogHref = `/projects/${projectId}/integrations/backlog`;
+	const backlogHref = `/projects/${projectId}/interactions/backlog`;
 	const isBacklogActive = location.startsWith(backlogHref);
+
+	const timelineHref = `/projects/${projectId}/interactions/timeline`;
+	const isTimelineActive = location.startsWith(timelineHref);
 
 	const toggle = () => {
 		setCollapsed((prev) => {
 			const next = !prev;
 			try {
 				localStorage.setItem(
-					`paca:sidebar-integrations-collapsed:${projectId}`,
+					`paca:sidebar-interactions-collapsed:${projectId}`,
 					String(next),
 				);
 			} catch {
@@ -413,220 +374,98 @@ function ProjectIntegrationsSection({ projectId }: { projectId: string }) {
 		});
 	};
 
-	const handleCreate = () => {
-		const name = sprintName.trim();
-		if (!name) {
-			nameRef.current?.focus();
-			return;
-		}
-		createMutation.mutate(name);
-	};
-
 	return (
-		<>
-			<SidebarGroup>
-				<SidebarGroupLabel
-					className="flex cursor-pointer items-center justify-between hover:text-sidebar-foreground transition-colors"
-					onClick={toggle}
-				>
-					<span>Integrations</span>
-					<ChevronRight
-						className={cn(
-							"size-3.5 transition-transform duration-200 text-sidebar-foreground/40",
-							!collapsed && "rotate-90",
-						)}
-					/>
-				</SidebarGroupLabel>
+		<SidebarGroup>
+			<SidebarGroupLabel
+				className="flex cursor-pointer items-center justify-between hover:text-sidebar-foreground transition-colors"
+				onClick={toggle}
+			>
+				<span>Interactions</span>
+				<ChevronRight
+					className={cn(
+						"size-3.5 transition-transform duration-200 text-sidebar-foreground/40",
+						!collapsed && "rotate-90",
+					)}
+				/>
+			</SidebarGroupLabel>
 
-				{!collapsed && (
-					<SidebarGroupContent>
-						<SidebarMenu>
-							{/* Product Backlog — always shown */}
-							<SidebarMenuItem
-								onDragOver={(e) => handleIntegrationDragOver(e, "backlog")}
-								onDragLeave={handleIntegrationDragLeave}
-								onDrop={(e) => handleIntegrationDrop(e, null)}
+			{!collapsed && (
+				<SidebarGroupContent>
+					<SidebarMenu>
+						{/* Timeline */}
+						<SidebarMenuItem>
+							<SidebarMenuButton
+								isActive={isTimelineActive}
+								tooltip="Timeline"
+								render={<Link to={timelineHref} />}
+								className={cn(
+									"relative transition-all duration-150",
+									isTimelineActive
+										? "bg-primary/10 text-primary font-medium before:absolute before:left-0 before:inset-y-2 before:w-0.75 before:rounded-full before:bg-primary"
+										: "hover:bg-sidebar-accent/60",
+								)}
 							>
-								<SidebarMenuButton
-									isActive={isBacklogActive}
-									tooltip="Product Backlog"
-									render={<Link to={backlogHref} />}
-									className={cn(
-										"relative transition-all duration-150",
-										isBacklogActive
-											? "bg-primary/10 text-primary font-medium before:absolute before:left-0 before:inset-y-2 before:w-0.75 before:rounded-full before:bg-primary"
-											: "hover:bg-sidebar-accent/60",
-										dragOverIntegrationId === "backlog" &&
-											"ring-2 ring-primary/40 bg-primary/5 text-primary",
-									)}
+								<GanttChart className="size-4" />
+								<span>Timeline</span>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+						{/* Product Backlog — always shown */}
+						<SidebarMenuItem
+							onDragOver={(e) => handleInteractionDragOver(e, "backlog")}
+							onDragLeave={handleInteractionDragLeave}
+							onDrop={(e) => handleInteractionDrop(e, null)}
+						>
+							<SidebarMenuButton
+								isActive={isBacklogActive}
+								tooltip="Product Backlog"
+								render={<Link to={backlogHref} />}
+								className={cn(
+									"relative transition-all duration-150",
+									isBacklogActive
+										? "bg-primary/10 text-primary font-medium before:absolute before:left-0 before:inset-y-2 before:w-0.75 before:rounded-full before:bg-primary"
+										: "hover:bg-sidebar-accent/60",
+									dragOverInteractionId === "backlog" &&
+										"ring-2 ring-primary/40 bg-primary/5 text-primary",
+								)}
+							>
+								<BookOpen className="size-4" />
+								<span>Product Backlog</span>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+						{/* Open sprints */}
+						{openSprints.map((sprint) => {
+							const sprintHref = `/projects/${projectId}/interactions/sprints/${sprint.id}`;
+							const isActive = location.startsWith(sprintHref);
+							return (
+								<SidebarMenuItem
+									key={sprint.id}
+									onDragOver={(e) => handleInteractionDragOver(e, sprint.id)}
+									onDragLeave={handleInteractionDragLeave}
+									onDrop={(e) => handleInteractionDrop(e, sprint.id)}
 								>
-									<BookOpen className="size-4" />
-									<span>Product Backlog</span>
-								</SidebarMenuButton>
-							</SidebarMenuItem>
-
-							{/* Open sprints */}
-							{openSprints.map((sprint) => {
-								const sprintHref = `/projects/${projectId}/integrations/sprints/${sprint.id}`;
-								const isActive = location.startsWith(sprintHref);
-								return (
-									<SidebarMenuItem
-										key={sprint.id}
-										onDragOver={(e) => handleIntegrationDragOver(e, sprint.id)}
-										onDragLeave={handleIntegrationDragLeave}
-										onDrop={(e) => handleIntegrationDrop(e, sprint.id)}
-									>
-										<SidebarMenuButton
-											isActive={isActive}
-											tooltip={sprint.name}
-											render={<Link to={sprintHref} />}
-											className={cn(
-												"relative transition-all duration-150",
-												isActive
-													? "bg-primary/10 text-primary font-medium before:absolute before:left-0 before:inset-y-2 before:w-0.75 before:rounded-full before:bg-primary"
-													: "hover:bg-sidebar-accent/60",
-												dragOverIntegrationId === sprint.id &&
-													"ring-2 ring-primary/40 bg-primary/5 text-primary",
-											)}
-										>
-											<KanbanSquare className="size-4" />
-											<span className="flex-1 truncate">{sprint.name}</span>
-											{sprint.status === "active" && (
-												<span className="ml-auto flex size-1.5 shrink-0 rounded-full bg-emerald-500" />
-											)}
-										</SidebarMenuButton>
-									</SidebarMenuItem>
-								);
-							})}
-
-							{/* New sprint button — always visible to authorised users */}
-							{canCreateSprint && (
-								<SidebarMenuItem>
-									{/* Expanded sidebar: dashed bordered button with label */}
-									<button
-										type="button"
-										onClick={() => setCreateOpen(true)}
-										className="group-data-[collapsible=icon]:hidden flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground border border-dashed border-sidebar-border hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all duration-150"
-									>
-										<Plus className="size-3.5 shrink-0" />
-										<span>New sprint</span>
-									</button>
-									{/* Icon-only sidebar: plain icon button with tooltip */}
 									<SidebarMenuButton
-										tooltip="New sprint"
-										onClick={() => setCreateOpen(true)}
-										className="hidden group-data-[collapsible=icon]:flex"
+										isActive={isActive}
+										tooltip={sprint.name}
+										render={<Link to={sprintHref} />}
+										className={cn(
+											"relative transition-all duration-150",
+											isActive
+												? "bg-primary/10 text-primary font-medium before:absolute before:left-0 before:inset-y-2 before:w-0.75 before:rounded-full before:bg-primary"
+												: "hover:bg-sidebar-accent/60",
+											dragOverInteractionId === sprint.id &&
+												"ring-2 ring-primary/40 bg-primary/5 text-primary",
+										)}
 									>
-										<Plus className="size-4" />
+										<KanbanSquare className="size-4" />
+										<span className="flex-1 truncate">{sprint.name}</span>
 									</SidebarMenuButton>
 								</SidebarMenuItem>
-							)}
-						</SidebarMenu>
-					</SidebarGroupContent>
-				)}
-			</SidebarGroup>
-
-			{/* Create sprint dialog — rendered outside the sidebar DOM tree via portal */}
-			{canCreateSprint && (
-				<Dialog open={createOpen} onOpenChange={setCreateOpen}>
-					<DialogContent className="sm:max-w-md">
-						<DialogHeader>
-							<DialogTitle>New sprint</DialogTitle>
-						</DialogHeader>
-
-						<div className="flex flex-col gap-4 py-2">
-							{/* Name */}
-							<div className="flex flex-col gap-1.5">
-								<label
-									htmlFor="sprint-create-name"
-									className="text-sm font-medium"
-								>
-									Name <span className="text-destructive">*</span>
-								</label>
-								<input
-									id="sprint-create-name"
-									ref={nameRef}
-									value={sprintName}
-									onChange={(e) => setSprintName(e.target.value)}
-									onKeyDown={(e) => {
-										if (e.key === "Enter") handleCreate();
-									}}
-									placeholder="Sprint name…"
-									autoFocus
-									className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50"
-								/>
-							</div>
-
-							{/* Goal */}
-							<div className="flex flex-col gap-1.5">
-								<label
-									htmlFor="sprint-create-goal"
-									className="text-sm font-medium text-muted-foreground"
-								>
-									Goal <span className="text-xs font-normal">(optional)</span>
-								</label>
-								<textarea
-									id="sprint-create-goal"
-									value={sprintGoal}
-									onChange={(e) => setSprintGoal(e.target.value)}
-									placeholder="What should this sprint achieve?"
-									rows={3}
-									className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50 resize-none"
-								/>
-							</div>
-
-							{/* Dates */}
-							<div className="grid grid-cols-2 gap-3">
-								<div className="flex flex-col gap-1.5">
-									<label
-										htmlFor="sprint-create-start"
-										className="text-sm font-medium text-muted-foreground"
-									>
-										Start date{" "}
-										<span className="text-xs font-normal">(optional)</span>
-									</label>
-									<input
-										id="sprint-create-start"
-										type="date"
-										value={startDate}
-										onChange={(e) => setStartDate(e.target.value)}
-										className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-									/>
-								</div>
-								<div className="flex flex-col gap-1.5">
-									<label
-										htmlFor="sprint-create-end"
-										className="text-sm font-medium text-muted-foreground"
-									>
-										End date{" "}
-										<span className="text-xs font-normal">(optional)</span>
-									</label>
-									<input
-										id="sprint-create-end"
-										type="date"
-										value={endDate}
-										onChange={(e) => setEndDate(e.target.value)}
-										className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-									/>
-								</div>
-							</div>
-						</div>
-
-						<DialogFooter>
-							<DialogClose render={<Button variant="outline" />}>
-								Cancel
-							</DialogClose>
-							<Button
-								onClick={handleCreate}
-								disabled={!sprintName.trim() || createMutation.isPending}
-							>
-								{createMutation.isPending ? "Creating…" : "Create sprint"}
-							</Button>
-						</DialogFooter>
-					</DialogContent>
-				</Dialog>
+							);
+						})}
+					</SidebarMenu>
+				</SidebarGroupContent>
 			)}
-		</>
+		</SidebarGroup>
 	);
 }
 
@@ -738,9 +577,9 @@ export function AppSidebar() {
 					<>
 						<ProjectNav />
 						<SidebarSeparator />
-						<ProjectNavItems projectId={projectId} />
+						<ProjectInteractionsSection projectId={projectId} />
 						<SidebarSeparator />
-						<ProjectIntegrationsSection projectId={projectId} />
+						<ProjectNavItems projectId={projectId} />
 					</>
 				) : (
 					<>

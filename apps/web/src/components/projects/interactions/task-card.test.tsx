@@ -1,0 +1,178 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import type { Task } from "@/lib/interaction-api";
+import type { TaskStatus, TaskType } from "@/lib/project-api";
+import { TaskCard } from "./task-card";
+
+// ── Fixtures ──────────────────────────────────────────────────────────────────
+
+const makeTask = (overrides: Partial<Task> = {}): Task => ({
+	id: "task-1",
+	project_id: "proj-1",
+	title: "Fix the login bug",
+	task_number: 0,
+	sprint_id: "sprint-1",
+	status_id: "status-1",
+	task_type_id: null,
+	parent_task_id: null,
+	description: null,
+	importance: 0,
+	assignee_id: null,
+	reporter_id: null,
+	custom_fields: {},
+	view_position: null,
+	view_group_key: null,
+	created_at: "2026-01-01T00:00:00Z",
+	updated_at: "2026-01-01T00:00:00Z",
+	...overrides,
+});
+
+const NO_TYPES: TaskType[] = [];
+const NO_STATUSES: TaskStatus[] = [];
+
+const bugType: TaskType = {
+	id: "type-bug",
+	project_id: "proj-1",
+	name: "Bug",
+	icon: null,
+	color: "#FF0000",
+	description: null,
+	created_at: "2026-01-01T00:00:00Z",
+	updated_at: "2026-01-01T00:00:00Z",
+};
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+describe("TaskCard", () => {
+	it("renders the task title", () => {
+		render(
+			<TaskCard
+				task={makeTask()}
+				statuses={NO_STATUSES}
+				taskTypes={NO_TYPES}
+			/>,
+		);
+		expect(screen.getByText("Fix the login bug")).toBeInTheDocument();
+	});
+
+	it("does not render a type badge when task has no task_type_id", () => {
+		render(
+			<TaskCard
+				task={makeTask({ task_type_id: null })}
+				statuses={NO_STATUSES}
+				taskTypes={[bugType]}
+			/>,
+		);
+		expect(screen.queryByText("Bug")).not.toBeInTheDocument();
+	});
+
+	it("renders the task type badge when a matching type exists", () => {
+		render(
+			<TaskCard
+				task={makeTask({ task_type_id: "type-bug" })}
+				statuses={NO_STATUSES}
+				taskTypes={[bugType]}
+			/>,
+		);
+		expect(screen.getByText("Bug")).toBeInTheDocument();
+	});
+
+	it("calls onClick when the card is clicked", () => {
+		const onClick = vi.fn();
+		render(
+			<TaskCard
+				task={makeTask()}
+				statuses={NO_STATUSES}
+				taskTypes={NO_TYPES}
+				onClick={onClick}
+			/>,
+		);
+		fireEvent.click(screen.getByText("Fix the login bug"));
+		expect(onClick).toHaveBeenCalledOnce();
+	});
+
+	it("is draggable when canEdit=true", () => {
+		const { container } = render(
+			<TaskCard
+				task={makeTask()}
+				statuses={NO_STATUSES}
+				taskTypes={NO_TYPES}
+				canEdit={true}
+			/>,
+		);
+		const card = container.querySelector("[data-task-id='task-1']");
+		expect(card).toHaveAttribute("draggable", "true");
+	});
+
+	it("is not draggable when canEdit=false", () => {
+		const { container } = render(
+			<TaskCard
+				task={makeTask()}
+				statuses={NO_STATUSES}
+				taskTypes={NO_TYPES}
+				canEdit={false}
+			/>,
+		);
+		const card = container.querySelector("[data-task-id='task-1']");
+		expect(card).toHaveAttribute("draggable", "false");
+	});
+
+	it("calls onDragStart with the drag event", () => {
+		const onDragStart = vi.fn();
+		const { container } = render(
+			<TaskCard
+				task={makeTask()}
+				statuses={NO_STATUSES}
+				taskTypes={NO_TYPES}
+				canEdit={true}
+				onDragStart={onDragStart}
+			/>,
+		);
+		const card = container.querySelector("[data-task-id='task-1']") as Element;
+		fireEvent.dragStart(card);
+		expect(onDragStart).toHaveBeenCalledOnce();
+	});
+
+	it("calls onDragEnd when drag ends", () => {
+		const onDragEnd = vi.fn();
+		const { container } = render(
+			<TaskCard
+				task={makeTask()}
+				statuses={NO_STATUSES}
+				taskTypes={NO_TYPES}
+				canEdit={true}
+				onDragEnd={onDragEnd}
+			/>,
+		);
+		const card = container.querySelector("[data-task-id='task-1']") as Element;
+		fireEvent.dragEnd(card);
+		expect(onDragEnd).toHaveBeenCalledOnce();
+	});
+
+	it("applies dragging styles when isDragging=true", () => {
+		const { container } = render(
+			<TaskCard
+				task={makeTask()}
+				statuses={NO_STATUSES}
+				taskTypes={NO_TYPES}
+				isDragging={true}
+			/>,
+		);
+		const card = container.querySelector("[data-task-id='task-1']") as Element;
+		// isDragging adds opacity-50 class
+		expect(card.className).toMatch(/opacity-50/);
+	});
+
+	it("shows the assignee icon when task has an assignee", () => {
+		const { container } = render(
+			<TaskCard
+				task={makeTask({ assignee_id: "user-1" })}
+				statuses={NO_STATUSES}
+				taskTypes={NO_TYPES}
+			/>,
+		);
+		// assigned state: filled avatar circle with ring-primary/20
+		const assigneeEl = container.querySelector(".ring-primary\\/20");
+		expect(assigneeEl).toBeInTheDocument();
+	});
+});

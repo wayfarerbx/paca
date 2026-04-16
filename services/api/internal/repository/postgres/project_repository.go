@@ -15,12 +15,13 @@ import (
 // --- GORM models ------------------------------------------------------------
 
 type projectRecord struct {
-	ID          string `gorm:"primarykey;type:uuid"`
-	Name        string `gorm:"not null"`
-	Description string
-	Settings    []byte  `gorm:"type:jsonb;not null"`
-	CreatedBy   *string `gorm:"type:uuid"`
-	CreatedAt   time.Time
+	ID           string `gorm:"primarykey;type:uuid"`
+	Name         string `gorm:"not null"`
+	Description  string
+	TaskIDPrefix string  `gorm:"column:task_id_prefix;not null;default:''"`
+	Settings     []byte  `gorm:"type:jsonb;not null"`
+	CreatedBy    *string `gorm:"type:uuid"`
+	CreatedAt    time.Time
 }
 
 func (projectRecord) TableName() string { return "projects" }
@@ -166,10 +167,11 @@ func (r *ProjectRepository) Update(ctx context.Context, p *projectdom.Project) e
 		Model(&projectRecord{}).
 		Where("id = ?", p.ID.String()).
 		Updates(map[string]any{
-			"name":        p.Name,
-			"description": p.Description,
-			"settings":    settings,
-			"created_by":  createdBy,
+			"name":           p.Name,
+			"description":    p.Description,
+			"task_id_prefix": p.TaskIDPrefix,
+			"settings":       settings,
+			"created_by":     createdBy,
 		})
 	if result.Error != nil {
 		if isUniqueViolation(result.Error) {
@@ -424,12 +426,13 @@ func toProjectEntity(rec *projectRecord) (*projectdom.Project, error) {
 		}
 	}
 	return &projectdom.Project{
-		ID:          id,
-		Name:        rec.Name,
-		Description: rec.Description,
-		Settings:    settings,
-		CreatedBy:   createdBy,
-		CreatedAt:   rec.CreatedAt,
+		ID:           id,
+		Name:         rec.Name,
+		Description:  rec.Description,
+		TaskIDPrefix: rec.TaskIDPrefix,
+		Settings:     settings,
+		CreatedBy:    createdBy,
+		CreatedAt:    rec.CreatedAt,
 	}, nil
 }
 
@@ -444,12 +447,13 @@ func fromProjectEntity(p *projectdom.Project) (*projectRecord, error) {
 		createdBy = &s
 	}
 	return &projectRecord{
-		ID:          p.ID.String(),
-		Name:        p.Name,
-		Description: p.Description,
-		Settings:    settings,
-		CreatedBy:   createdBy,
-		CreatedAt:   p.CreatedAt,
+		ID:           p.ID.String(),
+		Name:         p.Name,
+		Description:  p.Description,
+		TaskIDPrefix: p.TaskIDPrefix,
+		Settings:     settings,
+		CreatedBy:    createdBy,
+		CreatedAt:    p.CreatedAt,
 	}, nil
 }
 

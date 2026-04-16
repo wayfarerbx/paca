@@ -23,6 +23,7 @@ type fakeTaskRepo struct {
 	statuses     map[uuid.UUID]*taskdom.TaskStatus
 	tasks        map[uuid.UUID]*taskdom.Task
 	customFields map[uuid.UUID]*taskdom.CustomFieldDefinition
+	counters     map[uuid.UUID]int64 // project-scoped task number counters
 }
 
 func newFakeTaskRepo() *fakeTaskRepo {
@@ -31,6 +32,7 @@ func newFakeTaskRepo() *fakeTaskRepo {
 		statuses:     make(map[uuid.UUID]*taskdom.TaskStatus),
 		tasks:        make(map[uuid.UUID]*taskdom.Task),
 		customFields: make(map[uuid.UUID]*taskdom.CustomFieldDefinition),
+		counters:     make(map[uuid.UUID]int64),
 	}
 }
 
@@ -83,6 +85,26 @@ func (r *fakeTaskRepo) DeleteTaskType(_ context.Context, id uuid.UUID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	delete(r.types, id)
+	return nil
+}
+
+func (r *fakeTaskRepo) SetDefaultTaskType(_ context.Context, projectID, typeID uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	found := false
+	for _, t := range r.types {
+		if t.ProjectID == projectID {
+			if t.ID == typeID {
+				t.IsDefault = true
+				found = true
+			} else {
+				t.IsDefault = false
+			}
+		}
+	}
+	if !found {
+		return taskdom.ErrTypeNotFound
+	}
 	return nil
 }
 
@@ -182,9 +204,23 @@ func (r *fakeTaskRepo) FindTaskByID(_ context.Context, id uuid.UUID) (*taskdom.T
 	return &cp, nil
 }
 
+func (r *fakeTaskRepo) FindTaskByNumber(_ context.Context, projectID uuid.UUID, taskNumber int64) (*taskdom.Task, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for _, t := range r.tasks {
+		if t.ProjectID == projectID && t.TaskNumber == taskNumber && t.DeletedAt == nil {
+			cp := *t
+			return &cp, nil
+		}
+	}
+	return nil, taskdom.ErrTaskNotFound
+}
+
 func (r *fakeTaskRepo) CreateTask(_ context.Context, t *taskdom.Task) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.counters[t.ProjectID]++
+	t.TaskNumber = r.counters[t.ProjectID]
 	cp := *t
 	r.tasks[t.ID] = &cp
 	return nil
@@ -210,6 +246,12 @@ func (r *fakeTaskRepo) DeleteTask(_ context.Context, id uuid.UUID) error {
 	}
 	now := time.Now()
 	t.DeletedAt = &now
+	return nil
+}
+
+// BulkMoveSprintTasks is not exercised by task service tests but must satisfy
+// the taskdom.TaskRepository interface.
+func (r *fakeTaskRepo) BulkMoveSprintTasks(_ context.Context, _, _ uuid.UUID, _ *uuid.UUID) error {
 	return nil
 }
 
@@ -304,6 +346,69 @@ func TestDeleteTaskType_OK(t *testing.T) {
 	_, err := svc.GetTaskType(ctx, tt.ID)
 	if err != taskdom.ErrTypeNotFound {
 		t.Errorf("expected ErrTypeNotFound after delete, got %v", err)
+	}
+}
+
+func TestSetDefaultTaskType_OK(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	tt1, _ := svc.CreateTaskType(ctx, taskdom.CreateTaskTypeInput{ProjectID: projectID, Name: "Task"})
+	tt2, _ := svc.CreateTaskType(ctx, taskdom.CreateTaskTypeInput{ProjectID: projectID, Name: "Bug"})
+
+	got, err := svc.SetDefaultTaskType(ctx, projectID, tt1.ID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !got.IsDefault {
+		t.Errorf("expected returned type to have IsDefault=true")
+	}
+
+	// The other type should have IsDefault=false.
+	other, _ := svc.GetTaskType(ctx, tt2.ID)
+	if other.IsDefault {
+		t.Errorf("expected %q to have IsDefault=false after SetDefaultTaskType", other.Name)
+	}
+}
+
+func TestSetDefaultTaskType_SwitchDefault(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	tt1, _ := svc.CreateTaskType(ctx, taskdom.CreateTaskTypeInput{ProjectID: projectID, Name: "Task"})
+	tt2, _ := svc.CreateTaskType(ctx, taskdom.CreateTaskTypeInput{ProjectID: projectID, Name: "Bug"})
+
+	// Set tt1 as default first.
+	_, _ = svc.SetDefaultTaskType(ctx, projectID, tt1.ID)
+
+	// Then switch to tt2.
+	got, err := svc.SetDefaultTaskType(ctx, projectID, tt2.ID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !got.IsDefault {
+		t.Errorf("expected Bug to now be default")
+	}
+
+	// tt1 must no longer be default.
+	prev, _ := svc.GetTaskType(ctx, tt1.ID)
+	if prev.IsDefault {
+		t.Errorf("expected Task to no longer be default after switching to Bug")
+	}
+}
+
+func TestSetDefaultTaskType_NotFound(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+
+	_, err := svc.SetDefaultTaskType(ctx, uuid.New(), uuid.New())
+	if err != taskdom.ErrTypeNotFound {
+		t.Errorf("expected ErrTypeNotFound, got %v", err)
 	}
 }
 
@@ -897,6 +1002,125 @@ func (r *fakeTaskRepo) DeleteCustomFieldDefinition(_ context.Context, id uuid.UU
 	defer r.mu.Unlock()
 	delete(r.customFields, id)
 	return nil
+}
+
+// ---------------------------------------------------------------------------
+// Task Number tests
+// ---------------------------------------------------------------------------
+
+func TestCreateTask_TaskNumberIncrementsPerProject(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	t1, err := svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projectID, Title: "First"})
+	if err != nil {
+		t.Fatalf("unexpected error creating first task: %v", err)
+	}
+	if t1.TaskNumber != 1 {
+		t.Errorf("expected first task TaskNumber=1, got %d", t1.TaskNumber)
+	}
+
+	t2, err := svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projectID, Title: "Second"})
+	if err != nil {
+		t.Fatalf("unexpected error creating second task: %v", err)
+	}
+	if t2.TaskNumber != 2 {
+		t.Errorf("expected second task TaskNumber=2, got %d", t2.TaskNumber)
+	}
+
+	t3, err := svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projectID, Title: "Third"})
+	if err != nil {
+		t.Fatalf("unexpected error creating third task: %v", err)
+	}
+	if t3.TaskNumber != 3 {
+		t.Errorf("expected third task TaskNumber=3, got %d", t3.TaskNumber)
+	}
+}
+
+func TestCreateTask_TaskNumberScopedToProject(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projA := uuid.New()
+	projB := uuid.New()
+
+	a1, _ := svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projA, Title: "A-1"})
+	a2, _ := svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projA, Title: "A-2"})
+	b1, _ := svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projB, Title: "B-1"})
+
+	if a1.TaskNumber != 1 {
+		t.Errorf("projA first task: expected TaskNumber=1, got %d", a1.TaskNumber)
+	}
+	if a2.TaskNumber != 2 {
+		t.Errorf("projA second task: expected TaskNumber=2, got %d", a2.TaskNumber)
+	}
+	if b1.TaskNumber != 1 {
+		t.Errorf("projB first task: expected TaskNumber=1 (independent counter), got %d", b1.TaskNumber)
+	}
+}
+
+func TestGetTaskByNumber_OK(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	created, _ := svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projectID, Title: "Lookup me"})
+
+	got, err := svc.GetTaskByNumber(ctx, projectID, created.TaskNumber)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got.ID != created.ID {
+		t.Errorf("expected ID=%v, got %v", created.ID, got.ID)
+	}
+	if got.TaskNumber != created.TaskNumber {
+		t.Errorf("expected TaskNumber=%d, got %d", created.TaskNumber, got.TaskNumber)
+	}
+}
+
+func TestGetTaskByNumber_NotFound(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+
+	_, err := svc.GetTaskByNumber(ctx, uuid.New(), 999)
+	if err != taskdom.ErrTaskNotFound {
+		t.Errorf("expected ErrTaskNotFound, got %v", err)
+	}
+}
+
+func TestGetTaskByNumber_DeletedTask(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	created, _ := svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projectID, Title: "Gone"})
+	_ = svc.DeleteTask(ctx, created.ID)
+
+	_, err := svc.GetTaskByNumber(ctx, projectID, created.TaskNumber)
+	if err != taskdom.ErrTaskNotFound {
+		t.Errorf("expected ErrTaskNotFound for deleted task, got %v", err)
+	}
+}
+
+func TestGetTaskByNumber_CrossProjectIsolation(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projA := uuid.New()
+	projB := uuid.New()
+
+	_, _ = svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projA, Title: "A-1"}) // task_number=1 in projA
+
+	// Looking up task_number=1 from projB should fail — different project.
+	_, err := svc.GetTaskByNumber(ctx, projB, 1)
+	if err != taskdom.ErrTaskNotFound {
+		t.Errorf("expected ErrTaskNotFound across projects, got %v", err)
+	}
 }
 
 // ---------------------------------------------------------------------------

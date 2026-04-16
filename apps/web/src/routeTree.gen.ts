@@ -20,11 +20,11 @@ import { Route as AuthenticatedAdminUsersIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedAdminGlobalRolesIndexRouteImport } from './routes/_authenticated/admin/global-roles/index'
 import { Route as AuthenticatedProjectsProjectIdTeamIndexRouteImport } from './routes/_authenticated/projects/$projectId/team/index'
 import { Route as AuthenticatedProjectsProjectIdSettingsIndexRouteImport } from './routes/_authenticated/projects/$projectId/settings/index'
-import { Route as AuthenticatedProjectsProjectIdIntegrationsIndexRouteImport } from './routes/_authenticated/projects/$projectId/integrations/index'
 import { Route as AuthenticatedProjectsProjectIdDocsIndexRouteImport } from './routes/_authenticated/projects/$projectId/docs/index'
 import { Route as AuthenticatedProjectsProjectIdTasksTaskIdRouteImport } from './routes/_authenticated/projects/$projectId/tasks/$taskId'
-import { Route as AuthenticatedProjectsProjectIdIntegrationsBacklogRouteImport } from './routes/_authenticated/projects/$projectId/integrations/backlog'
-import { Route as AuthenticatedProjectsProjectIdIntegrationsSprintsSprintIdRouteImport } from './routes/_authenticated/projects/$projectId/integrations/sprints/$sprintId'
+import { Route as AuthenticatedProjectsProjectIdInteractionsTimelineRouteImport } from './routes/_authenticated/projects/$projectId/interactions/timeline'
+import { Route as AuthenticatedProjectsProjectIdInteractionsBacklogRouteImport } from './routes/_authenticated/projects/$projectId/interactions/backlog'
+import { Route as AuthenticatedProjectsProjectIdInteractionsSprintsSprintIdRouteImport } from './routes/_authenticated/projects/$projectId/interactions/sprints/$sprintId'
 
 const ChangePasswordRoute = ChangePasswordRouteImport.update({
   id: '/change-password',
@@ -87,12 +87,6 @@ const AuthenticatedProjectsProjectIdSettingsIndexRoute =
     path: '/settings/',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
   } as any)
-const AuthenticatedProjectsProjectIdIntegrationsIndexRoute =
-  AuthenticatedProjectsProjectIdIntegrationsIndexRouteImport.update({
-    id: '/integrations/',
-    path: '/integrations/',
-    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
-  } as any)
 const AuthenticatedProjectsProjectIdDocsIndexRoute =
   AuthenticatedProjectsProjectIdDocsIndexRouteImport.update({
     id: '/docs/',
@@ -105,16 +99,22 @@ const AuthenticatedProjectsProjectIdTasksTaskIdRoute =
     path: '/tasks/$taskId',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
   } as any)
-const AuthenticatedProjectsProjectIdIntegrationsBacklogRoute =
-  AuthenticatedProjectsProjectIdIntegrationsBacklogRouteImport.update({
-    id: '/integrations/backlog',
-    path: '/integrations/backlog',
+const AuthenticatedProjectsProjectIdInteractionsTimelineRoute =
+  AuthenticatedProjectsProjectIdInteractionsTimelineRouteImport.update({
+    id: '/interactions/timeline',
+    path: '/interactions/timeline',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
   } as any)
-const AuthenticatedProjectsProjectIdIntegrationsSprintsSprintIdRoute =
-  AuthenticatedProjectsProjectIdIntegrationsSprintsSprintIdRouteImport.update({
-    id: '/integrations/sprints/$sprintId',
-    path: '/integrations/sprints/$sprintId',
+const AuthenticatedProjectsProjectIdInteractionsBacklogRoute =
+  AuthenticatedProjectsProjectIdInteractionsBacklogRouteImport.update({
+    id: '/interactions/backlog',
+    path: '/interactions/backlog',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
+const AuthenticatedProjectsProjectIdInteractionsSprintsSprintIdRoute =
+  AuthenticatedProjectsProjectIdInteractionsSprintsSprintIdRouteImport.update({
+    id: '/interactions/sprints/$sprintId',
+    path: '/interactions/sprints/$sprintId',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
   } as any)
 
@@ -127,13 +127,13 @@ export interface FileRoutesByFullPath {
   '/admin/global-roles/': typeof AuthenticatedAdminGlobalRolesIndexRoute
   '/admin/users/': typeof AuthenticatedAdminUsersIndexRoute
   '/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
-  '/projects/$projectId/integrations/backlog': typeof AuthenticatedProjectsProjectIdIntegrationsBacklogRoute
+  '/projects/$projectId/interactions/backlog': typeof AuthenticatedProjectsProjectIdInteractionsBacklogRoute
+  '/projects/$projectId/interactions/timeline': typeof AuthenticatedProjectsProjectIdInteractionsTimelineRoute
   '/projects/$projectId/tasks/$taskId': typeof AuthenticatedProjectsProjectIdTasksTaskIdRoute
   '/projects/$projectId/docs/': typeof AuthenticatedProjectsProjectIdDocsIndexRoute
-  '/projects/$projectId/integrations/': typeof AuthenticatedProjectsProjectIdIntegrationsIndexRoute
   '/projects/$projectId/settings/': typeof AuthenticatedProjectsProjectIdSettingsIndexRoute
   '/projects/$projectId/team/': typeof AuthenticatedProjectsProjectIdTeamIndexRoute
-  '/projects/$projectId/integrations/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdIntegrationsSprintsSprintIdRoute
+  '/projects/$projectId/interactions/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdInteractionsSprintsSprintIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -143,13 +143,13 @@ export interface FileRoutesByTo {
   '/admin/global-roles': typeof AuthenticatedAdminGlobalRolesIndexRoute
   '/admin/users': typeof AuthenticatedAdminUsersIndexRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdIndexRoute
-  '/projects/$projectId/integrations/backlog': typeof AuthenticatedProjectsProjectIdIntegrationsBacklogRoute
+  '/projects/$projectId/interactions/backlog': typeof AuthenticatedProjectsProjectIdInteractionsBacklogRoute
+  '/projects/$projectId/interactions/timeline': typeof AuthenticatedProjectsProjectIdInteractionsTimelineRoute
   '/projects/$projectId/tasks/$taskId': typeof AuthenticatedProjectsProjectIdTasksTaskIdRoute
   '/projects/$projectId/docs': typeof AuthenticatedProjectsProjectIdDocsIndexRoute
-  '/projects/$projectId/integrations': typeof AuthenticatedProjectsProjectIdIntegrationsIndexRoute
   '/projects/$projectId/settings': typeof AuthenticatedProjectsProjectIdSettingsIndexRoute
   '/projects/$projectId/team': typeof AuthenticatedProjectsProjectIdTeamIndexRoute
-  '/projects/$projectId/integrations/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdIntegrationsSprintsSprintIdRoute
+  '/projects/$projectId/interactions/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdInteractionsSprintsSprintIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -162,13 +162,13 @@ export interface FileRoutesById {
   '/_authenticated/admin/global-roles/': typeof AuthenticatedAdminGlobalRolesIndexRoute
   '/_authenticated/admin/users/': typeof AuthenticatedAdminUsersIndexRoute
   '/_authenticated/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
-  '/_authenticated/projects/$projectId/integrations/backlog': typeof AuthenticatedProjectsProjectIdIntegrationsBacklogRoute
+  '/_authenticated/projects/$projectId/interactions/backlog': typeof AuthenticatedProjectsProjectIdInteractionsBacklogRoute
+  '/_authenticated/projects/$projectId/interactions/timeline': typeof AuthenticatedProjectsProjectIdInteractionsTimelineRoute
   '/_authenticated/projects/$projectId/tasks/$taskId': typeof AuthenticatedProjectsProjectIdTasksTaskIdRoute
   '/_authenticated/projects/$projectId/docs/': typeof AuthenticatedProjectsProjectIdDocsIndexRoute
-  '/_authenticated/projects/$projectId/integrations/': typeof AuthenticatedProjectsProjectIdIntegrationsIndexRoute
   '/_authenticated/projects/$projectId/settings/': typeof AuthenticatedProjectsProjectIdSettingsIndexRoute
   '/_authenticated/projects/$projectId/team/': typeof AuthenticatedProjectsProjectIdTeamIndexRoute
-  '/_authenticated/projects/$projectId/integrations/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdIntegrationsSprintsSprintIdRoute
+  '/_authenticated/projects/$projectId/interactions/sprints/$sprintId': typeof AuthenticatedProjectsProjectIdInteractionsSprintsSprintIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -181,13 +181,13 @@ export interface FileRouteTypes {
     | '/admin/global-roles/'
     | '/admin/users/'
     | '/projects/$projectId/'
-    | '/projects/$projectId/integrations/backlog'
+    | '/projects/$projectId/interactions/backlog'
+    | '/projects/$projectId/interactions/timeline'
     | '/projects/$projectId/tasks/$taskId'
     | '/projects/$projectId/docs/'
-    | '/projects/$projectId/integrations/'
     | '/projects/$projectId/settings/'
     | '/projects/$projectId/team/'
-    | '/projects/$projectId/integrations/sprints/$sprintId'
+    | '/projects/$projectId/interactions/sprints/$sprintId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -197,13 +197,13 @@ export interface FileRouteTypes {
     | '/admin/global-roles'
     | '/admin/users'
     | '/projects/$projectId'
-    | '/projects/$projectId/integrations/backlog'
+    | '/projects/$projectId/interactions/backlog'
+    | '/projects/$projectId/interactions/timeline'
     | '/projects/$projectId/tasks/$taskId'
     | '/projects/$projectId/docs'
-    | '/projects/$projectId/integrations'
     | '/projects/$projectId/settings'
     | '/projects/$projectId/team'
-    | '/projects/$projectId/integrations/sprints/$sprintId'
+    | '/projects/$projectId/interactions/sprints/$sprintId'
   id:
     | '__root__'
     | '/'
@@ -215,13 +215,13 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/global-roles/'
     | '/_authenticated/admin/users/'
     | '/_authenticated/projects/$projectId/'
-    | '/_authenticated/projects/$projectId/integrations/backlog'
+    | '/_authenticated/projects/$projectId/interactions/backlog'
+    | '/_authenticated/projects/$projectId/interactions/timeline'
     | '/_authenticated/projects/$projectId/tasks/$taskId'
     | '/_authenticated/projects/$projectId/docs/'
-    | '/_authenticated/projects/$projectId/integrations/'
     | '/_authenticated/projects/$projectId/settings/'
     | '/_authenticated/projects/$projectId/team/'
-    | '/_authenticated/projects/$projectId/integrations/sprints/$sprintId'
+    | '/_authenticated/projects/$projectId/interactions/sprints/$sprintId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -309,13 +309,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdSettingsIndexRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdRoute
     }
-    '/_authenticated/projects/$projectId/integrations/': {
-      id: '/_authenticated/projects/$projectId/integrations/'
-      path: '/integrations'
-      fullPath: '/projects/$projectId/integrations/'
-      preLoaderRoute: typeof AuthenticatedProjectsProjectIdIntegrationsIndexRouteImport
-      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
-    }
     '/_authenticated/projects/$projectId/docs/': {
       id: '/_authenticated/projects/$projectId/docs/'
       path: '/docs'
@@ -330,18 +323,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdTasksTaskIdRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdRoute
     }
-    '/_authenticated/projects/$projectId/integrations/backlog': {
-      id: '/_authenticated/projects/$projectId/integrations/backlog'
-      path: '/integrations/backlog'
-      fullPath: '/projects/$projectId/integrations/backlog'
-      preLoaderRoute: typeof AuthenticatedProjectsProjectIdIntegrationsBacklogRouteImport
+    '/_authenticated/projects/$projectId/interactions/timeline': {
+      id: '/_authenticated/projects/$projectId/interactions/timeline'
+      path: '/interactions/timeline'
+      fullPath: '/projects/$projectId/interactions/timeline'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdInteractionsTimelineRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdRoute
     }
-    '/_authenticated/projects/$projectId/integrations/sprints/$sprintId': {
-      id: '/_authenticated/projects/$projectId/integrations/sprints/$sprintId'
-      path: '/integrations/sprints/$sprintId'
-      fullPath: '/projects/$projectId/integrations/sprints/$sprintId'
-      preLoaderRoute: typeof AuthenticatedProjectsProjectIdIntegrationsSprintsSprintIdRouteImport
+    '/_authenticated/projects/$projectId/interactions/backlog': {
+      id: '/_authenticated/projects/$projectId/interactions/backlog'
+      path: '/interactions/backlog'
+      fullPath: '/projects/$projectId/interactions/backlog'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdInteractionsBacklogRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/interactions/sprints/$sprintId': {
+      id: '/_authenticated/projects/$projectId/interactions/sprints/$sprintId'
+      path: '/interactions/sprints/$sprintId'
+      fullPath: '/projects/$projectId/interactions/sprints/$sprintId'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdInteractionsSprintsSprintIdRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdRoute
     }
   }
@@ -349,33 +349,33 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedProjectsProjectIdRouteChildren {
   AuthenticatedProjectsProjectIdIndexRoute: typeof AuthenticatedProjectsProjectIdIndexRoute
-  AuthenticatedProjectsProjectIdIntegrationsBacklogRoute: typeof AuthenticatedProjectsProjectIdIntegrationsBacklogRoute
+  AuthenticatedProjectsProjectIdInteractionsBacklogRoute: typeof AuthenticatedProjectsProjectIdInteractionsBacklogRoute
+  AuthenticatedProjectsProjectIdInteractionsTimelineRoute: typeof AuthenticatedProjectsProjectIdInteractionsTimelineRoute
   AuthenticatedProjectsProjectIdTasksTaskIdRoute: typeof AuthenticatedProjectsProjectIdTasksTaskIdRoute
   AuthenticatedProjectsProjectIdDocsIndexRoute: typeof AuthenticatedProjectsProjectIdDocsIndexRoute
-  AuthenticatedProjectsProjectIdIntegrationsIndexRoute: typeof AuthenticatedProjectsProjectIdIntegrationsIndexRoute
   AuthenticatedProjectsProjectIdSettingsIndexRoute: typeof AuthenticatedProjectsProjectIdSettingsIndexRoute
   AuthenticatedProjectsProjectIdTeamIndexRoute: typeof AuthenticatedProjectsProjectIdTeamIndexRoute
-  AuthenticatedProjectsProjectIdIntegrationsSprintsSprintIdRoute: typeof AuthenticatedProjectsProjectIdIntegrationsSprintsSprintIdRoute
+  AuthenticatedProjectsProjectIdInteractionsSprintsSprintIdRoute: typeof AuthenticatedProjectsProjectIdInteractionsSprintsSprintIdRoute
 }
 
 const AuthenticatedProjectsProjectIdRouteChildren: AuthenticatedProjectsProjectIdRouteChildren =
   {
     AuthenticatedProjectsProjectIdIndexRoute:
       AuthenticatedProjectsProjectIdIndexRoute,
-    AuthenticatedProjectsProjectIdIntegrationsBacklogRoute:
-      AuthenticatedProjectsProjectIdIntegrationsBacklogRoute,
+    AuthenticatedProjectsProjectIdInteractionsBacklogRoute:
+      AuthenticatedProjectsProjectIdInteractionsBacklogRoute,
+    AuthenticatedProjectsProjectIdInteractionsTimelineRoute:
+      AuthenticatedProjectsProjectIdInteractionsTimelineRoute,
     AuthenticatedProjectsProjectIdTasksTaskIdRoute:
       AuthenticatedProjectsProjectIdTasksTaskIdRoute,
     AuthenticatedProjectsProjectIdDocsIndexRoute:
       AuthenticatedProjectsProjectIdDocsIndexRoute,
-    AuthenticatedProjectsProjectIdIntegrationsIndexRoute:
-      AuthenticatedProjectsProjectIdIntegrationsIndexRoute,
     AuthenticatedProjectsProjectIdSettingsIndexRoute:
       AuthenticatedProjectsProjectIdSettingsIndexRoute,
     AuthenticatedProjectsProjectIdTeamIndexRoute:
       AuthenticatedProjectsProjectIdTeamIndexRoute,
-    AuthenticatedProjectsProjectIdIntegrationsSprintsSprintIdRoute:
-      AuthenticatedProjectsProjectIdIntegrationsSprintsSprintIdRoute,
+    AuthenticatedProjectsProjectIdInteractionsSprintsSprintIdRoute:
+      AuthenticatedProjectsProjectIdInteractionsSprintsSprintIdRoute,
   }
 
 const AuthenticatedProjectsProjectIdRouteWithChildren =

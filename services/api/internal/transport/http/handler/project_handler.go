@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/paca/api/internal/apierr"
 	projectdom "github.com/paca/api/internal/domain/project"
+	sprintdom "github.com/paca/api/internal/domain/sprint"
 	"github.com/paca/api/internal/platform/authz"
 	"github.com/paca/api/internal/transport/http/dto"
 	"github.com/paca/api/internal/transport/http/middleware"
@@ -15,13 +16,32 @@ import (
 
 // ProjectHandler handles project management endpoints.
 type ProjectHandler struct {
-	svc        projectdom.Service
-	authorizer *authz.Authorizer
+	svc         projectdom.Service
+	authorizer  *authz.Authorizer
+	viewSvc     sprintdom.ViewService
+	taskTypeSvc taskTypeLister
+}
+
+// ProjectHandlerOption customizes optional project-handler dependencies.
+type ProjectHandlerOption func(*ProjectHandler)
+
+// WithProjectDefaultViews enables API-side seeding of default backlog and timeline views.
+func WithProjectDefaultViews(viewSvc sprintdom.ViewService, taskTypeSvc taskTypeLister) ProjectHandlerOption {
+	return func(h *ProjectHandler) {
+		h.viewSvc = viewSvc
+		h.taskTypeSvc = taskTypeSvc
+	}
 }
 
 // NewProjectHandler returns a ProjectHandler wired to the service and authorizer.
-func NewProjectHandler(svc projectdom.Service, authorizer *authz.Authorizer) *ProjectHandler {
-	return &ProjectHandler{svc: svc, authorizer: authorizer}
+func NewProjectHandler(svc projectdom.Service, authorizer *authz.Authorizer, opts ...ProjectHandlerOption) *ProjectHandler {
+	h := &ProjectHandler{svc: svc, authorizer: authorizer}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(h)
+		}
+	}
+	return h
 }
 
 // ListProjects handles GET /projects.
@@ -99,15 +119,29 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	}
 
 	p, err := h.svc.Create(c.Request.Context(), projectdom.CreateProjectInput{
-		Name:        req.Name,
-		Description: req.Description,
-		Settings:    req.Settings,
-		CreatedBy:   createdBy,
+		Name:         req.Name,
+		Description:  req.Description,
+		TaskIDPrefix: req.TaskIDPrefix,
+		Settings:     req.Settings,
+		CreatedBy:    createdBy,
 	})
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
+
+	if h.viewSvc != nil {
+		taskTypes, loadErr := loadTaskTypes(c.Request.Context(), h.taskTypeSvc, p.ID)
+		if loadErr != nil {
+			c.Error(loadErr) //nolint:errcheck
+		}
+		for _, input := range defaultProjectViewInputs(p.ID, taskTypes) {
+			if _, seedErr := h.viewSvc.CreateView(c.Request.Context(), input); seedErr != nil {
+				c.Error(seedErr) //nolint:errcheck
+			}
+		}
+	}
+
 	presenter.Created(c, dto.ProjectFromEntity(p))
 }
 
@@ -125,9 +159,10 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 	}
 
 	p, err := h.svc.Update(c.Request.Context(), id, projectdom.UpdateProjectInput{
-		Name:        req.Name,
-		Description: req.Description,
-		Settings:    req.Settings,
+		Name:         req.Name,
+		Description:  req.Description,
+		TaskIDPrefix: req.TaskIDPrefix,
+		Settings:     req.Settings,
 	})
 	if err != nil {
 		presenter.Error(c, err)

@@ -14,7 +14,7 @@ type CreateViewRequest struct {
 	Name     string             `json:"name" binding:"required"`
 	ViewType sprintdom.ViewType `json:"view_type"`
 	Config   *ViewConfigDTO     `json:"config"`
-	Position *int               `json:"position"`
+	Position *float64           `json:"position"`
 }
 
 // UpdateViewRequest is the body for PATCH /sprints/:sprintId/views/:viewId.
@@ -22,17 +22,23 @@ type UpdateViewRequest struct {
 	Name     *string             `json:"name"`
 	ViewType *sprintdom.ViewType `json:"view_type"`
 	Config   *ViewConfigDTO      `json:"config"`
-	Position *int                `json:"position"`
+	Position *float64            `json:"position"`
 }
+
+// ViewFiltersDTO is the JSON representation of sprintdom.ViewFilters.
+// Each dimension is an optional FilterConfig selector that the client uses to
+// determine which entity IDs to include when querying tasks.
+type ViewFiltersDTO = sprintdom.ViewFilters
 
 // ViewConfigDTO is the JSON representation of sprintdom.ViewConfig.
 type ViewConfigDTO struct {
-	Fields    []string `json:"fields,omitempty"`
-	ColumnBy  string   `json:"column_by,omitempty"`
-	Swimlanes string   `json:"swimlanes,omitempty"`
-	SortBy    string   `json:"sort_by,omitempty"`
-	FieldSum  string   `json:"field_sum,omitempty"`
-	SliceBy   string   `json:"slice_by,omitempty"`
+	Fields    []string        `json:"fields,omitempty"`
+	ColumnBy  string          `json:"column_by,omitempty"`
+	Swimlanes string          `json:"swimlanes,omitempty"`
+	SortBy    string          `json:"sort_by,omitempty"`
+	FieldSum  string          `json:"field_sum,omitempty"`
+	SliceBy   string          `json:"slice_by,omitempty"`
+	Filters   *ViewFiltersDTO `json:"filters,omitempty"`
 }
 
 // ViewResponse is the public representation of a sprint view.
@@ -43,7 +49,7 @@ type ViewResponse struct {
 	Name      string             `json:"name"`
 	ViewType  sprintdom.ViewType `json:"view_type"`
 	Config    ViewConfigDTO      `json:"config"`
-	Position  int                `json:"position"`
+	Position  float64            `json:"position"`
 	CreatedAt time.Time          `json:"created_at"`
 	UpdatedAt time.Time          `json:"updated_at"`
 }
@@ -63,6 +69,7 @@ func ViewFromEntity(v *sprintdom.SprintView) ViewResponse {
 			SortBy:    v.Config.SortBy,
 			FieldSum:  v.Config.FieldSum,
 			SliceBy:   v.Config.SliceBy,
+			Filters:   v.Config.Filters,
 		},
 		Position:  v.Position,
 		CreatedAt: v.CreatedAt,
@@ -82,6 +89,7 @@ func toViewConfig(d *ViewConfigDTO) sprintdom.ViewConfig {
 		SortBy:    d.SortBy,
 		FieldSum:  d.FieldSum,
 		SliceBy:   d.SliceBy,
+		Filters:   d.Filters,
 	}
 }
 
@@ -98,15 +106,27 @@ func toViewConfigPtr(d *ViewConfigDTO) *sprintdom.ViewConfig {
 
 // MoveTaskRequest is the body for PUT /views/:viewId/task-positions/:taskId.
 type MoveTaskRequest struct {
-	Position int     `json:"position" binding:"min=0"`
+	Position float64 `json:"position" binding:"min=0"`
 	GroupKey *string `json:"group_key"`
+}
+
+// BulkMoveTaskItem is a single entry in a BulkMoveTasksRequest.
+type BulkMoveTaskItem struct {
+	TaskID   uuid.UUID `json:"task_id" binding:"required"`
+	Position float64   `json:"position" binding:"min=0"`
+	GroupKey *string   `json:"group_key"`
+}
+
+// BulkMoveTasksRequest is the body for PUT /views/:viewId/task-positions.
+type BulkMoveTasksRequest struct {
+	Items []BulkMoveTaskItem `json:"items" binding:"required,min=1"`
 }
 
 // TaskPositionResponse is the public representation of a ViewTaskPosition.
 type TaskPositionResponse struct {
 	ViewID   uuid.UUID `json:"view_id"`
 	TaskID   uuid.UUID `json:"task_id"`
-	Position int       `json:"position"`
+	Position float64   `json:"position"`
 	GroupKey *string   `json:"group_key,omitempty"`
 }
 
@@ -122,33 +142,36 @@ func TaskPositionFromEntity(p *sprintdom.ViewTaskPosition) TaskPositionResponse 
 
 // ToCreateInput builds the domain input for a sprint-scoped view.
 func (r CreateViewRequest) ToCreateInput(sprintID uuid.UUID, projectID uuid.UUID) sprintdom.CreateViewInput {
-	pos := 0
+	pos := 0.0
 	if r.Position != nil {
 		pos = *r.Position
 	}
 	return sprintdom.CreateViewInput{
-		SprintID:  &sprintID,
-		ProjectID: projectID,
-		Name:      r.Name,
-		ViewType:  r.ViewType,
-		Config:    toViewConfig(r.Config),
-		Position:  pos,
+		SprintID:    &sprintID,
+		ProjectID:   projectID,
+		Name:        r.Name,
+		ViewType:    r.ViewType,
+		Config:      toViewConfig(r.Config),
+		Position:    pos,
+		ViewContext: sprintdom.ViewContextSprint,
 	}
 }
 
-// ToCreateBacklogInput builds the domain input for a product-backlog view.
-func (r CreateViewRequest) ToCreateBacklogInput(projectID uuid.UUID) sprintdom.CreateViewInput {
-	pos := 0
+// ToCreateProjectViewInput builds the domain input for a project-level view
+// (backlog or timeline).  viewCtx must be ViewContextBacklog or ViewContextTimeline.
+func (r CreateViewRequest) ToCreateProjectViewInput(projectID uuid.UUID, viewCtx sprintdom.ViewContext) sprintdom.CreateViewInput {
+	pos := 0.0
 	if r.Position != nil {
 		pos = *r.Position
 	}
 	return sprintdom.CreateViewInput{
-		SprintID:  nil,
-		ProjectID: projectID,
-		Name:      r.Name,
-		ViewType:  r.ViewType,
-		Config:    toViewConfig(r.Config),
-		Position:  pos,
+		SprintID:    nil,
+		ProjectID:   projectID,
+		Name:        r.Name,
+		ViewType:    r.ViewType,
+		Config:      toViewConfig(r.Config),
+		Position:    pos,
+		ViewContext: viewCtx,
 	}
 }
 
@@ -165,7 +188,7 @@ func (r UpdateViewRequest) ToUpdateInput() sprintdom.UpdateViewInput {
 // --- Reorder DTOs -----------------------------------------------------------
 
 // ReorderViewsRequest is the body for PUT /views/positions.
-// ViewIDs must list every view for the integration in the desired tab order.
+// ViewIDs must list every view for the interaction in the desired tab order.
 type ReorderViewsRequest struct {
 	ViewIDs []uuid.UUID `json:"view_ids" binding:"required,min=1"`
 }

@@ -227,14 +227,14 @@ test.describe('Project Management', () => {
       await expect(page.getByRole('heading', { name: new RegExp(`${BASE_PROJECT_NAME} Dashboard`) })).toBeVisible();
     });
 
-    test('Project sidebar shows Dashboard, Integrations, Docs, Team, and Settings links', async ({ page }) => {
+    test('Project sidebar shows Dashboard, Interactions, Docs, Team, and Settings links', async ({ page }) => {
       await signInAndGoToHomePage(page);
       await page.getByRole('link', { name: new RegExp(BASE_PROJECT_NAME) }).click();
       await openMobileSidebar(page);
 
       // The sidebar should contain all required project links
       await expect(page.getByRole('link', { name: 'Dashboard', exact: true })).toBeVisible();
-      await expect(page.getByRole('link', { name: 'Integrations', exact: true })).toBeVisible();
+      await expect(page.getByText('Interactions', { exact: true })).toBeVisible();
       await expect(page.getByRole('link', { name: 'Docs', exact: true })).toBeVisible();
       await expect(page.getByRole('link', { name: 'Team', exact: true })).toBeVisible();
       await expect(page.getByRole('link', { name: 'Settings', exact: true })).toBeVisible();
@@ -367,7 +367,7 @@ test.describe('Project Management', () => {
       await expect(page.getByRole('dialog', { name: 'Delete project' })).toBeVisible();
 
       // The dialog should warn about permanent data loss
-      await expect(page.getByRole('dialog', { name: 'Delete project' }).getByText(/members.*roles.*integrations|integrations.*members.*roles/i)).toBeVisible();
+      await expect(page.getByRole('dialog', { name: 'Delete project' }).getByText(/members.*roles.*interactions|interactions.*members.*roles/i)).toBeVisible();
     });
 
     test('"Delete permanently" button is disabled until the project name is typed', async ({ page }) => {

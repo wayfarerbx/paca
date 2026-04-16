@@ -18,10 +18,16 @@ export const AUTH_FILE = path.join(__dirname, "playwright/.auth/user.json");
 export default defineConfig({
 	testDir: "./tests",
 
-	fullyParallel: true,
+	/*
+	 * Run each spec file fully in sequence (tests within a file are never
+	 * interleaved).  Files themselves run in parallel up to `workers`.
+	 * This avoids cross-file session invalidation while still gaining speed.
+	 */
+	fullyParallel: false,
 	forbidOnly: !!process.env.CI,
-	retries: process.env.CI ? 2 : 0,
-	/* Limit parallelism to reduce resource contention; keep 1 on CI, 1 locally for better test stability. */
+	/* 1 retry locally absorbs minor race-conditions; 2 on CI for reliability. */
+	retries: process.env.CI ? 2 : 1,
+	/* 1 worker to avoid API contention between test files. */
 	workers: 1,
 
 	reporter: [["html"], ["list"]],

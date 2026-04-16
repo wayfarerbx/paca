@@ -953,8 +953,8 @@ func TestE2EProjectCreation_DefaultTaskRecords(t *testing.T) {
 		decodeJSON(t, resp, &env2)
 		data := assertDataMap(t, env2)
 		items, _ := data["items"].([]any)
-		if len(items) != 3 {
-			t.Errorf("expected 3 default task types, got %d", len(items))
+		if len(items) != 5 {
+			t.Errorf("expected 5 default task types, got %d", len(items))
 		}
 		gotNames := map[string]bool{}
 		for _, item := range items {
@@ -962,9 +962,38 @@ func TestE2EProjectCreation_DefaultTaskRecords(t *testing.T) {
 			name, _ := m["name"].(string)
 			gotNames[name] = true
 		}
-		for _, name := range []string{"Task", "Bug", "Story"} {
+		for _, name := range []string{"Task", "Bug", "Story", "Epic", "Subtask"} {
 			if !gotNames[name] {
 				t.Errorf("missing default task type %q", name)
+			}
+		}
+
+		// "Task" should be the only type with is_default: true.
+		for _, item := range items {
+			m, _ := item.(map[string]any)
+			name, _ := m["name"].(string)
+			isDefault, _ := m["is_default"].(bool)
+			if name == "Task" && !isDefault {
+				t.Errorf("expected task type %q to have is_default=true", name)
+			}
+			if name != "Task" && isDefault {
+				t.Errorf("expected task type %q to have is_default=false", name)
+			}
+		}
+
+		// "Epic" and "Subtask" should have is_system: true; others false.
+		for _, item := range items {
+			m, _ := item.(map[string]any)
+			name, _ := m["name"].(string)
+			isSystem, _ := m["is_system"].(bool)
+			if name == "Epic" || name == "Subtask" {
+				if !isSystem {
+					t.Errorf("expected task type %q to have is_system=true", name)
+				}
+			} else {
+				if isSystem {
+					t.Errorf("expected task type %q to have is_system=false", name)
+				}
 			}
 		}
 	})
@@ -995,5 +1024,95 @@ func TestE2EProjectCreation_DefaultTaskRecords(t *testing.T) {
 				t.Errorf("missing default task status %q", name)
 			}
 		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Set-default task type
+// ---------------------------------------------------------------------------
+
+func TestE2ETaskTypes_SetDefault(t *testing.T) {
+	env := newE2EEnv(t)
+	seedProjectAdminUser(t, env, "setdefault-admin", "setdefaultpass1")
+	client, token := projectAdminLogin(t, env, "setdefault-admin", "setdefaultpass1")
+	projID := createProjectViaAPI(t, env, client, token, "setdefault-project-"+uuid.NewString(), "")
+
+	// Fetch the default task types to find "Bug" and "Task" IDs.
+	typesURL := fmt.Sprintf("%s/api/v1/projects/%s/task-types", env.base, projID)
+	req := mustRequest(env.ctx, t, http.MethodGet, typesURL, nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp := mustDo(t, client, req)
+	defer func() { _ = resp.Body.Close() }()
+	assertStatus(t, resp, http.StatusOK)
+
+	var typesEnv envelope
+	decodeJSON(t, resp, &typesEnv)
+	typesData := assertDataMap(t, typesEnv)
+	items, _ := typesData["items"].([]any)
+
+	typeIDs := map[string]string{}
+	for _, item := range items {
+		m, _ := item.(map[string]any)
+		name, _ := m["name"].(string)
+		id, _ := m["id"].(string)
+		typeIDs[name] = id
+	}
+
+	bugID, ok := typeIDs["Bug"]
+	if !ok {
+		t.Fatal("could not find Bug task type in default types")
+	}
+
+	t.Run("set_bug_as_default", func(t *testing.T) {
+		url := fmt.Sprintf("%s/api/v1/projects/%s/task-types/%s/set-default", env.base, projID, bugID)
+		req := mustRequest(env.ctx, t, http.MethodPut, url, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+		if isDefault, _ := data["is_default"].(bool); !isDefault {
+			t.Errorf("expected is_default=true in response, got %v", data["is_default"])
+		}
+	})
+
+	t.Run("only_one_default_after_switch", func(t *testing.T) {
+		req := mustRequest(env.ctx, t, http.MethodGet, typesURL, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+		items2, _ := data["items"].([]any)
+
+		defaultCount := 0
+		for _, item := range items2 {
+			m, _ := item.(map[string]any)
+			if isDefault, _ := m["is_default"].(bool); isDefault {
+				defaultCount++
+				if id, _ := m["id"].(string); id != bugID {
+					t.Errorf("expected default to be Bug (%s), got %s", bugID, id)
+				}
+			}
+		}
+		if defaultCount != 1 {
+			t.Errorf("expected exactly 1 default type, got %d", defaultCount)
+		}
+	})
+
+	t.Run("set_default_not_found_returns_404", func(t *testing.T) {
+		url := fmt.Sprintf("%s/api/v1/projects/%s/task-types/%s/set-default", env.base, projID, uuid.NewString())
+		req := mustRequest(env.ctx, t, http.MethodPut, url, nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusNotFound)
+		assertErrorCode(t, resp, "TASK_TYPE_NOT_FOUND")
 	})
 }

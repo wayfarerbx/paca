@@ -9,6 +9,7 @@ export interface Project {
 	id: string;
 	name: string;
 	description: string;
+	task_id_prefix: string;
 	settings: Record<string, unknown>;
 	created_by?: string;
 	created_at: string;
@@ -62,6 +63,7 @@ export async function getProject(projectId: string): Promise<Project> {
 export async function createProject(payload: {
 	name: string;
 	description?: string;
+	task_id_prefix?: string;
 }): Promise<Project> {
 	const { data } = await apiClient.instance.post<SuccessEnvelope<Project>>(
 		"/projects",
@@ -72,7 +74,7 @@ export async function createProject(payload: {
 
 export async function updateProject(
 	projectId: string,
-	payload: { name?: string; description?: string },
+	payload: { name?: string; description?: string; task_id_prefix?: string },
 ): Promise<Project> {
 	const { data } = await apiClient.instance.patch<SuccessEnvelope<Project>>(
 		`/projects/${projectId}`,
@@ -174,6 +176,8 @@ export interface TaskType {
 	icon?: string | null;
 	color?: string | null;
 	description?: string | null;
+	is_default?: boolean;
+	is_system?: boolean;
 	created_at: string;
 	updated_at: string;
 }
@@ -225,6 +229,43 @@ export async function deleteTaskType(
 	await apiClient.instance.delete(
 		`/projects/${projectId}/task-types/${typeId}`,
 	);
+}
+
+export async function setDefaultTaskType(
+	projectId: string,
+	typeId: string,
+): Promise<TaskType> {
+	const { data } = await apiClient.instance.put<SuccessEnvelope<TaskType>>(
+		`/projects/${projectId}/task-types/${typeId}/set-default`,
+	);
+	return data.data;
+}
+
+// ── Task type role helpers ─────────────────────────────────────────────────────
+
+/** Returns true if this task type is the system "Epic" type. */
+export function isEpicType(t: TaskType | undefined | null): boolean {
+	return !!t && !!t.is_system && t.name === "Epic";
+}
+
+/** Returns true if this task type is the system "Subtask" type. */
+export function isSubtaskType(t: TaskType | undefined | null): boolean {
+	return !!t && !!t.is_system && t.name === "Subtask";
+}
+
+/** Finds the Epic system type from a list of task types. */
+export function findEpicType(types: TaskType[]): TaskType | undefined {
+	return types.find(isEpicType);
+}
+
+/** Finds the Subtask system type from a list of task types. */
+export function findSubtaskType(types: TaskType[]): TaskType | undefined {
+	return types.find(isSubtaskType);
+}
+
+/** Returns non-system task types (Task, Bug, Story, etc). */
+export function getNormalTaskTypes(types: TaskType[]): TaskType[] {
+	return types.filter((t) => !t.is_system);
 }
 
 // ── Task Statuses ─────────────────────────────────────────────────────────────

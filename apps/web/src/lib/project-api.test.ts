@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockGet, mockPost, mockPatch, mockDelete } = vi.hoisted(() => ({
-	mockGet: vi.fn(),
-	mockPost: vi.fn(),
-	mockPatch: vi.fn(),
-	mockDelete: vi.fn(),
-}));
+const { mockGet, mockPost, mockPatch, mockDelete, mockPut } = vi.hoisted(
+	() => ({
+		mockGet: vi.fn(),
+		mockPost: vi.fn(),
+		mockPatch: vi.fn(),
+		mockDelete: vi.fn(),
+		mockPut: vi.fn(),
+	}),
+);
 
 vi.mock("./api-client", () => ({
 	apiClient: {
@@ -14,6 +17,7 @@ vi.mock("./api-client", () => ({
 			post: mockPost,
 			patch: mockPatch,
 			delete: mockDelete,
+			put: mockPut,
 		},
 	},
 }));
@@ -24,7 +28,12 @@ import {
 	createProjectRole,
 	deleteProject,
 	deleteProjectRole,
+	findEpicType,
+	findSubtaskType,
+	getNormalTaskTypes,
 	getProject,
+	isEpicType,
+	isSubtaskType,
 	listProjectMembers,
 	listProjectRoles,
 	listProjects,
@@ -37,6 +46,9 @@ import {
 	projectRolesQueryOptions,
 	projectsQueryOptions,
 	removeProjectMember,
+	setDefaultTaskType,
+	type TaskType,
+	taskTypesQueryOptions,
 	updateProject,
 	updateProjectMemberRole,
 	updateProjectRole,
@@ -48,6 +60,7 @@ const mockProject: Project = {
 	id: "p1",
 	name: "Alpha",
 	description: "First project",
+	task_id_prefix: "ALPH",
 	settings: {},
 	created_by: "u1",
 	created_at: "2026-01-01T00:00:00.000Z",
@@ -68,6 +81,16 @@ const mockRole: ProjectRole = {
 	project_id: "p1",
 	role_name: "Developer",
 	permissions: { "tasks.*": true },
+	created_at: "2026-01-01T00:00:00.000Z",
+	updated_at: "2026-01-01T00:00:00.000Z",
+};
+
+const mockTaskType: TaskType = {
+	id: "tt1",
+	project_id: "p1",
+	name: "Task",
+	is_default: true,
+	is_system: false,
 	created_at: "2026-01-01T00:00:00.000Z",
 	updated_at: "2026-01-01T00:00:00.000Z",
 };
@@ -286,6 +309,142 @@ describe("project-api", () => {
 			const opts = projectRolesQueryOptions("p1");
 			expect(opts.queryKey).toEqual(["projects", "p1", "roles"]);
 			expect(typeof opts.queryFn).toBe("function");
+		});
+
+		it("taskTypesQueryOptions exposes correct key and fn", () => {
+			const opts = taskTypesQueryOptions("p1");
+			expect(opts.queryKey).toEqual(["projects", "p1", "task-types"]);
+			expect(typeof opts.queryFn).toBe("function");
+		});
+	});
+
+	// ── Task types ─────────────────────────────────────────────────────────────
+
+	describe("setDefaultTaskType", () => {
+		it("sends PUT to the correct URL and unwraps the updated task type", async () => {
+			const updated = { ...mockTaskType, is_default: true };
+			mockPut.mockResolvedValue(ok(updated));
+
+			await expect(setDefaultTaskType("p1", "tt1")).resolves.toEqual(updated);
+			expect(mockPut).toHaveBeenCalledWith(
+				"/projects/p1/task-types/tt1/set-default",
+			);
+		});
+	});
+
+	// ── Task type role helpers ─────────────────────────────────────────────────
+
+	describe("isEpicType", () => {
+		it("returns true for a system type named Epic", () => {
+			const epic: TaskType = {
+				...mockTaskType,
+				name: "Epic",
+				is_system: true,
+			};
+			expect(isEpicType(epic)).toBe(true);
+		});
+
+		it("returns false when is_system is false even if name is Epic", () => {
+			const nonSystem: TaskType = {
+				...mockTaskType,
+				name: "Epic",
+				is_system: false,
+			};
+			expect(isEpicType(nonSystem)).toBe(false);
+		});
+
+		it("returns false for a system type with a different name", () => {
+			const subtask: TaskType = {
+				...mockTaskType,
+				name: "Subtask",
+				is_system: true,
+			};
+			expect(isEpicType(subtask)).toBe(false);
+		});
+
+		it("returns false for null or undefined", () => {
+			expect(isEpicType(null)).toBe(false);
+			expect(isEpicType(undefined)).toBe(false);
+		});
+	});
+
+	describe("isSubtaskType", () => {
+		it("returns true for a system type named Subtask", () => {
+			const subtask: TaskType = {
+				...mockTaskType,
+				name: "Subtask",
+				is_system: true,
+			};
+			expect(isSubtaskType(subtask)).toBe(true);
+		});
+
+		it("returns false when is_system is false even if name is Subtask", () => {
+			const nonSystem: TaskType = {
+				...mockTaskType,
+				name: "Subtask",
+				is_system: false,
+			};
+			expect(isSubtaskType(nonSystem)).toBe(false);
+		});
+
+		it("returns false for a system type with a different name", () => {
+			const epic: TaskType = {
+				...mockTaskType,
+				name: "Epic",
+				is_system: true,
+			};
+			expect(isSubtaskType(epic)).toBe(false);
+		});
+
+		it("returns false for null or undefined", () => {
+			expect(isSubtaskType(null)).toBe(false);
+			expect(isSubtaskType(undefined)).toBe(false);
+		});
+	});
+
+	describe("findEpicType / findSubtaskType / getNormalTaskTypes", () => {
+		const epicType: TaskType = {
+			...mockTaskType,
+			id: "tt-epic",
+			name: "Epic",
+			is_system: true,
+		};
+		const subtaskType: TaskType = {
+			...mockTaskType,
+			id: "tt-subtask",
+			name: "Subtask",
+			is_system: true,
+		};
+		const normalType: TaskType = {
+			...mockTaskType,
+			id: "tt-task",
+			name: "Task",
+			is_system: false,
+		};
+		const types = [epicType, subtaskType, normalType];
+
+		it("findEpicType returns the Epic system type", () => {
+			expect(findEpicType(types)).toEqual(epicType);
+		});
+
+		it("findEpicType returns undefined when no Epic system type exists", () => {
+			expect(findEpicType([subtaskType, normalType])).toBeUndefined();
+		});
+
+		it("findSubtaskType returns the Subtask system type", () => {
+			expect(findSubtaskType(types)).toEqual(subtaskType);
+		});
+
+		it("findSubtaskType returns undefined when no Subtask system type exists", () => {
+			expect(findSubtaskType([epicType, normalType])).toBeUndefined();
+		});
+
+		it("getNormalTaskTypes returns only non-system types", () => {
+			expect(getNormalTaskTypes(types)).toEqual([normalType]);
+		});
+
+		it("getNormalTaskTypes returns empty array when all types are system types", () => {
+			expect(getNormalTaskTypes([epicType, subtaskType])).toEqual([]);
 		});
 	});
 });

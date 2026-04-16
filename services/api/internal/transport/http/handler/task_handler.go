@@ -1,6 +1,9 @@
 package handler
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/paca/api/internal/apierr"
@@ -18,8 +21,7 @@ type TaskHandler struct {
 }
 
 // NewTaskHandler returns a TaskHandler wired to the task service and the view
-// service (used to enrich list responses with manual task positions when a
-// view_id query parameter is supplied).
+// service.
 func NewTaskHandler(svc taskdom.Service, viewSvc sprintdom.ViewService) *TaskHandler {
 	return &TaskHandler{svc: svc, viewSvc: viewSvc}
 }
@@ -110,6 +112,26 @@ func (h *TaskHandler) DeleteTaskType(c *gin.Context) {
 		return
 	}
 	presenter.OK(c, gin.H{"message": "task type deleted"})
+}
+
+// SetDefaultTaskType handles PUT /projects/:projectId/task-types/:typeId/set-default.
+func (h *TaskHandler) SetDefaultTaskType(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	typeID, err := parseTaskTypeID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	t, err := h.svc.SetDefaultTaskType(c.Request.Context(), projectID, typeID)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	presenter.OK(c, dto.TaskTypeFromEntity(t))
 }
 
 // --- Task Statuses ----------------------------------------------------------
@@ -203,9 +225,12 @@ func (h *TaskHandler) DeleteTaskStatus(c *gin.Context) {
 // --- Tasks ------------------------------------------------------------------
 
 // ListTasks handles GET /projects/:projectId/tasks.
-// Optional query parameters:
-//   - view_id: UUID of a view; when supplied, each task in the response carries
-//     view_position and view_group_key from that view's manual ordering.
+// Supported filter query params:
+//   - sprint_id=<uuid>|null or sprint_ids=<uuid,uuid>
+//   - status_id=<uuid> or status_ids=<uuid,uuid>
+//   - assignee_id=<uuid> or assignee_ids=<uuid,uuid>
+//   - task_type_ids=<uuid,uuid>
+//   - parent_task_id=<uuid>
 func (h *TaskHandler) ListTasks(c *gin.Context) {
 	projectID, err := parseProjectID(c)
 	if err != nil {
@@ -214,25 +239,71 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 	}
 
 	page, pageSize := pagingParams(c)
-
 	filter := taskdom.TaskFilter{}
+
 	if raw := c.Query("sprint_id"); raw != "" {
-		if id, err := uuid.Parse(raw); err == nil {
+		if strings.EqualFold(strings.TrimSpace(raw), "null") {
+			filter.BacklogOnly = true
+		} else {
+			id, err := uuid.Parse(raw)
+			if err != nil {
+				presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid sprint_id"))
+				return
+			}
 			filter.SprintID = &id
 		}
 	}
+	if ids, err := parseQueryUUIDs(c.Query("sprint_ids")); err != nil {
+		presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid sprint_ids"))
+		return
+	} else if len(ids) > 0 {
+		filter.SprintIDs = ids
+		filter.BacklogOnly = false
+		filter.SprintID = nil
+	}
 	if raw := c.Query("status_id"); raw != "" {
-		if id, err := uuid.Parse(raw); err == nil {
-			filter.StatusID = &id
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid status_id"))
+			return
 		}
+		filter.StatusID = &id
+	}
+	if ids, err := parseQueryUUIDs(c.Query("status_ids")); err != nil {
+		presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid status_ids"))
+		return
+	} else if len(ids) > 0 {
+		filter.StatusIDs = ids
 	}
 	if raw := c.Query("assignee_id"); raw != "" {
-		if id, err := uuid.Parse(raw); err == nil {
-			filter.AssigneeID = &id
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid assignee_id"))
+			return
 		}
+		filter.AssigneeID = &id
+	}
+	if ids, err := parseQueryUUIDs(c.Query("assignee_ids")); err != nil {
+		presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid assignee_ids"))
+		return
+	} else if len(ids) > 0 {
+		filter.AssigneeIDs = ids
+	}
+	if ids, err := parseQueryUUIDs(c.Query("task_type_ids")); err != nil {
+		presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid task_type_ids"))
+		return
+	} else if len(ids) > 0 {
+		filter.TaskTypeIDs = ids
+	}
+	if raw := c.Query("parent_task_id"); raw != "" {
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid parent_task_id"))
+			return
+		}
+		filter.ParentTaskID = &id
 	}
 
-	// Optional view enrichment: fetch manual task positions for the given view.
 	var posMap map[uuid.UUID]*sprintdom.ViewTaskPosition
 	if raw := c.Query("view_id"); raw != "" {
 		viewID, err := uuid.Parse(raw)
@@ -278,6 +349,27 @@ func (h *TaskHandler) GetTask(c *gin.Context) {
 		return
 	}
 	t, err := h.svc.GetTask(c.Request.Context(), taskID)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	presenter.OK(c, dto.TaskFromEntity(t))
+}
+
+// GetTaskByNumber handles GET /projects/:projectId/tasks/by-number/:taskNumber.
+// It looks up a task by its project-scoped sequential number.
+func (h *TaskHandler) GetTaskByNumber(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	var taskNumber int64
+	if _, err := fmt.Sscanf(c.Param("taskNumber"), "%d", &taskNumber); err != nil || taskNumber < 1 {
+		presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid task number"))
+		return
+	}
+	t, err := h.svc.GetTaskByNumber(c.Request.Context(), projectID, taskNumber)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -396,68 +488,36 @@ func parseTaskID(c *gin.Context) (uuid.UUID, error) {
 	return id, nil
 }
 
-// GetSprintTasks handles GET /projects/:projectId/sprints/:sprintId/tasks.
-// Returns a paginated list of tasks assigned to a specific sprint.
-func (h *TaskHandler) GetSprintTasks(c *gin.Context) {
-	projectID, err := parseProjectID(c)
-	if err != nil {
-		presenter.Error(c, err)
-		return
+func parseQueryUUIDs(raw string) ([]uuid.UUID, error) {
+	if strings.TrimSpace(raw) == "" {
+		return nil, nil
 	}
-	sprintID, err := uuid.Parse(c.Param("sprintId"))
-	if err != nil {
-		presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid sprint id"))
-		return
-	}
-
-	page, pageSize := pagingParams(c)
-	filter := taskdom.TaskFilter{SprintID: &sprintID}
-	if raw := c.Query("status_id"); raw != "" {
-		if id, err := uuid.Parse(raw); err == nil {
-			filter.StatusID = &id
+	parts := strings.Split(raw, ",")
+	ids := make([]uuid.UUID, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
 		}
-	}
-	if raw := c.Query("assignee_id"); raw != "" {
-		if id, err := uuid.Parse(raw); err == nil {
-			filter.AssigneeID = &id
-		}
-	}
-
-	var posMap map[uuid.UUID]*sprintdom.ViewTaskPosition
-	if raw := c.Query("view_id"); raw != "" {
-		viewID, err := uuid.Parse(raw)
+		id, err := uuid.Parse(part)
 		if err != nil {
-			presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid view_id"))
-			return
+			return nil, err
 		}
-		positions, err := h.viewSvc.ListTaskPositions(c.Request.Context(), viewID)
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
+
+func parseUUIDStrings(values []string) ([]uuid.UUID, error) {
+	ids := make([]uuid.UUID, 0, len(values))
+	for _, value := range values {
+		id, err := uuid.Parse(strings.TrimSpace(value))
 		if err != nil {
-			presenter.Error(c, err)
-			return
+			return nil, err
 		}
-		posMap = make(map[uuid.UUID]*sprintdom.ViewTaskPosition, len(positions))
-		for _, p := range positions {
-			cp := p
-			posMap[p.TaskID] = cp
-		}
+		ids = append(ids, id)
 	}
-
-	tasks, total, err := h.svc.ListTasks(c.Request.Context(), projectID, filter, page, pageSize)
-	if err != nil {
-		presenter.Error(c, err)
-		return
-	}
-
-	resp2 := make([]dto.TaskResponse, 0, len(tasks))
-	for _, t := range tasks {
-		r := dto.TaskFromEntity(t)
-		if pos, ok := posMap[t.ID]; ok {
-			r.ViewPosition = &pos.Position
-			r.ViewGroupKey = pos.GroupKey
-		}
-		resp2 = append(resp2, r)
-	}
-	presenter.OK(c, gin.H{"items": resp2, "total": total, "page": page, "page_size": pageSize})
+	return ids, nil
 }
 
 // --- Custom Field Definitions -----------------------------------------------
@@ -585,6 +645,72 @@ func (h *TaskHandler) ListBacklogTasks(c *gin.Context) {
 
 	page, pageSize := pagingParams(c)
 	filter := taskdom.TaskFilter{BacklogOnly: true}
+	if raw := c.Query("status_id"); raw != "" {
+		if id, err := uuid.Parse(raw); err == nil {
+			filter.StatusID = &id
+		}
+	}
+	if raw := c.Query("assignee_id"); raw != "" {
+		if id, err := uuid.Parse(raw); err == nil {
+			filter.AssigneeID = &id
+		}
+	}
+
+	var posMap map[uuid.UUID]*sprintdom.ViewTaskPosition
+	if raw := c.Query("view_id"); raw != "" {
+		viewID, err := uuid.Parse(raw)
+		if err != nil {
+			presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid view_id"))
+			return
+		}
+		positions, err := h.viewSvc.ListTaskPositions(c.Request.Context(), viewID)
+		if err != nil {
+			presenter.Error(c, err)
+			return
+		}
+		posMap = make(map[uuid.UUID]*sprintdom.ViewTaskPosition, len(positions))
+		for _, p := range positions {
+			cp := p
+			posMap[p.TaskID] = cp
+		}
+	}
+
+	tasks, total, err := h.svc.ListTasks(c.Request.Context(), projectID, filter, page, pageSize)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
+	resp := make([]dto.TaskResponse, 0, len(tasks))
+	for _, t := range tasks {
+		r := dto.TaskFromEntity(t)
+		if pos, ok := posMap[t.ID]; ok {
+			r.ViewPosition = &pos.Position
+			r.ViewGroupKey = pos.GroupKey
+		}
+		resp = append(resp, r)
+	}
+	presenter.OK(c, gin.H{"items": resp, "total": total, "page": page, "page_size": pageSize})
+}
+
+// ListTimelineTasks handles GET /projects/:projectId/timeline.
+// Returns a paginated list of Epic tasks for the project.
+// Epics are tracked on the timeline regardless of sprint assignment.
+func (h *TaskHandler) ListTimelineTasks(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
+	page, pageSize := pagingParams(c)
+	filter := taskdom.TaskFilter{}
+	if ids, err := parseQueryUUIDs(c.Query("task_type_ids")); err != nil {
+		presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid task_type_ids"))
+		return
+	} else if len(ids) > 0 {
+		filter.TaskTypeIDs = ids
+	}
 	if raw := c.Query("status_id"); raw != "" {
 		if id, err := uuid.Parse(raw); err == nil {
 			filter.StatusID = &id

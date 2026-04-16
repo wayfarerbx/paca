@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	sprintdom "github.com/paca/api/internal/domain/sprint"
+	taskdom "github.com/paca/api/internal/domain/task"
 	"github.com/paca/api/internal/transport/http/handler"
 )
 
@@ -49,16 +50,34 @@ func (f *fakeSprintSvcH) UpdateSprint(_ context.Context, _ uuid.UUID, _ sprintdo
 func (f *fakeSprintSvcH) DeleteSprint(_ context.Context, _ uuid.UUID) error {
 	return nil
 }
+func (f *fakeSprintSvcH) CompleteSprint(_ context.Context, id uuid.UUID, _ sprintdom.CompleteSprintInput) (*sprintdom.Sprint, error) {
+	for _, sp := range f.created {
+		if sp.ID == id {
+			sp.Status = sprintdom.SprintStatusCompleted
+			cp := *sp
+			return &cp, nil
+		}
+	}
+	return nil, sprintdom.ErrSprintNotFound
+}
 
 type fakeViewSvcH struct {
 	mu      sync.Mutex
 	created []*sprintdom.SprintView
 }
 
+type fakeTaskTypeSvcH struct {
+	taskTypes []*taskdom.TaskType
+}
+
+func (f *fakeTaskTypeSvcH) ListTaskTypes(_ context.Context, _ uuid.UUID) ([]*taskdom.TaskType, error) {
+	return f.taskTypes, nil
+}
+
 func (f *fakeViewSvcH) ListViews(_ context.Context, _ uuid.UUID) ([]*sprintdom.SprintView, error) {
 	return nil, nil
 }
-func (f *fakeViewSvcH) ListBacklogViews(_ context.Context, _ uuid.UUID) ([]*sprintdom.SprintView, error) {
+func (f *fakeViewSvcH) ListProjectViews(_ context.Context, _ uuid.UUID, _ sprintdom.ViewContext) ([]*sprintdom.SprintView, error) {
 	return nil, nil
 }
 func (f *fakeViewSvcH) GetView(_ context.Context, _ uuid.UUID) (*sprintdom.SprintView, error) {
@@ -67,14 +86,16 @@ func (f *fakeViewSvcH) GetView(_ context.Context, _ uuid.UUID) (*sprintdom.Sprin
 func (f *fakeViewSvcH) CreateView(_ context.Context, in sprintdom.CreateViewInput) (*sprintdom.SprintView, error) {
 	now := time.Now()
 	v := &sprintdom.SprintView{
-		ID:        uuid.New(),
-		SprintID:  in.SprintID,
-		ProjectID: in.ProjectID,
-		Name:      in.Name,
-		ViewType:  in.ViewType,
-		Position:  in.Position,
-		CreatedAt: now,
-		UpdatedAt: now,
+		ID:          uuid.New(),
+		SprintID:    in.SprintID,
+		ProjectID:   in.ProjectID,
+		Name:        in.Name,
+		ViewType:    in.ViewType,
+		Config:      in.Config,
+		Position:    in.Position,
+		ViewContext: in.ViewContext,
+		CreatedAt:   now,
+		UpdatedAt:   now,
 	}
 	f.mu.Lock()
 	f.created = append(f.created, v)
@@ -88,13 +109,16 @@ func (f *fakeViewSvcH) DeleteView(_ context.Context, _ uuid.UUID) error { return
 func (f *fakeViewSvcH) MoveTask(_ context.Context, _ uuid.UUID, _ sprintdom.MoveTaskInput) error {
 	return nil
 }
+func (f *fakeViewSvcH) BulkMoveTasks(_ context.Context, _ uuid.UUID, _ []sprintdom.MoveTaskInput) error {
+	return nil
+}
 func (f *fakeViewSvcH) ListTaskPositions(_ context.Context, _ uuid.UUID) ([]*sprintdom.ViewTaskPosition, error) {
 	return nil, nil
 }
 func (f *fakeViewSvcH) ReorderViews(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
 	return nil
 }
-func (f *fakeViewSvcH) ReorderBacklogViews(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+func (f *fakeViewSvcH) ReorderProjectViews(_ context.Context, _ uuid.UUID, _ sprintdom.ViewContext, _ []uuid.UUID) error {
 	return nil
 }
 
@@ -107,8 +131,14 @@ func TestCreateSprint_SeedsDefaultViews(t *testing.T) {
 
 	sprintSvc := &fakeSprintSvcH{}
 	viewSvc := &fakeViewSvcH{}
+	taskTypeSvc := &fakeTaskTypeSvcH{taskTypes: []*taskdom.TaskType{
+		{ID: uuid.New(), Name: "Task"},
+		{ID: uuid.New(), Name: "Bug"},
+		{ID: uuid.New(), Name: "Epic", IsSystem: true},
+		{ID: uuid.New(), Name: "Subtask", IsSystem: true},
+	}}
 
-	h := handler.NewSprintHandler(sprintSvc, viewSvc)
+	h := handler.NewSprintHandler(sprintSvc, viewSvc, handler.WithSprintDefaultTaskTypes(taskTypeSvc))
 
 	r := gin.New()
 	r.POST("/projects/:projectId/sprints", h.CreateSprint)
@@ -146,5 +176,125 @@ func TestCreateSprint_SeedsDefaultViews(t *testing.T) {
 		if v.SprintID == nil || *v.SprintID != sprintID {
 			t.Errorf("view %s has wrong sprint ID: want %s, got %v", v.ID, sprintID, v.SprintID)
 		}
+		if v.ViewContext != sprintdom.ViewContextSprint {
+			t.Errorf("expected sprint view context, got %q", v.ViewContext)
+		}
+	}
+
+	var boardView, tableView *sprintdom.SprintView
+	for _, v := range viewSvc.created {
+		switch v.ViewType {
+		case sprintdom.ViewTypeBoard:
+			boardView = v
+		case sprintdom.ViewTypeTable:
+			tableView = v
+		case sprintdom.ViewTypeRoadmap:
+			// roadmap views are not seeded for sprint defaults
+		}
+	}
+	if boardView == nil || tableView == nil {
+		t.Fatal("expected seeded board and table views")
+	}
+	if boardView.Config.ColumnBy != "status" {
+		t.Errorf("expected board column_by=status, got %q", boardView.Config.ColumnBy)
+	}
+	// Board view must use the "normal" virtual group to include all non-system types.
+	if boardView.Config.Filters == nil || boardView.Config.Filters.TaskTypes == nil {
+		t.Error("expected board view to have a task type filter")
+	} else {
+		normalEntry, ok := boardView.Config.Filters.TaskTypes.Items["normal"]
+		if !ok || !normalEntry.IsNested() || !normalEntry.Config().All {
+			t.Error("expected board view task types to use the all-normal group")
+		}
+	}
+	// Board view must include the sprint in its sprints filter.
+	if boardView.Config.Filters == nil || boardView.Config.Filters.Sprints == nil {
+		t.Errorf("expected board view to have a sprint filter")
+	} else {
+		sprintEntry, ok := boardView.Config.Filters.Sprints.Items[sprintID.String()]
+		if !ok || sprintEntry.IsNested() || !sprintEntry.Flag() {
+			t.Errorf("expected board sprint filter to include %s, got %+v", sprintID, boardView.Config.Filters.Sprints)
+		}
+	}
+	if tableView.Config.ColumnBy != "status" {
+		t.Errorf("expected table column_by=status, got %q", tableView.Config.ColumnBy)
+	}
+	// Table view must also include the sprint in its sprints filter.
+	if tableView.Config.Filters == nil || tableView.Config.Filters.Sprints == nil {
+		t.Errorf("expected table view to have a sprint filter")
+	} else {
+		sprintEntry, ok := tableView.Config.Filters.Sprints.Items[sprintID.String()]
+		if !ok || sprintEntry.IsNested() || !sprintEntry.Flag() {
+			t.Errorf("expected table sprint filter to include %s, got %+v", sprintID, tableView.Config.Filters.Sprints)
+		}
+	}
+}
+
+func TestCompleteSprint_OK(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	sprintSvc := &fakeSprintSvcH{}
+	viewSvc := &fakeViewSvcH{}
+
+	// Pre-seed an active sprint into the fake service.
+	projectID := uuid.New()
+	activeSprint := &sprintdom.Sprint{
+		ID:        uuid.New(),
+		ProjectID: projectID,
+		Name:      "Sprint 1",
+		Status:    sprintdom.SprintStatusActive,
+	}
+	sprintSvc.created = append(sprintSvc.created, activeSprint)
+
+	h := handler.NewSprintHandler(sprintSvc, viewSvc)
+	r := gin.New()
+	r.POST("/projects/:projectId/sprints/:sprintId/complete", h.CompleteSprint)
+
+	body, _ := json.Marshal(map[string]any{})
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost,
+		"/projects/"+projectID.String()+"/sprints/"+activeSprint.ID.String()+"/complete",
+		bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp struct {
+		Data struct {
+			Status string `json:"status"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if resp.Data.Status != string(sprintdom.SprintStatusCompleted) {
+		t.Errorf("expected status=completed, got %q", resp.Data.Status)
+	}
+}
+
+func TestCompleteSprint_NotFound(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	sprintSvc := &fakeSprintSvcH{}
+	viewSvc := &fakeViewSvcH{}
+	h := handler.NewSprintHandler(sprintSvc, viewSvc)
+
+	r := gin.New()
+	r.POST("/projects/:projectId/sprints/:sprintId/complete", h.CompleteSprint)
+
+	body, _ := json.Marshal(map[string]any{})
+	projectID := uuid.New()
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodPost,
+		"/projects/"+projectID.String()+"/sprints/"+uuid.New().String()+"/complete",
+		bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d: %s", w.Code, w.Body.String())
 	}
 }

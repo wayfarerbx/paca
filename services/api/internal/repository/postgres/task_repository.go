@@ -22,6 +22,8 @@ type taskTypeRecord struct {
 	Icon        *string `gorm:"type:text"`
 	Color       *string `gorm:"type:text"`
 	Description *string `gorm:"type:text"`
+	IsDefault   bool    `gorm:"not null;default:false;column:is_default"`
+	IsSystem    bool    `gorm:"not null;default:false;column:is_system"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
@@ -44,6 +46,7 @@ func (taskStatusRecord) TableName() string { return "task_statuses" }
 type taskRecord struct {
 	ID           string     `gorm:"primarykey;type:uuid"`
 	ProjectID    string     `gorm:"type:uuid;not null;column:project_id"`
+	TaskNumber   int64      `gorm:"not null;default:0;column:task_number"`
 	TaskTypeID   *string    `gorm:"type:uuid;column:task_type_id"`
 	StatusID     *string    `gorm:"type:uuid;column:status_id"`
 	SprintID     *string    `gorm:"type:uuid;column:sprint_id"`
@@ -63,6 +66,15 @@ type taskRecord struct {
 }
 
 func (taskRecord) TableName() string { return "tasks" }
+
+// taskCounterRecord mirrors the task_counters table used for atomic
+// per-project task number generation.
+type taskCounterRecord struct {
+	ProjectID string `gorm:"primarykey;type:uuid;column:project_id"`
+	LastValue int64  `gorm:"not null;default:0;column:last_value"`
+}
+
+func (taskCounterRecord) TableName() string { return "task_counters" }
 
 // --- Repository struct -------------------------------------------------------
 
@@ -116,6 +128,8 @@ func (r *TaskRepository) CreateTaskType(ctx context.Context, t *taskdom.TaskType
 		Icon:        t.Icon,
 		Color:       t.Color,
 		Description: t.Description,
+		IsDefault:   t.IsDefault,
+		IsSystem:    t.IsSystem,
 		CreatedAt:   t.CreatedAt,
 		UpdatedAt:   t.UpdatedAt,
 	}
@@ -148,6 +162,28 @@ func (r *TaskRepository) DeleteTaskType(ctx context.Context, id uuid.UUID) error
 		return fmt.Errorf("task type repo: delete: %w", res.Error)
 	}
 	return nil
+}
+
+// SetDefaultTaskType atomically clears is_default for every type in the project
+// and then marks typeID as the default.
+func (r *TaskRepository) SetDefaultTaskType(ctx context.Context, projectID, typeID uuid.UUID) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&taskTypeRecord{}).
+			Where("project_id = ?", projectID.String()).
+			Update("is_default", false).Error; err != nil {
+			return fmt.Errorf("task type repo: clear defaults: %w", err)
+		}
+		res := tx.Model(&taskTypeRecord{}).
+			Where("id = ? AND project_id = ?", typeID.String(), projectID.String()).
+			Update("is_default", true)
+		if res.Error != nil {
+			return fmt.Errorf("task type repo: set default: %w", res.Error)
+		}
+		if res.RowsAffected == 0 {
+			return taskdom.ErrTypeNotFound
+		}
+		return nil
+	})
 }
 
 // --- Task Statuses ---------------------------------------------------------
@@ -231,16 +267,28 @@ func (r *TaskRepository) ListTasks(ctx context.Context, projectID uuid.UUID, fil
 	q := r.db.WithContext(ctx).Model(&taskRecord{}).
 		Where("project_id = ? AND deleted_at IS NULL", projectID.String())
 
-	if filter.BacklogOnly {
+	switch {
+	case filter.ParentTaskID != nil:
+		q = q.Where("parent_task_id = ?", filter.ParentTaskID.String())
+	case len(filter.SprintIDs) > 0:
+		q = q.Where("sprint_id IN ?", uuidSliceToStrSlice(filter.SprintIDs))
+	case filter.BacklogOnly:
 		q = q.Where("sprint_id IS NULL")
-	} else if filter.SprintID != nil {
+	case filter.SprintID != nil:
 		q = q.Where("sprint_id = ?", filter.SprintID.String())
 	}
-	if filter.StatusID != nil {
+	if len(filter.StatusIDs) > 0 {
+		q = q.Where("status_id IN ?", uuidSliceToStrSlice(filter.StatusIDs))
+	} else if filter.StatusID != nil {
 		q = q.Where("status_id = ?", filter.StatusID.String())
 	}
-	if filter.AssigneeID != nil {
+	if len(filter.AssigneeIDs) > 0 {
+		q = q.Where("assignee_id IN ?", uuidSliceToStrSlice(filter.AssigneeIDs))
+	} else if filter.AssigneeID != nil {
 		q = q.Where("assignee_id = ?", filter.AssigneeID.String())
+	}
+	if len(filter.TaskTypeIDs) > 0 {
+		q = q.Where("task_type_id IN ?", uuidSliceToStrSlice(filter.TaskTypeIDs))
 	}
 
 	var total int64
@@ -281,7 +329,24 @@ func (r *TaskRepository) FindTaskByID(ctx context.Context, id uuid.UUID) (*taskd
 	return toTaskEntity(&rec)
 }
 
-// CreateTask persists a new task.
+// FindTaskByNumber returns the task with the given project-scoped task number
+// (non-deleted).
+func (r *TaskRepository) FindTaskByNumber(ctx context.Context, projectID uuid.UUID, taskNumber int64) (*taskdom.Task, error) {
+	var rec taskRecord
+	err := r.db.WithContext(ctx).
+		Where("project_id = ? AND task_number = ? AND deleted_at IS NULL", projectID.String(), taskNumber).
+		First(&rec).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, taskdom.ErrTaskNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("task repo: find by number: %w", err)
+	}
+	return toTaskEntity(&rec)
+}
+
+// CreateTask persists a new task, assigning the next per-project task_number
+// atomically via INSERT … ON CONFLICT DO UPDATE on task_counters.
 func (r *TaskRepository) CreateTask(ctx context.Context, t *taskdom.Task) error {
 	cf, err := json.Marshal(t.CustomFields)
 	if err != nil {
@@ -295,29 +360,47 @@ func (r *TaskRepository) CreateTask(ctx context.Context, t *taskdom.Task) error 
 	if err != nil {
 		return fmt.Errorf("task repo: marshal tags: %w", err)
 	}
-	rec := &taskRecord{
-		ID:           t.ID.String(),
-		ProjectID:    t.ProjectID.String(),
-		TaskTypeID:   uuidPtrToStrPtr(t.TaskTypeID),
-		StatusID:     uuidPtrToStrPtr(t.StatusID),
-		SprintID:     uuidPtrToStrPtr(t.SprintID),
-		ParentTaskID: uuidPtrToStrPtr(t.ParentTaskID),
-		Title:        t.Title,
-		Description:  t.Description,
-		Importance:   t.Importance,
-		AssigneeID:   uuidPtrToStrPtr(t.AssigneeID),
-		ReporterID:   uuidPtrToStrPtr(t.ReporterID),
-		CustomFields: cf,
-		StartDate:    t.StartDate,
-		DueDate:      t.DueDate,
-		Tags:         tagsJSON,
-		CreatedAt:    t.CreatedAt,
-		UpdatedAt:    t.UpdatedAt,
-	}
-	if err := r.db.WithContext(ctx).Create(rec).Error; err != nil {
-		return fmt.Errorf("task repo: create: %w", err)
-	}
-	return nil
+
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Atomically increment the per-project counter and retrieve its new value.
+		var counter taskCounterRecord
+		if err := tx.Raw(`
+			INSERT INTO task_counters (project_id, last_value)
+			VALUES (?, 1)
+			ON CONFLICT (project_id) DO UPDATE
+			  SET last_value = task_counters.last_value + 1
+			RETURNING last_value`,
+			t.ProjectID.String(),
+		).Scan(&counter).Error; err != nil {
+			return fmt.Errorf("task repo: increment counter: %w", err)
+		}
+		t.TaskNumber = counter.LastValue
+
+		rec := &taskRecord{
+			ID:           t.ID.String(),
+			ProjectID:    t.ProjectID.String(),
+			TaskNumber:   t.TaskNumber,
+			TaskTypeID:   uuidPtrToStrPtr(t.TaskTypeID),
+			StatusID:     uuidPtrToStrPtr(t.StatusID),
+			SprintID:     uuidPtrToStrPtr(t.SprintID),
+			ParentTaskID: uuidPtrToStrPtr(t.ParentTaskID),
+			Title:        t.Title,
+			Description:  t.Description,
+			Importance:   t.Importance,
+			AssigneeID:   uuidPtrToStrPtr(t.AssigneeID),
+			ReporterID:   uuidPtrToStrPtr(t.ReporterID),
+			CustomFields: cf,
+			StartDate:    t.StartDate,
+			DueDate:      t.DueDate,
+			Tags:         tagsJSON,
+			CreatedAt:    t.CreatedAt,
+			UpdatedAt:    t.UpdatedAt,
+		}
+		if err := tx.Create(rec).Error; err != nil {
+			return fmt.Errorf("task repo: create: %w", err)
+		}
+		return nil
+	})
 }
 
 // UpdateTask persists changes to an existing task.
@@ -374,6 +457,26 @@ func (r *TaskRepository) DeleteTask(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
+// BulkMoveSprintTasks reassigns all non-done tasks that belong to sourceSprintID
+// to targetSprintID (nil = backlog) in a single UPDATE statement.
+func (r *TaskRepository) BulkMoveSprintTasks(ctx context.Context, projectID, sourceSprintID uuid.UUID, targetSprintID *uuid.UUID) error {
+	doneStatusSubquery := r.db.Model(&taskStatusRecord{}).
+		Select("id").
+		Where("project_id = ? AND category = ?", projectID.String(), string(taskdom.StatusCategoryDone))
+
+	res := r.db.WithContext(ctx).Model(&taskRecord{}).
+		Where("project_id = ? AND sprint_id = ? AND deleted_at IS NULL", projectID.String(), sourceSprintID.String()).
+		Where("status_id IS NULL OR status_id NOT IN (?)", doneStatusSubquery).
+		Updates(map[string]any{
+			"sprint_id":  uuidPtrToStrPtr(targetSprintID),
+			"updated_at": time.Now(),
+		})
+	if res.Error != nil {
+		return fmt.Errorf("task repo: bulk move sprint tasks: %w", res.Error)
+	}
+	return nil
+}
+
 // --- Entity converters ------------------------------------------------------
 
 func toTaskTypeEntity(r *taskTypeRecord) *taskdom.TaskType {
@@ -386,6 +489,8 @@ func toTaskTypeEntity(r *taskTypeRecord) *taskdom.TaskType {
 		Icon:        r.Icon,
 		Color:       r.Color,
 		Description: r.Description,
+		IsDefault:   r.IsDefault,
+		IsSystem:    r.IsSystem,
 		CreatedAt:   r.CreatedAt,
 		UpdatedAt:   r.UpdatedAt,
 	}
@@ -433,6 +538,7 @@ func toTaskEntity(r *taskRecord) (*taskdom.Task, error) {
 	return &taskdom.Task{
 		ID:           id,
 		ProjectID:    pid,
+		TaskNumber:   r.TaskNumber,
 		TaskTypeID:   strPtrToUUIDPtr(r.TaskTypeID),
 		StatusID:     strPtrToUUIDPtr(r.StatusID),
 		SprintID:     strPtrToUUIDPtr(r.SprintID),
@@ -600,6 +706,14 @@ func marshalOptions(opts []string) ([]byte, error) {
 }
 
 // --- helpers ----------------------------------------------------------------
+
+func uuidSliceToStrSlice(ids []uuid.UUID) []string {
+	s := make([]string, len(ids))
+	for i, id := range ids {
+		s[i] = id.String()
+	}
+	return s
+}
 
 func uuidPtrToStrPtr(u *uuid.UUID) *string {
 	if u == nil {

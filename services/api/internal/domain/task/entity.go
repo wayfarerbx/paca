@@ -38,6 +38,8 @@ type TaskType struct {
 	Icon        *string
 	Color       *string
 	Description *string
+	IsDefault   bool
+	IsSystem    bool
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
@@ -97,6 +99,7 @@ type CustomFieldDefinition struct {
 type Task struct {
 	ID           uuid.UUID
 	ProjectID    uuid.UUID
+	TaskNumber   int64
 	TaskTypeID   *uuid.UUID
 	StatusID     *uuid.UUID
 	SprintID     *uuid.UUID

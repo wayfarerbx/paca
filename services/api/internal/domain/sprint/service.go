@@ -14,6 +14,15 @@ type SprintService interface {
 	CreateSprint(ctx context.Context, in CreateSprintInput) (*Sprint, error)
 	UpdateSprint(ctx context.Context, id uuid.UUID, in UpdateSprintInput) (*Sprint, error)
 	DeleteSprint(ctx context.Context, id uuid.UUID) error
+	// CompleteSprint marks a sprint as completed and bulk-moves all non-done
+	// tasks to the sprint specified in CompleteSprintInput (nil = backlog).
+	CompleteSprint(ctx context.Context, id uuid.UUID, in CompleteSprintInput) (*Sprint, error)
+}
+
+// CompleteSprintInput carries options for completing a sprint.
+// MoveToSprintID, when nil, moves incomplete tasks to the backlog.
+type CompleteSprintInput struct {
+	MoveToSprintID *uuid.UUID
 }
 
 // CreateSprintInput carries fields required to create a sprint.
@@ -37,8 +46,13 @@ type UpdateSprintInput struct {
 
 // ViewService defines use cases for sprint views and manual task ordering.
 type ViewService interface {
+	// ListViews returns all views belonging to a sprint.
 	ListViews(ctx context.Context, sprintID uuid.UUID) ([]*SprintView, error)
-	ListBacklogViews(ctx context.Context, projectID uuid.UUID) ([]*SprintView, error)
+
+	// ListProjectViews returns all views for a project filtered by viewCtx
+	// (ViewContextBacklog or ViewContextTimeline).
+	ListProjectViews(ctx context.Context, projectID uuid.UUID, viewCtx ViewContext) ([]*SprintView, error)
+
 	GetView(ctx context.Context, id uuid.UUID) (*SprintView, error)
 	CreateView(ctx context.Context, in CreateViewInput) (*SprintView, error)
 	UpdateView(ctx context.Context, id uuid.UUID, in UpdateViewInput) (*SprintView, error)
@@ -47,6 +61,11 @@ type ViewService interface {
 	// MoveTask updates the manual position of a task within a view.
 	MoveTask(ctx context.Context, viewID uuid.UUID, in MoveTaskInput) error
 
+	// BulkMoveTasks updates the manual positions of multiple tasks in a view
+	// within a single transaction.  Useful when a drag materialises null-positioned
+	// neighbours alongside the moved task.
+	BulkMoveTasks(ctx context.Context, viewID uuid.UUID, items []MoveTaskInput) error
+
 	// ListTaskPositions returns the manual ordering for all tasks in a view.
 	ListTaskPositions(ctx context.Context, viewID uuid.UUID) ([]*ViewTaskPosition, error)
 
@@ -54,20 +73,23 @@ type ViewService interface {
 	// contain every view ID for that sprint in the desired order.
 	ReorderViews(ctx context.Context, sprintID uuid.UUID, viewIDs []uuid.UUID) error
 
-	// ReorderBacklogViews reorders all product-backlog views for a project.
-	// viewIDs must contain every view ID for that project in the desired order.
-	ReorderBacklogViews(ctx context.Context, projectID uuid.UUID, viewIDs []uuid.UUID) error
+	// ReorderProjectViews reorders all views for a project with the given
+	// context.  viewIDs must contain every view ID for that project+context
+	// in the desired order.
+	ReorderProjectViews(ctx context.Context, projectID uuid.UUID, viewCtx ViewContext, viewIDs []uuid.UUID) error
 }
 
 // CreateViewInput carries fields required to create a sprint view.
-// SprintID is nil for product-backlog views; ProjectID is always required.
+// SprintID is nil for product-backlog and timeline views; ProjectID is always required.
+// ViewContext identifies the interaction this view belongs to.
 type CreateViewInput struct {
-	SprintID  *uuid.UUID
-	ProjectID uuid.UUID
-	Name      string
-	ViewType  ViewType
-	Config    ViewConfig
-	Position  int
+	SprintID    *uuid.UUID
+	ProjectID   uuid.UUID
+	Name        string
+	ViewType    ViewType
+	Config      ViewConfig
+	Position    float64
+	ViewContext ViewContext
 }
 
 // UpdateViewInput carries mutable view fields.
@@ -75,12 +97,12 @@ type UpdateViewInput struct {
 	Name     *string
 	ViewType *ViewType
 	Config   *ViewConfig
-	Position *int
+	Position *float64
 }
 
 // MoveTaskInput requests a change to a task's manual position in a view.
 type MoveTaskInput struct {
 	TaskID   uuid.UUID
-	Position int
+	Position float64
 	GroupKey *string
 }

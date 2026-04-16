@@ -161,6 +161,7 @@ func TestE2ETaskManagement_CRUD(t *testing.T) {
 	projID := createProjectForTasksViaAPI(t, env, client, token)
 
 	var taskID string
+	var taskNumber float64
 
 	t.Run("create_task", func(t *testing.T) {
 		body := jsonBody(t, map[string]any{
@@ -181,6 +182,10 @@ func TestE2ETaskManagement_CRUD(t *testing.T) {
 		taskID, _ = data["id"].(string)
 		if taskID == "" {
 			t.Fatal("expected non-empty task id")
+		}
+		taskNumber, _ = data["task_number"].(float64)
+		if taskNumber < 1 {
+			t.Errorf("expected task_number >= 1, got %v", taskNumber)
 		}
 	})
 
@@ -229,6 +234,27 @@ func TestE2ETaskManagement_CRUD(t *testing.T) {
 		data := assertDataMap(t, env2)
 		if title, _ := data["title"].(string); title != "Implement feature X (updated)" {
 			t.Errorf("expected updated title, got %q", title)
+		}
+	})
+
+	t.Run("get_task_by_number", func(t *testing.T) {
+		if taskNumber < 1 {
+			t.Skip("task_number not available (create_task may have failed)")
+		}
+		req := mustRequest(env.ctx, t, http.MethodGet,
+			fmt.Sprintf("%s/api/v1/projects/%s/tasks/by-number/%d", env.base, projID, int64(taskNumber)), nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+		if id, _ := data["id"].(string); id != taskID {
+			t.Errorf("get by number: expected id %q, got %q", taskID, id)
+		}
+		if num, _ := data["task_number"].(float64); num != taskNumber {
+			t.Errorf("get by number: expected task_number=%v, got %v", taskNumber, num)
 		}
 	})
 
@@ -383,7 +409,7 @@ func TestE2ESprintView_SprintTasks(t *testing.T) {
 
 	t.Run("get_sprint_tasks_returns_only_sprint_tasks", func(t *testing.T) {
 		req := mustRequest(env.ctx, t, http.MethodGet,
-			fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/tasks", env.base, projID, sprintID), nil)
+			fmt.Sprintf("%s/api/v1/projects/%s/tasks?sprint_id=%s", env.base, projID, sprintID), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp := mustDo(t, client, req)
 		defer func() { _ = resp.Body.Close() }()
@@ -428,7 +454,7 @@ func TestE2ESprintView_Backlog(t *testing.T) {
 
 	t.Run("backlog_returns_only_sprintless_tasks", func(t *testing.T) {
 		req := mustRequest(env.ctx, t, http.MethodGet,
-			fmt.Sprintf("%s/api/v1/projects/%s/product-backlog", env.base, projID), nil)
+			fmt.Sprintf("%s/api/v1/projects/%s/tasks?sprint_id=null", env.base, projID), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp := mustDo(t, client, req)
 		defer func() { _ = resp.Body.Close() }()
@@ -491,8 +517,8 @@ func TestE2ETaskList_WithViewID(t *testing.T) {
 		if groupKey != nil {
 			body["group_key"] = *groupKey
 		}
-		url := fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/views/%s/task-positions/%s",
-			env.base, projID, sprintID, viewID, taskID)
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s/task-positions/%s",
+			env.base, projID, viewID, taskID)
 		req := mustRequest(env.ctx, t, http.MethodPut, url, jsonBody(t, body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token)
@@ -627,8 +653,8 @@ func TestE2ESprintTasks_WithViewID(t *testing.T) {
 		if groupKey != nil {
 			body["group_key"] = *groupKey
 		}
-		url := fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/views/%s/task-positions/%s",
-			env.base, projID, sprintID, viewID, taskID)
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s/task-positions/%s",
+			env.base, projID, viewID, taskID)
 		req := mustRequest(env.ctx, t, http.MethodPut, url, jsonBody(t, body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+token)
@@ -643,7 +669,7 @@ func TestE2ESprintTasks_WithViewID(t *testing.T) {
 
 	t.Run("with_view_id_positions_returned", func(t *testing.T) {
 		req := mustRequest(env.ctx, t, http.MethodGet,
-			fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/tasks?view_id=%s", env.base, projID, sprintID, viewID), nil)
+			fmt.Sprintf("%s/api/v1/projects/%s/tasks?sprint_id=%s&view_id=%s", env.base, projID, sprintID, viewID), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp := mustDo(t, client, req)
 		defer func() { _ = resp.Body.Close() }()
@@ -677,7 +703,7 @@ func TestE2ESprintTasks_WithViewID(t *testing.T) {
 
 	t.Run("without_view_id_no_positions", func(t *testing.T) {
 		req := mustRequest(env.ctx, t, http.MethodGet,
-			fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/tasks", env.base, projID, sprintID), nil)
+			fmt.Sprintf("%s/api/v1/projects/%s/tasks?sprint_id=%s", env.base, projID, sprintID), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp := mustDo(t, client, req)
 		defer func() { _ = resp.Body.Close() }()
@@ -696,7 +722,7 @@ func TestE2ESprintTasks_WithViewID(t *testing.T) {
 
 	t.Run("invalid_view_id_returns_400", func(t *testing.T) {
 		req := mustRequest(env.ctx, t, http.MethodGet,
-			fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/tasks?view_id=not-a-uuid", env.base, projID, sprintID), nil)
+			fmt.Sprintf("%s/api/v1/projects/%s/tasks?sprint_id=%s&view_id=not-a-uuid", env.base, projID, sprintID), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp := mustDo(t, client, req)
 		defer func() { _ = resp.Body.Close() }()
@@ -705,7 +731,7 @@ func TestE2ESprintTasks_WithViewID(t *testing.T) {
 
 	t.Run("unknown_view_id_returns_404", func(t *testing.T) {
 		req := mustRequest(env.ctx, t, http.MethodGet,
-			fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/tasks?view_id=%s", env.base, projID, sprintID, uuid.New()), nil)
+			fmt.Sprintf("%s/api/v1/projects/%s/tasks?sprint_id=%s&view_id=%s", env.base, projID, sprintID, uuid.New()), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp := mustDo(t, client, req)
 		defer func() { _ = resp.Body.Close() }()
@@ -755,7 +781,7 @@ func TestE2EBacklog_WithViewID(t *testing.T) {
 		if groupKey != nil {
 			body["group_key"] = *groupKey
 		}
-		url := fmt.Sprintf("%s/api/v1/projects/%s/product-backlog/views/%s/task-positions/%s",
+		url := fmt.Sprintf("%s/api/v1/projects/%s/views/%s/task-positions/%s",
 			env.base, projID, viewID, taskID)
 		req := mustRequest(env.ctx, t, http.MethodPut, url, jsonBody(t, body))
 		req.Header.Set("Content-Type", "application/json")
@@ -771,7 +797,7 @@ func TestE2EBacklog_WithViewID(t *testing.T) {
 
 	t.Run("with_view_id_positions_returned", func(t *testing.T) {
 		req := mustRequest(env.ctx, t, http.MethodGet,
-			fmt.Sprintf("%s/api/v1/projects/%s/product-backlog?view_id=%s", env.base, projID, viewID), nil)
+			fmt.Sprintf("%s/api/v1/projects/%s/tasks?sprint_id=null&view_id=%s", env.base, projID, viewID), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp := mustDo(t, client, req)
 		defer func() { _ = resp.Body.Close() }()
@@ -805,7 +831,7 @@ func TestE2EBacklog_WithViewID(t *testing.T) {
 
 	t.Run("without_view_id_no_positions", func(t *testing.T) {
 		req := mustRequest(env.ctx, t, http.MethodGet,
-			fmt.Sprintf("%s/api/v1/projects/%s/product-backlog", env.base, projID), nil)
+			fmt.Sprintf("%s/api/v1/projects/%s/tasks?sprint_id=null", env.base, projID), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp := mustDo(t, client, req)
 		defer func() { _ = resp.Body.Close() }()
@@ -824,7 +850,7 @@ func TestE2EBacklog_WithViewID(t *testing.T) {
 
 	t.Run("invalid_view_id_returns_400", func(t *testing.T) {
 		req := mustRequest(env.ctx, t, http.MethodGet,
-			fmt.Sprintf("%s/api/v1/projects/%s/product-backlog?view_id=not-a-uuid", env.base, projID), nil)
+			fmt.Sprintf("%s/api/v1/projects/%s/tasks?sprint_id=null&view_id=not-a-uuid", env.base, projID), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp := mustDo(t, client, req)
 		defer func() { _ = resp.Body.Close() }()
@@ -833,7 +859,7 @@ func TestE2EBacklog_WithViewID(t *testing.T) {
 
 	t.Run("unknown_view_id_returns_404", func(t *testing.T) {
 		req := mustRequest(env.ctx, t, http.MethodGet,
-			fmt.Sprintf("%s/api/v1/projects/%s/product-backlog?view_id=%s", env.base, projID, uuid.New()), nil)
+			fmt.Sprintf("%s/api/v1/projects/%s/tasks?sprint_id=null&view_id=%s", env.base, projID, uuid.New()), nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp := mustDo(t, client, req)
 		defer func() { _ = resp.Body.Close() }()
@@ -1174,4 +1200,103 @@ func TestE2ECustomFieldManagement_Unauthorized(t *testing.T) {
 	defer func() { _ = resp.Body.Close() }()
 	assertStatus(t, resp, http.StatusForbidden)
 	assertErrorCode(t, resp, "FORBIDDEN")
+}
+
+// ---------------------------------------------------------------------------
+// Complete sprint
+// ---------------------------------------------------------------------------
+
+func TestE2ECompleteSprint_MovesToBacklog(t *testing.T) {
+	env := newE2EEnv(t)
+	seedTaskMemberUser(t, env, "complete-sprint-user", "completepass1")
+	client, token := taskMemberLogin(t, env, "complete-sprint-user", "completepass1")
+	projID := createProjectForTasksViaAPI(t, env, client, token)
+
+	// Create and activate the sprint.
+	sprintID := createSprintViaAPI(t, env, client, token, projID, "Sprint To Complete")
+	activateBody := jsonBody(t, map[string]any{"status": "active"})
+	req := mustRequest(env.ctx, t, http.MethodPatch,
+		fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s", env.base, projID, sprintID), activateBody)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp := mustDo(t, client, req)
+	_ = resp.Body.Close()
+	assertStatus(t, resp, http.StatusOK)
+
+	// Assign a task to the sprint.
+	taskBody := jsonBody(t, map[string]any{"title": "incomplete task", "sprint_id": sprintID})
+	req = mustRequest(env.ctx, t, http.MethodPost,
+		fmt.Sprintf("%s/api/v1/projects/%s/tasks", env.base, projID), taskBody)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp = mustDo(t, client, req)
+	_ = resp.Body.Close()
+	assertStatus(t, resp, http.StatusCreated)
+
+	// Complete the sprint — no destination means backlog.
+	completeBody := jsonBody(t, map[string]any{})
+	req = mustRequest(env.ctx, t, http.MethodPost,
+		fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/complete", env.base, projID, sprintID), completeBody)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp = mustDo(t, client, req)
+	defer func() { _ = resp.Body.Close() }()
+	assertStatus(t, resp, http.StatusOK)
+	var env2 envelope
+	decodeJSON(t, resp, &env2)
+	data := assertDataMap(t, env2)
+	if status, _ := data["status"].(string); status != "completed" {
+		t.Errorf("expected sprint status=completed, got %q", status)
+	}
+
+	// Verify the task moved to backlog.
+	req = mustRequest(env.ctx, t, http.MethodGet,
+		fmt.Sprintf("%s/api/v1/projects/%s/tasks?sprint_id=null", env.base, projID), nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp = mustDo(t, client, req)
+	defer func() { _ = resp.Body.Close() }()
+	assertStatus(t, resp, http.StatusOK)
+	var env3 envelope
+	decodeJSON(t, resp, &env3)
+	d := assertDataMap(t, env3)
+	if total, _ := d["total"].(float64); total < 1 {
+		t.Errorf("expected at least 1 backlog task after sprint completion, got %v", total)
+	}
+}
+
+func TestE2ECompleteSprint_AlreadyCompleted(t *testing.T) {
+	env := newE2EEnv(t)
+	seedTaskMemberUser(t, env, "complete-sprint-dup-user", "completepass2")
+	client, token := taskMemberLogin(t, env, "complete-sprint-dup-user", "completepass2")
+	projID := createProjectForTasksViaAPI(t, env, client, token)
+
+	sprintID := createSprintViaAPI(t, env, client, token, projID, "Sprint Already Done")
+
+	// Activate then immediately complete via the bulk endpoint.
+	activateBody := jsonBody(t, map[string]any{"status": "active"})
+	req := mustRequest(env.ctx, t, http.MethodPatch,
+		fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s", env.base, projID, sprintID), activateBody)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp := mustDo(t, client, req)
+	_ = resp.Body.Close()
+
+	completeBody := jsonBody(t, map[string]any{})
+	req = mustRequest(env.ctx, t, http.MethodPost,
+		fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/complete", env.base, projID, sprintID), completeBody)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp = mustDo(t, client, req)
+	_ = resp.Body.Close()
+	assertStatus(t, resp, http.StatusOK)
+
+	// A second call must return 409.
+	req = mustRequest(env.ctx, t, http.MethodPost,
+		fmt.Sprintf("%s/api/v1/projects/%s/sprints/%s/complete", env.base, projID, sprintID), jsonBody(t, map[string]any{}))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp = mustDo(t, client, req)
+	defer func() { _ = resp.Body.Close() }()
+	assertStatus(t, resp, http.StatusConflict)
+	assertErrorCode(t, resp, "SPRINT_ALREADY_COMPLETE")
 }

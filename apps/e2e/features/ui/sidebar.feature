@@ -92,7 +92,7 @@ Feature: Sidebar navigation
       Then a tooltip with the label "Global Roles" should be visible
 
   @authenticated
-  Rule: Theme switcher integration
+  Rule: Theme switcher interaction
 
     Background:
       Given the user already has a stored authenticated session
