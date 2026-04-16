@@ -179,7 +179,12 @@ func (s *Service) GetDownloadURL(ctx context.Context, attachmentID uuid.UUID, tt
 		contentDisposition = `attachment; filename="` + f.FileName + `"`
 	}
 
-	url, err := s.store.PresignGetObject(ctx, s.bucket, f.StorageKey, ttl, contentDisposition)
+	bucket := f.Bucket
+	if bucket == "" {
+		bucket = s.bucket
+	}
+
+	url, err := s.store.PresignGetObject(ctx, bucket, f.StorageKey, ttl, contentDisposition)
 	if err != nil {
 		return "", fmt.Errorf("attachment svc: presign get: %w", err)
 	}
