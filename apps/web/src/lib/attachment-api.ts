@@ -168,7 +168,13 @@ export async function uploadAttachment(
 			}
 
 			// S3 / MinIO returns the ETag in the response headers.
-			const etag = resp.headers.get("ETag") ?? resp.headers.get("etag") ?? "";
+			const etag = resp.headers.get("ETag") ?? resp.headers.get("etag");
+			if (!etag) {
+				throw new Error(
+					`Part ${part.part_number} upload succeeded but did not return an ETag header. ` +
+						`Multipart uploads require the object store to expose ETag via CORS.`,
+				);
+			}
 			completedParts.push({ part_number: part.part_number, etag });
 
 			loaded += chunk.size;
