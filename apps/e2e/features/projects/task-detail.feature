@@ -421,6 +421,80 @@ Feature: Task detail
       When the user opens the task detail for "E2E_ATTACH_TASK"
       Then no delete button should be visible for attachment "protected-file.pdf"
 
+    Scenario: Each attachment item shows the file size in a human-readable format
+      Given the task "E2E_ATTACH_TASK" has an attachment named "report.pdf"
+      When the user opens the task detail for "E2E_ATTACH_TASK"
+      Then the attachment "report.pdf" should display its file size
+
+    Scenario: Each attachment item shows a relative upload timestamp
+      Given the task "E2E_ATTACH_TASK" has a recently uploaded attachment named "notes.txt"
+      When the user opens the task detail for "E2E_ATTACH_TASK"
+      Then the attachment "notes.txt" should display a relative upload time such as "just now"
+
+    Scenario: The attachments section heading shows a count of attached files
+      Given the task "E2E_ATTACH_TASK" has an attachment named "file-one.pdf"
+      And the task "E2E_ATTACH_TASK" has an attachment named "file-two.png"
+      When the user opens the task detail for "E2E_ATTACH_TASK"
+      Then the "Attachments" section heading should display a count of "2"
+
+    Scenario: Clicking the file name opens the attachment for preview in a new browser tab
+      Given the task "E2E_ATTACH_TASK" has an attachment named "design.png"
+      When the user opens the task detail for "E2E_ATTACH_TASK"
+      And the user clicks the file name for attachment "design.png"
+      Then the attachment should be opened for preview in a new browser tab
+
+    Scenario: Clicking the file extension badge opens the attachment for preview in a new browser tab
+      Given the task "E2E_ATTACH_TASK" has an attachment named "spec.pdf"
+      When the user opens the task detail for "E2E_ATTACH_TASK"
+      And the user clicks the file extension badge for attachment "spec.pdf"
+      Then the attachment should be opened for preview in a new browser tab
+
+    Scenario: A download button appears when hovering over an attachment row
+      Given the task "E2E_ATTACH_TASK" has an attachment named "export.csv"
+      When the user opens the task detail for "E2E_ATTACH_TASK"
+      And the user hovers over the attachment row for "export.csv"
+      Then a "Download" button should appear for "export.csv"
+
+    Scenario: Clicking the download button initiates a file download
+      Given the task "E2E_ATTACH_TASK" has an attachment named "export.csv"
+      When the user opens the task detail for "E2E_ATTACH_TASK"
+      And the user hovers over the attachment row for "export.csv"
+      And the user clicks the "Download" button for "export.csv"
+      Then a download for "export.csv" should be initiated
+
+    Scenario: Multiple files can be selected and uploaded at once via the file picker
+      When the user opens the task detail for "E2E_ATTACH_TASK"
+      And the user clicks the upload icon and selects "document-a.txt" and "document-b.txt" simultaneously
+      Then the attachments section should list "document-a.txt" after the upload completes
+      And the attachments section should list "document-b.txt" after the upload completes
+
+    Scenario: Multiple files can be uploaded by dropping them onto the drop zone at the same time
+      When the user opens the task detail for "E2E_ATTACH_TASK"
+      And the user drops "file-x.png" and "file-y.png" onto the attachments drop-zone simultaneously
+      Then the attachments section should list "file-x.png" after the upload completes
+      And the attachments section should list "file-y.png" after the upload completes
+
+    Scenario: Clicking the drop zone body opens the file picker
+      When the user opens the task detail for "E2E_ATTACH_TASK"
+      And the user clicks directly on the drop zone body in the attachments section
+      Then a file picker dialog should open
+
+    Scenario: The upload button and drop zone are hidden for a user without write permission
+      Given the user does not have the "Edit Tasks" project permission in "E2E_ATTACH_PROJECT"
+      When the user opens the task detail for "E2E_ATTACH_TASK"
+      Then the "Upload attachment" button should not be visible in the attachments section
+      And the "Drop your files here to upload" drop zone should not be visible
+
+    Scenario: The drop zone shows an active highlighted state while a file is dragged over it
+      When the user opens the task detail for "E2E_ATTACH_TASK"
+      And the user drags a file over the drop zone without releasing
+      Then the drop zone should display an active highlighted visual state
+
+    Scenario: Dropping a file when not hovering over the drop zone does not upload it
+      When the user opens the task detail for "E2E_ATTACH_TASK"
+      And the user drops a file onto the task detail modal outside the drop zone
+      Then no new attachment should appear in the attachments section
+
   @authenticated
   Rule: Activity and comments panel
 
