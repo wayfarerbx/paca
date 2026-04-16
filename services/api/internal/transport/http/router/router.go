@@ -416,35 +416,41 @@ func New(deps Deps) *gin.Engine {
 						)
 					}
 
-					// Attachments — files uploaded and linked to a task
-					attachments := tasks.Group("/:taskId/attachments")
-					{
-						attachments.GET("",
-							httpmw.RequireAnyPermissions(deps.Authorizer,
-								httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
-								httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionTasksRead}},
-							),
-							deps.Attachment.ListTaskAttachments,
-						)
-						attachments.POST("/initiate-upload",
-							httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
-							deps.Attachment.InitiateUpload,
-						)
-						attachments.POST("/complete-upload",
-							httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
-							deps.Attachment.CompleteUpload,
-						)
-						attachments.GET("/:attachmentId/download-url",
-							httpmw.RequireAnyPermissions(deps.Authorizer,
-								httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
-								httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionTasksRead}},
-							),
-							deps.Attachment.GetDownloadURL,
-						)
-						attachments.DELETE("/:attachmentId",
-							httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
-							deps.Attachment.DeleteTaskAttachment,
-						)
+					// Attachments — files uploaded and linked to a task.
+					// Routes are only registered when an attachment handler (and
+					// therefore a storage backend) is available; if nil, requests
+					// to these paths return 404 instead of causing a nil-pointer
+					// panic.
+					if deps.Attachment != nil {
+						attachments := tasks.Group("/:taskId/attachments")
+						{
+							attachments.GET("",
+								httpmw.RequireAnyPermissions(deps.Authorizer,
+									httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
+									httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionTasksRead}},
+								),
+								deps.Attachment.ListTaskAttachments,
+							)
+							attachments.POST("/initiate-upload",
+								httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
+								deps.Attachment.InitiateUpload,
+							)
+							attachments.POST("/complete-upload",
+								httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
+								deps.Attachment.CompleteUpload,
+							)
+							attachments.GET("/:attachmentId/download-url",
+								httpmw.RequireAnyPermissions(deps.Authorizer,
+									httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
+									httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionTasksRead}},
+								),
+								deps.Attachment.GetDownloadURL,
+							)
+							attachments.DELETE("/:attachmentId",
+								httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
+								deps.Attachment.DeleteTaskAttachment,
+							)
+						}
 					}
 				}
 
