@@ -70,8 +70,8 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD}
       # Object storage.
-      # Default: STORAGE_PROVIDER=minio — run with --profile minio.
-      # AWS S3:  set STORAGE_PROVIDER=s3 and real credentials; omit --profile minio.
+      # Default: STORAGE_PROVIDER=minio — MinIO runs by default; no extra flags needed.
+      # AWS S3:  set STORAGE_PROVIDER=s3 and real credentials; add --scale minio=0 to the startup command.
       STORAGE_PROVIDER: ${STORAGE_PROVIDER:-minio}
       STORAGE_ENDPOINT: ${STORAGE_ENDPOINT:-minio:9000}
       # Rewrite presigned URL host from the internal Docker hostname to the
