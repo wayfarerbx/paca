@@ -10,6 +10,7 @@ import (
 // UploadStatus represents the lifecycle of a file upload.
 type UploadStatus string
 
+// Upload status values for the File lifecycle.
 const (
 	UploadStatusPending  UploadStatus = "pending"
 	UploadStatusUploaded UploadStatus = "uploaded"

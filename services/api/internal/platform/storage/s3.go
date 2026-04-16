@@ -64,9 +64,7 @@ func NewS3Client(ctx context.Context, cfg S3Config) (*S3Client, error) {
 		}
 		endpoint := cfg.Endpoint
 		// Prefix scheme if not already present.
-		if len(endpoint) >= 4 && (endpoint[:7] == "http://" || endpoint[:8] == "https://") {
-			// already has scheme
-		} else {
+		if !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
 			endpoint = scheme + "://" + endpoint
 		}
 

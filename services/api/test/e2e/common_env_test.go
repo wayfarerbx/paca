@@ -27,9 +27,11 @@ import (
 	"github.com/paca/api/internal/platform/authz"
 	"github.com/paca/api/internal/platform/cache"
 	"github.com/paca/api/internal/platform/database"
+	"github.com/paca/api/internal/platform/storage"
 	jwttoken "github.com/paca/api/internal/platform/token"
 	pgRepo "github.com/paca/api/internal/repository/postgres"
 	redisRepo "github.com/paca/api/internal/repository/redis"
+	attachmentsvc "github.com/paca/api/internal/service/attachment"
 	authsvc "github.com/paca/api/internal/service/auth"
 	globalrolesvc "github.com/paca/api/internal/service/globalrole"
 	projectsvc "github.com/paca/api/internal/service/project"
@@ -49,11 +51,12 @@ const (
 	e2eRefreshSessionTTL = 24 * time.Hour
 )
 
-// sharedPGDSN and sharedRedisURL are populated once by TestMain so that every
-// newE2EEnv call reuses the same containers instead of spinning up new ones.
+// sharedPGDSN, sharedRedisURL, and sharedMinIOEndpoint are populated once by
+// TestMain so that every newE2EEnv call reuses the same containers.
 var (
-	sharedPGDSN    string
-	sharedRedisURL string
+	sharedPGDSN         string
+	sharedRedisURL      string
+	sharedMinIOEndpoint string // host:port reachable from the test process
 
 	// testDBSeq is incremented for each newE2EEnv call to generate a unique
 	// per-test Postgres database name. This ensures seed data (e.g. users)
@@ -62,20 +65,22 @@ var (
 )
 
 type e2eEnv struct {
-	ctx         context.Context
-	base        string
-	client      *http.Client
-	userService *usersvc.Service
-	userRepo    *pgRepo.UserRepository
-	roleRepo    *pgRepo.GlobalRoleRepository
-	projectRepo *pgRepo.ProjectRepository
-	projectSvc  *projectsvc.Service
-	taskRepo    *pgRepo.TaskRepository
-	taskSvc     *tasksvc.Service
-	sprintRepo  *pgRepo.SprintRepository
-	sprintSvc   *sprintsvc.Service
-	viewRepo    *pgRepo.ViewRepository
-	viewSvc     *sprintsvc.ViewService
+	ctx            context.Context
+	base           string
+	client         *http.Client
+	userService    *usersvc.Service
+	userRepo       *pgRepo.UserRepository
+	roleRepo       *pgRepo.GlobalRoleRepository
+	projectRepo    *pgRepo.ProjectRepository
+	projectSvc     *projectsvc.Service
+	taskRepo       *pgRepo.TaskRepository
+	taskSvc        *tasksvc.Service
+	sprintRepo     *pgRepo.SprintRepository
+	sprintSvc      *sprintsvc.Service
+	viewRepo       *pgRepo.ViewRepository
+	viewSvc        *sprintsvc.ViewService
+	attachmentRepo *pgRepo.AttachmentRepository
+	attachmentSvc  *attachmentsvc.Service
 }
 
 func newE2EEnv(t *testing.T) *e2eEnv {
@@ -172,6 +177,26 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 	sprintService := sprintsvc.New(sprintRepo, taskRepo)
 	viewRepo := pgRepo.NewViewRepository(db)
 	viewService := sprintsvc.NewViewService(viewRepo)
+	attachmentRepo := pgRepo.NewAttachmentRepository(db)
+	var attachmentService *attachmentsvc.Service
+	if sharedMinIOEndpoint != "" {
+		minIOEndpoint := sharedMinIOEndpoint
+		storageClient, storageErr := storage.NewS3Client(ctx, storage.S3Config{
+			Endpoint:        "http://" + minIOEndpoint,
+			Region:          "us-east-1",
+			AccessKeyID:     "minioadmin",
+			SecretAccessKey: "minioadmin",
+			ForcePathStyle:  true,
+		})
+		if storageErr != nil {
+			t.Fatalf("init storage client: %v", storageErr)
+		}
+		const attachBucket = "paca-attachments-e2e"
+		if err := storageClient.EnsureBucket(ctx, attachBucket); err != nil {
+			t.Fatalf("ensure bucket: %v", err)
+		}
+		attachmentService = attachmentsvc.New(attachmentRepo, storageClient, attachBucket)
+	}
 
 	cookieCfg := handler.CookieConfig{
 		Secure:            false,
@@ -190,6 +215,7 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 		Task:         handler.NewTaskHandler(taskService, viewService),
 		Sprint:       handler.NewSprintHandler(sprintService, viewService),
 		View:         handler.NewViewHandler(viewService),
+		Attachment:   handler.NewAttachmentHandler(attachmentService),
 		Log:          log,
 	})
 
@@ -208,17 +234,19 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 			Jar:     jar,
 			Timeout: 30 * time.Second,
 		},
-		userService: userService,
-		userRepo:    userRepo,
-		roleRepo:    roleRepo,
-		projectRepo: projectRepo,
-		projectSvc:  projectService,
-		taskRepo:    taskRepo,
-		taskSvc:     taskService,
-		sprintRepo:  sprintRepo,
-		sprintSvc:   sprintService,
-		viewRepo:    viewRepo,
-		viewSvc:     viewService,
+		userService:    userService,
+		userRepo:       userRepo,
+		roleRepo:       roleRepo,
+		projectRepo:    projectRepo,
+		projectSvc:     projectService,
+		taskRepo:       taskRepo,
+		taskSvc:        taskService,
+		sprintRepo:     sprintRepo,
+		sprintSvc:      sprintService,
+		viewRepo:       viewRepo,
+		viewSvc:        viewService,
+		attachmentRepo: attachmentRepo,
+		attachmentSvc:  attachmentService,
 	}
 }
 
@@ -284,10 +312,39 @@ func TestMain(m *testing.M) {
 	}
 	sharedRedisURL = fmt.Sprintf("redis://%s:%s/0", redisHost, redisPort.Port())
 
+	minioC, err := testcontainers.GenericContainer(bgCtx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image: "minio/minio:latest",
+			Env: map[string]string{
+				"MINIO_ROOT_USER":     "minioadmin",
+				"MINIO_ROOT_PASSWORD": "minioadmin",
+			},
+			Cmd:          []string{"server", "/data"},
+			ExposedPorts: []string{"9000/tcp"},
+			WaitingFor:   wait.ForHTTP("/minio/health/live").WithPort("9000/tcp").WithStartupTimeout(60 * time.Second),
+		},
+		Started: true,
+	})
+	if err != nil {
+		_ = pgC.Terminate(bgCtx)
+		_ = redisC.Terminate(bgCtx)
+		fmt.Fprintf(os.Stderr, "WARN: start minio container: %v – attachment tests will be skipped\n", err)
+	} else {
+		minioHost, _ := minioC.Host(bgCtx)
+		minioPort, _ := minioC.MappedPort(bgCtx, "9000/tcp")
+		if minioHost == "localhost" {
+			minioHost = "127.0.0.1"
+		}
+		sharedMinIOEndpoint = fmt.Sprintf("%s:%s", minioHost, minioPort.Port())
+	}
+
 	code := m.Run()
 
 	_ = pgC.Terminate(bgCtx)
 	_ = redisC.Terminate(bgCtx)
+	if minioC != nil {
+		_ = minioC.Terminate(bgCtx)
+	}
 
 	os.Exit(code)
 }

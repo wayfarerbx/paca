@@ -162,7 +162,9 @@ export async function uploadAttachment(
 			});
 
 			if (!resp.ok) {
-				throw new Error(`Part ${part.part_number} upload failed: ${resp.status}`);
+				throw new Error(
+					`Part ${part.part_number} upload failed: ${resp.status}`,
+				);
 			}
 
 			// S3 / MinIO returns the ETag in the response headers.
@@ -184,17 +186,23 @@ export async function uploadAttachment(
 		if (!session.upload_url) {
 			throw new Error("Server returned no upload URL");
 		}
+		const uploadUrl = session.upload_url;
 
 		await new Promise<void>((resolve, reject) => {
 			const xhr = new XMLHttpRequest();
-			xhr.open("PUT", session.upload_url!);
-			xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+			xhr.open("PUT", uploadUrl);
+			xhr.setRequestHeader(
+				"Content-Type",
+				file.type || "application/octet-stream",
+			);
 
 			xhr.upload.addEventListener("progress", (e) => {
 				if (e.lengthComputable) onProgress?.(e.loaded, e.total);
 			});
 			xhr.addEventListener("load", () =>
-				xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload failed: ${xhr.status}`)),
+				xhr.status >= 200 && xhr.status < 300
+					? resolve()
+					: reject(new Error(`Upload failed: ${xhr.status}`)),
 			);
 			xhr.addEventListener("error", () => reject(new Error("Upload error")));
 			xhr.send(file);
@@ -207,7 +215,10 @@ export async function uploadAttachment(
 
 // ── React Query options ───────────────────────────────────────────────────────
 
-export const taskAttachmentsQueryOptions = (projectId: string, taskId: string) =>
+export const taskAttachmentsQueryOptions = (
+	projectId: string,
+	taskId: string,
+) =>
 	queryOptions({
 		queryKey: ["projects", projectId, "tasks", taskId, "attachments"] as const,
 		queryFn: () => listTaskAttachments(projectId, taskId),

@@ -31,8 +31,7 @@ export function AttachmentsSection({
 
 	// ── Upload mutation ────────────────────────────────────────────────────
 	const uploadMutation = useMutation({
-		mutationFn: (file: File) =>
-			uploadAttachment(projectId, taskId, file),
+		mutationFn: (file: File) => uploadAttachment(projectId, taskId, file),
 		onSuccess: () => {
 			qc.invalidateQueries({
 				queryKey: ["projects", projectId, "tasks", taskId, "attachments"],
@@ -153,4 +152,3 @@ export function AttachmentsSection({
 		</div>
 	);
 }
-

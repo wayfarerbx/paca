@@ -233,9 +233,13 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodeSprintNotFound,
 		apierr.CodeViewNotFound,
 		apierr.CodeCustomFieldNotFound,
-		apierr.CodeBDDScenarioNotFound:
+		apierr.CodeBDDScenarioNotFound,
+		apierr.CodeFileNotFound,
+		apierr.CodeAttachmentNotFound:
 		return http.StatusNotFound
-	case apierr.CodeTaskTitleInvalid,
+	case apierr.CodeUploadNotPending,
+		apierr.CodeAttachmentInvalid,
+		apierr.CodeTaskTitleInvalid,
 		apierr.CodeTaskTypeNameInvalid,
 		apierr.CodeTaskStatusNameInvalid,
 		apierr.CodeTaskStatusCategoryInvalid,

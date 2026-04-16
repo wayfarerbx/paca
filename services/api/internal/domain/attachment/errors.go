@@ -2,8 +2,7 @@ package attachmentdom
 
 import "errors"
 
-// sentinel errors -------------------------------------------------------
-
+// Sentinel errors returned by attachment domain operations.
 var (
 	ErrFileNotFound       = errors.New("file not found")
 	ErrAttachmentNotFound = errors.New("attachment not found")

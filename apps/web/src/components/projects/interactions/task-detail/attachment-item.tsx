@@ -1,7 +1,7 @@
 import { Download, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { getAttachmentDownloadURL } from "@/lib/attachment-api";
 import type { TaskAttachment } from "@/lib/attachment-api";
+import { getAttachmentDownloadURL } from "@/lib/attachment-api";
 import { cn } from "@/lib/utils";
 import { timeAgo } from "./helpers";
 
@@ -32,7 +32,11 @@ export function AttachmentItem({
 
 	const handlePreview = async () => {
 		try {
-			const url = await getAttachmentDownloadURL(projectId, taskId, attachment.id);
+			const url = await getAttachmentDownloadURL(
+				projectId,
+				taskId,
+				attachment.id,
+			);
 			window.open(url, "_blank", "noopener,noreferrer");
 		} catch {
 			// silently ignore — user can retry by clicking again
