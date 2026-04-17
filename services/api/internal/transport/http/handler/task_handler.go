@@ -574,9 +574,9 @@ func (h *TaskHandler) taskChangedFields(ctx context.Context, old *taskdom.Task, 
 	}
 
 	if req.CustomFields != nil {
-		oldJSON, _ := json.Marshal(old.CustomFields)
-		newJSON, _ := json.Marshal(*req.CustomFields)
-		if string(oldJSON) != string(newJSON) {
+		oldJSON, oldErr := json.Marshal(old.CustomFields)
+		newJSON, newErr := json.Marshal(*req.CustomFields)
+		if oldErr != nil || newErr != nil || string(oldJSON) != string(newJSON) {
 			changes = append(changes, taskdom.FieldChange{Field: "custom_fields"})
 		}
 	}
