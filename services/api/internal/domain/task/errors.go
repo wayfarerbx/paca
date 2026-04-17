@@ -24,4 +24,10 @@ var (
 
 	ErrBDDScenarioNotFound     = errors.New("bdd scenario: not found")
 	ErrBDDScenarioTitleInvalid = errors.New("bdd scenario: title is empty or invalid")
+
+	// Activity / comment errors.
+	ErrActivityNotFound    = errors.New("activity: not found")
+	ErrActivityForbidden   = errors.New("activity: only the author can modify this comment")
+	ErrActivityNotAComment = errors.New("activity: this entry is not a comment and cannot be edited")
+	ErrCommentTextInvalid  = errors.New("activity: comment text must not be empty")
 )

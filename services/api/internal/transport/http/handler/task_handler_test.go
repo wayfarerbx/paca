@@ -16,6 +16,7 @@ import (
 	sprintdom "github.com/paca/api/internal/domain/sprint"
 	taskdom "github.com/paca/api/internal/domain/task"
 	"github.com/paca/api/internal/transport/http/handler"
+	"github.com/paca/api/internal/transport/http/middleware"
 )
 
 // ---------------------------------------------------------------------------
@@ -288,8 +289,106 @@ func (f *fakeTaskSvc) DeleteBDDScenario(_ context.Context, id uuid.UUID) error {
 }
 
 // ---------------------------------------------------------------------------
-// Fake view service (no-op)
+// Fake activity service
 // ---------------------------------------------------------------------------
+
+type fakeActivitySvc struct {
+	mu         sync.RWMutex
+	activities map[uuid.UUID]*taskdom.Activity
+}
+
+func newFakeActivitySvc() *fakeActivitySvc {
+	return &fakeActivitySvc{activities: make(map[uuid.UUID]*taskdom.Activity)}
+}
+
+func (f *fakeActivitySvc) RecordActivity(_ context.Context, in taskdom.RecordActivityInput) error {
+	a := &taskdom.Activity{
+		ID:           uuid.New(),
+		TaskID:       in.TaskID,
+		ActorID:      in.ActorID,
+		ActivityType: in.ActivityType,
+		Content:      in.Content,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+	f.mu.Lock()
+	f.activities[a.ID] = a
+	f.mu.Unlock()
+	return nil
+}
+
+func (f *fakeActivitySvc) ListActivities(_ context.Context, taskID uuid.UUID) ([]*taskdom.Activity, error) {
+	f.mu.RLock()
+	defer f.mu.RUnlock()
+	var out []*taskdom.Activity
+	for _, a := range f.activities {
+		if a.TaskID == taskID && a.DeletedAt == nil {
+			cp := *a
+			out = append(out, &cp)
+		}
+	}
+	return out, nil
+}
+
+func (f *fakeActivitySvc) AddComment(_ context.Context, in taskdom.AddCommentInput) (*taskdom.Activity, error) {
+	if in.Text == "" {
+		return nil, taskdom.ErrCommentTextInvalid
+	}
+	now := time.Now()
+	a := &taskdom.Activity{
+		ID:           uuid.New(),
+		TaskID:       in.TaskID,
+		ActorID:      &in.ActorID,
+		ActivityType: taskdom.ActivityTypeComment,
+		Content:      []byte(`{"text":"` + in.Text + `"}`),
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+	f.mu.Lock()
+	f.activities[a.ID] = a
+	f.mu.Unlock()
+	return a, nil
+}
+
+func (f *fakeActivitySvc) UpdateComment(_ context.Context, id uuid.UUID, actorID uuid.UUID, text string) (*taskdom.Activity, error) {
+	if text == "" {
+		return nil, taskdom.ErrCommentTextInvalid
+	}
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	a, ok := f.activities[id]
+	if !ok {
+		return nil, taskdom.ErrActivityNotFound
+	}
+	if a.ActivityType != taskdom.ActivityTypeComment {
+		return nil, taskdom.ErrActivityNotAComment
+	}
+	if a.ActorID == nil || *a.ActorID != actorID {
+		return nil, taskdom.ErrActivityForbidden
+	}
+	a.Content = []byte(`{"text":"` + text + `"}`)
+	a.UpdatedAt = time.Now()
+	cp := *a
+	return &cp, nil
+}
+
+func (f *fakeActivitySvc) DeleteComment(_ context.Context, id uuid.UUID, actorID uuid.UUID) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	a, ok := f.activities[id]
+	if !ok {
+		return taskdom.ErrActivityNotFound
+	}
+	if a.ActivityType != taskdom.ActivityTypeComment {
+		return taskdom.ErrActivityNotAComment
+	}
+	if a.ActorID == nil || *a.ActorID != actorID {
+		return taskdom.ErrActivityForbidden
+	}
+	now := time.Now()
+	a.DeletedAt = &now
+	return nil
+}
 
 type fakeViewSvcTask struct{}
 
@@ -340,8 +439,12 @@ func (f *fakeViewSvcTask) ReorderProjectViews(_ context.Context, _ uuid.UUID, _ 
 // ---------------------------------------------------------------------------
 
 func buildTaskHandlerRouter(svc *fakeTaskSvc) *gin.Engine {
+	return buildTaskHandlerRouterWithActivity(svc, newFakeActivitySvc())
+}
+
+func buildTaskHandlerRouterWithActivity(svc *fakeTaskSvc, actSvc *fakeActivitySvc) *gin.Engine {
 	gin.SetMode(gin.TestMode)
-	h := handler.NewTaskHandler(svc, &fakeViewSvcTask{})
+	h := handler.NewTaskHandler(svc, &fakeViewSvcTask{}, actSvc)
 	r := gin.New()
 	projectGroup := r.Group("/projects/:projectId")
 	projectGroup.GET("/task-types", h.ListTaskTypes)
@@ -360,6 +463,11 @@ func buildTaskHandlerRouter(svc *fakeTaskSvc) *gin.Engine {
 	projectGroup.GET("/tasks/:taskId/bdd-scenarios/:scenarioId", h.GetBDDScenario)
 	projectGroup.PATCH("/tasks/:taskId/bdd-scenarios/:scenarioId", h.UpdateBDDScenario)
 	projectGroup.DELETE("/tasks/:taskId/bdd-scenarios/:scenarioId", h.DeleteBDDScenario)
+	// Activities / comments
+	projectGroup.GET("/tasks/:taskId/activities", h.ListTaskActivities)
+	projectGroup.POST("/tasks/:taskId/activities/comments", h.AddComment)
+	projectGroup.PATCH("/tasks/:taskId/activities/comments/:commentId", h.UpdateComment)
+	projectGroup.DELETE("/tasks/:taskId/activities/comments/:commentId", h.DeleteComment)
 	return r
 }
 
@@ -986,5 +1094,181 @@ func TestBDDScenarioHandler_DeleteNotFound(t *testing.T) {
 	)
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Helpers for actor-aware requests
+// ---------------------------------------------------------------------------
+
+func doTaskRequestWithActor(r *gin.Engine, method, path string, body any, actorID uuid.UUID) *httptest.ResponseRecorder {
+	var buf *bytes.Buffer
+	if body != nil {
+		b, _ := json.Marshal(body)
+		buf = bytes.NewBuffer(b)
+	} else {
+		buf = bytes.NewBuffer(nil)
+	}
+	req := httptest.NewRequestWithContext(middleware.WithActorID(context.Background(), actorID), method, path, buf)
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	return w
+}
+
+// ---------------------------------------------------------------------------
+// Activity handler tests
+// ---------------------------------------------------------------------------
+
+func TestActivityHandler_ListEmpty(t *testing.T) {
+	svc := newFakeTaskSvc()
+	r := buildTaskHandlerRouter(svc)
+	projectID := uuid.New()
+	taskID := uuid.New()
+
+	w := doTaskRequest(r, http.MethodGet,
+		fmt.Sprintf("/projects/%s/tasks/%s/activities", projectID, taskID),
+		nil,
+	)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestActivityHandler_AddComment(t *testing.T) {
+	svc := newFakeTaskSvc()
+	actSvc := newFakeActivitySvc()
+	r := buildTaskHandlerRouterWithActivity(svc, actSvc)
+	projectID := uuid.New()
+	taskID := uuid.New()
+	actorID := uuid.New()
+
+	w := doTaskRequestWithActor(r, http.MethodPost,
+		fmt.Sprintf("/projects/%s/tasks/%s/activities/comments", projectID, taskID),
+		map[string]any{"text": "hello world"},
+		actorID,
+	)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestActivityHandler_AddComment_NoActor(t *testing.T) {
+	svc := newFakeTaskSvc()
+	r := buildTaskHandlerRouter(svc)
+	projectID := uuid.New()
+	taskID := uuid.New()
+
+	w := doTaskRequest(r, http.MethodPost,
+		fmt.Sprintf("/projects/%s/tasks/%s/activities/comments", projectID, taskID),
+		map[string]any{"text": "hello world"},
+	)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestActivityHandler_AddComment_EmptyText(t *testing.T) {
+	svc := newFakeTaskSvc()
+	actSvc := newFakeActivitySvc()
+	r := buildTaskHandlerRouterWithActivity(svc, actSvc)
+	projectID := uuid.New()
+	taskID := uuid.New()
+	actorID := uuid.New()
+
+	w := doTaskRequestWithActor(r, http.MethodPost,
+		fmt.Sprintf("/projects/%s/tasks/%s/activities/comments", projectID, taskID),
+		map[string]any{"text": ""},
+		actorID,
+	)
+	// Empty text fails binding (required) or service validation
+	if w.Code == http.StatusCreated {
+		t.Fatalf("expected error, got 201")
+	}
+}
+
+func TestActivityHandler_UpdateAndDeleteComment(t *testing.T) {
+	svc := newFakeTaskSvc()
+	actSvc := newFakeActivitySvc()
+	r := buildTaskHandlerRouterWithActivity(svc, actSvc)
+	projectID := uuid.New()
+	taskID := uuid.New()
+	actorID := uuid.New()
+
+	// Add a comment first
+	w := doTaskRequestWithActor(r, http.MethodPost,
+		fmt.Sprintf("/projects/%s/tasks/%s/activities/comments", projectID, taskID),
+		map[string]any{"text": "original"},
+		actorID,
+	)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("add comment: expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+	var created struct {
+		Data struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &created); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	commentID := created.Data.ID
+
+	// Update the comment
+	w = doTaskRequestWithActor(r, http.MethodPatch,
+		fmt.Sprintf("/projects/%s/tasks/%s/activities/comments/%s", projectID, taskID, commentID),
+		map[string]any{"text": "updated"},
+		actorID,
+	)
+	if w.Code != http.StatusOK {
+		t.Fatalf("update comment: expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// Delete the comment
+	w = doTaskRequestWithActor(r, http.MethodDelete,
+		fmt.Sprintf("/projects/%s/tasks/%s/activities/comments/%s", projectID, taskID, commentID),
+		nil,
+		actorID,
+	)
+	if w.Code != http.StatusNoContent {
+		t.Fatalf("delete comment: expected 204, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestActivityHandler_UpdateComment_Forbidden(t *testing.T) {
+	svc := newFakeTaskSvc()
+	actSvc := newFakeActivitySvc()
+	r := buildTaskHandlerRouterWithActivity(svc, actSvc)
+	projectID := uuid.New()
+	taskID := uuid.New()
+	actorID := uuid.New()
+	otherActor := uuid.New()
+
+	// Add comment as actorID
+	w := doTaskRequestWithActor(r, http.MethodPost,
+		fmt.Sprintf("/projects/%s/tasks/%s/activities/comments", projectID, taskID),
+		map[string]any{"text": "mine"},
+		actorID,
+	)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("add comment: expected 201, got %d", w.Code)
+	}
+	var created struct {
+		Data struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
+	_ = json.Unmarshal(w.Body.Bytes(), &created)
+
+	// Try to update as different actor
+	w = doTaskRequestWithActor(r, http.MethodPatch,
+		fmt.Sprintf("/projects/%s/tasks/%s/activities/comments/%s", projectID, taskID, created.Data.ID),
+		map[string]any{"text": "hacked"},
+		otherActor,
+	)
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d: %s", w.Code, w.Body.String())
 	}
 }

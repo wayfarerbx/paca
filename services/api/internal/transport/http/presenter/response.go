@@ -189,6 +189,14 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusBadRequest, apierr.CodeUploadIDMismatch
 	case errors.Is(err, attachmentdom.ErrMultipartPartsEmpty):
 		return http.StatusBadRequest, apierr.CodeMultipartPartsEmpty
+	case errors.Is(err, taskdom.ErrActivityNotFound):
+		return http.StatusNotFound, apierr.CodeActivityNotFound
+	case errors.Is(err, taskdom.ErrActivityForbidden):
+		return http.StatusForbidden, apierr.CodeActivityForbidden
+	case errors.Is(err, taskdom.ErrActivityNotAComment):
+		return http.StatusBadRequest, apierr.CodeActivityNotAComment
+	case errors.Is(err, taskdom.ErrCommentTextInvalid):
+		return http.StatusBadRequest, apierr.CodeCommentTextInvalid
 	default:
 		return http.StatusInternalServerError, apierr.CodeInternalError
 	}
@@ -263,8 +271,14 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodeCustomFieldKeyInvalid,
 		apierr.CodeCustomFieldTypeInvalid,
 		apierr.CodeCustomFieldNameInvalid,
-		apierr.CodeBDDScenarioTitleInvalid:
+		apierr.CodeBDDScenarioTitleInvalid,
+		apierr.CodeActivityNotAComment,
+		apierr.CodeCommentTextInvalid:
 		return http.StatusBadRequest
+	case apierr.CodeActivityNotFound:
+		return http.StatusNotFound
+	case apierr.CodeActivityForbidden:
+		return http.StatusForbidden
 	case apierr.CodeViewIsLastView,
 		apierr.CodeSprintAlreadyComplete,
 		apierr.CodeCustomFieldKeyTaken,

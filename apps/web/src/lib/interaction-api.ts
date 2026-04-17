@@ -701,3 +701,74 @@ export const bddScenariosQueryOptions = (projectId: string, taskId: string) =>
 		staleTime: 15_000,
 		enabled: !!projectId && !!taskId,
 	});
+
+// ── Activity & Comments API ────────────────────────────────────────────────────
+
+export interface Activity {
+	id: string;
+	task_id: string;
+	actor_id?: string | null;
+	actor_name: string;
+	actor_username: string;
+	activity_type: string;
+	content: Record<string, unknown>;
+	created_at: string;
+	updated_at: string;
+}
+
+interface ActivityListResult {
+	items: Activity[];
+}
+
+export async function listTaskActivities(
+	projectId: string,
+	taskId: string,
+): Promise<Activity[]> {
+	const { data } = await apiClient.instance.get<
+		SuccessEnvelope<ActivityListResult>
+	>(`/projects/${projectId}/tasks/${taskId}/activities`);
+	return data.data.items;
+}
+
+export async function addComment(
+	projectId: string,
+	taskId: string,
+	text: string,
+): Promise<Activity> {
+	const { data } = await apiClient.instance.post<SuccessEnvelope<Activity>>(
+		`/projects/${projectId}/tasks/${taskId}/activities/comments`,
+		{ text },
+	);
+	return data.data;
+}
+
+export async function updateComment(
+	projectId: string,
+	taskId: string,
+	commentId: string,
+	text: string,
+): Promise<Activity> {
+	const { data } = await apiClient.instance.patch<SuccessEnvelope<Activity>>(
+		`/projects/${projectId}/tasks/${taskId}/activities/comments/${commentId}`,
+		{ text },
+	);
+	return data.data;
+}
+
+export async function deleteComment(
+	projectId: string,
+	taskId: string,
+	commentId: string,
+): Promise<void> {
+	await apiClient.instance.delete(
+		`/projects/${projectId}/tasks/${taskId}/activities/comments/${commentId}`,
+	);
+}
+
+export const taskActivitiesQueryOptions = (projectId: string, taskId: string) =>
+	queryOptions({
+		queryKey: ["projects", projectId, "tasks", taskId, "activities"],
+		queryFn: () => listTaskActivities(projectId, taskId),
+		staleTime: 15_000,
+		enabled: !!projectId && !!taskId,
+	});

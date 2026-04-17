@@ -1,11 +1,13 @@
 package integration_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"sync"
 	"testing"
@@ -460,6 +462,72 @@ func (r *fakeTaskRepo) DeleteBDDScenario(_ context.Context, id uuid.UUID) error 
 }
 
 // ---------------------------------------------------------------------------
+// In-memory fake activity repository
+// ---------------------------------------------------------------------------
+
+type fakeTaskActivityRepo struct {
+	mu         sync.RWMutex
+	activities map[uuid.UUID]*taskdom.Activity
+}
+
+func newFakeTaskActivityRepo() *fakeTaskActivityRepo {
+	return &fakeTaskActivityRepo{activities: make(map[uuid.UUID]*taskdom.Activity)}
+}
+
+func (r *fakeTaskActivityRepo) ListActivities(_ context.Context, taskID uuid.UUID) ([]*taskdom.Activity, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	var out []*taskdom.Activity
+	for _, a := range r.activities {
+		if a.TaskID == taskID && a.DeletedAt == nil {
+			cp := *a
+			out = append(out, &cp)
+		}
+	}
+	return out, nil
+}
+
+func (r *fakeTaskActivityRepo) FindActivityByID(_ context.Context, id uuid.UUID) (*taskdom.Activity, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	a, ok := r.activities[id]
+	if !ok {
+		return nil, taskdom.ErrActivityNotFound
+	}
+	cp := *a
+	return &cp, nil
+}
+
+func (r *fakeTaskActivityRepo) CreateActivity(_ context.Context, a *taskdom.Activity) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.activities[a.ID] = a
+	return nil
+}
+
+func (r *fakeTaskActivityRepo) UpdateActivity(_ context.Context, a *taskdom.Activity) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if _, ok := r.activities[a.ID]; !ok {
+		return taskdom.ErrActivityNotFound
+	}
+	r.activities[a.ID] = a
+	return nil
+}
+
+func (r *fakeTaskActivityRepo) DeleteActivity(_ context.Context, id uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	a, ok := r.activities[id]
+	if !ok {
+		return taskdom.ErrActivityNotFound
+	}
+	now := time.Now()
+	a.DeletedAt = &now
+	return nil
+}
+
+// ---------------------------------------------------------------------------
 // Router builder and token helper
 // ---------------------------------------------------------------------------
 
@@ -479,6 +547,8 @@ func buildTaskTestRouterWithSprints(taskRepo *fakeTaskRepo, sprintRepo *fakeSpri
 	taskService := tasksvc.New(taskRepo)
 	sprintService := sprintsvc.New(sprintRepo, taskRepo)
 	viewService := sprintsvc.NewViewService(viewRepo)
+	activityRepo := newFakeTaskActivityRepo()
+	activityService := tasksvc.NewActivityService(activityRepo, nil)
 	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	return router.New(router.Deps{
@@ -489,7 +559,7 @@ func buildTaskTestRouterWithSprints(taskRepo *fakeTaskRepo, sprintRepo *fakeSpri
 		User:         handler.NewUserHandler(userService),
 		GlobalRole:   handler.NewGlobalRoleHandler(&fakeGlobalRoleService{}),
 		Project:      handler.NewProjectHandler(projectService, authz.NewAuthorizer(store)),
-		Task:         handler.NewTaskHandler(taskService, viewService),
+		Task:         handler.NewTaskHandler(taskService, viewService, activityService),
 		Sprint:       handler.NewSprintHandler(sprintService, viewService),
 		View:         handler.NewViewHandler(viewService),
 		Log:          log,
@@ -2788,5 +2858,173 @@ func TestBDDScenarios_RequiresTasksWritePermission(t *testing.T) {
 	))
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("expected 403 without tasks.write, got %d (%s)", w.Code, w.Body.String())
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Activity & Comment integration tests
+// ---------------------------------------------------------------------------
+
+func TestActivities_ListEmpty(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+
+	taskID := uuid.New()
+	w := serve(r, authedJSONReq(t.Context(), http.MethodGet,
+		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/activities", projectID, taskID), tok, nil,
+	))
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestActivities_AddAndListComment(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+
+	// Create a task first
+	w := serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		fmt.Sprintf("/api/v1/projects/%s/tasks", projectID), tok,
+		map[string]any{"title": "Activity Test Task"},
+	))
+	if w.Code != http.StatusCreated {
+		t.Fatalf("create task: expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+	taskID := taskIDFrom(t, "task", w.Body.Bytes())
+
+	// Add a comment
+	w = serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/activities/comments", projectID, taskID), tok,
+		map[string]any{"text": "Hello from comment"},
+	))
+	if w.Code != http.StatusCreated {
+		t.Fatalf("add comment: expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// List activities - should contain at least the comment
+	w = serve(r, authedJSONReq(t.Context(), http.MethodGet,
+		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/activities", projectID, taskID), tok, nil,
+	))
+	if w.Code != http.StatusOK {
+		t.Fatalf("list activities: expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestActivities_AddComment_RequiresAuth(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+
+	taskID := uuid.New()
+	// No token — should get 401
+	b, _ := json.Marshal(map[string]any{"text": "no auth"})
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost,
+		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/activities/comments", projectID, taskID),
+		bytes.NewReader(b),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := serve(r, req)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestActivities_UpdateComment(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+
+	// Create task
+	w := serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		fmt.Sprintf("/api/v1/projects/%s/tasks", projectID), tok,
+		map[string]any{"title": "Comment Update Task"},
+	))
+	if w.Code != http.StatusCreated {
+		t.Fatalf("create task: %d: %s", w.Code, w.Body.String())
+	}
+	taskID := taskIDFrom(t, "task", w.Body.Bytes())
+
+	// Add comment
+	w = serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/activities/comments", projectID, taskID), tok,
+		map[string]any{"text": "original text"},
+	))
+	if w.Code != http.StatusCreated {
+		t.Fatalf("add comment: %d: %s", w.Code, w.Body.String())
+	}
+	commentID := taskIDFrom(t, "comment", w.Body.Bytes())
+
+	// Update comment
+	w = serve(r, authedJSONReq(t.Context(), http.MethodPatch,
+		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/activities/comments/%s", projectID, taskID, commentID), tok,
+		map[string]any{"text": "updated text"},
+	))
+	if w.Code != http.StatusOK {
+		t.Fatalf("update comment: expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestActivities_DeleteComment(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+
+	// Create task
+	w := serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		fmt.Sprintf("/api/v1/projects/%s/tasks", projectID), tok,
+		map[string]any{"title": "Comment Delete Task"},
+	))
+	if w.Code != http.StatusCreated {
+		t.Fatalf("create task: %d: %s", w.Code, w.Body.String())
+	}
+	taskID := taskIDFrom(t, "task", w.Body.Bytes())
+
+	// Add comment
+	w = serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/activities/comments", projectID, taskID), tok,
+		map[string]any{"text": "to be deleted"},
+	))
+	if w.Code != http.StatusCreated {
+		t.Fatalf("add comment: %d: %s", w.Code, w.Body.String())
+	}
+	commentID := taskIDFrom(t, "comment", w.Body.Bytes())
+
+	// Delete comment
+	w = serve(r, authedJSONReq(t.Context(), http.MethodDelete,
+		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/activities/comments/%s", projectID, taskID, commentID), tok, nil,
+	))
+	if w.Code != http.StatusNoContent {
+		t.Fatalf("delete comment: expected 204, got %d: %s", w.Code, w.Body.String())
 	}
 }

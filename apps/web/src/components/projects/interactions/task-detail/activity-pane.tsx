@@ -1,3 +1,4 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	Bold,
 	Hash,
@@ -8,23 +9,59 @@ import {
 	Send,
 	Smile,
 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+	addComment,
+	sprintsQueryOptions,
+	taskActivitiesQueryOptions,
+} from "@/lib/interaction-api";
+import { projectMembersQueryOptions } from "@/lib/project-api";
 import { cn } from "@/lib/utils";
-import { ActivityItem } from "./activity-item";
-import type { ActivityEntry } from "./types";
+import { ActivityItem, type ActivityNameMaps } from "./activity-item";
 
 interface ActivityPaneProps {
-	activities: ActivityEntry[];
+	projectId: string;
+	taskId: string;
 }
 
-export function ActivityPane({ activities }: ActivityPaneProps) {
+export function ActivityPane({ projectId, taskId }: ActivityPaneProps) {
 	const [comment, setComment] = useState("");
 	const [commentFocused, setCommentFocused] = useState(false);
+	const qc = useQueryClient();
+
+	const { data: activities = [] } = useQuery(
+		taskActivitiesQueryOptions(projectId, taskId),
+	);
+
+	const { data: membersData } = useQuery(projectMembersQueryOptions(projectId));
+	const { data: sprintsData } = useQuery(sprintsQueryOptions(projectId));
+
+	const nameMaps = useMemo<ActivityNameMaps>(() => {
+		const members: Record<string, string> = {};
+		for (const m of membersData ?? []) {
+			members[m.id] = m.full_name || m.username;
+		}
+		const sprints: Record<string, string> = {};
+		for (const s of sprintsData ?? []) {
+			sprints[s.id] = s.name;
+		}
+		return { members, sprints };
+	}, [membersData, sprintsData]);
+
+	const addMutation = useMutation({
+		mutationFn: (text: string) => addComment(projectId, taskId, text),
+		onSuccess: () => {
+			qc.invalidateQueries({
+				queryKey: ["projects", projectId, "tasks", taskId, "activities"],
+			});
+		},
+	});
 
 	const handleSend = () => {
 		const text = comment.trim();
 		if (!text) return;
+		addMutation.mutate(text);
 		setComment("");
 		setCommentFocused(false);
 	};
@@ -48,7 +85,7 @@ export function ActivityPane({ activities }: ActivityPaneProps) {
 			<ScrollArea className="lg:flex-1 px-4 py-4 max-h-[40vh] lg:max-h-none">
 				<div className="space-y-3">
 					{activities.map((entry) => (
-						<ActivityItem key={entry.id} entry={entry} />
+						<ActivityItem key={entry.id} entry={entry} names={nameMaps} />
 					))}
 					{activities.length === 0 && (
 						<div className="flex flex-col items-center py-8 text-muted-foreground/40">
@@ -120,7 +157,7 @@ export function ActivityPane({ activities }: ActivityPaneProps) {
 					<button
 						type="button"
 						onClick={handleSend}
-						disabled={!comment.trim()}
+						disabled={!comment.trim() || addMutation.isPending}
 						className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground disabled:opacity-40 hover:bg-primary/90 transition-all duration-150 shadow-sm disabled:shadow-none"
 					>
 						<Send className="size-3" />

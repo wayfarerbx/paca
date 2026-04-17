@@ -424,4 +424,32 @@ CREATE TABLE IF NOT EXISTS bdd_scenarios (
 
 CREATE INDEX IF NOT EXISTS idx_bdd_scenarios_task_id ON bdd_scenarios (task_id);
 
+-- -------------------------------------------------------------------------
+-- TASK ACTIVITIES
+-- Unified log of system-generated change events and user comments on tasks.
+--
+-- actor_id:      NULL for system events (shouldn't occur in practice but kept
+--                nullable to survive user deletion via ON DELETE SET NULL).
+-- activity_type: discriminator; see ActivityType constants in the Go domain.
+-- content:       JSONB payload whose shape varies by activity_type.
+--                comments  → {"text": "..."}
+--                task.updated → {"changes": [{"field":"...","old":"...","new":"..."}]}
+--                etc.
+-- deleted_at:    soft-delete timestamp; only set for user comments.
+-- -------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS task_activities (
+    id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    task_id       UUID        NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    actor_id      UUID        REFERENCES users(id) ON DELETE SET NULL,
+    activity_type TEXT        NOT NULL,
+    content       JSONB       NOT NULL DEFAULT '{}'::jsonb,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at    TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_task_activities_task_id ON task_activities (task_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_task_activities_actor_id ON task_activities (actor_id) WHERE actor_id IS NOT NULL;
+
 COMMIT;

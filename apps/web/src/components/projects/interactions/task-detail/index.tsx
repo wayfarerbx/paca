@@ -31,7 +31,7 @@ import { mapApiFieldToUi } from "./helpers";
 import { PropertiesPanel } from "./properties-panel";
 import { SubtasksSection } from "./subtasks-section";
 import { TaskHeader } from "./task-header";
-import type { ActivityEntry, TaskDetailModalProps } from "./types";
+import type { TaskDetailModalProps } from "./types";
 
 // Re-exports for consumers
 export type {
@@ -169,30 +169,6 @@ export function TaskDetailModal({
 	});
 
 	const handleUpdate = canEdit ? updateMutation.mutate : undefined;
-
-	// Mock activity entries
-	const activities: ActivityEntry[] = task
-		? [
-				{
-					id: "1",
-					type: "created",
-					author: reporter?.full_name || reporter?.username || "System",
-					content: "created this task",
-					timestamp: task.created_at,
-				},
-				...(task.assignee_id
-					? [
-							{
-								id: "2",
-								type: "assignee_change" as const,
-								author: reporter?.full_name || reporter?.username || "System",
-								content: `assigned this to ${assignee?.full_name || assignee?.username || "a member"}`,
-								timestamp: task.updated_at,
-							},
-						]
-					: []),
-			]
-		: [];
 
 	// Close on Escape (modal mode only)
 	useEffect(() => {
@@ -413,7 +389,7 @@ export function TaskDetailModal({
 				</div>
 
 				{/* ── Right: Activity pane ── */}
-				<ActivityPane activities={activities} />
+				<ActivityPane projectId={projectId ?? ""} taskId={task?.id ?? ""} />
 			</div>
 		</div>
 	) : (

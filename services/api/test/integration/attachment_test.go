@@ -232,6 +232,7 @@ func buildAttachmentTestRouter(attachRepo *fakeAttachmentRepo, store *fakeStorag
 	taskService := tasksvc.New(taskRepo)
 	sprintService := sprintsvc.New(newFakeSprintRepoIT(), taskRepo)
 	viewService := sprintsvc.NewViewService(newFakeViewRepoIT())
+	active := tasksvc.NewActivityService(newFakeTaskActivityRepo(), nil)
 	attachmentService := attachmentsvc.New(attachRepo, store, "test-bucket")
 	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
@@ -243,7 +244,7 @@ func buildAttachmentTestRouter(attachRepo *fakeAttachmentRepo, store *fakeStorag
 		User:         handler.NewUserHandler(userService),
 		GlobalRole:   handler.NewGlobalRoleHandler(&fakeGlobalRoleService{}),
 		Project:      handler.NewProjectHandler(projectService, authz.NewAuthorizer(permStore)),
-		Task:         handler.NewTaskHandler(taskService, viewService),
+		Task:         handler.NewTaskHandler(taskService, viewService, active),
 		Sprint:       handler.NewSprintHandler(sprintService, viewService),
 		View:         handler.NewViewHandler(viewService),
 		Attachment:   handler.NewAttachmentHandler(attachmentService),

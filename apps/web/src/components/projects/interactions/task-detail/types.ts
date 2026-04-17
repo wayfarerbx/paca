@@ -1,4 +1,4 @@
-import type { Task } from "@/lib/interaction-api";
+import type { Activity, Task } from "@/lib/interaction-api";
 import type { ProjectMember, TaskStatus, TaskType } from "@/lib/project-api";
 
 // ── Extended types (UI-first, wired to API later) ─────────────────────────────
@@ -20,19 +20,8 @@ export interface Attachment {
 	url?: string;
 }
 
-export interface ActivityEntry {
-	id: string;
-	type:
-		| "created"
-		| "field_change"
-		| "comment"
-		| "status_change"
-		| "assignee_change";
-	author: string;
-	avatar?: string;
-	content: string;
-	timestamp: string;
-}
+// ActivityEntry mirrors the backend Activity type with a convenience re-export.
+export type ActivityEntry = Activity;
 
 export interface ChecklistItem {
 	id: string;

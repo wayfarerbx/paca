@@ -1,0 +1,234 @@
+// Package worker contains long-running background workers for the API service.
+package worker
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log/slog"
+	"time"
+
+	"github.com/google/uuid"
+	taskdom "github.com/paca/api/internal/domain/task"
+	"github.com/paca/api/internal/events"
+	"github.com/redis/go-redis/v9"
+)
+
+const (
+	activityConsumerGroup = "api.activity_writer"
+	activityConsumerName  = "api.activity_writer.1"
+	activityReadBlock     = 5 * time.Second
+	activityReadCount     = 50
+)
+
+// ActivityConsumer reads task-activity events from the StreamTaskActivities
+// Valkey stream (written by ActivitySvc.RecordActivity) and persists each
+// entry to the database via ActivityRepository.
+//
+// Comment operations (AddComment / UpdateComment / DeleteComment) write to the
+// database directly, so they are NOT handled here.
+type ActivityConsumer struct {
+	client *redis.Client
+	repo   taskdom.ActivityRepository
+	log    *slog.Logger
+	stopCh chan struct{}
+	doneCh chan struct{}
+}
+
+// NewActivityConsumer creates a consumer that is ready to be started.
+func NewActivityConsumer(client *redis.Client, repo taskdom.ActivityRepository, log *slog.Logger) *ActivityConsumer {
+	return &ActivityConsumer{
+		client: client,
+		repo:   repo,
+		log:    log,
+		stopCh: make(chan struct{}),
+		doneCh: make(chan struct{}),
+	}
+}
+
+// Start creates the consumer group if needed, then begins reading from the
+// stream in a background goroutine.  Call Stop to drain and exit cleanly.
+func (c *ActivityConsumer) Start(ctx context.Context) {
+	// Create consumer group; MKSTREAM ensures the stream key is created if it
+	// doesn't exist yet.  "0" means start from the very beginning of the stream
+	// so we process any messages that arrived before the group was created.
+	err := c.client.XGroupCreateMkStream(ctx, events.StreamTaskActivities, activityConsumerGroup, "0").Err()
+	if err != nil && err.Error() != "BUSYGROUP Consumer Group name already exists" {
+		c.log.Warn("activity consumer: could not create consumer group", "err", err)
+		// Non-fatal — we still attempt to read below.
+	}
+
+	go c.run()
+}
+
+// Stop signals the consumer to stop and waits for the goroutine to exit.
+func (c *ActivityConsumer) Stop() {
+	close(c.stopCh)
+	<-c.doneCh
+}
+
+// run is the main loop executed in a goroutine by Start.
+func (c *ActivityConsumer) run() {
+	defer close(c.doneCh)
+	c.log.Info("activity consumer: started", "stream", events.StreamTaskActivities)
+
+	// On startup, replay any pending messages (PEL) that were delivered but
+	// never acknowledged (e.g. after a crash).  "0" fetches the backlog.
+	c.processPending(context.Background())
+
+	for {
+		select {
+		case <-c.stopCh:
+			c.log.Info("activity consumer: stopping")
+			return
+		default:
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), activityReadBlock+time.Second)
+		msgs, err := c.client.XReadGroup(ctx, &redis.XReadGroupArgs{
+			Group:    activityConsumerGroup,
+			Consumer: activityConsumerName,
+			Streams:  []string{events.StreamTaskActivities, ">"},
+			Count:    activityReadCount,
+			Block:    activityReadBlock,
+		}).Result()
+		cancel()
+
+		if err != nil {
+			if err == redis.Nil {
+				// Timeout with no new messages — loop and check stopCh.
+				continue
+			}
+			c.log.Error("activity consumer: xreadgroup error", "err", err)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		for _, stream := range msgs {
+			for _, msg := range stream.Messages {
+				c.handle(msg)
+			}
+		}
+	}
+}
+
+// processPending re-delivers and acknowledges any messages in the PEL that
+// were not acked during a previous run.
+func (c *ActivityConsumer) processPending(ctx context.Context) {
+	msgs, err := c.client.XReadGroup(ctx, &redis.XReadGroupArgs{
+		Group:    activityConsumerGroup,
+		Consumer: activityConsumerName,
+		Streams:  []string{events.StreamTaskActivities, "0"},
+		Count:    activityReadCount,
+	}).Result()
+	if err != nil && err != redis.Nil {
+		c.log.Warn("activity consumer: could not read pending messages", "err", err)
+		return
+	}
+	for _, stream := range msgs {
+		for _, msg := range stream.Messages {
+			c.handle(msg)
+		}
+	}
+}
+
+// handle deserialises one stream message and writes the activity to the DB.
+func (c *ActivityConsumer) handle(msg redis.XMessage) {
+	ctx := context.Background()
+
+	// The Publisher.Append method stores the body in a "payload" field as a
+	// JSON-encoded string.
+	raw, ok := msg.Values["payload"].(string)
+	if !ok {
+		c.log.Warn("activity consumer: message has no payload field", "id", msg.ID)
+		c.ack(ctx, msg.ID) // skip unrecognised messages
+		return
+	}
+
+	var p activityStreamPayload
+	if err := json.Unmarshal([]byte(raw), &p); err != nil {
+		c.log.Warn("activity consumer: failed to decode payload", "id", msg.ID, "err", err)
+		c.ack(ctx, msg.ID)
+		return
+	}
+
+	a, err := p.toActivity()
+	if err != nil {
+		c.log.Warn("activity consumer: invalid payload fields", "id", msg.ID, "err", err)
+		c.ack(ctx, msg.ID)
+		return
+	}
+
+	if err := c.repo.CreateActivity(ctx, a); err != nil {
+		// Log and do NOT ack — the message stays in the PEL and will be
+		// retried on next startup via processPending.
+		c.log.Error("activity consumer: failed to persist activity", "id", msg.ID, "err", err)
+		return
+	}
+
+	c.ack(ctx, msg.ID)
+}
+
+func (c *ActivityConsumer) ack(ctx context.Context, id string) {
+	if err := c.client.XAck(ctx, events.StreamTaskActivities, activityConsumerGroup, id).Err(); err != nil {
+		c.log.Warn("activity consumer: xack failed", "id", id, "err", err)
+	}
+}
+
+// activityStreamPayload mirrors the JSON shape produced by activityPayload()
+// in activity_service.go.
+type activityStreamPayload struct {
+	ID           string  `json:"id"`
+	TaskID       string  `json:"task_id"`
+	ActorID      *string `json:"actor_id"`
+	ActivityType string  `json:"activity_type"`
+	Content      string  `json:"content"`
+	CreatedAt    string  `json:"created_at"`
+	UpdatedAt    string  `json:"updated_at"`
+}
+
+func (p activityStreamPayload) toActivity() (*taskdom.Activity, error) {
+	id, err := uuid.Parse(p.ID)
+	if err != nil {
+		return nil, fmt.Errorf("parse id: %w", err)
+	}
+	taskID, err := uuid.Parse(p.TaskID)
+	if err != nil {
+		return nil, fmt.Errorf("parse task_id: %w", err)
+	}
+	var actorID *uuid.UUID
+	if p.ActorID != nil && *p.ActorID != "" {
+		aid, err := uuid.Parse(*p.ActorID)
+		if err != nil {
+			return nil, fmt.Errorf("parse actor_id: %w", err)
+		}
+		actorID = &aid
+	}
+	content := json.RawMessage(p.Content)
+	if len(content) == 0 {
+		content = json.RawMessage("{}")
+	}
+	createdAt, err := time.Parse(time.RFC3339Nano, p.CreatedAt)
+	if err != nil {
+		// Fallback: accept the Go default format used by time.Time.MarshalJSON.
+		createdAt, err = time.Parse(`"2006-01-02T15:04:05.999999999Z07:00"`, p.CreatedAt)
+		if err != nil {
+			createdAt = time.Now()
+		}
+	}
+	updatedAt := createdAt
+	if p.UpdatedAt != "" {
+		if t, err := time.Parse(time.RFC3339Nano, p.UpdatedAt); err == nil {
+			updatedAt = t
+		}
+	}
+	return &taskdom.Activity{
+		ID:           id,
+		TaskID:       taskID,
+		ActorID:      actorID,
+		ActivityType: taskdom.ActivityType(p.ActivityType),
+		Content:      content,
+		CreatedAt:    createdAt,
+		UpdatedAt:    updatedAt,
+	}, nil
+}

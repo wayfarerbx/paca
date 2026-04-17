@@ -34,6 +34,7 @@ import (
 	usersvc "github.com/paca/api/internal/service/user"
 	"github.com/paca/api/internal/transport/http/handler"
 	"github.com/paca/api/internal/transport/http/router"
+	"github.com/paca/api/internal/worker"
 	"github.com/paca/api/migrations"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -41,9 +42,10 @@ import (
 
 // App holds the HTTP server and any resources that need graceful shutdown.
 type App struct {
-	server    *http.Server
-	publisher *messaging.Publisher
-	log       *slog.Logger
+	server           *http.Server
+	publisher        *messaging.Publisher
+	activityConsumer *worker.ActivityConsumer
+	log              *slog.Logger
 }
 
 // New builds all dependencies and returns a ready-to-run App.
@@ -76,6 +78,7 @@ func New(cfg *config.Config) (*App, error) {
 	globalRoleRepo := pgRepo.NewGlobalRoleRepository(db)
 	projectRepo := pgRepo.NewProjectRepository(db)
 	taskRepo := pgRepo.NewTaskRepository(db)
+	activityRepo := pgRepo.NewTaskActivityRepository(db)
 	sprintRepo := pgRepo.NewSprintRepository(db)
 	viewRepo := pgRepo.NewViewRepository(db)
 	attachmentRepo := pgRepo.NewAttachmentRepository(db)
@@ -111,6 +114,8 @@ func New(cfg *config.Config) (*App, error) {
 	taskService := tasksvc.New(taskRepo)
 	sprintService := sprintsvc.New(sprintRepo, taskRepo)
 	viewService := sprintsvc.NewViewService(viewRepo)
+	activityService := tasksvc.NewActivityService(activityRepo, publisher)
+	activityConsumer := worker.NewActivityConsumer(redisClient, activityRepo, log)
 
 	// Object storage — defaults to MinIO; switches to AWS S3 when STORAGE_PROVIDER=s3.
 	storageClient, err := storage.NewS3Client(context.Background(), storage.S3Config{
@@ -148,7 +153,7 @@ func New(cfg *config.Config) (*App, error) {
 		User:         handler.NewUserHandler(userService, authService),
 		GlobalRole:   handler.NewGlobalRoleHandler(globalRoleService),
 		Project:      handler.NewProjectHandler(projectService, authorizer, handler.WithProjectDefaultViews(viewService, taskService)),
-		Task:         handler.NewTaskHandler(taskService, viewService),
+		Task:         handler.NewTaskHandler(taskService, viewService, activityService),
 		Sprint:       handler.NewSprintHandler(sprintService, viewService, handler.WithSprintDefaultTaskTypes(taskService)),
 		View:         handler.NewViewHandler(viewService),
 		Attachment:   handler.NewAttachmentHandler(attachmentService),
@@ -165,9 +170,7 @@ func New(cfg *config.Config) (*App, error) {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	_ = publisher // suppress unused; used for future event publishing
-
-	return &App{server: srv, publisher: publisher, log: log}, nil
+	return &App{server: srv, publisher: publisher, activityConsumer: activityConsumer, log: log}, nil
 }
 
 // projectRoleModel is the GORM model used by seedDefaultProjectRoleTemplates
@@ -183,15 +186,18 @@ type projectRoleModel struct {
 
 func (projectRoleModel) TableName() string { return "project_roles" }
 
-// Run starts the HTTP server.  It returns when the server stops.
+// Run starts the activity consumer and the HTTP server.
+// It returns when the server stops.
 func (a *App) Run() error {
 	a.log.Info("starting server", "addr", a.server.Addr)
+	a.activityConsumer.Start(context.Background())
 	return a.server.ListenAndServe()
 }
 
 // Shutdown gracefully stops the server with the given timeout.
 func (a *App) Shutdown(ctx context.Context) error {
 	a.log.Info("shutting down server")
+	a.activityConsumer.Stop()
 	if a.publisher != nil {
 		a.publisher.Close()
 	}

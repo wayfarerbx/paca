@@ -139,6 +139,15 @@ const (
 	CodeUploadIDMismatch Code = "ATTACHMENT_UPLOAD_ID_MISMATCH"
 	// CodeMultipartPartsEmpty indicates that no parts were provided for a multipart complete request.
 	CodeMultipartPartsEmpty Code = "ATTACHMENT_MULTIPART_PARTS_EMPTY"
+
+	// CodeActivityNotFound indicates the requested activity entry does not exist.
+	CodeActivityNotFound Code = "ACTIVITY_NOT_FOUND"
+	// CodeActivityForbidden indicates the caller is not the author of the comment.
+	CodeActivityForbidden Code = "ACTIVITY_FORBIDDEN"
+	// CodeActivityNotAComment indicates the entry is system-generated and cannot be edited.
+	CodeActivityNotAComment Code = "ACTIVITY_NOT_A_COMMENT"
+	// CodeCommentTextInvalid indicates an empty or invalid comment text.
+	CodeCommentTextInvalid Code = "ACTIVITY_COMMENT_TEXT_INVALID"
 )
 
 // Error carries a machine-readable Code alongside a human-readable Message.

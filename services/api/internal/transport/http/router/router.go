@@ -416,6 +416,34 @@ func New(deps Deps) *gin.Engine {
 						)
 					}
 
+					// Activities — task activity log and user comments
+					activities := tasks.Group("/:taskId/activities")
+					{
+						activities.GET("",
+							httpmw.RequireAnyPermissions(deps.Authorizer,
+								httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
+								httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionTasksRead}},
+							),
+							deps.Task.ListTaskActivities,
+						)
+						// Comments are a sub-resource of activities
+						comments := activities.Group("/comments")
+						{
+							comments.POST("",
+								httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
+								deps.Task.AddComment,
+							)
+							comments.PATCH("/:commentId",
+								httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
+								deps.Task.UpdateComment,
+							)
+							comments.DELETE("/:commentId",
+								httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
+								deps.Task.DeleteComment,
+							)
+						}
+					}
+
 					// Attachments — files uploaded and linked to a task
 					attachments := tasks.Group("/:taskId/attachments")
 					{

@@ -178,6 +178,8 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 	viewRepo := pgRepo.NewViewRepository(db)
 	viewService := sprintsvc.NewViewService(viewRepo)
 	attachmentRepo := pgRepo.NewAttachmentRepository(db)
+	activityRepo := pgRepo.NewTaskActivityRepository(db)
+	activityService := tasksvc.NewActivityService(activityRepo, nil)
 	var attachmentService *attachmentsvc.Service
 	if sharedMinIOEndpoint != "" {
 		minIOEndpoint := sharedMinIOEndpoint
@@ -212,7 +214,7 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 		User:         handler.NewUserHandler(userService),
 		GlobalRole:   handler.NewGlobalRoleHandler(globalRoleService),
 		Project:      handler.NewProjectHandler(projectService, authz.NewAuthorizer(authzStore)),
-		Task:         handler.NewTaskHandler(taskService, viewService),
+		Task:         handler.NewTaskHandler(taskService, viewService, activityService),
 		Sprint:       handler.NewSprintHandler(sprintService, viewService),
 		View:         handler.NewViewHandler(viewService),
 		Attachment:   handler.NewAttachmentHandler(attachmentService),

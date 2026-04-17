@@ -6,7 +6,7 @@ import {
 	Plus,
 	Trash2,
 } from "lucide-react";
-import { type CSSProperties, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import {
 	type BDDScenario,
 	bddScenariosQueryOptions,
@@ -243,6 +243,10 @@ function NewScenarioForm({
 	onDone: () => void;
 }) {
 	const qc = useQueryClient();
+	const titleRef = useRef<HTMLInputElement>(null);
+	useEffect(() => {
+		titleRef.current?.focus();
+	}, []);
 	const [title, setTitle] = useState("");
 	const [given, setGiven] = useState("");
 	const [when, setWhen] = useState("");
@@ -270,9 +274,7 @@ function NewScenarioForm({
 	return (
 		<div className="rounded-xl border border-primary/25 bg-card/60 ring-1 ring-primary/20 p-4 space-y-3">
 			<input
-				ref={(el) => {
-					el?.focus();
-				}}
+				ref={titleRef}
 				aria-label="Scenario title"
 				value={title}
 				onChange={(e) => setTitle(e.target.value)}

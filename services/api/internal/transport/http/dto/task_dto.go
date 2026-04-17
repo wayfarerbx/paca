@@ -436,3 +436,49 @@ func BDDScenarioFromEntity(s *taskdom.BDDScenario) BDDScenarioResponse {
 		UpdatedAt: s.UpdatedAt,
 	}
 }
+
+// --- Activity / Comment DTOs -----------------------------------------------
+
+// ActivityResponse is the public representation of a task activity entry.
+type ActivityResponse struct {
+	ID            uuid.UUID            `json:"id"`
+	TaskID        uuid.UUID            `json:"task_id"`
+	ActorID       *uuid.UUID           `json:"actor_id,omitempty"`
+	ActorName     string               `json:"actor_name"`
+	ActorUsername string               `json:"actor_username"`
+	ActivityType  taskdom.ActivityType `json:"activity_type"`
+	Content       json.RawMessage      `json:"content"`
+	CreatedAt     time.Time            `json:"created_at"`
+	UpdatedAt     time.Time            `json:"updated_at"`
+}
+
+// ActivityFromEntity maps a domain Activity to an ActivityResponse DTO.
+func ActivityFromEntity(a *taskdom.Activity) ActivityResponse {
+	content := a.Content
+	if len(content) == 0 {
+		content = json.RawMessage("{}")
+	}
+	return ActivityResponse{
+		ID:            a.ID,
+		TaskID:        a.TaskID,
+		ActorID:       a.ActorID,
+		ActorName:     a.ActorName,
+		ActorUsername: a.ActorUsername,
+		ActivityType:  a.ActivityType,
+		Content:       content,
+		CreatedAt:     a.CreatedAt,
+		UpdatedAt:     a.UpdatedAt,
+	}
+}
+
+// AddCommentRequest is the body for
+// POST /projects/:projectId/tasks/:taskId/activities/comments.
+type AddCommentRequest struct {
+	Text string `json:"text" binding:"required"`
+}
+
+// UpdateCommentRequest is the body for
+// PATCH /projects/:projectId/tasks/:taskId/activities/comments/:commentId.
+type UpdateCommentRequest struct {
+	Text string `json:"text" binding:"required"`
+}
