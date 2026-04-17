@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 // ProjectMember represents a user's membership in a project with an assigned role.
@@ -18,5 +17,5 @@ type ProjectMember struct {
 	FullName  string
 	RoleName  string
 	CreatedAt time.Time
-	DeletedAt gorm.DeletedAt
+	DeletedAt *time.Time
 }

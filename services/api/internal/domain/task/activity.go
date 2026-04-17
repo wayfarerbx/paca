@@ -108,10 +108,10 @@ type ActivityService interface {
 	AddComment(ctx context.Context, in AddCommentInput) (*Activity, error)
 	// UpdateComment edits the text of an existing comment.
 	// Returns ErrActivityForbidden when actorID != comment's author.
-	UpdateComment(ctx context.Context, id uuid.UUID, actorID uuid.UUID, text string) (*Activity, error)
+	UpdateComment(ctx context.Context, id uuid.UUID, projectID uuid.UUID, actorID uuid.UUID, text string) (*Activity, error)
 	// DeleteComment soft-deletes a comment.
 	// Returns ErrActivityForbidden when actorID != comment's author.
-	DeleteComment(ctx context.Context, id uuid.UUID, actorID uuid.UUID) error
+	DeleteComment(ctx context.Context, id uuid.UUID, projectID uuid.UUID, actorID uuid.UUID) error
 }
 
 // ActivityRecorder is the minimal interface used to persist system-generated
@@ -123,9 +123,10 @@ type ActivityRecorder interface {
 
 // AddCommentInput carries the data needed to post a comment.
 type AddCommentInput struct {
-	TaskID  uuid.UUID
-	ActorID uuid.UUID
-	Text    string
+	TaskID    uuid.UUID
+	ProjectID uuid.UUID
+	ActorID   uuid.UUID // authenticated user UUID; resolved to member UUID by the service
+	Text      string
 }
 
 // RecordActivityInput carries the data needed to persist a system event.

@@ -369,31 +369,36 @@ func (r *ProjectRepository) FindMemberByUserProject(ctx context.Context, userID,
 
 // AddMember inserts a project_members row, or restores a previously soft-deleted one.
 func (r *ProjectRepository) AddMember(ctx context.Context, m *projectdom.ProjectMember) error {
-	// Upsert: if a soft-deleted row exists for this project+user pair, restore
-	// it with the new role.  Otherwise insert fresh.
+	// First try to restore a previously soft-deleted membership for this
+	// project+user pair, updating only the role (preserving original created_at).
+	restore := r.db.WithContext(ctx).Exec(`
+		UPDATE project_members
+		SET project_role_id = ?, deleted_at = NULL
+		WHERE project_id = ? AND user_id = ? AND deleted_at IS NOT NULL`,
+		m.ProjectRoleID.String(), m.ProjectID.String(), m.UserID.String(),
+	)
+	if restore.Error != nil {
+		return fmt.Errorf("project repo: restore member: %w", restore.Error)
+	}
+	if restore.RowsAffected > 0 {
+		return nil
+	}
+
+	// No soft-deleted row to restore; insert a fresh membership.
+	// The conflict target mirrors the partial unique index uq_project_members_active
+	// so an active duplicate produces RowsAffected == 0 instead of an unhandled
+	// unique-violation error.
 	result := r.db.WithContext(ctx).Exec(`
 		INSERT INTO project_members (id, project_id, user_id, project_role_id, created_at, deleted_at)
 		VALUES (?, ?, ?, ?, NOW(), NULL)
-		ON CONFLICT (id) DO NOTHING`,
+		ON CONFLICT (project_id, user_id) WHERE deleted_at IS NULL DO NOTHING`,
 		m.ID.String(), m.ProjectID.String(), m.UserID.String(), m.ProjectRoleID.String(),
 	)
 	if result.Error != nil {
 		return fmt.Errorf("project repo: add member: %w", result.Error)
 	}
 	if result.RowsAffected == 0 {
-		// Row already exists (active) — check for a soft-deleted row to restore.
-		restore := r.db.WithContext(ctx).Exec(`
-			UPDATE project_members
-			SET project_role_id = ?, deleted_at = NULL, created_at = NOW()
-			WHERE project_id = ? AND user_id = ? AND deleted_at IS NOT NULL`,
-			m.ProjectRoleID.String(), m.ProjectID.String(), m.UserID.String(),
-		)
-		if restore.Error != nil {
-			return fmt.Errorf("project repo: restore member: %w", restore.Error)
-		}
-		if restore.RowsAffected == 0 {
-			return projectdom.ErrMemberAlreadyAdded
-		}
+		return projectdom.ErrMemberAlreadyAdded
 	}
 	return nil
 }
@@ -541,9 +546,7 @@ func toMemberEntity(row *projectMemberReadRow) *projectdom.ProjectMember {
 		FullName:      row.FullName,
 		RoleName:      row.RoleName,
 		CreatedAt:     row.CreatedAt,
-	}
-	if row.DeletedAt != nil {
-		m.DeletedAt = gorm.DeletedAt{Time: *row.DeletedAt, Valid: true}
+		DeletedAt:     row.DeletedAt,
 	}
 	return m
 }

@@ -1142,6 +1142,12 @@ func (h *TaskHandler) ListTaskActivities(c *gin.Context) {
 
 // AddComment handles POST /projects/:projectId/tasks/:taskId/activities/comments.
 func (h *TaskHandler) AddComment(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
 	taskID, err := parseTaskID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -1160,9 +1166,10 @@ func (h *TaskHandler) AddComment(c *gin.Context) {
 	}
 
 	a, err := h.activitySvc.AddComment(c.Request.Context(), taskdom.AddCommentInput{
-		TaskID:  taskID,
-		ActorID: actorID,
-		Text:    req.Text,
+		TaskID:    taskID,
+		ProjectID: projectID,
+		ActorID:   actorID,
+		Text:      req.Text,
 	})
 	if err != nil {
 		presenter.Error(c, err)
@@ -1173,6 +1180,12 @@ func (h *TaskHandler) AddComment(c *gin.Context) {
 
 // UpdateComment handles PATCH /projects/:projectId/tasks/:taskId/activities/comments/:commentId.
 func (h *TaskHandler) UpdateComment(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
 	commentID, err := parseCommentID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -1190,7 +1203,7 @@ func (h *TaskHandler) UpdateComment(c *gin.Context) {
 		return
 	}
 
-	a, err := h.activitySvc.UpdateComment(c.Request.Context(), commentID, actorID, req.Text)
+	a, err := h.activitySvc.UpdateComment(c.Request.Context(), commentID, projectID, actorID, req.Text)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -1200,6 +1213,12 @@ func (h *TaskHandler) UpdateComment(c *gin.Context) {
 
 // DeleteComment handles DELETE /projects/:projectId/tasks/:taskId/activities/comments/:commentId.
 func (h *TaskHandler) DeleteComment(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
 	commentID, err := parseCommentID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -1212,7 +1231,7 @@ func (h *TaskHandler) DeleteComment(c *gin.Context) {
 		return
 	}
 
-	if err := h.activitySvc.DeleteComment(c.Request.Context(), commentID, actorID); err != nil {
+	if err := h.activitySvc.DeleteComment(c.Request.Context(), commentID, projectID, actorID); err != nil {
 		presenter.Error(c, err)
 		return
 	}

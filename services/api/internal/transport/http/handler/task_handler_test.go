@@ -335,6 +335,8 @@ func (f *fakeActivitySvc) AddComment(_ context.Context, in taskdom.AddCommentInp
 		return nil, taskdom.ErrCommentTextInvalid
 	}
 	now := time.Now()
+	// In the handler test fake, use the ActorID directly as the member UUID
+	// (mimicking what fakeActivityMemberRepo does in integration tests).
 	a := &taskdom.Activity{
 		ID:           uuid.New(),
 		TaskID:       in.TaskID,
@@ -350,7 +352,7 @@ func (f *fakeActivitySvc) AddComment(_ context.Context, in taskdom.AddCommentInp
 	return a, nil
 }
 
-func (f *fakeActivitySvc) UpdateComment(_ context.Context, id uuid.UUID, actorID uuid.UUID, text string) (*taskdom.Activity, error) {
+func (f *fakeActivitySvc) UpdateComment(_ context.Context, id uuid.UUID, _ uuid.UUID, actorID uuid.UUID, text string) (*taskdom.Activity, error) {
 	if text == "" {
 		return nil, taskdom.ErrCommentTextInvalid
 	}
@@ -372,7 +374,7 @@ func (f *fakeActivitySvc) UpdateComment(_ context.Context, id uuid.UUID, actorID
 	return &cp, nil
 }
 
-func (f *fakeActivitySvc) DeleteComment(_ context.Context, id uuid.UUID, actorID uuid.UUID) error {
+func (f *fakeActivitySvc) DeleteComment(_ context.Context, id uuid.UUID, _ uuid.UUID, actorID uuid.UUID) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	a, ok := f.activities[id]

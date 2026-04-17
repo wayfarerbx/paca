@@ -7,22 +7,32 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	projectdom "github.com/paca/api/internal/domain/project"
 	taskdom "github.com/paca/api/internal/domain/task"
 	"github.com/paca/api/internal/events"
 	"github.com/paca/api/internal/platform/messaging"
 )
 
+// memberLookup is the minimal interface ActivitySvc needs to resolve a user
+// UUID to a project member UUID.
+type memberLookup interface {
+	FindMemberByUserProject(ctx context.Context, userID, projectID uuid.UUID) (*projectdom.ProjectMember, error)
+}
+
 // ActivitySvc implements taskdom.ActivityService (which includes
 // taskdom.ActivityRecorder via embedding).
 type ActivitySvc struct {
-	repo      taskdom.ActivityRepository
-	publisher *messaging.Publisher
+	repo       taskdom.ActivityRepository
+	memberRepo memberLookup
+	publisher  *messaging.Publisher
 }
 
 // NewActivityService creates a new ActivitySvc backed by repo.
+// memberRepo is used to resolve user UUIDs to project-member UUIDs for comment
+// operations; it may be nil (lookups will return ErrMemberNotFound).
 // publisher may be nil; events are then skipped silently.
-func NewActivityService(repo taskdom.ActivityRepository, publisher *messaging.Publisher) *ActivitySvc {
-	return &ActivitySvc{repo: repo, publisher: publisher}
+func NewActivityService(repo taskdom.ActivityRepository, memberRepo memberLookup, publisher *messaging.Publisher) *ActivitySvc {
+	return &ActivitySvc{repo: repo, memberRepo: memberRepo, publisher: publisher}
 }
 
 // --- ActivityRecorder -------------------------------------------------------
@@ -63,12 +73,19 @@ func (s *ActivitySvc) AddComment(ctx context.Context, in taskdom.AddCommentInput
 	if text == "" {
 		return nil, taskdom.ErrCommentTextInvalid
 	}
+	// Resolve the authenticated user UUID to the project-member UUID so the
+	// stored actor_id satisfies the FK constraint on task_activities(actor_id)
+	// → project_members(id).
+	member, err := s.memberRepo.FindMemberByUserProject(ctx, in.ActorID, in.ProjectID)
+	if err != nil {
+		return nil, err
+	}
 	content, _ := json.Marshal(map[string]string{"text": text})
 	now := time.Now()
 	a := &taskdom.Activity{
 		ID:           uuid.New(),
 		TaskID:       in.TaskID,
-		ActorID:      &in.ActorID,
+		ActorID:      &member.ID,
 		ActivityType: taskdom.ActivityTypeComment,
 		Content:      content,
 		CreatedAt:    now,
@@ -77,12 +94,12 @@ func (s *ActivitySvc) AddComment(ctx context.Context, in taskdom.AddCommentInput
 	if err := s.repo.CreateActivity(ctx, a); err != nil {
 		return nil, err
 	}
-	s.publishRealtimeOnly(ctx, events.TopicTaskCommentAdded, activityPayload(a, uuid.Nil))
+	s.publishRealtimeOnly(ctx, events.TopicTaskCommentAdded, activityPayload(a, in.ProjectID))
 	return a, nil
 }
 
 // UpdateComment edits the text of an existing comment.
-func (s *ActivitySvc) UpdateComment(ctx context.Context, id uuid.UUID, actorID uuid.UUID, text string) (*taskdom.Activity, error) {
+func (s *ActivitySvc) UpdateComment(ctx context.Context, id uuid.UUID, projectID uuid.UUID, actorID uuid.UUID, text string) (*taskdom.Activity, error) {
 	text = strings.TrimSpace(text)
 	if text == "" {
 		return nil, taskdom.ErrCommentTextInvalid
@@ -94,7 +111,12 @@ func (s *ActivitySvc) UpdateComment(ctx context.Context, id uuid.UUID, actorID u
 	if a.ActivityType != taskdom.ActivityTypeComment {
 		return nil, taskdom.ErrActivityNotAComment
 	}
-	if a.ActorID == nil || *a.ActorID != actorID {
+	// Resolve caller's user UUID to their member UUID for ownership comparison.
+	member, err := s.memberRepo.FindMemberByUserProject(ctx, actorID, projectID)
+	if err != nil {
+		return nil, err
+	}
+	if a.ActorID == nil || *a.ActorID != member.ID {
 		return nil, taskdom.ErrActivityForbidden
 	}
 	content, _ := json.Marshal(map[string]string{"text": text})
@@ -108,7 +130,7 @@ func (s *ActivitySvc) UpdateComment(ctx context.Context, id uuid.UUID, actorID u
 }
 
 // DeleteComment soft-deletes a comment.
-func (s *ActivitySvc) DeleteComment(ctx context.Context, id uuid.UUID, actorID uuid.UUID) error {
+func (s *ActivitySvc) DeleteComment(ctx context.Context, id uuid.UUID, projectID uuid.UUID, actorID uuid.UUID) error {
 	a, err := s.repo.FindActivityByID(ctx, id)
 	if err != nil {
 		return err
@@ -116,7 +138,12 @@ func (s *ActivitySvc) DeleteComment(ctx context.Context, id uuid.UUID, actorID u
 	if a.ActivityType != taskdom.ActivityTypeComment {
 		return taskdom.ErrActivityNotAComment
 	}
-	if a.ActorID == nil || *a.ActorID != actorID {
+	// Resolve caller's user UUID to their member UUID for ownership comparison.
+	member, err := s.memberRepo.FindMemberByUserProject(ctx, actorID, projectID)
+	if err != nil {
+		return err
+	}
+	if a.ActorID == nil || *a.ActorID != member.ID {
 		return taskdom.ErrActivityForbidden
 	}
 	if err := s.repo.DeleteActivity(ctx, id); err != nil {

@@ -232,7 +232,7 @@ func buildAttachmentTestRouter(attachRepo *fakeAttachmentRepo, store *fakeStorag
 	taskService := tasksvc.New(taskRepo)
 	sprintService := sprintsvc.New(newFakeSprintRepoIT(), taskRepo)
 	viewService := sprintsvc.NewViewService(newFakeViewRepoIT())
-	active := tasksvc.NewActivityService(newFakeTaskActivityRepo(), nil)
+	active := tasksvc.NewActivityService(newFakeTaskActivityRepo(), &fakeActivityMemberRepo{}, nil)
 	attachmentService := attachmentsvc.New(attachRepo, store, "test-bucket")
 	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
 

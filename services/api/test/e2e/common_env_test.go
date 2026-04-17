@@ -179,7 +179,7 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 	viewService := sprintsvc.NewViewService(viewRepo)
 	attachmentRepo := pgRepo.NewAttachmentRepository(db)
 	activityRepo := pgRepo.NewTaskActivityRepository(db)
-	activityService := tasksvc.NewActivityService(activityRepo, nil)
+	activityService := tasksvc.NewActivityService(activityRepo, projectRepo, nil)
 	var attachmentService *attachmentsvc.Service
 	if sharedMinIOEndpoint != "" {
 		minIOEndpoint := sharedMinIOEndpoint

@@ -15,6 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	projectdom "github.com/paca/api/internal/domain/project"
 	sprintdom "github.com/paca/api/internal/domain/sprint"
 	taskdom "github.com/paca/api/internal/domain/task"
 	"github.com/paca/api/internal/platform/authz"
@@ -527,6 +528,16 @@ func (r *fakeTaskActivityRepo) DeleteActivity(_ context.Context, id uuid.UUID) e
 	return nil
 }
 
+// fakeActivityMemberRepo is a minimal memberLookup stub that returns a
+// synthetic ProjectMember using the user UUID as the member UUID.  This lets
+// comment operations in integration tests pass actor-resolution without a real
+// project_members store.
+type fakeActivityMemberRepo struct{}
+
+func (r *fakeActivityMemberRepo) FindMemberByUserProject(_ context.Context, userID, _ uuid.UUID) (*projectdom.ProjectMember, error) {
+	return &projectdom.ProjectMember{ID: userID}, nil
+}
+
 // ---------------------------------------------------------------------------
 // Router builder and token helper
 // ---------------------------------------------------------------------------
@@ -548,7 +559,7 @@ func buildTaskTestRouterWithSprints(taskRepo *fakeTaskRepo, sprintRepo *fakeSpri
 	sprintService := sprintsvc.New(sprintRepo, taskRepo)
 	viewService := sprintsvc.NewViewService(viewRepo)
 	activityRepo := newFakeTaskActivityRepo()
-	activityService := tasksvc.NewActivityService(activityRepo, nil)
+	activityService := tasksvc.NewActivityService(activityRepo, &fakeActivityMemberRepo{}, nil)
 	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	return router.New(router.Deps{

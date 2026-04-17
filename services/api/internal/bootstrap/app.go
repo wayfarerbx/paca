@@ -114,7 +114,7 @@ func New(cfg *config.Config) (*App, error) {
 	taskService := tasksvc.New(taskRepo)
 	sprintService := sprintsvc.New(sprintRepo, taskRepo)
 	viewService := sprintsvc.NewViewService(viewRepo)
-	activityService := tasksvc.NewActivityService(activityRepo, publisher)
+	activityService := tasksvc.NewActivityService(activityRepo, projectRepo, publisher)
 	activityConsumer := worker.NewActivityConsumer(redisClient, activityRepo, projectRepo, log)
 
 	// Object storage — defaults to MinIO; switches to AWS S3 when STORAGE_PROVIDER=s3.
