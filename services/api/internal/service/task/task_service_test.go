@@ -368,7 +368,7 @@ func TestUpdateTaskType_OK(t *testing.T) {
 		Name:      "Feature",
 	})
 
-	updated, err := svc.UpdateTaskType(ctx, existing.ID, taskdom.UpdateTaskTypeInput{
+	updated, err := svc.UpdateTaskType(ctx, existing.ProjectID, existing.ID, taskdom.UpdateTaskTypeInput{
 		Name: "Feature Request",
 	})
 	if err != nil {
@@ -384,7 +384,7 @@ func TestUpdateTaskType_NotFound(t *testing.T) {
 	repo := newFakeTaskRepo()
 	svc := tasksvc.New(repo)
 
-	_, err := svc.UpdateTaskType(ctx, uuid.New(), taskdom.UpdateTaskTypeInput{Name: "X"})
+	_, err := svc.UpdateTaskType(ctx, uuid.New(), uuid.New(), taskdom.UpdateTaskTypeInput{Name: "X"})
 	if err != taskdom.ErrTypeNotFound {
 		t.Errorf("expected ErrTypeNotFound, got %v", err)
 	}
@@ -397,7 +397,7 @@ func TestDeleteTaskType_OK(t *testing.T) {
 	projectID := uuid.New()
 
 	tt, _ := svc.CreateTaskType(ctx, taskdom.CreateTaskTypeInput{ProjectID: projectID, Name: "Chore"})
-	if err := svc.DeleteTaskType(ctx, tt.ID); err != nil {
+	if err := svc.DeleteTaskType(ctx, tt.ProjectID, tt.ID); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -543,7 +543,7 @@ func TestUpdateTaskStatus_PositionUpdate(t *testing.T) {
 	})
 
 	newPos := 5
-	updated, err := svc.UpdateTaskStatus(ctx, st.ID, taskdom.UpdateTaskStatusInput{
+	updated, err := svc.UpdateTaskStatus(ctx, st.ProjectID, st.ID, taskdom.UpdateTaskStatusInput{
 		Position: &newPos,
 	})
 	if err != nil {
@@ -612,7 +612,7 @@ func TestUpdateTask_OK(t *testing.T) {
 	})
 
 	newImportance := 5
-	updated, err := svc.UpdateTask(ctx, task.ID, taskdom.UpdateTaskInput{
+	updated, err := svc.UpdateTask(ctx, task.ProjectID, task.ID, taskdom.UpdateTaskInput{
 		Title:      "New Title",
 		Importance: &newImportance,
 	})
@@ -639,7 +639,7 @@ func TestUpdateTask_TitleUnchangedWhenEmpty(t *testing.T) {
 	})
 
 	// Update with empty title — original title should be preserved
-	updated, err := svc.UpdateTask(ctx, task.ID, taskdom.UpdateTaskInput{
+	updated, err := svc.UpdateTask(ctx, task.ProjectID, task.ID, taskdom.UpdateTaskInput{
 		Title: "",
 	})
 	if err != nil {
@@ -661,11 +661,11 @@ func TestDeleteTask_OK(t *testing.T) {
 		Title:     "To Delete",
 	})
 
-	if err := svc.DeleteTask(ctx, task.ID); err != nil {
+	if err := svc.DeleteTask(ctx, task.ProjectID, task.ID); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err := svc.GetTask(ctx, task.ID)
+	_, err := svc.GetTask(ctx, task.ProjectID, task.ID)
 	if err != taskdom.ErrTaskNotFound {
 		t.Errorf("expected ErrTaskNotFound after delete, got %v", err)
 	}
@@ -676,7 +676,7 @@ func TestDeleteTask_NotFound(t *testing.T) {
 	repo := newFakeTaskRepo()
 	svc := tasksvc.New(repo)
 
-	err := svc.DeleteTask(ctx, uuid.New())
+	err := svc.DeleteTask(ctx, uuid.New(), uuid.New())
 	if err != taskdom.ErrTaskNotFound {
 		t.Errorf("expected ErrTaskNotFound, got %v", err)
 	}
@@ -745,7 +745,7 @@ func TestGetTask_OK(t *testing.T) {
 		Title:     "Fetch me",
 	})
 
-	got, err := svc.GetTask(ctx, created.ID)
+	got, err := svc.GetTask(ctx, created.ProjectID, created.ID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -762,7 +762,7 @@ func TestGetTask_NotFound(t *testing.T) {
 	repo := newFakeTaskRepo()
 	svc := tasksvc.New(repo)
 
-	_, err := svc.GetTask(ctx, uuid.New())
+	_, err := svc.GetTask(ctx, uuid.New(), uuid.New())
 	if err != taskdom.ErrTaskNotFound {
 		t.Errorf("expected ErrTaskNotFound, got %v", err)
 	}
@@ -786,7 +786,7 @@ func TestUpdateTask_AbsentFieldsPreserveValues(t *testing.T) {
 	})
 
 	// Only update Title — all other fields must remain unchanged.
-	updated, err := svc.UpdateTask(ctx, task.ID, taskdom.UpdateTaskInput{
+	updated, err := svc.UpdateTask(ctx, task.ProjectID, task.ID, taskdom.UpdateTaskInput{
 		Title: "My Updated Task",
 	})
 	if err != nil {
@@ -824,7 +824,7 @@ func TestUpdateTask_NullSprintIDClearsField(t *testing.T) {
 
 	// Explicitly set sprint_id to nil (remove from sprint → backlog).
 	nilPtr := (*uuid.UUID)(nil)
-	updated, err := svc.UpdateTask(ctx, task.ID, taskdom.UpdateTaskInput{
+	updated, err := svc.UpdateTask(ctx, task.ProjectID, task.ID, taskdom.UpdateTaskInput{
 		SprintID: &nilPtr,
 	})
 	if err != nil {
@@ -851,7 +851,7 @@ func TestUpdateTask_StatusChangePreservesSprintID(t *testing.T) {
 
 	// Simulate a drag-to-change-status: only StatusID is supplied.
 	statusIDPtr := &statusID
-	updated, err := svc.UpdateTask(ctx, task.ID, taskdom.UpdateTaskInput{
+	updated, err := svc.UpdateTask(ctx, task.ProjectID, task.ID, taskdom.UpdateTaskInput{
 		StatusID: &statusIDPtr,
 	})
 	if err != nil {
@@ -878,7 +878,7 @@ func TestUpdateTaskStatus_NameUpdate(t *testing.T) {
 		Category:  taskdom.StatusCategoryTodo,
 	})
 
-	updated, err := svc.UpdateTaskStatus(ctx, st.ID, taskdom.UpdateTaskStatusInput{
+	updated, err := svc.UpdateTaskStatus(ctx, st.ProjectID, st.ID, taskdom.UpdateTaskStatusInput{
 		Name: "Backlog",
 	})
 	if err != nil {
@@ -903,7 +903,7 @@ func TestUpdateTaskStatus_CategoryUpdate(t *testing.T) {
 	})
 
 	newCat := taskdom.StatusCategoryInProgress
-	updated, err := svc.UpdateTaskStatus(ctx, st.ID, taskdom.UpdateTaskStatusInput{
+	updated, err := svc.UpdateTaskStatus(ctx, st.ProjectID, st.ID, taskdom.UpdateTaskStatusInput{
 		Category: &newCat,
 	})
 	if err != nil {
@@ -928,7 +928,7 @@ func TestUpdateTaskStatus_InvalidCategoryReturnsError(t *testing.T) {
 	})
 
 	badCat := taskdom.StatusCategory("not-real")
-	_, err := svc.UpdateTaskStatus(ctx, st.ID, taskdom.UpdateTaskStatusInput{
+	_, err := svc.UpdateTaskStatus(ctx, st.ProjectID, st.ID, taskdom.UpdateTaskStatusInput{
 		Category: &badCat,
 	})
 	if err != taskdom.ErrStatusCategoryInvalid {
@@ -942,7 +942,7 @@ func TestUpdateTaskStatus_NotFound(t *testing.T) {
 	svc := tasksvc.New(repo)
 
 	newPos := 1
-	_, err := svc.UpdateTaskStatus(ctx, uuid.New(), taskdom.UpdateTaskStatusInput{Position: &newPos})
+	_, err := svc.UpdateTaskStatus(ctx, uuid.New(), uuid.New(), taskdom.UpdateTaskStatusInput{Position: &newPos})
 	if err != taskdom.ErrStatusNotFound {
 		t.Errorf("expected ErrStatusNotFound, got %v", err)
 	}
@@ -961,7 +961,7 @@ func TestDeleteTaskStatus_OK(t *testing.T) {
 		Category:  taskdom.StatusCategoryDone,
 	})
 
-	if err := svc.DeleteTaskStatus(ctx, st.ID); err != nil {
+	if err := svc.DeleteTaskStatus(ctx, st.ProjectID, st.ID); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -976,7 +976,7 @@ func TestDeleteTaskStatus_NotFound(t *testing.T) {
 	repo := newFakeTaskRepo()
 	svc := tasksvc.New(repo)
 
-	err := svc.DeleteTaskStatus(ctx, uuid.New())
+	err := svc.DeleteTaskStatus(ctx, uuid.New(), uuid.New())
 	if err != taskdom.ErrStatusNotFound {
 		t.Errorf("expected ErrStatusNotFound, got %v", err)
 	}
@@ -1157,7 +1157,7 @@ func TestGetTaskByNumber_DeletedTask(t *testing.T) {
 	projectID := uuid.New()
 
 	created, _ := svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projectID, Title: "Gone"})
-	_ = svc.DeleteTask(ctx, created.ID)
+	_ = svc.DeleteTask(ctx, created.ProjectID, created.ID)
 
 	_, err := svc.GetTaskByNumber(ctx, projectID, created.TaskNumber)
 	if err != taskdom.ErrTaskNotFound {
@@ -1306,7 +1306,7 @@ func TestUpdateCustomFieldDefinition_OK(t *testing.T) {
 
 	newType := taskdom.FieldTypeSelect
 	required := true
-	updated, err := svc.UpdateCustomFieldDefinition(ctx, f.ID, taskdom.UpdateCustomFieldDefinitionInput{
+	updated, err := svc.UpdateCustomFieldDefinition(ctx, f.ProjectID, f.ID, taskdom.UpdateCustomFieldDefinitionInput{
 		DisplayName: "Reason",
 		FieldType:   &newType,
 		Options:     []string{"blocked", "waiting"},
@@ -1343,7 +1343,7 @@ func TestUpdateCustomFieldDefinition_InvalidType(t *testing.T) {
 	})
 
 	bad := taskdom.FieldType("bad_type")
-	_, err := svc.UpdateCustomFieldDefinition(ctx, f.ID, taskdom.UpdateCustomFieldDefinitionInput{
+	_, err := svc.UpdateCustomFieldDefinition(ctx, f.ProjectID, f.ID, taskdom.UpdateCustomFieldDefinitionInput{
 		FieldType: &bad,
 	})
 	if err != taskdom.ErrCustomFieldTypeInvalid {
@@ -1356,7 +1356,7 @@ func TestUpdateCustomFieldDefinition_NotFound(t *testing.T) {
 	repo := newFakeTaskRepo()
 	svc := tasksvc.New(repo)
 
-	_, err := svc.UpdateCustomFieldDefinition(ctx, uuid.New(), taskdom.UpdateCustomFieldDefinitionInput{
+	_, err := svc.UpdateCustomFieldDefinition(ctx, uuid.New(), uuid.New(), taskdom.UpdateCustomFieldDefinitionInput{
 		DisplayName: "X",
 	})
 	if err != taskdom.ErrCustomFieldNotFound {
@@ -1377,10 +1377,10 @@ func TestDeleteCustomFieldDefinition_OK(t *testing.T) {
 		FieldType:   taskdom.FieldTypeBoolean,
 	})
 
-	if err := svc.DeleteCustomFieldDefinition(ctx, f.ID); err != nil {
+	if err := svc.DeleteCustomFieldDefinition(ctx, f.ProjectID, f.ID); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	_, err := svc.GetCustomFieldDefinition(ctx, f.ID)
+	_, err := svc.GetCustomFieldDefinition(ctx, f.ProjectID, f.ID)
 	if err != taskdom.ErrCustomFieldNotFound {
 		t.Errorf("expected ErrCustomFieldNotFound after delete, got %v", err)
 	}
@@ -1391,7 +1391,7 @@ func TestDeleteCustomFieldDefinition_NotFound(t *testing.T) {
 	repo := newFakeTaskRepo()
 	svc := tasksvc.New(repo)
 
-	err := svc.DeleteCustomFieldDefinition(ctx, uuid.New())
+	err := svc.DeleteCustomFieldDefinition(ctx, uuid.New(), uuid.New())
 	if err != taskdom.ErrCustomFieldNotFound {
 		t.Errorf("expected ErrCustomFieldNotFound, got %v", err)
 	}

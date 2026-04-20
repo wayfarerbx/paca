@@ -10,13 +10,17 @@ import (
 // SprintService defines sprint use cases.
 type SprintService interface {
 	ListSprints(ctx context.Context, projectID uuid.UUID) ([]*Sprint, error)
-	GetSprint(ctx context.Context, id uuid.UUID) (*Sprint, error)
+	// GetSprint returns the sprint identified by id, verifying it belongs to projectID.
+	GetSprint(ctx context.Context, projectID, id uuid.UUID) (*Sprint, error)
 	CreateSprint(ctx context.Context, in CreateSprintInput) (*Sprint, error)
-	UpdateSprint(ctx context.Context, id uuid.UUID, in UpdateSprintInput) (*Sprint, error)
-	DeleteSprint(ctx context.Context, id uuid.UUID) error
+	// UpdateSprint updates the sprint identified by id, verifying it belongs to projectID.
+	UpdateSprint(ctx context.Context, projectID, id uuid.UUID, in UpdateSprintInput) (*Sprint, error)
+	// DeleteSprint removes the sprint identified by id, verifying it belongs to projectID.
+	DeleteSprint(ctx context.Context, projectID, id uuid.UUID) error
 	// CompleteSprint marks a sprint as completed and bulk-moves all non-done
 	// tasks to the sprint specified in CompleteSprintInput (nil = backlog).
-	CompleteSprint(ctx context.Context, id uuid.UUID, in CompleteSprintInput) (*Sprint, error)
+	// Verifies the sprint belongs to projectID before proceeding.
+	CompleteSprint(ctx context.Context, projectID, id uuid.UUID, in CompleteSprintInput) (*Sprint, error)
 }
 
 // CompleteSprintInput carries options for completing a sprint.
@@ -53,21 +57,25 @@ type ViewService interface {
 	// (ViewContextBacklog or ViewContextTimeline).
 	ListProjectViews(ctx context.Context, projectID uuid.UUID, viewCtx ViewContext) ([]*SprintView, error)
 
-	GetView(ctx context.Context, id uuid.UUID) (*SprintView, error)
+	// GetView returns the view identified by id, verifying it belongs to projectID.
+	GetView(ctx context.Context, projectID, id uuid.UUID) (*SprintView, error)
 	CreateView(ctx context.Context, in CreateViewInput) (*SprintView, error)
-	UpdateView(ctx context.Context, id uuid.UUID, in UpdateViewInput) (*SprintView, error)
-	DeleteView(ctx context.Context, id uuid.UUID) error
+	// UpdateView updates the view identified by id, verifying it belongs to projectID.
+	UpdateView(ctx context.Context, projectID, id uuid.UUID, in UpdateViewInput) (*SprintView, error)
+	// DeleteView removes the view identified by id, verifying it belongs to projectID.
+	DeleteView(ctx context.Context, projectID, id uuid.UUID) error
 
-	// MoveTask updates the manual position of a task within a view.
-	MoveTask(ctx context.Context, viewID uuid.UUID, in MoveTaskInput) error
+	// MoveTask updates the manual position of a task within a view,
+	// verifying the view belongs to projectID.
+	MoveTask(ctx context.Context, projectID, viewID uuid.UUID, in MoveTaskInput) error
 
 	// BulkMoveTasks updates the manual positions of multiple tasks in a view
-	// within a single transaction.  Useful when a drag materialises null-positioned
-	// neighbours alongside the moved task.
-	BulkMoveTasks(ctx context.Context, viewID uuid.UUID, items []MoveTaskInput) error
+	// within a single transaction, verifying the view belongs to projectID.
+	BulkMoveTasks(ctx context.Context, projectID, viewID uuid.UUID, items []MoveTaskInput) error
 
-	// ListTaskPositions returns the manual ordering for all tasks in a view.
-	ListTaskPositions(ctx context.Context, viewID uuid.UUID) ([]*ViewTaskPosition, error)
+	// ListTaskPositions returns the manual ordering for all tasks in a view,
+	// verifying the view belongs to projectID.
+	ListTaskPositions(ctx context.Context, projectID, viewID uuid.UUID) ([]*ViewTaskPosition, error)
 
 	// ReorderViews reorders all views belonging to a sprint.  viewIDs must
 	// contain every view ID for that sprint in the desired order.

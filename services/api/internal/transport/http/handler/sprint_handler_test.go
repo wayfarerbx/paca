@@ -28,7 +28,7 @@ type fakeSprintSvcH struct {
 func (f *fakeSprintSvcH) ListSprints(_ context.Context, _ uuid.UUID) ([]*sprintdom.Sprint, error) {
 	return nil, nil
 }
-func (f *fakeSprintSvcH) GetSprint(_ context.Context, _ uuid.UUID) (*sprintdom.Sprint, error) {
+func (f *fakeSprintSvcH) GetSprint(_ context.Context, _, _ uuid.UUID) (*sprintdom.Sprint, error) {
 	return nil, sprintdom.ErrSprintNotFound
 }
 func (f *fakeSprintSvcH) CreateSprint(_ context.Context, in sprintdom.CreateSprintInput) (*sprintdom.Sprint, error) {
@@ -44,13 +44,13 @@ func (f *fakeSprintSvcH) CreateSprint(_ context.Context, in sprintdom.CreateSpri
 	f.created = append(f.created, sp)
 	return sp, nil
 }
-func (f *fakeSprintSvcH) UpdateSprint(_ context.Context, _ uuid.UUID, _ sprintdom.UpdateSprintInput) (*sprintdom.Sprint, error) {
+func (f *fakeSprintSvcH) UpdateSprint(_ context.Context, _, _ uuid.UUID, _ sprintdom.UpdateSprintInput) (*sprintdom.Sprint, error) {
 	return nil, sprintdom.ErrSprintNotFound
 }
-func (f *fakeSprintSvcH) DeleteSprint(_ context.Context, _ uuid.UUID) error {
+func (f *fakeSprintSvcH) DeleteSprint(_ context.Context, _, _ uuid.UUID) error {
 	return nil
 }
-func (f *fakeSprintSvcH) CompleteSprint(_ context.Context, id uuid.UUID, _ sprintdom.CompleteSprintInput) (*sprintdom.Sprint, error) {
+func (f *fakeSprintSvcH) CompleteSprint(_ context.Context, _, id uuid.UUID, _ sprintdom.CompleteSprintInput) (*sprintdom.Sprint, error) {
 	for _, sp := range f.created {
 		if sp.ID == id {
 			sp.Status = sprintdom.SprintStatusCompleted
@@ -80,7 +80,7 @@ func (f *fakeViewSvcH) ListViews(_ context.Context, _ uuid.UUID) ([]*sprintdom.S
 func (f *fakeViewSvcH) ListProjectViews(_ context.Context, _ uuid.UUID, _ sprintdom.ViewContext) ([]*sprintdom.SprintView, error) {
 	return nil, nil
 }
-func (f *fakeViewSvcH) GetView(_ context.Context, _ uuid.UUID) (*sprintdom.SprintView, error) {
+func (f *fakeViewSvcH) GetView(_ context.Context, _, _ uuid.UUID) (*sprintdom.SprintView, error) {
 	return nil, sprintdom.ErrViewNotFound
 }
 func (f *fakeViewSvcH) CreateView(_ context.Context, in sprintdom.CreateViewInput) (*sprintdom.SprintView, error) {
@@ -102,17 +102,17 @@ func (f *fakeViewSvcH) CreateView(_ context.Context, in sprintdom.CreateViewInpu
 	f.mu.Unlock()
 	return v, nil
 }
-func (f *fakeViewSvcH) UpdateView(_ context.Context, _ uuid.UUID, _ sprintdom.UpdateViewInput) (*sprintdom.SprintView, error) {
+func (f *fakeViewSvcH) UpdateView(_ context.Context, _, _ uuid.UUID, _ sprintdom.UpdateViewInput) (*sprintdom.SprintView, error) {
 	return nil, sprintdom.ErrViewNotFound
 }
-func (f *fakeViewSvcH) DeleteView(_ context.Context, _ uuid.UUID) error { return nil }
-func (f *fakeViewSvcH) MoveTask(_ context.Context, _ uuid.UUID, _ sprintdom.MoveTaskInput) error {
+func (f *fakeViewSvcH) DeleteView(_ context.Context, _, _ uuid.UUID) error { return nil }
+func (f *fakeViewSvcH) MoveTask(_ context.Context, _, _ uuid.UUID, _ sprintdom.MoveTaskInput) error {
 	return nil
 }
-func (f *fakeViewSvcH) BulkMoveTasks(_ context.Context, _ uuid.UUID, _ []sprintdom.MoveTaskInput) error {
+func (f *fakeViewSvcH) BulkMoveTasks(_ context.Context, _, _ uuid.UUID, _ []sprintdom.MoveTaskInput) error {
 	return nil
 }
-func (f *fakeViewSvcH) ListTaskPositions(_ context.Context, _ uuid.UUID) ([]*sprintdom.ViewTaskPosition, error) {
+func (f *fakeViewSvcH) ListTaskPositions(_ context.Context, _, _ uuid.UUID) ([]*sprintdom.ViewTaskPosition, error) {
 	return nil, nil
 }
 func (f *fakeViewSvcH) ReorderViews(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {

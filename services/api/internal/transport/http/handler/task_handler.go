@@ -80,6 +80,11 @@ func (h *TaskHandler) CreateTaskType(c *gin.Context) {
 
 // UpdateTaskType handles PATCH /projects/:projectId/task-types/:typeId.
 func (h *TaskHandler) UpdateTaskType(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	typeID, err := parseTaskTypeID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -91,7 +96,7 @@ func (h *TaskHandler) UpdateTaskType(c *gin.Context) {
 		return
 	}
 
-	t, err := h.svc.UpdateTaskType(c.Request.Context(), typeID, taskdom.UpdateTaskTypeInput{
+	t, err := h.svc.UpdateTaskType(c.Request.Context(), projectID, typeID, taskdom.UpdateTaskTypeInput{
 		Name:        req.Name,
 		Icon:        req.Icon,
 		Color:       req.Color,
@@ -106,12 +111,17 @@ func (h *TaskHandler) UpdateTaskType(c *gin.Context) {
 
 // DeleteTaskType handles DELETE /projects/:projectId/task-types/:typeId.
 func (h *TaskHandler) DeleteTaskType(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	typeID, err := parseTaskTypeID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
-	if err := h.svc.DeleteTaskType(c.Request.Context(), typeID); err != nil {
+	if err := h.svc.DeleteTaskType(c.Request.Context(), projectID, typeID); err != nil {
 		presenter.Error(c, err)
 		return
 	}
@@ -188,6 +198,11 @@ func (h *TaskHandler) CreateTaskStatus(c *gin.Context) {
 
 // UpdateTaskStatus handles PATCH /projects/:projectId/task-statuses/:statusId.
 func (h *TaskHandler) UpdateTaskStatus(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	statusID, err := parseTaskStatusID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -199,7 +214,7 @@ func (h *TaskHandler) UpdateTaskStatus(c *gin.Context) {
 		return
 	}
 
-	s, err := h.svc.UpdateTaskStatus(c.Request.Context(), statusID, taskdom.UpdateTaskStatusInput{
+	s, err := h.svc.UpdateTaskStatus(c.Request.Context(), projectID, statusID, taskdom.UpdateTaskStatusInput{
 		Name:     req.Name,
 		Color:    req.Color,
 		Position: req.Position,
@@ -214,12 +229,17 @@ func (h *TaskHandler) UpdateTaskStatus(c *gin.Context) {
 
 // DeleteTaskStatus handles DELETE /projects/:projectId/task-statuses/:statusId.
 func (h *TaskHandler) DeleteTaskStatus(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	statusID, err := parseTaskStatusID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
-	if err := h.svc.DeleteTaskStatus(c.Request.Context(), statusID); err != nil {
+	if err := h.svc.DeleteTaskStatus(c.Request.Context(), projectID, statusID); err != nil {
 		presenter.Error(c, err)
 		return
 	}
@@ -315,7 +335,7 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 			presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid view_id"))
 			return
 		}
-		positions, err := h.viewSvc.ListTaskPositions(c.Request.Context(), viewID)
+		positions, err := h.viewSvc.ListTaskPositions(c.Request.Context(), projectID, viewID)
 		if err != nil {
 			presenter.Error(c, err)
 			return
@@ -347,12 +367,17 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 
 // GetTask handles GET /projects/:projectId/tasks/:taskId.
 func (h *TaskHandler) GetTask(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	taskID, err := parseTaskID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
-	t, err := h.svc.GetTask(c.Request.Context(), taskID)
+	t, err := h.svc.GetTask(c.Request.Context(), projectID, taskID)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -432,6 +457,11 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 
 // UpdateTask handles PATCH /projects/:projectId/tasks/:taskId.
 func (h *TaskHandler) UpdateTask(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	taskID, err := parseTaskID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -444,9 +474,9 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 	}
 
 	// Fetch old state before mutating so we can record before/after values.
-	oldTask, _ := h.svc.GetTask(c.Request.Context(), taskID)
+	oldTask, _ := h.svc.GetTask(c.Request.Context(), projectID, taskID)
 
-	t, err := h.svc.UpdateTask(c.Request.Context(), taskID, taskdom.UpdateTaskInput{
+	t, err := h.svc.UpdateTask(c.Request.Context(), projectID, taskID, taskdom.UpdateTaskInput{
 		TaskTypeID:   req.TaskTypeID.Ptr(),
 		StatusID:     req.StatusID.Ptr(),
 		SprintID:     req.SprintID.Ptr(),
@@ -471,7 +501,6 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 		changes := h.taskChangedFields(c.Request.Context(), oldTask, req)
 		if len(changes) > 0 {
 			content, _ := json.Marshal(map[string]any{"changes": changes})
-			projectID, _ := parseProjectID(c)
 			_ = h.activitySvc.RecordActivity(c.Request.Context(), taskdom.RecordActivityInput{
 				TaskID:       taskID,
 				ProjectID:    projectID,
@@ -626,19 +655,23 @@ func timePtrToStr(t *time.Time) string {
 
 // DeleteTask handles DELETE /projects/:projectId/tasks/:taskId.
 func (h *TaskHandler) DeleteTask(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	taskID, err := parseTaskID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
-	if err := h.svc.DeleteTask(c.Request.Context(), taskID); err != nil {
+	if err := h.svc.DeleteTask(c.Request.Context(), projectID, taskID); err != nil {
 		presenter.Error(c, err)
 		return
 	}
 
 	// Record deletion activity (best-effort).
 	if actorID, ok := middleware.ActorIDFromContext(c.Request.Context()); ok {
-		projectID, _ := parseProjectID(c)
 		_ = h.activitySvc.RecordActivity(c.Request.Context(), taskdom.RecordActivityInput{
 			TaskID:       taskID,
 			ProjectID:    projectID,
@@ -732,12 +765,17 @@ func (h *TaskHandler) ListCustomFieldDefinitions(c *gin.Context) {
 
 // GetCustomFieldDefinition handles GET /projects/:projectId/custom-fields/:fieldId.
 func (h *TaskHandler) GetCustomFieldDefinition(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	fieldID, err := parseCustomFieldID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
-	f, err := h.svc.GetCustomFieldDefinition(c.Request.Context(), fieldID)
+	f, err := h.svc.GetCustomFieldDefinition(c.Request.Context(), projectID, fieldID)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -775,6 +813,11 @@ func (h *TaskHandler) CreateCustomFieldDefinition(c *gin.Context) {
 
 // UpdateCustomFieldDefinition handles PATCH /projects/:projectId/custom-fields/:fieldId.
 func (h *TaskHandler) UpdateCustomFieldDefinition(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	fieldID, err := parseCustomFieldID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -786,7 +829,7 @@ func (h *TaskHandler) UpdateCustomFieldDefinition(c *gin.Context) {
 		return
 	}
 
-	f, err := h.svc.UpdateCustomFieldDefinition(c.Request.Context(), fieldID, taskdom.UpdateCustomFieldDefinitionInput{
+	f, err := h.svc.UpdateCustomFieldDefinition(c.Request.Context(), projectID, fieldID, taskdom.UpdateCustomFieldDefinitionInput{
 		DisplayName: req.DisplayName,
 		FieldType:   req.FieldType,
 		Options:     req.Options,
@@ -801,12 +844,17 @@ func (h *TaskHandler) UpdateCustomFieldDefinition(c *gin.Context) {
 
 // DeleteCustomFieldDefinition handles DELETE /projects/:projectId/custom-fields/:fieldId.
 func (h *TaskHandler) DeleteCustomFieldDefinition(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	fieldID, err := parseCustomFieldID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
-	if err := h.svc.DeleteCustomFieldDefinition(c.Request.Context(), fieldID); err != nil {
+	if err := h.svc.DeleteCustomFieldDefinition(c.Request.Context(), projectID, fieldID); err != nil {
 		presenter.Error(c, err)
 		return
 	}
@@ -852,7 +900,7 @@ func (h *TaskHandler) ListBacklogTasks(c *gin.Context) {
 			presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid view_id"))
 			return
 		}
-		positions, err := h.viewSvc.ListTaskPositions(c.Request.Context(), viewID)
+		positions, err := h.viewSvc.ListTaskPositions(c.Request.Context(), projectID, viewID)
 		if err != nil {
 			presenter.Error(c, err)
 			return
@@ -918,7 +966,7 @@ func (h *TaskHandler) ListTimelineTasks(c *gin.Context) {
 			presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid view_id"))
 			return
 		}
-		positions, err := h.viewSvc.ListTaskPositions(c.Request.Context(), viewID)
+		positions, err := h.viewSvc.ListTaskPositions(c.Request.Context(), projectID, viewID)
 		if err != nil {
 			presenter.Error(c, err)
 			return
@@ -961,12 +1009,17 @@ func parseBDDScenarioID(c *gin.Context) (uuid.UUID, error) {
 
 // ListBDDScenarios handles GET /projects/:projectId/tasks/:taskId/bdd-scenarios.
 func (h *TaskHandler) ListBDDScenarios(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	taskID, err := parseTaskID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
-	scenarios, err := h.svc.ListBDDScenarios(c.Request.Context(), taskID)
+	scenarios, err := h.svc.ListBDDScenarios(c.Request.Context(), projectID, taskID)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -980,8 +1033,19 @@ func (h *TaskHandler) ListBDDScenarios(c *gin.Context) {
 
 // CreateBDDScenario handles POST /projects/:projectId/tasks/:taskId/bdd-scenarios.
 func (h *TaskHandler) CreateBDDScenario(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	taskID, err := parseTaskID(c)
 	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+
+	// Verify the task belongs to the project before creating a BDD scenario.
+	if _, err := h.svc.GetTask(c.Request.Context(), projectID, taskID); err != nil {
 		presenter.Error(c, err)
 		return
 	}
@@ -1006,7 +1070,6 @@ func (h *TaskHandler) CreateBDDScenario(c *gin.Context) {
 	// Record BDD scenario creation activity (best-effort).
 	if actorID, ok := middleware.ActorIDFromContext(c.Request.Context()); ok {
 		content, _ := json.Marshal(map[string]any{"title": scenario.Title})
-		projectID, _ := parseProjectID(c)
 		_ = h.activitySvc.RecordActivity(c.Request.Context(), taskdom.RecordActivityInput{
 			TaskID:       taskID,
 			ProjectID:    projectID,
@@ -1021,12 +1084,22 @@ func (h *TaskHandler) CreateBDDScenario(c *gin.Context) {
 
 // GetBDDScenario handles GET /projects/:projectId/tasks/:taskId/bdd-scenarios/:scenarioId.
 func (h *TaskHandler) GetBDDScenario(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	taskID, err := parseTaskID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	scenarioID, err := parseBDDScenarioID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
-	scenario, err := h.svc.GetBDDScenario(c.Request.Context(), scenarioID)
+	scenario, err := h.svc.GetBDDScenario(c.Request.Context(), projectID, taskID, scenarioID)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -1036,6 +1109,16 @@ func (h *TaskHandler) GetBDDScenario(c *gin.Context) {
 
 // UpdateBDDScenario handles PATCH /projects/:projectId/tasks/:taskId/bdd-scenarios/:scenarioId.
 func (h *TaskHandler) UpdateBDDScenario(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	taskID, err := parseTaskID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	scenarioID, err := parseBDDScenarioID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -1047,7 +1130,7 @@ func (h *TaskHandler) UpdateBDDScenario(c *gin.Context) {
 		return
 	}
 
-	scenario, err := h.svc.UpdateBDDScenario(c.Request.Context(), scenarioID, taskdom.UpdateBDDScenarioInput{
+	scenario, err := h.svc.UpdateBDDScenario(c.Request.Context(), projectID, taskID, scenarioID, taskdom.UpdateBDDScenarioInput{
 		Title: req.Title,
 		Given: req.Given,
 		When:  req.When,
@@ -1061,7 +1144,6 @@ func (h *TaskHandler) UpdateBDDScenario(c *gin.Context) {
 	// Record BDD scenario update activity (best-effort).
 	if actorID, ok := middleware.ActorIDFromContext(c.Request.Context()); ok {
 		content, _ := json.Marshal(map[string]any{"title": scenario.Title})
-		projectID, _ := parseProjectID(c)
 		_ = h.activitySvc.RecordActivity(c.Request.Context(), taskdom.RecordActivityInput{
 			TaskID:       scenario.TaskID,
 			ProjectID:    projectID,
@@ -1076,20 +1158,30 @@ func (h *TaskHandler) UpdateBDDScenario(c *gin.Context) {
 
 // DeleteBDDScenario handles DELETE /projects/:projectId/tasks/:taskId/bdd-scenarios/:scenarioId.
 func (h *TaskHandler) DeleteBDDScenario(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	taskID, err := parseTaskID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	scenarioID, err := parseBDDScenarioID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
 
-	// Fetch scenario before deletion so we have the task_id for activity recording.
-	scenario, err := h.svc.GetBDDScenario(c.Request.Context(), scenarioID)
+	// Fetch scenario before deletion so we have the title for activity recording.
+	scenario, err := h.svc.GetBDDScenario(c.Request.Context(), projectID, taskID, scenarioID)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
 
-	if err := h.svc.DeleteBDDScenario(c.Request.Context(), scenarioID); err != nil {
+	if err := h.svc.DeleteBDDScenario(c.Request.Context(), projectID, taskID, scenarioID); err != nil {
 		presenter.Error(c, err)
 		return
 	}
@@ -1097,7 +1189,6 @@ func (h *TaskHandler) DeleteBDDScenario(c *gin.Context) {
 	// Record BDD scenario deletion activity (best-effort).
 	if actorID, ok := middleware.ActorIDFromContext(c.Request.Context()); ok {
 		content, _ := json.Marshal(map[string]any{"title": scenario.Title})
-		projectID, _ := parseProjectID(c)
 		_ = h.activitySvc.RecordActivity(c.Request.Context(), taskdom.RecordActivityInput{
 			TaskID:       scenario.TaskID,
 			ProjectID:    projectID,

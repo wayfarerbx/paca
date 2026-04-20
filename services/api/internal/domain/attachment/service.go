@@ -8,32 +8,43 @@ import (
 	"github.com/paca/api/internal/platform/storage"
 )
 
+// TaskOwnerChecker validates that a task belongs to a given project.
+type TaskOwnerChecker interface {
+	// TaskBelongsToProject loads the task by id and returns a non-nil error
+	// when the task does not belong to projectID (or does not exist).
+	TaskBelongsToProject(ctx context.Context, projectID, taskID uuid.UUID) error
+}
+
 // Service is the combined attachment management contract.
 type Service interface {
 	// InitiateUpload creates a pending File record and returns either a
 	// single-part presigned PUT URL (files < MultipartThreshold) or the
 	// multipart upload descriptor with per-part presigned URLs.
-	InitiateUpload(ctx context.Context, in InitiateUploadInput) (*UploadSession, error)
+	// Verifies taskID belongs to projectID before proceeding.
+	InitiateUpload(ctx context.Context, projectID uuid.UUID, in InitiateUploadInput) (*UploadSession, error)
 
 	// CompleteUpload marks the File as uploaded and creates the
 	// TaskAttachment join record.  For multipart uploads the caller must
 	// supply the completed parts so the server can call
 	// CompleteMultipartUpload on the object store.
-	CompleteUpload(ctx context.Context, in CompleteUploadInput) (*TaskAttachment, error)
+	// Verifies taskID belongs to projectID before proceeding.
+	CompleteUpload(ctx context.Context, projectID uuid.UUID, in CompleteUploadInput) (*TaskAttachment, error)
 
 	// GetDownloadURL returns a short-lived presigned GET URL for the file
-	// that backs the given attachment.
+	// that backs the given attachment. Verifies the attachment belongs to taskID
+	// and that taskID belongs to projectID.
 	// Set forceDownload true to embed Content-Disposition: attachment so the
 	// browser downloads the file rather than previewing it inline.
-	GetDownloadURL(ctx context.Context, attachmentID uuid.UUID, ttl time.Duration, forceDownload bool) (string, error)
+	GetDownloadURL(ctx context.Context, projectID, taskID, attachmentID uuid.UUID, ttl time.Duration, forceDownload bool) (string, error)
 
 	// ListTaskAttachments returns all confirmed attachments for the given task.
-	ListTaskAttachments(ctx context.Context, taskID uuid.UUID) ([]*TaskAttachment, error)
+	// Verifies taskID belongs to projectID before proceeding.
+	ListTaskAttachments(ctx context.Context, projectID, taskID uuid.UUID) ([]*TaskAttachment, error)
 
 	// DeleteTaskAttachment removes the task→file association for the given
-	// attachment. It does not delete the underlying file record or storage
-	// object.
-	DeleteTaskAttachment(ctx context.Context, attachmentID uuid.UUID) error
+	// attachment. Verifies the attachment belongs to taskID and that taskID
+	// belongs to projectID before deleting.
+	DeleteTaskAttachment(ctx context.Context, projectID, taskID, attachmentID uuid.UUID) error
 }
 
 // UploadSession is returned by InitiateUpload and carries everything the

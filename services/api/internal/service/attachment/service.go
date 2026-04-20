@@ -3,6 +3,7 @@ package attachmentsvc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"mime"
 	"path"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	attachmentdom "github.com/paca/api/internal/domain/attachment"
+	taskdom "github.com/paca/api/internal/domain/task"
 	"github.com/paca/api/internal/platform/storage"
 )
 
@@ -24,21 +26,25 @@ const (
 
 // Service is the concrete implementation of attachmentdom.Service.
 type Service struct {
-	repo   attachmentdom.Repository
-	store  storage.Client
-	bucket string
+	repo        attachmentdom.Repository
+	taskChecker attachmentdom.TaskOwnerChecker
+	store       storage.Client
+	bucket      string
 }
 
 // New returns a configured attachment service.
-func New(repo attachmentdom.Repository, store storage.Client, bucket string) *Service {
-	return &Service{repo: repo, store: store, bucket: bucket}
+func New(repo attachmentdom.Repository, taskChecker attachmentdom.TaskOwnerChecker, store storage.Client, bucket string) *Service {
+	return &Service{repo: repo, taskChecker: taskChecker, store: store, bucket: bucket}
 }
 
 // InitiateUpload creates a pending File record and returns a presigned upload
 // session.  For files >= MultipartThreshold a multipart upload is initiated
 // with pre-signed URLs for each part; otherwise a single-part presigned PUT
 // URL is returned.
-func (s *Service) InitiateUpload(ctx context.Context, in attachmentdom.InitiateUploadInput) (*attachmentdom.UploadSession, error) {
+func (s *Service) InitiateUpload(ctx context.Context, projectID uuid.UUID, in attachmentdom.InitiateUploadInput) (*attachmentdom.UploadSession, error) {
+	if err := s.taskChecker.TaskBelongsToProject(ctx, projectID, in.TaskID); err != nil {
+		return nil, err
+	}
 	if strings.TrimSpace(in.FileName) == "" {
 		return nil, attachmentdom.ErrFileNameEmpty
 	}
@@ -101,7 +107,10 @@ func (s *Service) InitiateUpload(ctx context.Context, in attachmentdom.InitiateU
 // CompleteUpload marks the file as uploaded and creates the TaskAttachment
 // join record.  For multipart uploads the caller must supply the completed
 // parts so the service can call CompleteMultipartUpload on the object store.
-func (s *Service) CompleteUpload(ctx context.Context, in attachmentdom.CompleteUploadInput) (*attachmentdom.TaskAttachment, error) {
+func (s *Service) CompleteUpload(ctx context.Context, projectID uuid.UUID, in attachmentdom.CompleteUploadInput) (*attachmentdom.TaskAttachment, error) {
+	if err := s.taskChecker.TaskBelongsToProject(ctx, projectID, in.TaskID); err != nil {
+		return nil, err
+	}
 	f, err := s.repo.FindFileByID(ctx, in.FileID)
 	if err != nil {
 		return nil, err
@@ -165,10 +174,17 @@ func (s *Service) CompleteUpload(ctx context.Context, in attachmentdom.CompleteU
 // GetDownloadURL returns a presigned GET URL for the given attachment's file.
 // When forceDownload is true the URL includes a Content-Disposition: attachment
 // header so the browser downloads the file rather than previewing it inline.
-func (s *Service) GetDownloadURL(ctx context.Context, attachmentID uuid.UUID, ttl time.Duration, forceDownload bool) (string, error) {
+// Verifies the attachment belongs to taskID before generating the URL.
+func (s *Service) GetDownloadURL(ctx context.Context, projectID, taskID, attachmentID uuid.UUID, ttl time.Duration, forceDownload bool) (string, error) {
+	if err := s.taskChecker.TaskBelongsToProject(ctx, projectID, taskID); err != nil {
+		return "", err
+	}
 	a, err := s.repo.FindTaskAttachmentByID(ctx, attachmentID)
 	if err != nil {
 		return "", err
+	}
+	if a.TaskID != taskID {
+		return "", attachmentdom.ErrAttachmentNotFound
 	}
 
 	f, err := s.repo.FindFileByID(ctx, a.FileID)
@@ -211,18 +227,29 @@ func (s *Service) GetDownloadURL(ctx context.Context, attachmentID uuid.UUID, tt
 }
 
 // ListTaskAttachments returns all confirmed attachments for the given task.
-func (s *Service) ListTaskAttachments(ctx context.Context, taskID uuid.UUID) ([]*attachmentdom.TaskAttachment, error) {
+func (s *Service) ListTaskAttachments(ctx context.Context, projectID, taskID uuid.UUID) ([]*attachmentdom.TaskAttachment, error) {
+	if err := s.taskChecker.TaskBelongsToProject(ctx, projectID, taskID); err != nil {
+		return nil, err
+	}
 	return s.repo.ListTaskAttachments(ctx, taskID)
 }
 
 // DeleteTaskAttachment removes the task→file association only.
 // The underlying file record and object-store object are intentionally kept
 // so the file can be referenced by other tasks or restored later.
-func (s *Service) DeleteTaskAttachment(ctx context.Context, attachmentID uuid.UUID) error {
-	if err := s.repo.DeleteTaskAttachment(ctx, attachmentID); err != nil {
+// Verifies the attachment belongs to taskID before deleting.
+func (s *Service) DeleteTaskAttachment(ctx context.Context, projectID, taskID, attachmentID uuid.UUID) error {
+	if err := s.taskChecker.TaskBelongsToProject(ctx, projectID, taskID); err != nil {
 		return err
 	}
-	return nil
+	a, err := s.repo.FindTaskAttachmentByID(ctx, attachmentID)
+	if err != nil {
+		return err
+	}
+	if a.TaskID != taskID {
+		return attachmentdom.ErrAttachmentNotFound
+	}
+	return s.repo.DeleteTaskAttachment(ctx, attachmentID)
 }
 
 // sanitizeFileName strips directory components and replaces path-unsafe
@@ -241,4 +268,30 @@ func sanitizeFileName(name string) string {
 		name = "file"
 	}
 	return name
+}
+
+// --- Task ownership checker --------------------------------------------------
+
+type taskOwnerChecker struct {
+	repo taskdom.TaskRepository
+}
+
+// NewTaskOwnerChecker returns a attachmentdom.TaskOwnerChecker that validates
+// task→project ownership via the task repository.
+func NewTaskOwnerChecker(repo taskdom.TaskRepository) attachmentdom.TaskOwnerChecker {
+	return &taskOwnerChecker{repo: repo}
+}
+
+func (c *taskOwnerChecker) TaskBelongsToProject(ctx context.Context, projectID, taskID uuid.UUID) error {
+	t, err := c.repo.FindTaskByID(ctx, taskID)
+	if err != nil {
+		if errors.Is(err, taskdom.ErrTaskNotFound) {
+			return attachmentdom.ErrTaskNotInProject
+		}
+		return err
+	}
+	if t.ProjectID != projectID {
+		return attachmentdom.ErrTaskNotInProject
+	}
+	return nil
 }

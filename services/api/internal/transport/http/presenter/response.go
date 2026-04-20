@@ -176,6 +176,8 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusNotFound, apierr.CodeFileNotFound
 	case errors.Is(err, attachmentdom.ErrAttachmentNotFound):
 		return http.StatusNotFound, apierr.CodeAttachmentNotFound
+	case errors.Is(err, attachmentdom.ErrTaskNotInProject):
+		return http.StatusNotFound, apierr.CodeTaskNotFound
 	case errors.Is(err, attachmentdom.ErrUploadNotPending):
 		return http.StatusConflict, apierr.CodeUploadNotPending
 	case errors.Is(err, attachmentdom.ErrFileSizeZero),

@@ -26,4 +26,7 @@ var (
 	// ErrMultipartPartsEmpty is returned when a multipart complete request
 	// contains no parts.
 	ErrMultipartPartsEmpty = errors.New("multipart upload requires at least one part")
+	// ErrTaskNotInProject is returned when the referenced task does not belong
+	// to the project specified in the request URL.
+	ErrTaskNotInProject = errors.New("task does not belong to the specified project")
 )

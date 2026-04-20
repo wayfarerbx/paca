@@ -85,12 +85,17 @@ func (h *ViewHandler) ListViews(c *gin.Context) {
 
 // GetView handles GET /projects/:projectId/views/:viewId.
 func (h *ViewHandler) GetView(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	viewID, err := parseViewID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
-	v, err := h.svc.GetView(c.Request.Context(), viewID)
+	v, err := h.svc.GetView(c.Request.Context(), projectID, viewID)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -137,8 +142,13 @@ func (h *ViewHandler) CreateView(c *gin.Context) {
 	presenter.Created(c, dto.ViewFromEntity(v))
 }
 
-// UpdateView handles PATCH /sprints/:sprintId/views/:viewId.
+// UpdateView handles PATCH /projects/:projectId/views/:viewId.
 func (h *ViewHandler) UpdateView(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	viewID, err := parseViewID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -150,7 +160,7 @@ func (h *ViewHandler) UpdateView(c *gin.Context) {
 		return
 	}
 
-	v, err := h.svc.UpdateView(c.Request.Context(), viewID, req.ToUpdateInput())
+	v, err := h.svc.UpdateView(c.Request.Context(), projectID, viewID, req.ToUpdateInput())
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -160,26 +170,36 @@ func (h *ViewHandler) UpdateView(c *gin.Context) {
 
 // DeleteView handles DELETE /sprints/:sprintId/views/:viewId.
 func (h *ViewHandler) DeleteView(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	viewID, err := parseViewID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
-	if err := h.svc.DeleteView(c.Request.Context(), viewID); err != nil {
+	if err := h.svc.DeleteView(c.Request.Context(), projectID, viewID); err != nil {
 		presenter.Error(c, err)
 		return
 	}
 	presenter.NoContent(c)
 }
 
-// ListTaskPositions handles GET /views/:viewId/task-positions.
+// ListTaskPositions handles GET /projects/:projectId/views/:viewId/task-positions.
 func (h *ViewHandler) ListTaskPositions(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	viewID, err := parseViewID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
-	positions, err := h.svc.ListTaskPositions(c.Request.Context(), viewID)
+	positions, err := h.svc.ListTaskPositions(c.Request.Context(), projectID, viewID)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -193,6 +213,11 @@ func (h *ViewHandler) ListTaskPositions(c *gin.Context) {
 
 // MoveTask handles PUT /views/:viewId/task-positions/:taskId.
 func (h *ViewHandler) MoveTask(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	viewID, err := parseViewID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -209,7 +234,7 @@ func (h *ViewHandler) MoveTask(c *gin.Context) {
 		return
 	}
 
-	if err := h.svc.MoveTask(c.Request.Context(), viewID, sprintdom.MoveTaskInput{
+	if err := h.svc.MoveTask(c.Request.Context(), projectID, viewID, sprintdom.MoveTaskInput{
 		TaskID:   taskID,
 		Position: req.Position,
 		GroupKey: req.GroupKey,
@@ -224,6 +249,11 @@ func (h *ViewHandler) MoveTask(c *gin.Context) {
 // Upserts the manual positions of multiple tasks in a view within a single
 // database transaction.
 func (h *ViewHandler) BulkMoveTasks(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	viewID, err := parseViewID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -244,7 +274,7 @@ func (h *ViewHandler) BulkMoveTasks(c *gin.Context) {
 		})
 	}
 
-	if err := h.svc.BulkMoveTasks(c.Request.Context(), viewID, items); err != nil {
+	if err := h.svc.BulkMoveTasks(c.Request.Context(), projectID, viewID, items); err != nil {
 		presenter.Error(c, err)
 		return
 	}

@@ -62,11 +62,11 @@ func (f *fakeTaskSvc) CreateTaskType(_ context.Context, in taskdom.CreateTaskTyp
 	return t, nil
 }
 
-func (f *fakeTaskSvc) UpdateTaskType(_ context.Context, _ uuid.UUID, _ taskdom.UpdateTaskTypeInput) (*taskdom.TaskType, error) {
+func (f *fakeTaskSvc) UpdateTaskType(_ context.Context, _, _ uuid.UUID, _ taskdom.UpdateTaskTypeInput) (*taskdom.TaskType, error) {
 	return nil, taskdom.ErrTypeNotFound
 }
 
-func (f *fakeTaskSvc) DeleteTaskType(_ context.Context, _ uuid.UUID) error { return nil }
+func (f *fakeTaskSvc) DeleteTaskType(_ context.Context, _, _ uuid.UUID) error { return nil }
 
 func (f *fakeTaskSvc) SetDefaultTaskType(_ context.Context, _, _ uuid.UUID) (*taskdom.TaskType, error) {
 	return &taskdom.TaskType{}, nil
@@ -91,11 +91,11 @@ func (f *fakeTaskSvc) CreateTaskStatus(_ context.Context, in taskdom.CreateTaskS
 	return s, nil
 }
 
-func (f *fakeTaskSvc) UpdateTaskStatus(_ context.Context, _ uuid.UUID, _ taskdom.UpdateTaskStatusInput) (*taskdom.TaskStatus, error) {
+func (f *fakeTaskSvc) UpdateTaskStatus(_ context.Context, _, _ uuid.UUID, _ taskdom.UpdateTaskStatusInput) (*taskdom.TaskStatus, error) {
 	return nil, taskdom.ErrStatusNotFound
 }
 
-func (f *fakeTaskSvc) DeleteTaskStatus(_ context.Context, _ uuid.UUID) error { return nil }
+func (f *fakeTaskSvc) DeleteTaskStatus(_ context.Context, _, _ uuid.UUID) error { return nil }
 
 // -- TaskService --
 
@@ -107,7 +107,7 @@ func (f *fakeTaskSvc) ListTasks(_ context.Context, projectID uuid.UUID, filter t
 	return nil, 0, nil
 }
 
-func (f *fakeTaskSvc) GetTask(_ context.Context, id uuid.UUID) (*taskdom.Task, error) {
+func (f *fakeTaskSvc) GetTask(_ context.Context, _, id uuid.UUID) (*taskdom.Task, error) {
 	f.mu.RLock()
 	t, ok := f.tasks[id]
 	f.mu.RUnlock()
@@ -154,7 +154,7 @@ func (f *fakeTaskSvc) CreateTask(_ context.Context, in taskdom.CreateTaskInput) 
 	return t, nil
 }
 
-func (f *fakeTaskSvc) UpdateTask(_ context.Context, id uuid.UUID, in taskdom.UpdateTaskInput) (*taskdom.Task, error) {
+func (f *fakeTaskSvc) UpdateTask(_ context.Context, _, id uuid.UUID, in taskdom.UpdateTaskInput) (*taskdom.Task, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	t, ok := f.tasks[id]
@@ -177,7 +177,7 @@ func (f *fakeTaskSvc) UpdateTask(_ context.Context, id uuid.UUID, in taskdom.Upd
 	return &cp, nil
 }
 
-func (f *fakeTaskSvc) DeleteTask(_ context.Context, id uuid.UUID) error {
+func (f *fakeTaskSvc) DeleteTask(_ context.Context, _, id uuid.UUID) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if _, ok := f.tasks[id]; !ok {
@@ -193,7 +193,7 @@ func (f *fakeTaskSvc) ListCustomFieldDefinitions(_ context.Context, _ uuid.UUID)
 	return nil, nil
 }
 
-func (f *fakeTaskSvc) GetCustomFieldDefinition(_ context.Context, _ uuid.UUID) (*taskdom.CustomFieldDefinition, error) {
+func (f *fakeTaskSvc) GetCustomFieldDefinition(_ context.Context, _, _ uuid.UUID) (*taskdom.CustomFieldDefinition, error) {
 	return nil, taskdom.ErrCustomFieldNotFound
 }
 
@@ -201,15 +201,17 @@ func (f *fakeTaskSvc) CreateCustomFieldDefinition(_ context.Context, _ taskdom.C
 	return nil, nil
 }
 
-func (f *fakeTaskSvc) UpdateCustomFieldDefinition(_ context.Context, _ uuid.UUID, _ taskdom.UpdateCustomFieldDefinitionInput) (*taskdom.CustomFieldDefinition, error) {
+func (f *fakeTaskSvc) UpdateCustomFieldDefinition(_ context.Context, _, _ uuid.UUID, _ taskdom.UpdateCustomFieldDefinitionInput) (*taskdom.CustomFieldDefinition, error) {
 	return nil, taskdom.ErrCustomFieldNotFound
 }
 
-func (f *fakeTaskSvc) DeleteCustomFieldDefinition(_ context.Context, _ uuid.UUID) error { return nil }
+func (f *fakeTaskSvc) DeleteCustomFieldDefinition(_ context.Context, _, _ uuid.UUID) error {
+	return nil
+}
 
 // -- BDDScenarioService --
 
-func (f *fakeTaskSvc) ListBDDScenarios(_ context.Context, taskID uuid.UUID) ([]*taskdom.BDDScenario, error) {
+func (f *fakeTaskSvc) ListBDDScenarios(_ context.Context, _, taskID uuid.UUID) ([]*taskdom.BDDScenario, error) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	var out []*taskdom.BDDScenario
@@ -222,7 +224,7 @@ func (f *fakeTaskSvc) ListBDDScenarios(_ context.Context, taskID uuid.UUID) ([]*
 	return out, nil
 }
 
-func (f *fakeTaskSvc) GetBDDScenario(_ context.Context, id uuid.UUID) (*taskdom.BDDScenario, error) {
+func (f *fakeTaskSvc) GetBDDScenario(_ context.Context, _, _, id uuid.UUID) (*taskdom.BDDScenario, error) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
 	s, ok := f.bddScenarios[id]
@@ -255,7 +257,7 @@ func (f *fakeTaskSvc) CreateBDDScenario(_ context.Context, in taskdom.CreateBDDS
 	return s, nil
 }
 
-func (f *fakeTaskSvc) UpdateBDDScenario(_ context.Context, id uuid.UUID, in taskdom.UpdateBDDScenarioInput) (*taskdom.BDDScenario, error) {
+func (f *fakeTaskSvc) UpdateBDDScenario(_ context.Context, _, _, id uuid.UUID, in taskdom.UpdateBDDScenarioInput) (*taskdom.BDDScenario, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	s, ok := f.bddScenarios[id]
@@ -278,7 +280,7 @@ func (f *fakeTaskSvc) UpdateBDDScenario(_ context.Context, id uuid.UUID, in task
 	return &cp, nil
 }
 
-func (f *fakeTaskSvc) DeleteBDDScenario(_ context.Context, id uuid.UUID) error {
+func (f *fakeTaskSvc) DeleteBDDScenario(_ context.Context, _, _, id uuid.UUID) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if _, ok := f.bddScenarios[id]; !ok {
@@ -402,7 +404,7 @@ func (f *fakeViewSvcTask) ListProjectViews(_ context.Context, _ uuid.UUID, _ spr
 	return nil, nil
 }
 
-func (f *fakeViewSvcTask) GetView(_ context.Context, _ uuid.UUID) (*sprintdom.SprintView, error) {
+func (f *fakeViewSvcTask) GetView(_ context.Context, _, _ uuid.UUID) (*sprintdom.SprintView, error) {
 	return nil, sprintdom.ErrViewNotFound
 }
 
@@ -410,21 +412,21 @@ func (f *fakeViewSvcTask) CreateView(_ context.Context, _ sprintdom.CreateViewIn
 	return nil, nil
 }
 
-func (f *fakeViewSvcTask) UpdateView(_ context.Context, _ uuid.UUID, _ sprintdom.UpdateViewInput) (*sprintdom.SprintView, error) {
+func (f *fakeViewSvcTask) UpdateView(_ context.Context, _, _ uuid.UUID, _ sprintdom.UpdateViewInput) (*sprintdom.SprintView, error) {
 	return nil, sprintdom.ErrViewNotFound
 }
 
-func (f *fakeViewSvcTask) DeleteView(_ context.Context, _ uuid.UUID) error { return nil }
+func (f *fakeViewSvcTask) DeleteView(_ context.Context, _, _ uuid.UUID) error { return nil }
 
-func (f *fakeViewSvcTask) MoveTask(_ context.Context, _ uuid.UUID, _ sprintdom.MoveTaskInput) error {
+func (f *fakeViewSvcTask) MoveTask(_ context.Context, _, _ uuid.UUID, _ sprintdom.MoveTaskInput) error {
 	return nil
 }
 
-func (f *fakeViewSvcTask) BulkMoveTasks(_ context.Context, _ uuid.UUID, _ []sprintdom.MoveTaskInput) error {
+func (f *fakeViewSvcTask) BulkMoveTasks(_ context.Context, _, _ uuid.UUID, _ []sprintdom.MoveTaskInput) error {
 	return nil
 }
 
-func (f *fakeViewSvcTask) ListTaskPositions(_ context.Context, _ uuid.UUID) ([]*sprintdom.ViewTaskPosition, error) {
+func (f *fakeViewSvcTask) ListTaskPositions(_ context.Context, _, _ uuid.UUID) ([]*sprintdom.ViewTaskPosition, error) {
 	return nil, nil
 }
 
@@ -942,6 +944,12 @@ func TestBDDScenarioHandler_CreateMissingTitle(t *testing.T) {
 	r := buildTaskHandlerRouter(svc)
 	projectID := uuid.New()
 	taskID := uuid.New()
+
+	// Pre-seed a task so the ownership check passes (GetTask must resolve it).
+	task := &taskdom.Task{ID: taskID, ProjectID: projectID, Title: "feat", Tags: []string{}, CustomFields: map[string]any{}}
+	svc.mu.Lock()
+	svc.tasks[taskID] = task
+	svc.mu.Unlock()
 
 	w := doTaskRequest(r, http.MethodPost,
 		fmt.Sprintf("/projects/%s/tasks/%s/bdd-scenarios", projectID, taskID),

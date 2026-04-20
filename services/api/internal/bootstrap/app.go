@@ -141,7 +141,7 @@ func New(cfg *config.Config) (*App, error) {
 		return nil, fmt.Errorf("bootstrap: ensure storage bucket: %w", err)
 	}
 
-	attachmentService := attachmentsvc.New(attachmentRepo, storageClient, cfg.Storage.Bucket)
+	attachmentService := attachmentsvc.New(attachmentRepo, attachmentsvc.NewTaskOwnerChecker(taskRepo), storageClient, cfg.Storage.Bucket)
 
 	// --- Handlers -----------------------------------------------------------
 	cookieCfg := handler.CookieConfig{

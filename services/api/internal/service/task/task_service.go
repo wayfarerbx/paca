@@ -66,10 +66,13 @@ func (s *Service) CreateTaskType(ctx context.Context, in taskdom.CreateTaskTypeI
 }
 
 // UpdateTaskType updates the mutable fields of an existing task type.
-func (s *Service) UpdateTaskType(ctx context.Context, id uuid.UUID, in taskdom.UpdateTaskTypeInput) (*taskdom.TaskType, error) {
+func (s *Service) UpdateTaskType(ctx context.Context, projectID, id uuid.UUID, in taskdom.UpdateTaskTypeInput) (*taskdom.TaskType, error) {
 	t, err := s.repo.FindTaskTypeByID(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if t.ProjectID != projectID {
+		return nil, taskdom.ErrTypeNotFound
 	}
 	if t.IsSystem {
 		return nil, taskdom.ErrTypeIsSystem
@@ -90,10 +93,13 @@ func (s *Service) UpdateTaskType(ctx context.Context, id uuid.UUID, in taskdom.U
 }
 
 // DeleteTaskType removes a task type by ID.
-func (s *Service) DeleteTaskType(ctx context.Context, id uuid.UUID) error {
+func (s *Service) DeleteTaskType(ctx context.Context, projectID, id uuid.UUID) error {
 	t, err := s.repo.FindTaskTypeByID(ctx, id)
 	if err != nil {
 		return err
+	}
+	if t.ProjectID != projectID {
+		return taskdom.ErrTypeNotFound
 	}
 	if t.IsSystem {
 		return taskdom.ErrTypeIsSystem
@@ -151,10 +157,13 @@ func (s *Service) CreateTaskStatus(ctx context.Context, in taskdom.CreateTaskSta
 }
 
 // UpdateTaskStatus updates the mutable fields of an existing task status.
-func (s *Service) UpdateTaskStatus(ctx context.Context, id uuid.UUID, in taskdom.UpdateTaskStatusInput) (*taskdom.TaskStatus, error) {
+func (s *Service) UpdateTaskStatus(ctx context.Context, projectID, id uuid.UUID, in taskdom.UpdateTaskStatusInput) (*taskdom.TaskStatus, error) {
 	st, err := s.repo.FindTaskStatusByID(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if st.ProjectID != projectID {
+		return nil, taskdom.ErrStatusNotFound
 	}
 
 	if name := strings.TrimSpace(in.Name); name != "" {
@@ -179,9 +188,13 @@ func (s *Service) UpdateTaskStatus(ctx context.Context, id uuid.UUID, in taskdom
 }
 
 // DeleteTaskStatus removes a task status by ID.
-func (s *Service) DeleteTaskStatus(ctx context.Context, id uuid.UUID) error {
-	if _, err := s.repo.FindTaskStatusByID(ctx, id); err != nil {
+func (s *Service) DeleteTaskStatus(ctx context.Context, projectID, id uuid.UUID) error {
+	st, err := s.repo.FindTaskStatusByID(ctx, id)
+	if err != nil {
 		return err
+	}
+	if st.ProjectID != projectID {
+		return taskdom.ErrStatusNotFound
 	}
 	return s.repo.DeleteTaskStatus(ctx, id)
 }
@@ -200,9 +213,16 @@ func (s *Service) ListTasks(ctx context.Context, projectID uuid.UUID, filter tas
 	return s.repo.ListTasks(ctx, projectID, filter, offset, pageSize)
 }
 
-// GetTask returns the task with the given ID.
-func (s *Service) GetTask(ctx context.Context, id uuid.UUID) (*taskdom.Task, error) {
-	return s.repo.FindTaskByID(ctx, id)
+// GetTask returns the task with the given ID, verifying it belongs to projectID.
+func (s *Service) GetTask(ctx context.Context, projectID, id uuid.UUID) (*taskdom.Task, error) {
+	t, err := s.repo.FindTaskByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if t.ProjectID != projectID {
+		return nil, taskdom.ErrTaskNotFound
+	}
+	return t, nil
 }
 
 // GetTaskByNumber returns the task with the given project-scoped sequential number.
@@ -254,10 +274,13 @@ func (s *Service) CreateTask(ctx context.Context, in taskdom.CreateTaskInput) (*
 }
 
 // UpdateTask updates the mutable fields of an existing task.
-func (s *Service) UpdateTask(ctx context.Context, id uuid.UUID, in taskdom.UpdateTaskInput) (*taskdom.Task, error) {
+func (s *Service) UpdateTask(ctx context.Context, projectID, id uuid.UUID, in taskdom.UpdateTaskInput) (*taskdom.Task, error) {
 	t, err := s.repo.FindTaskByID(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if t.ProjectID != projectID {
+		return nil, taskdom.ErrTaskNotFound
 	}
 
 	if title := strings.TrimSpace(in.Title); title != "" {
@@ -307,8 +330,15 @@ func (s *Service) UpdateTask(ctx context.Context, id uuid.UUID, in taskdom.Updat
 	return t, nil
 }
 
-// DeleteTask soft-deletes a task by ID.
-func (s *Service) DeleteTask(ctx context.Context, id uuid.UUID) error {
+// DeleteTask soft-deletes a task by ID, verifying it belongs to projectID.
+func (s *Service) DeleteTask(ctx context.Context, projectID, id uuid.UUID) error {
+	t, err := s.repo.FindTaskByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if t.ProjectID != projectID {
+		return taskdom.ErrTaskNotFound
+	}
 	return s.repo.DeleteTask(ctx, id)
 }
 
@@ -319,9 +349,17 @@ func (s *Service) ListCustomFieldDefinitions(ctx context.Context, projectID uuid
 	return s.repo.ListCustomFieldDefinitions(ctx, projectID)
 }
 
-// GetCustomFieldDefinition returns the custom field definition with the given ID.
-func (s *Service) GetCustomFieldDefinition(ctx context.Context, id uuid.UUID) (*taskdom.CustomFieldDefinition, error) {
-	return s.repo.FindCustomFieldDefinitionByID(ctx, id)
+// GetCustomFieldDefinition returns the custom field definition with the given ID,
+// verifying it belongs to projectID.
+func (s *Service) GetCustomFieldDefinition(ctx context.Context, projectID, id uuid.UUID) (*taskdom.CustomFieldDefinition, error) {
+	f, err := s.repo.FindCustomFieldDefinitionByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if f.ProjectID != projectID {
+		return nil, taskdom.ErrCustomFieldNotFound
+	}
+	return f, nil
 }
 
 // CreateCustomFieldDefinition creates a new custom field definition.
@@ -364,10 +402,13 @@ func (s *Service) CreateCustomFieldDefinition(ctx context.Context, in taskdom.Cr
 
 // UpdateCustomFieldDefinition updates the mutable fields of a custom field
 // definition. The field_key is immutable after creation.
-func (s *Service) UpdateCustomFieldDefinition(ctx context.Context, id uuid.UUID, in taskdom.UpdateCustomFieldDefinitionInput) (*taskdom.CustomFieldDefinition, error) {
+func (s *Service) UpdateCustomFieldDefinition(ctx context.Context, projectID, id uuid.UUID, in taskdom.UpdateCustomFieldDefinitionInput) (*taskdom.CustomFieldDefinition, error) {
 	f, err := s.repo.FindCustomFieldDefinitionByID(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if f.ProjectID != projectID {
+		return nil, taskdom.ErrCustomFieldNotFound
 	}
 
 	if displayName := strings.TrimSpace(in.DisplayName); displayName != "" {
@@ -393,24 +434,52 @@ func (s *Service) UpdateCustomFieldDefinition(ctx context.Context, id uuid.UUID,
 	return f, nil
 }
 
-// DeleteCustomFieldDefinition removes a custom field definition by ID.
-func (s *Service) DeleteCustomFieldDefinition(ctx context.Context, id uuid.UUID) error {
-	if _, err := s.repo.FindCustomFieldDefinitionByID(ctx, id); err != nil {
+// DeleteCustomFieldDefinition removes a custom field definition by ID,
+// verifying it belongs to projectID.
+func (s *Service) DeleteCustomFieldDefinition(ctx context.Context, projectID, id uuid.UUID) error {
+	f, err := s.repo.FindCustomFieldDefinitionByID(ctx, id)
+	if err != nil {
 		return err
+	}
+	if f.ProjectID != projectID {
+		return taskdom.ErrCustomFieldNotFound
 	}
 	return s.repo.DeleteCustomFieldDefinition(ctx, id)
 }
 
 // --- BDD Scenarios ---------------------------------------------------------
 
-// ListBDDScenarios returns all BDD scenarios for the given task.
-func (s *Service) ListBDDScenarios(ctx context.Context, taskID uuid.UUID) ([]*taskdom.BDDScenario, error) {
+// ListBDDScenarios returns all BDD scenarios for the given task,
+// verifying the task belongs to projectID.
+func (s *Service) ListBDDScenarios(ctx context.Context, projectID, taskID uuid.UUID) ([]*taskdom.BDDScenario, error) {
+	t, err := s.repo.FindTaskByID(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	if t.ProjectID != projectID {
+		return nil, taskdom.ErrTaskNotFound
+	}
 	return s.repo.ListBDDScenarios(ctx, taskID)
 }
 
-// GetBDDScenario returns the BDD scenario with the given ID.
-func (s *Service) GetBDDScenario(ctx context.Context, id uuid.UUID) (*taskdom.BDDScenario, error) {
-	return s.repo.FindBDDScenarioByID(ctx, id)
+// GetBDDScenario returns the BDD scenario with the given ID,
+// verifying it belongs to taskID which belongs to projectID.
+func (s *Service) GetBDDScenario(ctx context.Context, projectID, taskID, id uuid.UUID) (*taskdom.BDDScenario, error) {
+	t, err := s.repo.FindTaskByID(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	if t.ProjectID != projectID {
+		return nil, taskdom.ErrTaskNotFound
+	}
+	scenario, err := s.repo.FindBDDScenarioByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if scenario.TaskID != taskID {
+		return nil, taskdom.ErrBDDScenarioNotFound
+	}
+	return scenario, nil
 }
 
 // CreateBDDScenario creates a new BDD scenario for the given task.
@@ -442,11 +511,22 @@ func (s *Service) CreateBDDScenario(ctx context.Context, in taskdom.CreateBDDSce
 	return scenario, nil
 }
 
-// UpdateBDDScenario applies partial updates to an existing BDD scenario.
-func (s *Service) UpdateBDDScenario(ctx context.Context, id uuid.UUID, in taskdom.UpdateBDDScenarioInput) (*taskdom.BDDScenario, error) {
+// UpdateBDDScenario applies partial updates to an existing BDD scenario,
+// verifying it belongs to taskID which belongs to projectID.
+func (s *Service) UpdateBDDScenario(ctx context.Context, projectID, taskID, id uuid.UUID, in taskdom.UpdateBDDScenarioInput) (*taskdom.BDDScenario, error) {
+	t, err := s.repo.FindTaskByID(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+	if t.ProjectID != projectID {
+		return nil, taskdom.ErrTaskNotFound
+	}
 	scenario, err := s.repo.FindBDDScenarioByID(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if scenario.TaskID != taskID {
+		return nil, taskdom.ErrBDDScenarioNotFound
 	}
 
 	if in.Title != nil {
@@ -473,10 +553,22 @@ func (s *Service) UpdateBDDScenario(ctx context.Context, id uuid.UUID, in taskdo
 	return scenario, nil
 }
 
-// DeleteBDDScenario removes a BDD scenario by ID.
-func (s *Service) DeleteBDDScenario(ctx context.Context, id uuid.UUID) error {
-	if _, err := s.repo.FindBDDScenarioByID(ctx, id); err != nil {
+// DeleteBDDScenario removes a BDD scenario by ID,
+// verifying it belongs to taskID which belongs to projectID.
+func (s *Service) DeleteBDDScenario(ctx context.Context, projectID, taskID, id uuid.UUID) error {
+	t, err := s.repo.FindTaskByID(ctx, taskID)
+	if err != nil {
 		return err
+	}
+	if t.ProjectID != projectID {
+		return taskdom.ErrTaskNotFound
+	}
+	scenario, err := s.repo.FindBDDScenarioByID(ctx, id)
+	if err != nil {
+		return err
+	}
+	if scenario.TaskID != taskID {
+		return taskdom.ErrBDDScenarioNotFound
 	}
 	return s.repo.DeleteBDDScenario(ctx, id)
 }

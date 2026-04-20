@@ -16,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	attachmentdom "github.com/paca/api/internal/domain/attachment"
+	taskdom "github.com/paca/api/internal/domain/task"
 	"github.com/paca/api/internal/platform/authz"
 	"github.com/paca/api/internal/platform/storage"
 	jwttoken "github.com/paca/api/internal/platform/token"
@@ -219,7 +220,7 @@ func (c *fakeStorageClient) EnsureBucket(_ context.Context, _ string) error { re
 // Router builder for attachment tests
 // ---------------------------------------------------------------------------
 
-func buildAttachmentTestRouter(attachRepo *fakeAttachmentRepo, store *fakeStorageClient, permStore *projectPermStore) *gin.Engine {
+func buildAttachmentTestRouter(attachRepo *fakeAttachmentRepo, store *fakeStorageClient, permStore *projectPermStore, tasks ...*taskdom.Task) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	tm := jwttoken.New(testSecret, 15*time.Minute, 168*time.Hour)
 	refreshStore := &fakeRefreshStore{}
@@ -228,12 +229,15 @@ func buildAttachmentTestRouter(attachRepo *fakeAttachmentRepo, store *fakeStorag
 	userService := usersvc.New(userRepo)
 	projectRepo := newFakeProjectRepo()
 	taskRepo := newFakeTaskRepoIT()
+	for _, t := range tasks {
+		_ = taskRepo.CreateTask(context.Background(), t)
+	}
 	projectService := projectsvc.New(projectRepo, taskRepo)
 	taskService := tasksvc.New(taskRepo)
 	sprintService := sprintsvc.New(newFakeSprintRepoIT(), taskRepo)
 	viewService := sprintsvc.NewViewService(newFakeViewRepoIT())
 	active := tasksvc.NewActivityService(newFakeTaskActivityRepo(), &fakeActivityMemberRepo{}, nil)
-	attachmentService := attachmentsvc.New(attachRepo, store, "test-bucket")
+	attachmentService := attachmentsvc.New(attachRepo, attachmentsvc.NewTaskOwnerChecker(taskRepo), store, "test-bucket")
 	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	return router.New(router.Deps{
@@ -282,6 +286,15 @@ func attachPath(projectID, taskID, suffix string) string {
 	return fmt.Sprintf("/api/v1/projects/%s/tasks/%s/attachments%s", projectID, taskID, suffix)
 }
 
+func seedTask(projectID, taskID uuid.UUID) *taskdom.Task {
+	return &taskdom.Task{
+		ID:        taskID,
+		ProjectID: projectID,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+}
+
 func decodeAttachData(t *testing.T, w *httptest.ResponseRecorder) map[string]any {
 	t.Helper()
 	var env struct {
@@ -303,7 +316,7 @@ func TestInitiateUpload_SinglePart(t *testing.T) {
 	userID := uuid.New()
 	repo := newFakeAttachmentRepo()
 	store := newFakeStorageClient()
-	r := buildAttachmentTestRouter(repo, store, fullPermStore(projectID))
+	r := buildAttachmentTestRouter(repo, store, fullPermStore(projectID), seedTask(projectID, taskID))
 	tok := issueAttachToken(t, userID.String())
 
 	w := serve(r, authedJSONReq(t.Context(), http.MethodPost, attachPath(projectID.String(), taskID.String(), "/initiate-upload"), tok, map[string]any{
@@ -332,7 +345,7 @@ func TestInitiateUpload_Multipart(t *testing.T) {
 	taskID := uuid.New()
 	repo := newFakeAttachmentRepo()
 	store := newFakeStorageClient()
-	r := buildAttachmentTestRouter(repo, store, fullPermStore(projectID))
+	r := buildAttachmentTestRouter(repo, store, fullPermStore(projectID), seedTask(projectID, taskID))
 	tok := issueAttachToken(t, uuid.New().String())
 
 	// 12 MiB > MultipartThreshold (5 MiB)
@@ -364,7 +377,7 @@ func TestInitiateUpload_Validation(t *testing.T) {
 	taskID := uuid.New()
 	repo := newFakeAttachmentRepo()
 	store := newFakeStorageClient()
-	r := buildAttachmentTestRouter(repo, store, fullPermStore(projectID))
+	r := buildAttachmentTestRouter(repo, store, fullPermStore(projectID), seedTask(projectID, taskID))
 	tok := issueAttachToken(t, uuid.New().String())
 
 	cases := []struct {
@@ -402,7 +415,7 @@ func TestInitiateUpload_Validation(t *testing.T) {
 func TestInitiateUpload_Unauthenticated(t *testing.T) {
 	projectID := uuid.New()
 	taskID := uuid.New()
-	r := buildAttachmentTestRouter(newFakeAttachmentRepo(), newFakeStorageClient(), fullPermStore(projectID))
+	r := buildAttachmentTestRouter(newFakeAttachmentRepo(), newFakeStorageClient(), fullPermStore(projectID), seedTask(projectID, taskID))
 
 	body, _ := json.Marshal(map[string]any{"file_name": "f.pdf", "content_type": "application/pdf", "file_size": 100})
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, attachPath(projectID.String(), taskID.String(), "/initiate-upload"), bytes.NewReader(body))
@@ -418,7 +431,7 @@ func TestCompleteUpload_SinglePart(t *testing.T) {
 	taskID := uuid.New()
 	repo := newFakeAttachmentRepo()
 	store := newFakeStorageClient()
-	r := buildAttachmentTestRouter(repo, store, fullPermStore(projectID))
+	r := buildAttachmentTestRouter(repo, store, fullPermStore(projectID), seedTask(projectID, taskID))
 	tok := issueAttachToken(t, uuid.New().String())
 
 	// Step 1: Initiate upload to get file_id.
@@ -456,7 +469,7 @@ func TestCompleteUpload_SinglePart(t *testing.T) {
 func TestCompleteUpload_FileNotFound(t *testing.T) {
 	projectID := uuid.New()
 	taskID := uuid.New()
-	r := buildAttachmentTestRouter(newFakeAttachmentRepo(), newFakeStorageClient(), fullPermStore(projectID))
+	r := buildAttachmentTestRouter(newFakeAttachmentRepo(), newFakeStorageClient(), fullPermStore(projectID), seedTask(projectID, taskID))
 	tok := issueAttachToken(t, uuid.New().String())
 
 	w := serve(r, authedJSONReq(t.Context(), http.MethodPost, attachPath(projectID.String(), taskID.String(), "/complete-upload"), tok, map[string]any{
@@ -472,7 +485,7 @@ func TestCompleteUpload_AlreadyCompleted(t *testing.T) {
 	taskID := uuid.New()
 	repo := newFakeAttachmentRepo()
 	store := newFakeStorageClient()
-	r := buildAttachmentTestRouter(repo, store, fullPermStore(projectID))
+	r := buildAttachmentTestRouter(repo, store, fullPermStore(projectID), seedTask(projectID, taskID))
 	tok := issueAttachToken(t, uuid.New().String())
 
 	// Initiate.
@@ -502,7 +515,7 @@ func TestListTaskAttachments(t *testing.T) {
 	taskID := uuid.New()
 	repo := newFakeAttachmentRepo()
 	store := newFakeStorageClient()
-	r := buildAttachmentTestRouter(repo, store, fullPermStore(projectID))
+	r := buildAttachmentTestRouter(repo, store, fullPermStore(projectID), seedTask(projectID, taskID))
 	tok := issueAttachToken(t, uuid.New().String())
 
 	path := attachPath(projectID.String(), taskID.String(), "")
@@ -557,7 +570,7 @@ func TestGetDownloadURL(t *testing.T) {
 	taskID := uuid.New()
 	repo := newFakeAttachmentRepo()
 	store := newFakeStorageClient()
-	r := buildAttachmentTestRouter(repo, store, fullPermStore(projectID))
+	r := buildAttachmentTestRouter(repo, store, fullPermStore(projectID), seedTask(projectID, taskID))
 	tok := issueAttachToken(t, uuid.New().String())
 
 	// Create an attachment.
@@ -613,7 +626,7 @@ func TestGetDownloadURL(t *testing.T) {
 func TestGetDownloadURL_NotFound(t *testing.T) {
 	projectID := uuid.New()
 	taskID := uuid.New()
-	r := buildAttachmentTestRouter(newFakeAttachmentRepo(), newFakeStorageClient(), fullPermStore(projectID))
+	r := buildAttachmentTestRouter(newFakeAttachmentRepo(), newFakeStorageClient(), fullPermStore(projectID), seedTask(projectID, taskID))
 	tok := issueAttachToken(t, uuid.New().String())
 
 	dlPath := attachPath(projectID.String(), taskID.String(), fmt.Sprintf("/%s/download-url", uuid.New().String()))
@@ -628,7 +641,7 @@ func TestDeleteTaskAttachment(t *testing.T) {
 	taskID := uuid.New()
 	repo := newFakeAttachmentRepo()
 	store := newFakeStorageClient()
-	r := buildAttachmentTestRouter(repo, store, fullPermStore(projectID))
+	r := buildAttachmentTestRouter(repo, store, fullPermStore(projectID), seedTask(projectID, taskID))
 	tok := issueAttachToken(t, uuid.New().String())
 
 	// Create attachment.
@@ -675,7 +688,7 @@ func TestDeleteTaskAttachment(t *testing.T) {
 func TestDeleteTaskAttachment_NotFound(t *testing.T) {
 	projectID := uuid.New()
 	taskID := uuid.New()
-	r := buildAttachmentTestRouter(newFakeAttachmentRepo(), newFakeStorageClient(), fullPermStore(projectID))
+	r := buildAttachmentTestRouter(newFakeAttachmentRepo(), newFakeStorageClient(), fullPermStore(projectID), seedTask(projectID, taskID))
 	tok := issueAttachToken(t, uuid.New().String())
 
 	w := serve(r, authedJSONReq(t.Context(), http.MethodDelete, attachPath(projectID.String(), taskID.String(), fmt.Sprintf("/%s", uuid.New().String())), tok, nil))
@@ -684,4 +697,29 @@ func TestDeleteTaskAttachment_NotFound(t *testing.T) {
 	}
 }
 
-// (no additional helpers needed — serve/authedJSONReq/decodeAttachData cover all cases)
+func TestCrossProjectAccess_Denied(t *testing.T) {
+	projectA := uuid.New()
+	projectB := uuid.New()
+	taskA := uuid.New()
+	userID := uuid.New()
+	repo := newFakeAttachmentRepo()
+	store := newFakeStorageClient()
+	permStore := fullPermStore(projectA)
+	permStore.projectPerms[projectB] = permStore.projectPerms[projectA]
+	r := buildAttachmentTestRouter(repo, store, permStore, seedTask(projectA, taskA))
+	tok := issueAttachToken(t, userID.String())
+
+	w := serve(r, authedJSONReq(t.Context(), http.MethodPost, attachPath(projectB.String(), taskA.String(), "/initiate-upload"), tok, map[string]any{
+		"file_name":    "stolen.pdf",
+		"content_type": "application/pdf",
+		"file_size":    1024,
+	}))
+	if w.Code != http.StatusNotFound {
+		t.Errorf("cross-project initiate: expected 404, got %d: %s", w.Code, w.Body.String())
+	}
+
+	wList := serve(r, authedJSONReq(t.Context(), http.MethodGet, attachPath(projectB.String(), taskA.String(), ""), tok, nil))
+	if wList.Code != http.StatusNotFound {
+		t.Errorf("cross-project list: expected 404, got %d: %s", wList.Code, wList.Body.String())
+	}
+}

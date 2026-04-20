@@ -26,6 +26,11 @@ func NewAttachmentHandler(svc attachmentdom.Service) *AttachmentHandler {
 // It creates a pending file record and returns either a single presigned PUT URL
 // (for files < 5 MiB) or a multipart upload session with per-part URLs.
 func (h *AttachmentHandler) InitiateUpload(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	taskID, err := parseTaskID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -48,7 +53,7 @@ func (h *AttachmentHandler) InitiateUpload(c *gin.Context) {
 		return
 	}
 
-	session, err := h.svc.InitiateUpload(c.Request.Context(), attachmentdom.InitiateUploadInput{
+	session, err := h.svc.InitiateUpload(c.Request.Context(), projectID, attachmentdom.InitiateUploadInput{
 		TaskID:      taskID,
 		FileName:    req.FileName,
 		ContentType: req.ContentType,
@@ -68,6 +73,11 @@ func (h *AttachmentHandler) InitiateUpload(c *gin.Context) {
 // the object store.  For multipart uploads the completed parts (with ETags) must
 // be supplied so the server can reassemble the object.
 func (h *AttachmentHandler) CompleteUpload(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	taskID, err := parseTaskID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -98,7 +108,7 @@ func (h *AttachmentHandler) CompleteUpload(c *gin.Context) {
 		})
 	}
 
-	attachment, err := h.svc.CompleteUpload(c.Request.Context(), attachmentdom.CompleteUploadInput{
+	attachment, err := h.svc.CompleteUpload(c.Request.Context(), projectID, attachmentdom.CompleteUploadInput{
 		FileID:    req.FileID,
 		TaskID:    taskID,
 		CreatedBy: creatorID,
@@ -115,13 +125,18 @@ func (h *AttachmentHandler) CompleteUpload(c *gin.Context) {
 
 // ListTaskAttachments handles GET /projects/:projectId/tasks/:taskId/attachments.
 func (h *AttachmentHandler) ListTaskAttachments(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	taskID, err := parseTaskID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
 
-	attachments, err := h.svc.ListTaskAttachments(c.Request.Context(), taskID)
+	attachments, err := h.svc.ListTaskAttachments(c.Request.Context(), projectID, taskID)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -139,6 +154,16 @@ func (h *AttachmentHandler) ListTaskAttachments(c *gin.Context) {
 // Add ?download=true to receive a URL with Content-Disposition: attachment
 // so the browser forces a file download instead of inline preview.
 func (h *AttachmentHandler) GetDownloadURL(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	taskID, err := parseTaskID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	attachmentID, err := parseAttachmentID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -147,7 +172,7 @@ func (h *AttachmentHandler) GetDownloadURL(c *gin.Context) {
 
 	forceDownload := c.Query("download") == "true"
 
-	url, err := h.svc.GetDownloadURL(c.Request.Context(), attachmentID, 15*time.Minute, forceDownload)
+	url, err := h.svc.GetDownloadURL(c.Request.Context(), projectID, taskID, attachmentID, 15*time.Minute, forceDownload)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -158,13 +183,23 @@ func (h *AttachmentHandler) GetDownloadURL(c *gin.Context) {
 
 // DeleteTaskAttachment handles DELETE /projects/:projectId/tasks/:taskId/attachments/:attachmentId.
 func (h *AttachmentHandler) DeleteTaskAttachment(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	taskID, err := parseTaskID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	attachmentID, err := parseAttachmentID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
 
-	if err := h.svc.DeleteTaskAttachment(c.Request.Context(), attachmentID); err != nil {
+	if err := h.svc.DeleteTaskAttachment(c.Request.Context(), projectID, taskID, attachmentID); err != nil {
 		presenter.Error(c, err)
 		return
 	}

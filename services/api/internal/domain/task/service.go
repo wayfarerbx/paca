@@ -24,8 +24,10 @@ type TaskTypeService interface {
 	ListTaskTypes(ctx context.Context, projectID uuid.UUID) ([]*TaskType, error)
 	GetTaskType(ctx context.Context, id uuid.UUID) (*TaskType, error)
 	CreateTaskType(ctx context.Context, in CreateTaskTypeInput) (*TaskType, error)
-	UpdateTaskType(ctx context.Context, id uuid.UUID, in UpdateTaskTypeInput) (*TaskType, error)
-	DeleteTaskType(ctx context.Context, id uuid.UUID) error
+	// UpdateTaskType updates the task type identified by id, verifying it belongs to projectID.
+	UpdateTaskType(ctx context.Context, projectID, id uuid.UUID, in UpdateTaskTypeInput) (*TaskType, error)
+	// DeleteTaskType removes the task type identified by id, verifying it belongs to projectID.
+	DeleteTaskType(ctx context.Context, projectID, id uuid.UUID) error
 	// SetDefaultTaskType marks typeID as the project's default task type,
 	// clearing the flag on all other types in the same project.
 	SetDefaultTaskType(ctx context.Context, projectID, typeID uuid.UUID) (*TaskType, error)
@@ -55,8 +57,10 @@ type TaskStatusService interface {
 	ListTaskStatuses(ctx context.Context, projectID uuid.UUID) ([]*TaskStatus, error)
 	GetTaskStatus(ctx context.Context, id uuid.UUID) (*TaskStatus, error)
 	CreateTaskStatus(ctx context.Context, in CreateTaskStatusInput) (*TaskStatus, error)
-	UpdateTaskStatus(ctx context.Context, id uuid.UUID, in UpdateTaskStatusInput) (*TaskStatus, error)
-	DeleteTaskStatus(ctx context.Context, id uuid.UUID) error
+	// UpdateTaskStatus updates the task status identified by id, verifying it belongs to projectID.
+	UpdateTaskStatus(ctx context.Context, projectID, id uuid.UUID, in UpdateTaskStatusInput) (*TaskStatus, error)
+	// DeleteTaskStatus removes the task status identified by id, verifying it belongs to projectID.
+	DeleteTaskStatus(ctx context.Context, projectID, id uuid.UUID) error
 }
 
 // CreateTaskStatusInput carries fields required to create a task status.
@@ -81,11 +85,14 @@ type UpdateTaskStatusInput struct {
 // TaskService defines task use cases.
 type TaskService interface {
 	ListTasks(ctx context.Context, projectID uuid.UUID, filter TaskFilter, page, pageSize int) ([]*Task, int64, error)
-	GetTask(ctx context.Context, id uuid.UUID) (*Task, error)
+	// GetTask returns the task identified by id, verifying it belongs to projectID.
+	GetTask(ctx context.Context, projectID, id uuid.UUID) (*Task, error)
 	GetTaskByNumber(ctx context.Context, projectID uuid.UUID, taskNumber int64) (*Task, error)
 	CreateTask(ctx context.Context, in CreateTaskInput) (*Task, error)
-	UpdateTask(ctx context.Context, id uuid.UUID, in UpdateTaskInput) (*Task, error)
-	DeleteTask(ctx context.Context, id uuid.UUID) error
+	// UpdateTask updates the task identified by id, verifying it belongs to projectID.
+	UpdateTask(ctx context.Context, projectID, id uuid.UUID, in UpdateTaskInput) (*Task, error)
+	// DeleteTask removes the task identified by id, verifying it belongs to projectID.
+	DeleteTask(ctx context.Context, projectID, id uuid.UUID) error
 }
 
 // CreateTaskInput carries fields required to create a task.
@@ -137,10 +144,13 @@ type UpdateTaskInput struct {
 // CustomFieldDefinitionService defines custom field definition use cases.
 type CustomFieldDefinitionService interface {
 	ListCustomFieldDefinitions(ctx context.Context, projectID uuid.UUID) ([]*CustomFieldDefinition, error)
-	GetCustomFieldDefinition(ctx context.Context, id uuid.UUID) (*CustomFieldDefinition, error)
+	// GetCustomFieldDefinition returns the field definition identified by id, verifying it belongs to projectID.
+	GetCustomFieldDefinition(ctx context.Context, projectID, id uuid.UUID) (*CustomFieldDefinition, error)
 	CreateCustomFieldDefinition(ctx context.Context, in CreateCustomFieldDefinitionInput) (*CustomFieldDefinition, error)
-	UpdateCustomFieldDefinition(ctx context.Context, id uuid.UUID, in UpdateCustomFieldDefinitionInput) (*CustomFieldDefinition, error)
-	DeleteCustomFieldDefinition(ctx context.Context, id uuid.UUID) error
+	// UpdateCustomFieldDefinition updates the field definition identified by id, verifying it belongs to projectID.
+	UpdateCustomFieldDefinition(ctx context.Context, projectID, id uuid.UUID, in UpdateCustomFieldDefinitionInput) (*CustomFieldDefinition, error)
+	// DeleteCustomFieldDefinition removes the field definition identified by id, verifying it belongs to projectID.
+	DeleteCustomFieldDefinition(ctx context.Context, projectID, id uuid.UUID) error
 }
 
 // CreateCustomFieldDefinitionInput carries fields required to create a custom
@@ -167,11 +177,15 @@ type UpdateCustomFieldDefinitionInput struct {
 
 // BDDScenarioService defines BDD scenario use cases.
 type BDDScenarioService interface {
-	ListBDDScenarios(ctx context.Context, taskID uuid.UUID) ([]*BDDScenario, error)
-	GetBDDScenario(ctx context.Context, id uuid.UUID) (*BDDScenario, error)
+	// ListBDDScenarios returns all BDD scenarios for taskID, verifying the task belongs to projectID.
+	ListBDDScenarios(ctx context.Context, projectID, taskID uuid.UUID) ([]*BDDScenario, error)
+	// GetBDDScenario returns the scenario identified by id, verifying it belongs to taskID in projectID.
+	GetBDDScenario(ctx context.Context, projectID, taskID, id uuid.UUID) (*BDDScenario, error)
 	CreateBDDScenario(ctx context.Context, in CreateBDDScenarioInput) (*BDDScenario, error)
-	UpdateBDDScenario(ctx context.Context, id uuid.UUID, in UpdateBDDScenarioInput) (*BDDScenario, error)
-	DeleteBDDScenario(ctx context.Context, id uuid.UUID) error
+	// UpdateBDDScenario updates the scenario identified by id, verifying it belongs to taskID in projectID.
+	UpdateBDDScenario(ctx context.Context, projectID, taskID, id uuid.UUID, in UpdateBDDScenarioInput) (*BDDScenario, error)
+	// DeleteBDDScenario removes the scenario identified by id, verifying it belongs to taskID in projectID.
+	DeleteBDDScenario(ctx context.Context, projectID, taskID, id uuid.UUID) error
 }
 
 // CreateBDDScenarioInput carries fields required to create a BDD scenario.
