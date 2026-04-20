@@ -27,9 +27,16 @@ func (s *Service) ListSprints(ctx context.Context, projectID uuid.UUID) ([]*spri
 	return s.repo.ListSprints(ctx, projectID)
 }
 
-// GetSprint returns the sprint with the given ID.
-func (s *Service) GetSprint(ctx context.Context, id uuid.UUID) (*sprintdom.Sprint, error) {
-	return s.repo.FindSprintByID(ctx, id)
+// GetSprint returns the sprint with the given ID, verifying it belongs to projectID.
+func (s *Service) GetSprint(ctx context.Context, projectID, id uuid.UUID) (*sprintdom.Sprint, error) {
+	sp, err := s.repo.FindSprintByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if sp.ProjectID != projectID {
+		return nil, sprintdom.ErrSprintNotFound
+	}
+	return sp, nil
 }
 
 // CreateSprint creates a new sprint for the given project.
@@ -66,11 +73,15 @@ func (s *Service) CreateSprint(ctx context.Context, in sprintdom.CreateSprintInp
 	return sp, nil
 }
 
-// UpdateSprint updates the mutable fields of an existing sprint.
-func (s *Service) UpdateSprint(ctx context.Context, id uuid.UUID, in sprintdom.UpdateSprintInput) (*sprintdom.Sprint, error) {
+// UpdateSprint updates the mutable fields of an existing sprint,
+// verifying it belongs to projectID.
+func (s *Service) UpdateSprint(ctx context.Context, projectID, id uuid.UUID, in sprintdom.UpdateSprintInput) (*sprintdom.Sprint, error) {
 	sp, err := s.repo.FindSprintByID(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if sp.ProjectID != projectID {
+		return nil, sprintdom.ErrSprintNotFound
 	}
 
 	if name := strings.TrimSpace(in.Name); name != "" {
@@ -93,21 +104,28 @@ func (s *Service) UpdateSprint(ctx context.Context, id uuid.UUID, in sprintdom.U
 	return sp, nil
 }
 
-// DeleteSprint removes a sprint by ID.
-func (s *Service) DeleteSprint(ctx context.Context, id uuid.UUID) error {
-	if _, err := s.repo.FindSprintByID(ctx, id); err != nil {
+// DeleteSprint removes a sprint by ID, verifying it belongs to projectID.
+func (s *Service) DeleteSprint(ctx context.Context, projectID, id uuid.UUID) error {
+	sp, err := s.repo.FindSprintByID(ctx, id)
+	if err != nil {
 		return err
+	}
+	if sp.ProjectID != projectID {
+		return sprintdom.ErrSprintNotFound
 	}
 	return s.repo.DeleteSprint(ctx, id)
 }
 
 // CompleteSprint bulk-moves all non-done tasks out of the sprint and marks
 // the sprint as completed in two sequential writes.  Tasks whose status
-// has category "done" are left in place.
-func (s *Service) CompleteSprint(ctx context.Context, id uuid.UUID, in sprintdom.CompleteSprintInput) (*sprintdom.Sprint, error) {
+// has category "done" are left in place.  Verifies the sprint belongs to projectID.
+func (s *Service) CompleteSprint(ctx context.Context, projectID, id uuid.UUID, in sprintdom.CompleteSprintInput) (*sprintdom.Sprint, error) {
 	sp, err := s.repo.FindSprintByID(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if sp.ProjectID != projectID {
+		return nil, sprintdom.ErrSprintNotFound
 	}
 	if sp.Status == sprintdom.SprintStatusCompleted {
 		return nil, sprintdom.ErrSprintAlreadyComplete

@@ -139,6 +139,11 @@ func (h *AttachmentHandler) ListTaskAttachments(c *gin.Context) {
 // Add ?download=true to receive a URL with Content-Disposition: attachment
 // so the browser forces a file download instead of inline preview.
 func (h *AttachmentHandler) GetDownloadURL(c *gin.Context) {
+	taskID, err := parseTaskID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	attachmentID, err := parseAttachmentID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -147,7 +152,7 @@ func (h *AttachmentHandler) GetDownloadURL(c *gin.Context) {
 
 	forceDownload := c.Query("download") == "true"
 
-	url, err := h.svc.GetDownloadURL(c.Request.Context(), attachmentID, 15*time.Minute, forceDownload)
+	url, err := h.svc.GetDownloadURL(c.Request.Context(), taskID, attachmentID, 15*time.Minute, forceDownload)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -158,13 +163,18 @@ func (h *AttachmentHandler) GetDownloadURL(c *gin.Context) {
 
 // DeleteTaskAttachment handles DELETE /projects/:projectId/tasks/:taskId/attachments/:attachmentId.
 func (h *AttachmentHandler) DeleteTaskAttachment(c *gin.Context) {
+	taskID, err := parseTaskID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	attachmentID, err := parseAttachmentID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
 
-	if err := h.svc.DeleteTaskAttachment(c.Request.Context(), attachmentID); err != nil {
+	if err := h.svc.DeleteTaskAttachment(c.Request.Context(), taskID, attachmentID); err != nil {
 		presenter.Error(c, err)
 		return
 	}

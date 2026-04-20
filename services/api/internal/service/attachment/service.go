@@ -165,10 +165,14 @@ func (s *Service) CompleteUpload(ctx context.Context, in attachmentdom.CompleteU
 // GetDownloadURL returns a presigned GET URL for the given attachment's file.
 // When forceDownload is true the URL includes a Content-Disposition: attachment
 // header so the browser downloads the file rather than previewing it inline.
-func (s *Service) GetDownloadURL(ctx context.Context, attachmentID uuid.UUID, ttl time.Duration, forceDownload bool) (string, error) {
+// Verifies the attachment belongs to taskID before generating the URL.
+func (s *Service) GetDownloadURL(ctx context.Context, taskID, attachmentID uuid.UUID, ttl time.Duration, forceDownload bool) (string, error) {
 	a, err := s.repo.FindTaskAttachmentByID(ctx, attachmentID)
 	if err != nil {
 		return "", err
+	}
+	if a.TaskID != taskID {
+		return "", attachmentdom.ErrAttachmentNotFound
 	}
 
 	f, err := s.repo.FindFileByID(ctx, a.FileID)
@@ -218,11 +222,16 @@ func (s *Service) ListTaskAttachments(ctx context.Context, taskID uuid.UUID) ([]
 // DeleteTaskAttachment removes the task→file association only.
 // The underlying file record and object-store object are intentionally kept
 // so the file can be referenced by other tasks or restored later.
-func (s *Service) DeleteTaskAttachment(ctx context.Context, attachmentID uuid.UUID) error {
-	if err := s.repo.DeleteTaskAttachment(ctx, attachmentID); err != nil {
+// Verifies the attachment belongs to taskID before deleting.
+func (s *Service) DeleteTaskAttachment(ctx context.Context, taskID, attachmentID uuid.UUID) error {
+	a, err := s.repo.FindTaskAttachmentByID(ctx, attachmentID)
+	if err != nil {
 		return err
 	}
-	return nil
+	if a.TaskID != taskID {
+		return attachmentdom.ErrAttachmentNotFound
+	}
+	return s.repo.DeleteTaskAttachment(ctx, attachmentID)
 }
 
 // sanitizeFileName strips directory components and replaces path-unsafe

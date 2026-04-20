@@ -22,18 +22,17 @@ type Service interface {
 	CompleteUpload(ctx context.Context, in CompleteUploadInput) (*TaskAttachment, error)
 
 	// GetDownloadURL returns a short-lived presigned GET URL for the file
-	// that backs the given attachment.
+	// that backs the given attachment. Verifies the attachment belongs to taskID.
 	// Set forceDownload true to embed Content-Disposition: attachment so the
 	// browser downloads the file rather than previewing it inline.
-	GetDownloadURL(ctx context.Context, attachmentID uuid.UUID, ttl time.Duration, forceDownload bool) (string, error)
+	GetDownloadURL(ctx context.Context, taskID, attachmentID uuid.UUID, ttl time.Duration, forceDownload bool) (string, error)
 
 	// ListTaskAttachments returns all confirmed attachments for the given task.
 	ListTaskAttachments(ctx context.Context, taskID uuid.UUID) ([]*TaskAttachment, error)
 
 	// DeleteTaskAttachment removes the task→file association for the given
-	// attachment. It does not delete the underlying file record or storage
-	// object.
-	DeleteTaskAttachment(ctx context.Context, attachmentID uuid.UUID) error
+	// attachment. Verifies the attachment belongs to taskID before deleting.
+	DeleteTaskAttachment(ctx context.Context, taskID, attachmentID uuid.UUID) error
 }
 
 // UploadSession is returned by InitiateUpload and carries everything the

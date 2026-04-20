@@ -255,7 +255,7 @@ func TestViewService_GetView_OK(t *testing.T) {
 		ViewContext: sprintdom.ViewContextSprint,
 	})
 
-	got, err := svc.GetView(ctx, created.ID)
+	got, err := svc.GetView(ctx, created.ProjectID, created.ID)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -268,7 +268,7 @@ func TestViewService_GetView_NotFound(t *testing.T) {
 	ctx := context.Background()
 	svc := sprintsvc.NewViewService(newFakeViewRepo())
 
-	_, err := svc.GetView(ctx, uuid.New())
+	_, err := svc.GetView(ctx, uuid.New(), uuid.New())
 	if err != sprintdom.ErrViewNotFound {
 		t.Errorf("expected ErrViewNotFound, got %v", err)
 	}
@@ -287,7 +287,7 @@ func TestViewService_UpdateView_Name(t *testing.T) {
 	})
 
 	newName := "New Name"
-	updated, err := svc.UpdateView(ctx, created.ID, sprintdom.UpdateViewInput{Name: &newName})
+	updated, err := svc.UpdateView(ctx, created.ProjectID, created.ID, sprintdom.UpdateViewInput{Name: &newName})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -309,7 +309,7 @@ func TestViewService_UpdateView_Config(t *testing.T) {
 	})
 
 	cfg := sprintdom.ViewConfig{ColumnBy: "status", Swimlanes: "assignee"}
-	updated, err := svc.UpdateView(ctx, created.ID, sprintdom.UpdateViewInput{Config: &cfg})
+	updated, err := svc.UpdateView(ctx, created.ProjectID, created.ID, sprintdom.UpdateViewInput{Config: &cfg})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -323,7 +323,7 @@ func TestViewService_UpdateView_NotFound(t *testing.T) {
 	svc := sprintsvc.NewViewService(newFakeViewRepo())
 
 	name := "Does not matter"
-	_, err := svc.UpdateView(ctx, uuid.New(), sprintdom.UpdateViewInput{Name: &name})
+	_, err := svc.UpdateView(ctx, uuid.New(), uuid.New(), sprintdom.UpdateViewInput{Name: &name})
 	if err != sprintdom.ErrViewNotFound {
 		t.Errorf("expected ErrViewNotFound, got %v", err)
 	}
@@ -338,11 +338,11 @@ func TestViewService_DeleteView_OK(t *testing.T) {
 	v1, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{SprintID: &sprintID, Name: "V1", ViewType: sprintdom.ViewTypeTable, ViewContext: sprintdom.ViewContextSprint})
 	_, _ = svc.CreateView(ctx, sprintdom.CreateViewInput{SprintID: &sprintID, Name: "V2", ViewType: sprintdom.ViewTypeBoard, ViewContext: sprintdom.ViewContextSprint})
 
-	if err := svc.DeleteView(ctx, v1.ID); err != nil {
+	if err := svc.DeleteView(ctx, v1.ProjectID, v1.ID); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err := svc.GetView(ctx, v1.ID)
+	_, err := svc.GetView(ctx, v1.ProjectID, v1.ID)
 	if err != sprintdom.ErrViewNotFound {
 		t.Errorf("expected ErrViewNotFound after deletion, got %v", err)
 	}
@@ -360,7 +360,7 @@ func TestViewService_DeleteView_LastViewRejected(t *testing.T) {
 		ViewContext: sprintdom.ViewContextSprint,
 	})
 
-	err := svc.DeleteView(ctx, v.ID)
+	err := svc.DeleteView(ctx, v.ProjectID, v.ID)
 	if err != sprintdom.ErrViewIsLastView {
 		t.Errorf("expected ErrViewIsLastView, got %v", err)
 	}
@@ -370,7 +370,7 @@ func TestViewService_DeleteView_NotFound(t *testing.T) {
 	ctx := context.Background()
 	svc := sprintsvc.NewViewService(newFakeViewRepo())
 
-	err := svc.DeleteView(ctx, uuid.New())
+	err := svc.DeleteView(ctx, uuid.New(), uuid.New())
 	if err != sprintdom.ErrViewNotFound {
 		t.Errorf("expected ErrViewNotFound, got %v", err)
 	}
@@ -390,7 +390,7 @@ func TestViewService_MoveTask_OK(t *testing.T) {
 
 	taskID := uuid.New()
 	grp := "todo"
-	if err := svc.MoveTask(ctx, v.ID, sprintdom.MoveTaskInput{
+	if err := svc.MoveTask(ctx, v.ProjectID, v.ID, sprintdom.MoveTaskInput{
 		TaskID:   taskID,
 		Position: 3,
 		GroupKey: &grp,
@@ -398,7 +398,7 @@ func TestViewService_MoveTask_OK(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	positions, err := svc.ListTaskPositions(ctx, v.ID)
+	positions, err := svc.ListTaskPositions(ctx, v.ProjectID, v.ID)
 	if err != nil {
 		t.Fatalf("list positions: %v", err)
 	}
@@ -417,7 +417,7 @@ func TestViewService_MoveTask_ViewNotFound(t *testing.T) {
 	ctx := context.Background()
 	svc := sprintsvc.NewViewService(newFakeViewRepo())
 
-	err := svc.MoveTask(ctx, uuid.New(), sprintdom.MoveTaskInput{
+	err := svc.MoveTask(ctx, uuid.New(), uuid.New(), sprintdom.MoveTaskInput{
 		TaskID:   uuid.New(),
 		Position: 0,
 	})
@@ -530,7 +530,7 @@ func TestViewService_DeleteBacklogView_LastViewRejected(t *testing.T) {
 		ViewContext: sprintdom.ViewContextBacklog,
 	})
 
-	err := svc.DeleteView(ctx, v.ID)
+	err := svc.DeleteView(ctx, v.ProjectID, v.ID)
 	if err != sprintdom.ErrViewIsLastView {
 		t.Errorf("expected ErrViewIsLastView, got %v", err)
 	}
@@ -545,10 +545,10 @@ func TestViewService_DeleteBacklogView_OK(t *testing.T) {
 	v1, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{ProjectID: projectID, Name: "BL1", ViewType: sprintdom.ViewTypeTable, ViewContext: sprintdom.ViewContextBacklog})
 	_, _ = svc.CreateView(ctx, sprintdom.CreateViewInput{ProjectID: projectID, Name: "BL2", ViewType: sprintdom.ViewTypeBoard, ViewContext: sprintdom.ViewContextBacklog})
 
-	if err := svc.DeleteView(ctx, v1.ID); err != nil {
+	if err := svc.DeleteView(ctx, v1.ProjectID, v1.ID); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	_, err := svc.GetView(ctx, v1.ID)
+	_, err := svc.GetView(ctx, v1.ProjectID, v1.ID)
 	if err != sprintdom.ErrViewNotFound {
 		t.Errorf("expected ErrViewNotFound after deletion, got %v", err)
 	}
@@ -580,12 +580,12 @@ func TestViewService_BacklogAndSprintViewsDontInterfere(t *testing.T) {
 
 	// Deleting the sprint view should use sprint-scoped count; backlog view is not counted
 	// so deleting sv (1 sprint view) → ErrViewIsLastView
-	if err := svc.DeleteView(ctx, sv.ID); err != sprintdom.ErrViewIsLastView {
+	if err := svc.DeleteView(ctx, sv.ProjectID, sv.ID); err != sprintdom.ErrViewIsLastView {
 		t.Errorf("expected ErrViewIsLastView for sole sprint view, got %v", err)
 	}
 
 	// Deleting backlog view (1 backlog view) → ErrViewIsLastView
-	if err := svc.DeleteView(ctx, bv.ID); err != sprintdom.ErrViewIsLastView {
+	if err := svc.DeleteView(ctx, bv.ProjectID, bv.ID); err != sprintdom.ErrViewIsLastView {
 		t.Errorf("expected ErrViewIsLastView for sole backlog view, got %v", err)
 	}
 }
@@ -609,9 +609,9 @@ func TestViewService_ReorderViews_OK(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	updated1, _ := svc.GetView(ctx, v1.ID)
-	updated2, _ := svc.GetView(ctx, v2.ID)
-	updated3, _ := svc.GetView(ctx, v3.ID)
+	updated1, _ := svc.GetView(ctx, v1.ProjectID, v1.ID)
+	updated2, _ := svc.GetView(ctx, v2.ProjectID, v2.ID)
+	updated3, _ := svc.GetView(ctx, v3.ProjectID, v3.ID)
 
 	if updated3.Position != 0 {
 		t.Errorf("C: expected position=0, got %g", updated3.Position)
@@ -676,8 +676,8 @@ func TestViewService_ReorderBacklogViews_OK(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	updB1, _ := svc.GetView(ctx, b1.ID)
-	updB2, _ := svc.GetView(ctx, b2.ID)
+	updB1, _ := svc.GetView(ctx, b1.ProjectID, b1.ID)
+	updB2, _ := svc.GetView(ctx, b2.ProjectID, b2.ID)
 	if updB2.Position != 0 {
 		t.Errorf("Y: expected position=0, got %g", updB2.Position)
 	}
@@ -775,7 +775,7 @@ func TestViewService_DeleteTimelineView_LastViewRejected(t *testing.T) {
 		ViewContext: sprintdom.ViewContextTimeline,
 	})
 
-	if err := svc.DeleteView(ctx, v.ID); err != sprintdom.ErrViewIsLastView {
+	if err := svc.DeleteView(ctx, v.ProjectID, v.ID); err != sprintdom.ErrViewIsLastView {
 		t.Errorf("expected ErrViewIsLastView, got %v", err)
 	}
 }
@@ -789,10 +789,10 @@ func TestViewService_DeleteTimelineView_OK(t *testing.T) {
 	v1, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{ProjectID: projectID, Name: "TL1", ViewType: sprintdom.ViewTypeRoadmap, ViewContext: sprintdom.ViewContextTimeline})
 	_, _ = svc.CreateView(ctx, sprintdom.CreateViewInput{ProjectID: projectID, Name: "TL2", ViewType: sprintdom.ViewTypeTable, ViewContext: sprintdom.ViewContextTimeline})
 
-	if err := svc.DeleteView(ctx, v1.ID); err != nil {
+	if err := svc.DeleteView(ctx, v1.ProjectID, v1.ID); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if _, err := svc.GetView(ctx, v1.ID); err != sprintdom.ErrViewNotFound {
+	if _, err := svc.GetView(ctx, v1.ProjectID, v1.ID); err != sprintdom.ErrViewNotFound {
 		t.Errorf("expected ErrViewNotFound after deletion, got %v", err)
 	}
 }
@@ -820,11 +820,11 @@ func TestViewService_TimelineAndBacklogViewsDontInterfere(t *testing.T) {
 		t.Errorf("ListBacklogViews wrong: %v", blViews)
 	}
 	// Deleting the only timeline view is blocked.
-	if err := svc.DeleteView(ctx, tv.ID); err != sprintdom.ErrViewIsLastView {
+	if err := svc.DeleteView(ctx, tv.ProjectID, tv.ID); err != sprintdom.ErrViewIsLastView {
 		t.Errorf("expected ErrViewIsLastView for sole timeline view, got %v", err)
 	}
 	// Deleting the only backlog view is also blocked.
-	if err := svc.DeleteView(ctx, bv.ID); err != sprintdom.ErrViewIsLastView {
+	if err := svc.DeleteView(ctx, bv.ProjectID, bv.ID); err != sprintdom.ErrViewIsLastView {
 		t.Errorf("expected ErrViewIsLastView for sole backlog view, got %v", err)
 	}
 }
@@ -843,8 +843,8 @@ func TestViewService_ReorderTimelineViews_OK(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	updT1, _ := svc.GetView(ctx, t1.ID)
-	updT2, _ := svc.GetView(ctx, t2.ID)
+	updT1, _ := svc.GetView(ctx, t1.ProjectID, t1.ID)
+	updT2, _ := svc.GetView(ctx, t2.ProjectID, t2.ID)
 	if updT2.Position != 0 {
 		t.Errorf("B: expected position=0, got %g", updT2.Position)
 	}
@@ -867,7 +867,7 @@ func TestViewService_ViewContextPreservedAfterUpdate(t *testing.T) {
 	})
 
 	newName := "Renamed Roadmap"
-	updated, err := svc.UpdateView(ctx, v.ID, sprintdom.UpdateViewInput{Name: &newName})
+	updated, err := svc.UpdateView(ctx, v.ProjectID, v.ID, sprintdom.UpdateViewInput{Name: &newName})
 	if err != nil {
 		t.Fatalf("update: %v", err)
 	}

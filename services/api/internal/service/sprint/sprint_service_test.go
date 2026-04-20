@@ -260,7 +260,7 @@ func TestUpdateSprint_ActivateSprint(t *testing.T) {
 	})
 
 	active := sprintdom.SprintStatusActive
-	updated, err := svc.UpdateSprint(ctx, sp.ID, sprintdom.UpdateSprintInput{
+	updated, err := svc.UpdateSprint(ctx, sp.ProjectID, sp.ID, sprintdom.UpdateSprintInput{
 		Name:   "Sprint 2",
 		Status: &active,
 	})
@@ -282,7 +282,7 @@ func TestUpdateSprint_InvalidStatus(t *testing.T) {
 	})
 
 	bad := sprintdom.SprintStatus("flying")
-	_, err := svc.UpdateSprint(ctx, sp.ID, sprintdom.UpdateSprintInput{
+	_, err := svc.UpdateSprint(ctx, sp.ProjectID, sp.ID, sprintdom.UpdateSprintInput{
 		Status: &bad,
 	})
 	if err != sprintdom.ErrSprintStatusInvalid {
@@ -298,10 +298,10 @@ func TestDeleteSprint_OK(t *testing.T) {
 		ProjectID: uuid.New(),
 		Name:      "To Delete",
 	})
-	if err := svc.DeleteSprint(ctx, sp.ID); err != nil {
+	if err := svc.DeleteSprint(ctx, sp.ProjectID, sp.ID); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	_, err := svc.GetSprint(ctx, sp.ID)
+	_, err := svc.GetSprint(ctx, sp.ProjectID, sp.ID)
 	if err != sprintdom.ErrSprintNotFound {
 		t.Errorf("expected ErrSprintNotFound after delete, got %v", err)
 	}
@@ -311,7 +311,7 @@ func TestDeleteSprint_NotFound(t *testing.T) {
 	ctx := context.Background()
 	svc := sprintsvc.New(newFakeSprintRepo(), newFakeTaskRepo())
 
-	err := svc.DeleteSprint(ctx, uuid.New())
+	err := svc.DeleteSprint(ctx, uuid.New(), uuid.New())
 	if err != sprintdom.ErrSprintNotFound {
 		t.Errorf("expected ErrSprintNotFound, got %v", err)
 	}
@@ -331,7 +331,7 @@ func TestGetSprint_OK(t *testing.T) {
 		t.Fatalf("unexpected error creating sprint: %v", err)
 	}
 
-	got, err := svc.GetSprint(ctx, sp.ID)
+	got, err := svc.GetSprint(ctx, sp.ProjectID, sp.ID)
 	if err != nil {
 		t.Fatalf("unexpected error getting sprint: %v", err)
 	}
@@ -347,7 +347,7 @@ func TestGetSprint_NotFound(t *testing.T) {
 	ctx := context.Background()
 	svc := sprintsvc.New(newFakeSprintRepo(), newFakeTaskRepo())
 
-	_, err := svc.GetSprint(ctx, uuid.New())
+	_, err := svc.GetSprint(ctx, uuid.New(), uuid.New())
 	if err != sprintdom.ErrSprintNotFound {
 		t.Errorf("expected ErrSprintNotFound, got %v", err)
 	}
@@ -414,7 +414,7 @@ func TestCompleteSprint_MovesToBacklog(t *testing.T) {
 		})
 	}
 
-	completed, err := svc.CompleteSprint(ctx, sp.ID, sprintdom.CompleteSprintInput{
+	completed, err := svc.CompleteSprint(ctx, sp.ProjectID, sp.ID, sprintdom.CompleteSprintInput{
 		MoveToSprintID: nil, // move to backlog
 	})
 	if err != nil {
@@ -459,7 +459,7 @@ func TestCompleteSprint_MovesToOtherSprint(t *testing.T) {
 		Title:     "incomplete task",
 	})
 
-	_, err := svc.CompleteSprint(ctx, source.ID, sprintdom.CompleteSprintInput{
+	_, err := svc.CompleteSprint(ctx, source.ProjectID, source.ID, sprintdom.CompleteSprintInput{
 		MoveToSprintID: &dest.ID,
 	})
 	if err != nil {
@@ -509,7 +509,7 @@ func TestCompleteSprint_SkipsDoneTasks(t *testing.T) {
 		Title:     "incomplete task",
 	})
 
-	_, err := svc.CompleteSprint(ctx, sp.ID, sprintdom.CompleteSprintInput{})
+	_, err := svc.CompleteSprint(ctx, sp.ProjectID, sp.ID, sprintdom.CompleteSprintInput{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -538,7 +538,7 @@ func TestCompleteSprint_AlreadyCompleted(t *testing.T) {
 		Status:    sprintdom.SprintStatusCompleted,
 	})
 
-	_, err := svc.CompleteSprint(ctx, sp.ID, sprintdom.CompleteSprintInput{})
+	_, err := svc.CompleteSprint(ctx, sp.ProjectID, sp.ID, sprintdom.CompleteSprintInput{})
 	if err != sprintdom.ErrSprintAlreadyComplete {
 		t.Errorf("expected ErrSprintAlreadyComplete, got %v", err)
 	}
@@ -548,7 +548,7 @@ func TestCompleteSprint_NotFound(t *testing.T) {
 	ctx := context.Background()
 	svc := sprintsvc.New(newFakeSprintRepo(), newFakeTaskRepo())
 
-	_, err := svc.CompleteSprint(ctx, uuid.New(), sprintdom.CompleteSprintInput{})
+	_, err := svc.CompleteSprint(ctx, uuid.New(), uuid.New(), sprintdom.CompleteSprintInput{})
 	if err != sprintdom.ErrSprintNotFound {
 		t.Errorf("expected ErrSprintNotFound, got %v", err)
 	}

@@ -30,9 +30,16 @@ func (s *ViewService) ListProjectViews(ctx context.Context, projectID uuid.UUID,
 	return s.repo.ListProjectViews(ctx, projectID, viewCtx)
 }
 
-// GetView returns the view with the given ID.
-func (s *ViewService) GetView(ctx context.Context, id uuid.UUID) (*sprintdom.SprintView, error) {
-	return s.repo.FindViewByID(ctx, id)
+// GetView returns the view with the given ID, verifying it belongs to projectID.
+func (s *ViewService) GetView(ctx context.Context, projectID, id uuid.UUID) (*sprintdom.SprintView, error) {
+	v, err := s.repo.FindViewByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if v.ProjectID != projectID {
+		return nil, sprintdom.ErrViewNotFound
+	}
+	return v, nil
 }
 
 // CreateView creates a new view for the given sprint.
@@ -70,11 +77,15 @@ func (s *ViewService) CreateView(ctx context.Context, in sprintdom.CreateViewInp
 	return v, nil
 }
 
-// UpdateView updates the mutable fields of an existing view.
-func (s *ViewService) UpdateView(ctx context.Context, id uuid.UUID, in sprintdom.UpdateViewInput) (*sprintdom.SprintView, error) {
+// UpdateView updates the mutable fields of an existing view,
+// verifying it belongs to projectID.
+func (s *ViewService) UpdateView(ctx context.Context, projectID, id uuid.UUID, in sprintdom.UpdateViewInput) (*sprintdom.SprintView, error) {
 	v, err := s.repo.FindViewByID(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	if v.ProjectID != projectID {
+		return nil, sprintdom.ErrViewNotFound
 	}
 
 	if in.Name != nil {
@@ -105,11 +116,14 @@ func (s *ViewService) UpdateView(ctx context.Context, id uuid.UUID, in sprintdom
 }
 
 // DeleteView removes a view by ID.  Deletion of the last remaining view is
-// rejected with ErrViewIsLastView.
-func (s *ViewService) DeleteView(ctx context.Context, id uuid.UUID) error {
+// rejected with ErrViewIsLastView.  Verifies the view belongs to projectID.
+func (s *ViewService) DeleteView(ctx context.Context, projectID, id uuid.UUID) error {
 	v, err := s.repo.FindViewByID(ctx, id)
 	if err != nil {
 		return err
+	}
+	if v.ProjectID != projectID {
+		return sprintdom.ErrViewNotFound
 	}
 
 	var count int
@@ -128,10 +142,15 @@ func (s *ViewService) DeleteView(ctx context.Context, id uuid.UUID) error {
 	return s.repo.DeleteView(ctx, id)
 }
 
-// MoveTask updates the manual position of a task within a view.
-func (s *ViewService) MoveTask(ctx context.Context, viewID uuid.UUID, in sprintdom.MoveTaskInput) error {
-	if _, err := s.repo.FindViewByID(ctx, viewID); err != nil {
+// MoveTask updates the manual position of a task within a view,
+// verifying the view belongs to projectID.
+func (s *ViewService) MoveTask(ctx context.Context, projectID, viewID uuid.UUID, in sprintdom.MoveTaskInput) error {
+	v, err := s.repo.FindViewByID(ctx, viewID)
+	if err != nil {
 		return err
+	}
+	if v.ProjectID != projectID {
+		return sprintdom.ErrViewNotFound
 	}
 	pos := &sprintdom.ViewTaskPosition{
 		ID:       uuid.New(),
@@ -144,10 +163,14 @@ func (s *ViewService) MoveTask(ctx context.Context, viewID uuid.UUID, in sprintd
 }
 
 // BulkMoveTasks updates the manual positions of multiple tasks within a view
-// in a single database round-trip.
-func (s *ViewService) BulkMoveTasks(ctx context.Context, viewID uuid.UUID, items []sprintdom.MoveTaskInput) error {
-	if _, err := s.repo.FindViewByID(ctx, viewID); err != nil {
+// in a single database round-trip.  Verifies the view belongs to projectID.
+func (s *ViewService) BulkMoveTasks(ctx context.Context, projectID, viewID uuid.UUID, items []sprintdom.MoveTaskInput) error {
+	v, err := s.repo.FindViewByID(ctx, viewID)
+	if err != nil {
 		return err
+	}
+	if v.ProjectID != projectID {
+		return sprintdom.ErrViewNotFound
 	}
 	positions := make([]*sprintdom.ViewTaskPosition, 0, len(items))
 	for _, in := range items {
@@ -162,10 +185,15 @@ func (s *ViewService) BulkMoveTasks(ctx context.Context, viewID uuid.UUID, items
 	return s.repo.BulkUpsertTaskPositions(ctx, positions)
 }
 
-// ListTaskPositions returns the manual ordering for all tasks in a view.
-func (s *ViewService) ListTaskPositions(ctx context.Context, viewID uuid.UUID) ([]*sprintdom.ViewTaskPosition, error) {
-	if _, err := s.repo.FindViewByID(ctx, viewID); err != nil {
+// ListTaskPositions returns the manual ordering for all tasks in a view,
+// verifying the view belongs to projectID.
+func (s *ViewService) ListTaskPositions(ctx context.Context, projectID, viewID uuid.UUID) ([]*sprintdom.ViewTaskPosition, error) {
+	v, err := s.repo.FindViewByID(ctx, viewID)
+	if err != nil {
 		return nil, err
+	}
+	if v.ProjectID != projectID {
+		return nil, sprintdom.ErrViewNotFound
 	}
 	return s.repo.ListTaskPositions(ctx, viewID)
 }

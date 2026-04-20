@@ -101,6 +101,11 @@ func (h *SprintHandler) CreateSprint(c *gin.Context) {
 
 // UpdateSprint handles PATCH /projects/:projectId/sprints/:sprintId.
 func (h *SprintHandler) UpdateSprint(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	sprintID, err := parseSprintID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -112,7 +117,7 @@ func (h *SprintHandler) UpdateSprint(c *gin.Context) {
 		return
 	}
 
-	s, err := h.svc.UpdateSprint(c.Request.Context(), sprintID, sprintdom.UpdateSprintInput{
+	s, err := h.svc.UpdateSprint(c.Request.Context(), projectID, sprintID, sprintdom.UpdateSprintInput{
 		Name:      req.Name,
 		StartDate: req.StartDate,
 		EndDate:   req.EndDate,
@@ -128,12 +133,17 @@ func (h *SprintHandler) UpdateSprint(c *gin.Context) {
 
 // DeleteSprint handles DELETE /projects/:projectId/sprints/:sprintId.
 func (h *SprintHandler) DeleteSprint(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	sprintID, err := parseSprintID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
-	if err := h.svc.DeleteSprint(c.Request.Context(), sprintID); err != nil {
+	if err := h.svc.DeleteSprint(c.Request.Context(), projectID, sprintID); err != nil {
 		presenter.Error(c, err)
 		return
 	}
@@ -144,6 +154,11 @@ func (h *SprintHandler) DeleteSprint(c *gin.Context) {
 // It bulk-moves all non-done tasks to the requested destination sprint (or the
 // backlog when move_to_sprint_id is absent/null) and marks the sprint completed.
 func (h *SprintHandler) CompleteSprint(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	sprintID, err := parseSprintID(c)
 	if err != nil {
 		presenter.Error(c, err)
@@ -155,7 +170,7 @@ func (h *SprintHandler) CompleteSprint(c *gin.Context) {
 		return
 	}
 
-	s, err := h.svc.CompleteSprint(c.Request.Context(), sprintID, sprintdom.CompleteSprintInput{
+	s, err := h.svc.CompleteSprint(c.Request.Context(), projectID, sprintID, sprintdom.CompleteSprintInput{
 		MoveToSprintID: req.MoveToSprintID,
 	})
 	if err != nil {
@@ -176,12 +191,17 @@ func parseSprintID(c *gin.Context) (uuid.UUID, error) {
 
 // GetSprint handles GET /projects/:projectId/sprints/:sprintId.
 func (h *SprintHandler) GetSprint(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
 	sprintID, err := parseSprintID(c)
 	if err != nil {
 		presenter.Error(c, err)
 		return
 	}
-	s, err := h.svc.GetSprint(c.Request.Context(), sprintID)
+	s, err := h.svc.GetSprint(c.Request.Context(), projectID, sprintID)
 	if err != nil {
 		presenter.Error(c, err)
 		return
