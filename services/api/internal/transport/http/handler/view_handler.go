@@ -142,7 +142,7 @@ func (h *ViewHandler) CreateView(c *gin.Context) {
 	presenter.Created(c, dto.ViewFromEntity(v))
 }
 
-// UpdateView handles PATCH /sprints/:sprintId/views/:viewId.
+// UpdateView handles PATCH /projects/:projectId/views/:viewId.
 func (h *ViewHandler) UpdateView(c *gin.Context) {
 	projectID, err := parseProjectID(c)
 	if err != nil {
