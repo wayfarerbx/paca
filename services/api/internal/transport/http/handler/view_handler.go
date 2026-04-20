@@ -187,7 +187,7 @@ func (h *ViewHandler) DeleteView(c *gin.Context) {
 	presenter.NoContent(c)
 }
 
-// ListTaskPositions handles GET /views/:viewId/task-positions.
+// ListTaskPositions handles GET /projects/:projectId/views/:viewId/task-positions.
 func (h *ViewHandler) ListTaskPositions(c *gin.Context) {
 	projectID, err := parseProjectID(c)
 	if err != nil {
