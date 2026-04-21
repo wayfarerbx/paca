@@ -25,8 +25,8 @@
 // the event payload fields are not yet stabilised and broad invalidation is
 // safer and simpler.
 
-import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import {
 	connectSocket,
 	joinProject,

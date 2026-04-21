@@ -14,11 +14,9 @@
 
 import { io, type Socket } from "socket.io-client";
 
-const REALTIME_URL =
-	import.meta.env.VITE_REALTIME_URL ?? "http://localhost";
+const REALTIME_URL = import.meta.env.VITE_REALTIME_URL ?? "http://localhost";
 
-const SOCKET_PATH =
-	import.meta.env.VITE_REALTIME_PATH ?? "/ws/socket.io";
+const SOCKET_PATH = import.meta.env.VITE_REALTIME_PATH ?? "/ws/socket.io";
 
 let socket: Socket | null = null;
 
