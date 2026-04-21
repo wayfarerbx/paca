@@ -171,7 +171,7 @@ func TestNotificationHandler_List_Success(t *testing.T) {
 		}
 		return notifs, nil
 	}
-	svc.unreadCount = func(_ context.Context, gotUserID uuid.UUID) (int64, error) {
+	svc.unreadCount = func(_ context.Context, _ uuid.UUID) (int64, error) {
 		return 3, nil
 	}
 

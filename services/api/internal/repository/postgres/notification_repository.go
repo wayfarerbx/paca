@@ -166,10 +166,11 @@ func (r *NotificationRepository) UnreadCount(ctx context.Context, userID uuid.UU
 }
 
 // MarkAsRead sets read_at on a notification owned by userID.
+// Idempotent: calling it on an already-read notification succeeds as a no-op.
 func (r *NotificationRepository) MarkAsRead(ctx context.Context, id, userID uuid.UUID) error {
 	result := r.db.WithContext(ctx).
 		Table("notifications").
-		Where("id = ? AND recipient_user_id = ? AND read_at IS NULL", id.String(), userID.String()).
+		Where("id = ? AND recipient_user_id = ?", id.String(), userID.String()).
 		UpdateColumn("read_at", time.Now())
 	if result.Error != nil {
 		return fmt.Errorf("notification repo: mark as read: %w", result.Error)

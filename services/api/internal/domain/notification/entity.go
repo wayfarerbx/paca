@@ -65,7 +65,7 @@ type Repository interface {
 	UnreadCount(ctx context.Context, userID uuid.UUID) (int64, error)
 	// MarkAsRead sets read_at on a notification owned by userID.
 	// Returns ErrNotificationNotFound when the notification does not exist or
-	// does not belong to userID.
+	// does not belong to userID. Idempotent: already-read notifications succeed.
 	MarkAsRead(ctx context.Context, id, userID uuid.UUID) error
 	// MarkAllAsRead sets read_at on all unread notifications for userID.
 	MarkAllAsRead(ctx context.Context, userID uuid.UUID) error
