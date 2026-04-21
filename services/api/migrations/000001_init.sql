@@ -557,8 +557,9 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_notifications_recipient  ON notifications (recipient_user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_notifications_task_id    ON notifications (task_id) WHERE task_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_notifications_project_id ON notifications (project_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_recipient         ON notifications (recipient_user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_recipient_unread  ON notifications (recipient_user_id) WHERE read_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_notifications_task_id           ON notifications (task_id) WHERE task_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_notifications_project_id        ON notifications (project_id);
 
 COMMIT;
