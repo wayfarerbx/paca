@@ -101,6 +101,30 @@ services:
       - web_node_modules:/workspace/node_modules
       - bun_cache:/root/.bun/install/cache
 
+  realtime:
+    build:
+      context: ../services/realtime
+      dockerfile: Dockerfile.dev
+    working_dir: /app
+    command: sh -c "bun install && bun run --watch src/index.ts"
+    environment:
+      PORT: "3001"
+      NODE_ENV: development
+      # Internal service-to-service URL — the realtime service calls the API
+      # directly, bypassing nginx, so no prefix stripping is needed.
+      API_URL: http://api:8080
+      REDIS_URL: redis://valkey:6379/0
+      CORS_ORIGINS: http://localhost
+      LOG_LEVEL: debug
+    volumes:
+      - ../services/realtime:/app
+      - realtime_node_modules:/app/node_modules
+    depends_on:
+      valkey:
+        condition: service_healthy
+      api:
+        condition: service_started
+  
   gateway:
     image: nginx:1.27-alpine
     restart: unless-stopped
@@ -111,6 +135,7 @@ services:
     depends_on:
       - api
       - web
+      - realtime
 
   # MinIO — S3-compatible object store for development.
   # Swap for AWS S3 in production by updating STORAGE_* env vars in the API service.
@@ -138,3 +163,4 @@ volumes:
   web_node_modules:
   bun_cache:
   minio_data:
+  realtime_node_modules:

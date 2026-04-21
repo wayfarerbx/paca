@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { AlertCircle } from "lucide-react";
 
+import { useProjectRealtime } from "@/hooks/use-project-realtime";
 import { projectQueryOptions } from "@/lib/project-api";
 
 export const Route = createFileRoute("/_authenticated/projects/$projectId")({
@@ -18,6 +19,10 @@ export const Route = createFileRoute("/_authenticated/projects/$projectId")({
 function ProjectLayout() {
 	const { projectId } = Route.useParams();
 	const { data: project, isError } = useQuery(projectQueryOptions(projectId));
+
+	// Join realtime rooms for this project.  The hook subscribes on mount and
+	// leaves / cleans up on unmount (i.e. when navigating away from the project).
+	useProjectRealtime(projectId);
 
 	if (isError || !project) {
 		return (

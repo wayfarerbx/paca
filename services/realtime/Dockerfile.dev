@@ -1,0 +1,19 @@
+# ── Development Dockerfile for services/realtime ─────────────────────────────
+#
+# Packages are installed when the container starts so that the host volume
+# mount (../services/realtime:/app) picks up changes without rebuilding the
+# image on every dependency update.
+#
+# Usage in docker-compose.dev.yml:
+#
+#   realtime:
+#     build:
+#       context: ../services/realtime
+#       dockerfile: Dockerfile.dev
+#     command: sh -c "bun install && bun run --watch src/index.ts"
+#     volumes:
+#       - ../services/realtime:/app
+
+FROM oven/bun:1-alpine
+WORKDIR /app
+EXPOSE 3001

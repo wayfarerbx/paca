@@ -15,6 +15,10 @@ COPY . .
 # points at the correct gateway origin (set via docker-compose build args).
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+# VITE_REALTIME_URL points at the Socket.IO gateway path.
+# Defaults to the same origin as the web app (nginx proxies /ws/).
+ARG VITE_REALTIME_URL
+ENV VITE_REALTIME_URL=${VITE_REALTIME_URL}
 RUN bun run build
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────

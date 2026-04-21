@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 import { AppSidebar } from "@/components/app-shell/app-sidebar";
 import {
@@ -8,6 +9,7 @@ import {
 } from "@/components/ui/sidebar";
 import { isPasswordChangeRequired } from "@/lib/api-error";
 import { currentUserQueryOptions } from "@/lib/auth-api";
+import { connectSocket, disconnectSocket } from "@/lib/socket-client";
 
 /**
  * Pathless layout route that guards every route nested under it.
@@ -42,6 +44,13 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthenticatedLayout() {
+	// Open the Socket.IO connection as soon as the user is authenticated and
+	// close it when they log out (component unmounts).
+	useEffect(() => {
+		connectSocket();
+		return () => disconnectSocket();
+	}, []);
+
 	return (
 		<SidebarProvider className="h-svh">
 			<AppSidebar />

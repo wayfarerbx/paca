@@ -1,0 +1,134 @@
+import { renderHook } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// ── Hoisted mocks ─────────────────────────────────────────────────────────────
+
+const mocks = vi.hoisted(() => {
+	const socket = {
+		on: vi.fn(),
+		off: vi.fn(),
+	};
+
+	return {
+		socket,
+		connectSocket: vi.fn(() => socket),
+		joinProject: vi.fn(),
+		leaveProject: vi.fn(),
+		invalidateQueries: vi.fn(),
+	};
+});
+
+vi.mock("@/lib/socket-client", () => ({
+	connectSocket: mocks.connectSocket,
+	joinProject: mocks.joinProject,
+	leaveProject: mocks.leaveProject,
+}));
+
+vi.mock("@tanstack/react-query", async () => {
+	const actual = await vi.importActual<typeof import("@tanstack/react-query")>(
+		"@tanstack/react-query",
+	);
+	return {
+		...actual,
+		useQueryClient: () => ({
+			invalidateQueries: mocks.invalidateQueries,
+		}),
+	};
+});
+
+import { useProjectRealtime } from "./use-project-realtime";
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+describe("useProjectRealtime", () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		mocks.connectSocket.mockReturnValue(mocks.socket);
+	});
+
+	it("joins the project rooms on mount", () => {
+		renderHook(() => useProjectRealtime("proj-abc"));
+
+		expect(mocks.connectSocket).toHaveBeenCalledTimes(1);
+		expect(mocks.joinProject).toHaveBeenCalledWith("proj-abc");
+	});
+
+	it("registers an event listener on mount", () => {
+		renderHook(() => useProjectRealtime("proj-abc"));
+
+		expect(mocks.socket.on).toHaveBeenCalledWith("event", expect.any(Function));
+	});
+
+	it("removes the event listener and leaves project rooms on unmount", () => {
+		const { unmount } = renderHook(() => useProjectRealtime("proj-abc"));
+
+		const [, listener] = mocks.socket.on.mock.calls[0] as [
+			string,
+			(...args: unknown[]) => void,
+		];
+
+		unmount();
+
+		expect(mocks.socket.off).toHaveBeenCalledWith("event", listener);
+		expect(mocks.leaveProject).toHaveBeenCalledWith("proj-abc");
+	});
+
+	it("invalidates tasks query key on task.* events", () => {
+		renderHook(() => useProjectRealtime("proj-abc"));
+
+		const [, listener] = mocks.socket.on.mock.calls[0] as [
+			string,
+			(event: { type: string; payload: Record<string, unknown> }) => void,
+		];
+
+		listener({ type: "task.created", payload: {} });
+
+		expect(mocks.invalidateQueries).toHaveBeenCalledWith({
+			queryKey: ["projects", "proj-abc", "tasks"],
+		});
+	});
+
+	it("invalidates docs query key on doc.* events", () => {
+		renderHook(() => useProjectRealtime("proj-abc"));
+
+		const [, listener] = mocks.socket.on.mock.calls[0] as [
+			string,
+			(event: { type: string; payload: Record<string, unknown> }) => void,
+		];
+
+		listener({ type: "doc.updated", payload: {} });
+
+		expect(mocks.invalidateQueries).toHaveBeenCalledWith({
+			queryKey: ["projects", "proj-abc", "docs"],
+		});
+	});
+
+	it("does not invalidate queries for unrecognised event types", () => {
+		renderHook(() => useProjectRealtime("proj-abc"));
+
+		const [, listener] = mocks.socket.on.mock.calls[0] as [
+			string,
+			(event: { type: string; payload: Record<string, unknown> }) => void,
+		];
+
+		listener({ type: "unknown.event", payload: {} });
+
+		expect(mocks.invalidateQueries).not.toHaveBeenCalled();
+	});
+
+	it("re-joins and re-registers when projectId changes", () => {
+		const { rerender } = renderHook(
+			({ projectId }) => useProjectRealtime(projectId),
+			{ initialProps: { projectId: "proj-1" } },
+		);
+
+		expect(mocks.joinProject).toHaveBeenCalledWith("proj-1");
+
+		rerender({ projectId: "proj-2" });
+
+		// Old project should have been left.
+		expect(mocks.leaveProject).toHaveBeenCalledWith("proj-1");
+		// New project joined.
+		expect(mocks.joinProject).toHaveBeenCalledWith("proj-2");
+	});
+});
