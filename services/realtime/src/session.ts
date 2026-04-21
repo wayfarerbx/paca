@@ -61,7 +61,12 @@ export async function getSession(
 ): Promise<Session | null> {
 	const raw = await redis.get(sessionKey(socketId));
 	if (!raw) return null;
-	return JSON.parse(raw) as Session;
+	try {
+		return JSON.parse(raw) as Session;
+	} catch {
+		await redis.del(sessionKey(socketId));
+		return null;
+	}
 }
 
 // getSessionsBatch fetches multiple sessions in a single Valkey round-trip
@@ -73,7 +78,17 @@ export async function getSessionsBatch(
 	if (socketIds.length === 0) return [];
 	const keys = socketIds.map(sessionKey);
 	const values = await redis.mget(...keys);
-	return values.map((v) => (v ? (JSON.parse(v) as Session) : null));
+	return Promise.all(
+		values.map(async (v, i) => {
+			if (!v) return null;
+			try {
+				return JSON.parse(v) as Session;
+			} catch {
+				await redis.del(keys[i]);
+				return null;
+			}
+		}),
+	);
 }
 
 // setProjectPermissions merges the project permission map into the existing
