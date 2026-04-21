@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { useEffect } from "react";
 
 import { AppSidebar } from "@/components/app-shell/app-sidebar";
+import { NotificationBell } from "@/components/app-shell/notification-bell";
 import {
 	SidebarInset,
 	SidebarProvider,
@@ -10,6 +11,7 @@ import {
 import { isPasswordChangeRequired } from "@/lib/api-error";
 import { currentUserQueryOptions } from "@/lib/auth-api";
 import { connectSocket, disconnectSocket } from "@/lib/socket-client";
+import { useQueryClient } from "@tanstack/react-query";
 
 /**
  * Pathless layout route that guards every route nested under it.
@@ -46,10 +48,24 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthenticatedLayout() {
 	// Open the Socket.IO connection as soon as the user is authenticated and
 	// close it when they log out (component unmounts).
+	const queryClient = useQueryClient();
+
 	useEffect(() => {
-		connectSocket();
-		return () => disconnectSocket();
-	}, []);
+		const socket = connectSocket();
+
+		// Listen for notification events delivered to the user's personal room.
+		const handleNotification = ({ type }: { type: string }) => {
+			if (type === "notification.created") {
+				queryClient.invalidateQueries({ queryKey: ["notifications"] });
+			}
+		};
+		socket.on("notification", handleNotification);
+
+		return () => {
+			socket.off("notification", handleNotification);
+			disconnectSocket();
+		};
+	}, [queryClient]);
 
 	return (
 		<SidebarProvider className="h-svh">
@@ -59,6 +75,9 @@ function AuthenticatedLayout() {
 					<div className="absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-transparent via-border to-transparent" />
 					<SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground transition-colors" />
 					<div className="w-px h-4 bg-border/60" />
+					<div className="ml-auto">
+						<NotificationBell />
+					</div>
 				</header>
 				<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 					<Outlet />

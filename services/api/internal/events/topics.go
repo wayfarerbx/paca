@@ -20,6 +20,12 @@ const StreamTaskActivities = "paca.task_activities"
 // the DocActivityConsumer worker reads this stream and handles the DB write.
 const StreamDocActivities = "paca.doc_activities"
 
+// StreamTaskAssignments is the Valkey Stream key used to fan out task
+// assignment events (task created/updated with a new assignee) to the
+// NotificationConsumer worker, which creates in-app notifications and
+// publishes real-time push events.
+const StreamTaskAssignments = "paca.task_assignments"
+
 // Event type constants used in both Pub/Sub messages and Stream entries.
 const (
 	// --- Auth events --------------------------------------------------------
@@ -70,4 +76,10 @@ const (
 	TopicDocCommentAdded   = "doc.comment.added"
 	TopicDocCommentUpdated = "doc.comment.updated"
 	TopicDocCommentDeleted = "doc.comment.deleted"
+
+	// --- Notification events ------------------------------------------------
+	// TopicNotificationCreated is published to ChannelRealtime when a new
+	// notification is created.  The payload includes recipient_user_id so the
+	// realtime service can route the event to the correct user room.
+	TopicNotificationCreated = "notification.created"
 )

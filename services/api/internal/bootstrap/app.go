@@ -29,6 +29,7 @@ import (
 	authsvc "github.com/paca/api/internal/service/auth"
 	docsvc "github.com/paca/api/internal/service/doc"
 	globalrolesvc "github.com/paca/api/internal/service/globalrole"
+	notificationsvc "github.com/paca/api/internal/service/notification"
 	projectsvc "github.com/paca/api/internal/service/project"
 	sprintsvc "github.com/paca/api/internal/service/sprint"
 	tasksvc "github.com/paca/api/internal/service/task"
@@ -43,11 +44,12 @@ import (
 
 // App holds the HTTP server and any resources that need graceful shutdown.
 type App struct {
-	server              *http.Server
-	publisher           *messaging.Publisher
-	activityConsumer    *worker.ActivityConsumer
-	docActivityConsumer *worker.DocActivityConsumer
-	log                 *slog.Logger
+	server               *http.Server
+	publisher            *messaging.Publisher
+	activityConsumer     *worker.ActivityConsumer
+	docActivityConsumer  *worker.DocActivityConsumer
+	notificationConsumer *worker.NotificationConsumer
+	log                  *slog.Logger
 }
 
 // New builds all dependencies and returns a ready-to-run App.
@@ -81,6 +83,7 @@ func New(cfg *config.Config) (*App, error) {
 	projectRepo := pgRepo.NewProjectRepository(db)
 	taskRepo := pgRepo.NewTaskRepository(db)
 	activityRepo := pgRepo.NewTaskActivityRepository(db)
+	notificationRepo := pgRepo.NewNotificationRepository(db)
 	sprintRepo := pgRepo.NewSprintRepository(db)
 	viewRepo := pgRepo.NewViewRepository(db)
 	attachmentRepo := pgRepo.NewAttachmentRepository(db)
@@ -117,7 +120,10 @@ func New(cfg *config.Config) (*App, error) {
 	taskService := tasksvc.New(taskRepo)
 	sprintService := sprintsvc.New(sprintRepo, taskRepo)
 	viewService := sprintsvc.NewViewService(viewRepo)
-	activityService := tasksvc.NewActivityService(activityRepo, projectRepo, publisher)
+	notificationService := notificationsvc.New(notificationRepo, projectRepo, publisher)
+	notificationConsumer := worker.NewNotificationConsumer(redisClient, notificationService, log)
+	activityService := tasksvc.NewActivityService(activityRepo, projectRepo, publisher).
+		WithNotificationService(notificationService)
 	activityConsumer := worker.NewActivityConsumer(redisClient, activityRepo, projectRepo, log)
 	docService := docsvc.New(docRepo, projectRepo)
 	docActivityService := docsvc.NewActivityService(docRepo, projectRepo, publisher)
@@ -159,12 +165,14 @@ func New(cfg *config.Config) (*App, error) {
 		User:         handler.NewUserHandler(userService, authService),
 		GlobalRole:   handler.NewGlobalRoleHandler(globalRoleService),
 		Project:      handler.NewProjectHandler(projectService, authorizer, handler.WithProjectDefaultViews(viewService, taskService)),
-		Task:         handler.NewTaskHandler(taskService, viewService, activityService),
+		Task: handler.NewTaskHandler(taskService, viewService, activityService,
+			handler.WithTaskPublisher(publisher)),
 		Sprint:       handler.NewSprintHandler(sprintService, viewService, handler.WithSprintDefaultTaskTypes(taskService)),
 		View:         handler.NewViewHandler(viewService),
 		Attachment:   handler.NewAttachmentHandler(attachmentService),
 		Document:     handler.NewDocumentHandler(docService, docActivityService),
 		DocFile:      handler.NewDocFileHandler(attachmentService),
+		Notification: handler.NewNotificationHandler(notificationService),
 		Log:          log,
 	}
 
@@ -178,7 +186,7 @@ func New(cfg *config.Config) (*App, error) {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	return &App{server: srv, publisher: publisher, activityConsumer: activityConsumer, docActivityConsumer: docActivityConsumer, log: log}, nil
+	return &App{server: srv, publisher: publisher, activityConsumer: activityConsumer, docActivityConsumer: docActivityConsumer, notificationConsumer: notificationConsumer, log: log}, nil
 }
 
 // projectRoleModel is the GORM model used by seedDefaultProjectRoleTemplates
@@ -200,6 +208,7 @@ func (a *App) Run() error {
 	a.log.Info("starting server", "addr", a.server.Addr)
 	a.activityConsumer.Start(context.Background())
 	a.docActivityConsumer.Start(context.Background())
+	a.notificationConsumer.Start(context.Background())
 	return a.server.ListenAndServe()
 }
 
@@ -208,6 +217,7 @@ func (a *App) Shutdown(ctx context.Context) error {
 	a.log.Info("shutting down server")
 	a.activityConsumer.Stop()
 	a.docActivityConsumer.Stop()
+	a.notificationConsumer.Stop()
 	if a.publisher != nil {
 		a.publisher.Close()
 	}

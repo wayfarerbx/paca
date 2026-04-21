@@ -8,7 +8,7 @@ Interactive diagram: [https://dbdiagram.io/d/Paca-69c212ae78c6c4bc7a4fc190](http
 
 | File | Purpose |
 |---|---|
-| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects, project roles/members, task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views`, `view_task_positions`, `custom_field_definitions`, `tasks`, `task_attachments`, `task_checklists`, `task_checklist_items`, `bdd_scenarios`, `task_activities`, `doc_folders` (hierarchical folders with `parent_id` self-reference, `position`, `created_by`), `documents` (BlockNote `content` JSONB, `folder_id`, `position`, soft-delete via `deleted_at`, `created_by`/`updated_by` referencing `project_members`), `doc_snapshots` (point-in-time content copies for diff/history, `snapshot_number` auto-incremented per document via a trigger), `doc_activities` (audit log + comments), and seed data. |
+| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects, project roles/members, task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views`, `view_task_positions`, `custom_field_definitions`, `tasks`, `task_attachments`, `task_checklists`, `task_checklist_items`, `bdd_scenarios`, `task_activities`, `doc_folders` (hierarchical folders with `parent_id` self-reference, `position`, `created_by`), `documents` (BlockNote `content` JSONB, `folder_id`, `position`, soft-delete via `deleted_at`, `created_by`/`updated_by` referencing `project_members`), `doc_snapshots` (point-in-time content copies for diff/history, `snapshot_number` auto-incremented per document via a trigger), `doc_activities` (audit log + comments), `notifications` (task-assignment and @mention notifications with `recipient_user_id`, `actor_member_id`, `type`, `read_at`), and seed data. |
 
 ## Schema (DBML)
 
@@ -278,6 +278,18 @@ Table task_activities {
   deleted_at timestamp [null, note: 'Soft-delete for comments']
 }
 
+// --- NOTIFICATIONS ---
+Table notifications {
+  id                uuid [primary key]
+  recipient_user_id uuid [not null, ref: > users.id, note: 'The user who receives the notification']
+  actor_member_id   uuid [null, ref: > project_members.id, note: 'The project member who triggered the notification']
+  type              varchar [not null, note: 'assigned | mentioned']
+  task_id           uuid [null, ref: > tasks.id]
+  project_id        uuid [not null, ref: > projects.id]
+  read_at           timestamp [null, note: 'When the notification was marked as read']
+  created_at        timestamp
+}
+
 // --- TASK CHECKLISTS ---
 Table task_checklists {
   id         uuid [primary key]
@@ -345,4 +357,9 @@ Ref: project_members.id < task_attachments.uploaded_by
 Ref: sprints.id < sprint_views.sprint_id
 Ref: sprint_views.id < view_task_positions.view_id
 Ref: tasks.id < view_task_positions.task_id
+
+Ref: users.id < notifications.recipient_user_id
+Ref: project_members.id < notifications.actor_member_id
+Ref: tasks.id < notifications.task_id
+Ref: projects.id < notifications.project_id
 ```

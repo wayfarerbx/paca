@@ -541,4 +541,24 @@ CREATE TABLE IF NOT EXISTS doc_activities (
 CREATE INDEX IF NOT EXISTS idx_doc_activities_document_id ON doc_activities (document_id);
 CREATE INDEX IF NOT EXISTS idx_doc_activities_deleted_at  ON doc_activities (deleted_at) WHERE deleted_at IS NOT NULL;
 
+-- -------------------------------------------------------------------------
+-- NOTIFICATIONS
+-- Task-assignment and @mention notifications.
+-- -------------------------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    recipient_user_id UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    actor_member_id   UUID        REFERENCES project_members(id) ON DELETE SET NULL,
+    type              TEXT        NOT NULL CHECK (type IN ('assigned', 'mentioned')),
+    task_id           UUID        REFERENCES tasks(id) ON DELETE CASCADE,
+    project_id        UUID        NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    read_at           TIMESTAMPTZ,
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_recipient  ON notifications (recipient_user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_task_id    ON notifications (task_id) WHERE task_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_notifications_project_id ON notifications (project_id);
+
 COMMIT;

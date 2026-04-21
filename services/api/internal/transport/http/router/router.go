@@ -30,6 +30,7 @@ type Deps struct {
 	Attachment   *handler.AttachmentHandler
 	Document     *handler.DocumentHandler
 	DocFile      *handler.DocFileHandler
+	Notification *handler.NotificationHandler
 	Log          *slog.Logger
 }
 
@@ -71,6 +72,13 @@ func New(deps Deps) *gin.Engine {
 				me.GET("/me", deps.User.GetMe)
 				me.PATCH("/me", deps.User.UpdateMe)
 				me.GET("/me/global-permissions", deps.User.GetMyGlobalPermissions)
+
+				// Notification routes
+				if deps.Notification != nil {
+					me.GET("/me/notifications", deps.Notification.List)
+					me.PATCH("/me/notifications/:notificationId/read", deps.Notification.MarkAsRead)
+					me.POST("/me/notifications/read-all", deps.Notification.MarkAllAsRead)
+				}
 			}
 		}
 

@@ -89,6 +89,19 @@ export function createSubscriber(
 function routeEvent(io: Server, msg: RealtimeMessage, logger: Logger): void {
 	const { type, payload } = msg;
 
+	// notification.* events are routed to a user-specific room.
+	if (type.startsWith("notification.")) {
+		const recipientUserId = payload.recipient_user_id;
+		if (typeof recipientUserId !== "string" || !recipientUserId) {
+			logger.debug({ type }, "notification event has no recipient_user_id — skipped");
+			return;
+		}
+		const room = `user:${recipientUserId}:notifications`;
+		logger.debug({ type, room }, "routing notification to user room");
+		io.to(room).emit("notification", { type, payload });
+		return;
+	}
+
 	// Only project-scoped events are forwarded.
 	const projectId = payload.project_id;
 	if (typeof projectId !== "string" || !projectId) {

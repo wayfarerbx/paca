@@ -171,6 +171,11 @@ const (
 	CodeDocActivityNotAComment Code = "DOC_ACTIVITY_NOT_A_COMMENT"
 	// CodeDocCommentTextInvalid indicates an empty or invalid comment text.
 	CodeDocCommentTextInvalid Code = "DOC_COMMENT_TEXT_INVALID"
+
+	// --- Notification errors -----------------------------------------------
+	// CodeNotificationNotFound indicates the requested notification does not exist
+	// or does not belong to the authenticated user.
+	CodeNotificationNotFound Code = "NOTIFICATION_NOT_FOUND"
 )
 
 // Error carries a machine-readable Code alongside a human-readable Message.

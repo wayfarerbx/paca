@@ -378,6 +378,26 @@ func (r *ProjectRepository) FindMemberByUserProject(ctx context.Context, userID,
 	return r.FindMember(ctx, projectID, userID)
 }
 
+// FindMemberByID returns the active member record for the given project_members.id.
+// Used by the notification service to resolve an assignee member ID to a user ID.
+func (r *ProjectRepository) FindMemberByID(ctx context.Context, memberID uuid.UUID) (*projectdom.ProjectMember, error) {
+	var row projectMemberReadRow
+	result := r.db.WithContext(ctx).
+		Table("project_members pm").
+		Select(projectMemberCols).
+		Joins("JOIN users u ON u.id = pm.user_id AND u.deleted_at IS NULL").
+		Joins("JOIN project_roles pr ON pr.id = pm.project_role_id").
+		Where("pm.id = ? AND pm.deleted_at IS NULL", memberID.String()).
+		Scan(&row)
+	if result.Error != nil {
+		return nil, fmt.Errorf("project repo: find member by id: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return nil, projectdom.ErrMemberNotFound
+	}
+	return toMemberEntity(&row), nil
+}
+
 // AddMember inserts a project_members row, or restores a previously soft-deleted one.
 func (r *ProjectRepository) AddMember(ctx context.Context, m *projectdom.ProjectMember) error {
 	// First try to restore a previously soft-deleted membership for this

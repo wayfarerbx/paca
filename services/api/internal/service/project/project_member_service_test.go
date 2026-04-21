@@ -103,6 +103,9 @@ func (m *memberServiceRepoMock) DeleteRole(context.Context, uuid.UUID) error {
 func (m *memberServiceRepoMock) CountMembersWithRole(context.Context, uuid.UUID) (int64, error) {
 	return 0, nil
 }
+func (m *memberServiceRepoMock) FindMemberByID(_ context.Context, _ uuid.UUID) (*projectdom.ProjectMember, error) {
+	return nil, projectdom.ErrMemberNotFound
+}
 
 var _ projectdom.Repository = (*memberServiceRepoMock)(nil)
 

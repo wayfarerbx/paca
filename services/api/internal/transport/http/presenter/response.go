@@ -12,6 +12,7 @@ import (
 	domainauth "github.com/paca/api/internal/domain/auth"
 	docdom "github.com/paca/api/internal/domain/doc"
 	globalroledom "github.com/paca/api/internal/domain/globalrole"
+	notificationdom "github.com/paca/api/internal/domain/notification"
 	projectdom "github.com/paca/api/internal/domain/project"
 	sprintdom "github.com/paca/api/internal/domain/sprint"
 	taskdom "github.com/paca/api/internal/domain/task"
@@ -224,6 +225,8 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusBadRequest, apierr.CodeDocActivityNotAComment
 	case errors.Is(err, docdom.ErrCommentTextInvalid):
 		return http.StatusBadRequest, apierr.CodeDocCommentTextInvalid
+	case errors.Is(err, notificationdom.ErrNotificationNotFound):
+		return http.StatusNotFound, apierr.CodeNotificationNotFound
 	default:
 		return http.StatusInternalServerError, apierr.CodeInternalError
 	}
@@ -327,6 +330,8 @@ func httpStatusForCode(code apierr.Code) int {
 		return http.StatusBadRequest
 	case apierr.CodeDocActivityForbidden:
 		return http.StatusForbidden
+	case apierr.CodeNotificationNotFound:
+		return http.StatusNotFound
 	case apierr.CodeBadRequest:
 		return http.StatusBadRequest
 	case apierr.CodePasswordChangeRequired:

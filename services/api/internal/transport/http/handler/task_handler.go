@@ -12,6 +12,8 @@ import (
 	"github.com/paca/api/internal/apierr"
 	sprintdom "github.com/paca/api/internal/domain/sprint"
 	taskdom "github.com/paca/api/internal/domain/task"
+	"github.com/paca/api/internal/events"
+	"github.com/paca/api/internal/platform/messaging"
 	"github.com/paca/api/internal/transport/http/dto"
 	"github.com/paca/api/internal/transport/http/middleware"
 	"github.com/paca/api/internal/transport/http/presenter"
@@ -22,12 +24,28 @@ type TaskHandler struct {
 	svc         taskdom.Service
 	viewSvc     sprintdom.ViewService
 	activitySvc taskdom.ActivityService
+	publisher   *messaging.Publisher
 }
 
 // NewTaskHandler returns a TaskHandler wired to the task service, view service,
 // and activity service.
-func NewTaskHandler(svc taskdom.Service, viewSvc sprintdom.ViewService, activitySvc taskdom.ActivityService) *TaskHandler {
-	return &TaskHandler{svc: svc, viewSvc: viewSvc, activitySvc: activitySvc}
+func NewTaskHandler(svc taskdom.Service, viewSvc sprintdom.ViewService, activitySvc taskdom.ActivityService, opts ...TaskHandlerOption) *TaskHandler {
+	h := &TaskHandler{svc: svc, viewSvc: viewSvc, activitySvc: activitySvc}
+	for _, opt := range opts {
+		opt(h)
+	}
+	return h
+}
+
+// TaskHandlerOption is a functional option for TaskHandler.
+type TaskHandlerOption func(*TaskHandler)
+
+// WithTaskPublisher attaches a Valkey publisher used to enqueue assignment
+// events for the NotificationConsumer worker.
+func WithTaskPublisher(p *messaging.Publisher) TaskHandlerOption {
+	return func(h *TaskHandler) {
+		h.publisher = p
+	}
 }
 
 // --- Task Types -------------------------------------------------------------
@@ -450,6 +468,17 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 			ActivityType: taskdom.ActivityTypeTaskCreated,
 			Content:      content,
 		})
+
+		// Enqueue an assignment event so the NotificationConsumer can create
+		// the in-app notification asynchronously (best-effort).
+		if h.publisher != nil && req.AssigneeID != nil {
+			_ = h.publisher.Append(c.Request.Context(), events.StreamTaskAssignments, "task.assigned", map[string]any{
+				"task_id":                t.ID,
+				"project_id":             projectID,
+				"new_assignee_member_id": req.AssigneeID.String(),
+				"actor_user_id":          actorID.String(),
+			})
+		}
 	}
 
 	presenter.Created(c, dto.TaskFromEntity(t))
@@ -508,6 +537,22 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 				ActivityType: taskdom.ActivityTypeTaskUpdated,
 				Content:      content,
 			})
+		}
+
+		// Enqueue an assignment event when the assignee changed so the
+		// NotificationConsumer can create the in-app notification asynchronously.
+		if h.publisher != nil && req.AssigneeID.Set && req.AssigneeID.Value != nil {
+			oldAssignee := uuidPtrToStr(oldTask.AssigneeID)
+			newAssignee := req.AssigneeID.Value.String()
+			if oldAssignee != newAssignee {
+				_ = h.publisher.Append(c.Request.Context(), events.StreamTaskAssignments, "task.assigned", map[string]any{
+					"task_id":                taskID,
+					"project_id":             projectID,
+					"new_assignee_member_id": req.AssigneeID.Value.String(),
+					"old_assignee_member_id": oldAssignee,
+					"actor_user_id":          actorID.String(),
+				})
+			}
 		}
 	}
 

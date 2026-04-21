@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	notificationdom "github.com/paca/api/internal/domain/notification"
 	projectdom "github.com/paca/api/internal/domain/project"
 	taskdom "github.com/paca/api/internal/domain/task"
 	"github.com/paca/api/internal/events"
@@ -22,9 +23,10 @@ type memberLookup interface {
 // ActivitySvc implements taskdom.ActivityService (which includes
 // taskdom.ActivityRecorder via embedding).
 type ActivitySvc struct {
-	repo       taskdom.ActivityRepository
-	memberRepo memberLookup
-	publisher  *messaging.Publisher
+	repo            taskdom.ActivityRepository
+	memberRepo      memberLookup
+	publisher       *messaging.Publisher
+	notificationSvc notificationdom.Service
 }
 
 // NewActivityService creates a new ActivitySvc backed by repo.
@@ -33,6 +35,13 @@ type ActivitySvc struct {
 // publisher may be nil; events are then skipped silently.
 func NewActivityService(repo taskdom.ActivityRepository, memberRepo memberLookup, publisher *messaging.Publisher) *ActivitySvc {
 	return &ActivitySvc{repo: repo, memberRepo: memberRepo, publisher: publisher}
+}
+
+// WithNotificationService attaches a notification service used to dispatch
+// @mention notifications when comments are created.
+func (s *ActivitySvc) WithNotificationService(svc notificationdom.Service) *ActivitySvc {
+	s.notificationSvc = svc
+	return s
 }
 
 // --- ActivityRecorder -------------------------------------------------------
@@ -95,6 +104,18 @@ func (s *ActivitySvc) AddComment(ctx context.Context, in taskdom.AddCommentInput
 		return nil, err
 	}
 	s.publishRealtimeOnly(ctx, events.TopicTaskCommentAdded, activityPayload(a, in.ProjectID))
+
+	// Dispatch @mention notifications (best-effort).
+	if s.notificationSvc != nil {
+		_ = s.notificationSvc.NotifyMentioned(ctx, notificationdom.NotifyMentionedInput{
+			TaskID:        in.TaskID,
+			ProjectID:     in.ProjectID,
+			CommentText:   in.Text,
+			ActorMemberID: member.ID,
+			ActorUserID:   in.ActorID,
+		})
+	}
+
 	return a, nil
 }
 
