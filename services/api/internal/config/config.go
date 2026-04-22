@@ -11,6 +11,7 @@ type Config struct {
 	JWT      JWTConfig
 	Admin    AdminConfig
 	Storage  StorageConfig
+	GitHub   GitHubConfig
 	Env      string // development | production
 }
 
@@ -57,4 +58,17 @@ type StorageConfig struct {
 	AccessKeyID     string
 	SecretAccessKey string
 	UseSSL          bool // set true when Endpoint is HTTPS
+}
+
+// GitHubConfig holds settings for the GitHub integration feature.
+type GitHubConfig struct {
+	// EncryptionKey is a 32-byte AES-256 key (hex-encoded) used to encrypt
+	// GitHub personal access tokens and webhook secrets at rest.
+	// Required when the GitHub integration feature is in use.
+	EncryptionKey string
+
+	// WebhookURL is the fully-qualified URL GitHub will POST webhook events to,
+	// derived from the PUBLIC_URL environment variable by appending
+	// "/api/v1/github/webhook".  Empty in local development (skips webhook creation).
+	WebhookURL string
 }

@@ -73,6 +73,9 @@ services:
       STORAGE_ACCESS_KEY_ID: minioadmin
       STORAGE_SECRET_ACCESS_KEY: minioadmin
       STORAGE_USE_SSL: "false"
+      # GitHub integration — leave empty to disable the feature entirely.
+      GITHUB_ENCRYPTION_KEY: "3b4a93a4f2ffa732a5f7cf44b9a37050e49f5f9c3f105c3995432b9dd49e28ac"
+      PUBLIC_URL: http://localhost
     volumes:
       - ../services/api:/workspace
       # go modules are pre-downloaded into the image layer; no volume needed.

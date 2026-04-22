@@ -29,6 +29,7 @@ import { ChecklistsSection } from "./checklists-section";
 import { DescriptionSection } from "./description-section";
 import { mapApiFieldToUi } from "./helpers";
 import { PropertiesPanel } from "./properties-panel";
+import { PullRequestsSection } from "./pull-requests-section";
 import { SubtasksSection } from "./subtasks-section";
 import { TaskHeader } from "./task-header";
 import type { TaskDetailModalProps } from "./types";
@@ -382,6 +383,15 @@ export function TaskDetailModal({
 							taskId={task.id}
 							canEdit={canEdit}
 						/>
+
+						{/* Pull Requests */}
+						{projectId && (
+							<PullRequestsSection
+								projectId={projectId}
+								taskId={task.id}
+								canEdit={canEdit}
+							/>
+						)}
 
 						{/* Bottom breathing room */}
 						<div className="h-8" />

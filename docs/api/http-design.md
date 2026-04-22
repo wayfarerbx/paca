@@ -173,6 +173,18 @@ These routes already exist in the Go API service.
 | `GET` | `/api/v1/projects/:projectId/custom-fields/:fieldId` | Access token (fresh) + `tasks.read` | Get a custom field definition by ID. |
 | `PATCH` | `/api/v1/projects/:projectId/custom-fields/:fieldId` | Access token (fresh) + `tasks.write` | Update a custom field definition. |
 | `DELETE` | `/api/v1/projects/:projectId/custom-fields/:fieldId` | Access token (fresh) + `tasks.write` | Delete a custom field definition. |
+| `GET` | `/api/v1/projects/:projectId/github` | Access token (fresh) + `projects.write` | Get the GitHub integration for a project (token presence only — the PAT value is never returned). Returns `404 GITHUB_INTEGRATION_NOT_FOUND` when no integration is configured. |
+| `PUT` | `/api/v1/projects/:projectId/github/token` | Access token (fresh) + `projects.write` | Validate and store (or replace) a GitHub personal access token. The token is validated against the GitHub API before being encrypted at rest. Returns `422 GITHUB_INVALID_TOKEN` if the token is rejected. |
+| `DELETE` | `/api/v1/projects/:projectId/github/token` | Access token (fresh) + `projects.write` | Remove the stored GitHub integration and delete the linked repository and its webhook. |
+| `GET` | `/api/v1/projects/:projectId/github/repositories` | Access token (fresh) + `projects.write` | List all repositories accessible with the project's GitHub PAT. Proxies the GitHub API. |
+| `GET` | `/api/v1/projects/:projectId/github/repository` | Access token (fresh) + `projects.write` | Get the currently linked repository for the project. Returns `404 GITHUB_REPOSITORY_NOT_FOUND` when none is linked. |
+| `PUT` | `/api/v1/projects/:projectId/github/repository` | Access token (fresh) + `projects.write` | Link a repository to the project. Automatically registers a webhook on the GitHub repository using the `PUBLIC_URL` base. |
+| `DELETE` | `/api/v1/projects/:projectId/github/repository` | Access token (fresh) + `projects.write` | Unlink the repository and delete its webhook. |
+| `GET` | `/api/v1/projects/:projectId/tasks/:taskId/github/pull-requests` | Access token (fresh) + `tasks.read` | List pull requests linked to a task. |
+| `POST` | `/api/v1/projects/:projectId/tasks/:taskId/github/pull-requests` | Access token (fresh) + `tasks.write` | Link a pull request to a task by PR number. Fetches and caches the PR metadata from GitHub. |
+| `DELETE` | `/api/v1/projects/:projectId/tasks/:taskId/github/pull-requests/:prId` | Access token (fresh) + `tasks.write` | Unlink a pull request from a task. |
+| `POST` | `/api/v1/projects/:projectId/tasks/:taskId/github/branches` | Access token (fresh) + `tasks.write` | Create a new git branch in the linked repository from an optional source branch (defaults to `default_branch`). |
+| `POST` | `/api/v1/github/webhook` | No (HMAC signature verified) | Receive GitHub webhook events (push, pull_request, check_run, etc.). Signature is verified with the per-repo HMAC-SHA256 secret. Always responds `204`. |
 
 > **"fresh" access token**: an access token whose `must_change_password` claim is `false`. If the claim is `true`, the request is rejected with `403 AUTH_PASSWORD_CHANGE_REQUIRED` and the user must call `PATCH /api/v1/users/me/password` first.
 
@@ -1322,6 +1334,237 @@ Error codes:
 
 ---
 
+## GitHub Integration Contracts
+
+### `PUT /api/v1/projects/:projectId/github/token`
+
+Function:
+
+- validate the supplied GitHub personal access token against the GitHub API;
+- encrypt the token with AES-256-GCM and store it for the project;
+- replace any previously stored integration.
+
+Request body:
+
+```json
+{
+  "token": "ghp_xxxxxxxxxxxxxxxxxxxx"
+}
+```
+
+Success response (`200 OK`):
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "<uuid>",
+    "project_id": "<uuid>",
+    "created_at": "2026-04-22T10:00:00Z",
+    "updated_at": "2026-04-22T10:00:00Z"
+  },
+  "request_id": "..."
+}
+```
+
+Error codes:
+
+| Code | HTTP | Meaning |
+|---|---|---|
+| `GITHUB_INVALID_TOKEN` | 422 | Token was rejected by the GitHub API (401/403). |
+
+### `GET /api/v1/projects/:projectId/github`
+
+Function: return confirmation that a GitHub integration exists (PAT is never returned).
+
+Success response (`200 OK`): same shape as `PUT /github/token`.
+
+Error codes:
+
+| Code | HTTP | Meaning |
+|---|---|---|
+| `GITHUB_INTEGRATION_NOT_FOUND` | 404 | No integration has been configured for this project. |
+
+### `DELETE /api/v1/projects/:projectId/github/token`
+
+Function: remove the stored PAT. Also removes the linked repository record and attempts to delete the webhook from GitHub. Success response: `204 No Content`.
+
+### `GET /api/v1/projects/:projectId/github/repositories`
+
+Function: proxy the GitHub API and return all repositories accessible with the project's PAT.
+
+Success response (`200 OK`):
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "full_name": "owner/repo",
+      "owner": "owner",
+      "repo_name": "repo",
+      "default_branch": "main",
+      "private": false,
+      "description": "A repository"
+    }
+  ],
+  "request_id": "..."
+}
+```
+
+### `PUT /api/v1/projects/:projectId/github/repository`
+
+Function:
+
+- link the specified repository to the project;
+- fetch repository metadata from GitHub;
+- generate an HMAC secret and register a webhook on the GitHub repository using `PUBLIC_URL` as the base;
+- store encrypted webhook secret.
+
+Request body:
+
+```json
+{
+  "owner": "my-org",
+  "repo_name": "my-repo"
+}
+```
+
+Success response (`200 OK`):
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "<uuid>",
+    "project_id": "<uuid>",
+    "integration_id": "<uuid>",
+    "owner": "my-org",
+    "repo_name": "my-repo",
+    "full_name": "my-org/my-repo",
+    "default_branch": "main",
+    "webhook_id": 12345678,
+    "created_at": "2026-04-22T10:00:00Z",
+    "updated_at": "2026-04-22T10:00:00Z"
+  },
+  "request_id": "..."
+}
+```
+
+Error codes:
+
+| Code | HTTP | Meaning |
+|---|---|---|
+| `GITHUB_INTEGRATION_NOT_FOUND` | 404 | No PAT has been configured; call `PUT /github/token` first. |
+| `GITHUB_WEBHOOK_URL_REQUIRED` | 500 | `PUBLIC_URL` env var is not set; automatic webhook creation is unavailable. |
+
+### `DELETE /api/v1/projects/:projectId/github/repository`
+
+Function: unlink the repository and attempt to delete the GitHub webhook. Success response: `204 No Content`.
+
+### `GET /api/v1/projects/:projectId/tasks/:taskId/github/pull-requests`
+
+Function: return pull requests linked to the task.
+
+Success response (`200 OK`):
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "<uuid>",
+      "project_id": "<uuid>",
+      "repo_id": "<uuid>",
+      "pr_number": 42,
+      "github_pr_id": 999999,
+      "title": "feat: add dark mode",
+      "state": "open",
+      "html_url": "https://github.com/owner/repo/pull/42",
+      "head_branch": "feature/dark-mode",
+      "base_branch": "main",
+      "author": "alice",
+      "merged_at": null,
+      "created_at": "2026-04-22T10:00:00Z",
+      "updated_at": "2026-04-22T10:00:00Z"
+    }
+  ],
+  "request_id": "..."
+}
+```
+
+### `POST /api/v1/projects/:projectId/tasks/:taskId/github/pull-requests`
+
+Function:
+
+- fetch the specified PR from the GitHub API and cache it;
+- create a link between the task and the PR.
+
+Request body:
+
+```json
+{
+  "pr_number": 42
+}
+```
+
+Success response: `201 Created` with the same PR object shape.
+
+Error codes:
+
+| Code | HTTP | Meaning |
+|---|---|---|
+| `GITHUB_INTEGRATION_NOT_FOUND` | 404 | No PAT configured for the project. |
+| `GITHUB_REPOSITORY_NOT_FOUND` | 404 | No repository linked to the project. |
+| `GITHUB_PR_NOT_FOUND` | 404 | PR with the given number does not exist in the linked repository. |
+| `GITHUB_PR_ALREADY_LINKED` | 409 | PR is already linked to this task. |
+
+### `DELETE /api/v1/projects/:projectId/tasks/:taskId/github/pull-requests/:prId`
+
+Function: remove the link between the task and the pull request (does not affect the PR on GitHub). Success response: `204 No Content`.
+
+### `POST /api/v1/projects/:projectId/tasks/:taskId/github/branches`
+
+Function: create a new branch in the linked GitHub repository.
+
+Request body:
+
+```json
+{
+  "branch_name": "feature/PACA-42-dark-mode",
+  "source_branch": "main"
+}
+```
+
+`source_branch` is optional; defaults to the repository's `default_branch` when omitted.
+
+Success response (`201 Created`):
+
+```json
+{
+  "success": true,
+  "data": {
+    "branch_name": "feature/PACA-42-dark-mode"
+  },
+  "request_id": "..."
+}
+```
+
+### `POST /api/v1/github/webhook`
+
+Function:
+
+- receive a GitHub webhook event (push, pull_request, check_run, etc.);
+- look up the repository by `repository.full_name` in the payload;
+- verify the `X-Hub-Signature-256` HMAC-SHA256 signature against the stored per-repo secret;
+- handle `pull_request` events by upserting cached PR metadata.
+
+This endpoint is **public** (no bearer token required). Signature verification is mandatory; mismatched signatures are silently ignored.
+
+Always responds `204 No Content` regardless of outcome so GitHub does not retry on application errors.
+
+---
+
 ## Planned Resource API
 
 The following endpoints are not yet implemented. They are the recommended path design for the next API slices based on the domain model.
@@ -1441,5 +1684,13 @@ The schema and HTTP contract are consistent. Before adding the next slice (proje
 | `CUSTOM_FIELD_KEY_TAKEN` | 409 | A field with that `field_key` already exists within the project. |
 | `CUSTOM_FIELD_TYPE_INVALID` | 400 | `field_type` is not one of the allowed values. |
 | `CUSTOM_FIELD_NAME_INVALID` | 400 | `display_name` is empty or invalid. |
+| `NOTIFICATION_NOT_FOUND` | 404 | Notification with the given ID does not exist or belongs to another user. |
+| `GITHUB_INTEGRATION_NOT_FOUND` | 404 | No GitHub integration configured for the project. |
+| `GITHUB_REPOSITORY_NOT_FOUND` | 404 | No GitHub repository linked to the project. |
+| `GITHUB_PR_NOT_FOUND` | 404 | Pull request with the given ID does not exist. |
+| `GITHUB_PR_LINK_NOT_FOUND` | 404 | Task-PR link with the given ID does not exist. |
+| `GITHUB_PR_ALREADY_LINKED` | 409 | This pull request is already linked to the task. |
+| `GITHUB_INVALID_TOKEN` | 422 | The GitHub personal access token was rejected by the GitHub API. |
+| `GITHUB_WEBHOOK_URL_REQUIRED` | 500 | `PUBLIC_URL` is not configured; automatic webhook creation is unavailable. |
 | `BAD_REQUEST` | 400 | Malformed or invalid request body. |
 | `INTERNAL_ERROR` | 500 | Unexpected server error. |

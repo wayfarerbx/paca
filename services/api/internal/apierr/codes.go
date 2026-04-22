@@ -175,6 +175,33 @@ const (
 	// CodeNotificationNotFound indicates the requested notification does not exist
 	// or does not belong to the authenticated user.
 	CodeNotificationNotFound Code = "NOTIFICATION_NOT_FOUND"
+
+	// CodeGitHubIntegrationNotFound indicates the project has no GitHub integration configured.
+	CodeGitHubIntegrationNotFound Code = "GITHUB_INTEGRATION_NOT_FOUND"
+	// CodeGitHubRepositoryNotFound indicates the project has no linked GitHub repository.
+	CodeGitHubRepositoryNotFound Code = "GITHUB_REPOSITORY_NOT_FOUND"
+	// CodeGitHubPRNotFound indicates the pull request does not exist.
+	CodeGitHubPRNotFound Code = "GITHUB_PR_NOT_FOUND"
+	// CodeGitHubPRLinkNotFound indicates the task-PR link does not exist.
+	CodeGitHubPRLinkNotFound Code = "GITHUB_PR_LINK_NOT_FOUND"
+	// CodeGitHubPRAlreadyLinked indicates the pull request is already linked to the task.
+	CodeGitHubPRAlreadyLinked Code = "GITHUB_PR_ALREADY_LINKED"
+	// CodeGitHubInvalidToken indicates the GitHub personal access token was rejected.
+	CodeGitHubInvalidToken Code = "GITHUB_INVALID_TOKEN"
+	// CodeGitHubWebhookURLRequired indicates the service has no public webhook URL configured.
+	CodeGitHubWebhookURLRequired Code = "GITHUB_WEBHOOK_URL_REQUIRED"
+	// CodeGitHubRepoNotAccessible indicates the GitHub repository was not found
+	// or the PAT does not have access.
+	CodeGitHubRepoNotAccessible Code = "GITHUB_REPO_NOT_ACCESSIBLE"
+	// CodeGitHubRepoAlreadyLinked indicates the repository is already linked
+	// to the project.
+	CodeGitHubRepoAlreadyLinked Code = "GITHUB_REPO_ALREADY_LINKED"
+	// CodeGitHubWebhookCreationFailed indicates that creating a webhook on the
+	// GitHub repository failed.
+	CodeGitHubWebhookCreationFailed Code = "GITHUB_WEBHOOK_CREATION_FAILED"
+	// CodeGitHubWebhookURLNotPublic indicates the configured webhook URL is not
+	// reachable from the public internet (e.g. localhost).
+	CodeGitHubWebhookURLNotPublic Code = "GITHUB_WEBHOOK_URL_NOT_PUBLIC"
 )
 
 // Error carries a machine-readable Code alongside a human-readable Message.

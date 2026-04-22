@@ -61,6 +61,9 @@ services:
       STORAGE_ACCESS_KEY_ID: e2e-minio-access-key
       STORAGE_SECRET_ACCESS_KEY: e2e-minio-secret-key
       STORAGE_USE_SSL: "false"
+      # GitHub integration — fixed E2E test key (32-byte AES-256, hex-encoded).
+      GITHUB_ENCRYPTION_KEY: "3b4a93a4f2ffa732a5f7cf44b9a37050e49f5f9c3f105c3995432b9dd49e28ac"
+      PUBLIC_URL: http://localhost
     depends_on:
       postgres:
         condition: service_healthy

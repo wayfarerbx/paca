@@ -59,6 +59,19 @@ export const ApiErrorCode = {
 	CustomFieldTypeInvalid: "CUSTOM_FIELD_TYPE_INVALID",
 	CustomFieldNameInvalid: "CUSTOM_FIELD_NAME_INVALID",
 
+	// GitHub integration errors.
+	GitHubIntegrationNotFound: "GITHUB_INTEGRATION_NOT_FOUND",
+	GitHubRepositoryNotFound: "GITHUB_REPOSITORY_NOT_FOUND",
+	GitHubPRNotFound: "GITHUB_PR_NOT_FOUND",
+	GitHubPRLinkNotFound: "GITHUB_PR_LINK_NOT_FOUND",
+	GitHubPRAlreadyLinked: "GITHUB_PR_ALREADY_LINKED",
+	GitHubInvalidToken: "GITHUB_INVALID_TOKEN",
+	GitHubWebhookURLRequired: "GITHUB_WEBHOOK_URL_REQUIRED",
+	GitHubRepoNotAccessible: "GITHUB_REPO_NOT_ACCESSIBLE",
+	GitHubRepoAlreadyLinked: "GITHUB_REPO_ALREADY_LINKED",
+	GitHubWebhookCreationFailed: "GITHUB_WEBHOOK_CREATION_FAILED",
+	GitHubWebhookURLNotPublic: "GITHUB_WEBHOOK_URL_NOT_PUBLIC",
+
 	// Generic / request errors.
 	BadRequest: "BAD_REQUEST",
 	InternalError: "INTERNAL_ERROR",

@@ -82,6 +82,10 @@ services:
       STORAGE_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY_ID:?set STORAGE_ACCESS_KEY_ID}
       STORAGE_SECRET_ACCESS_KEY: ${STORAGE_SECRET_ACCESS_KEY:?set STORAGE_SECRET_ACCESS_KEY}
       STORAGE_USE_SSL: ${STORAGE_USE_SSL:-false}
+      # GitHub integration — optional.  When GITHUB_ENCRYPTION_KEY is empty the
+      # feature is disabled.  Must be a 64-char lowercase hex string (32 bytes).
+      GITHUB_ENCRYPTION_KEY: ${GITHUB_ENCRYPTION_KEY:-}
+      PUBLIC_URL: ${PUBLIC_URL:-}
     depends_on:
       postgres:
         condition: service_healthy

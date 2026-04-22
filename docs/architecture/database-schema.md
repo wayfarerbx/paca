@@ -8,7 +8,7 @@ Interactive diagram: [https://dbdiagram.io/d/Paca-69c212ae78c6c4bc7a4fc190](http
 
 | File | Purpose |
 |---|---|
-| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects, project roles/members, task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views`, `view_task_positions`, `custom_field_definitions`, `tasks`, `task_attachments`, `task_checklists`, `task_checklist_items`, `bdd_scenarios`, `task_activities`, `doc_folders` (hierarchical folders with `parent_id` self-reference, `position`, `created_by`), `documents` (BlockNote `content` JSONB, `folder_id`, `position`, soft-delete via `deleted_at`, `created_by`/`updated_by` referencing `project_members`), `doc_snapshots` (point-in-time content copies for diff/history, `snapshot_number` auto-incremented per document via a trigger), `doc_activities` (audit log + comments), `notifications` (task-assignment and @mention notifications with `recipient_user_id`, `actor_member_id`, `type`, `read_at`), and seed data. |
+| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects, project roles/members, task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views`, `view_task_positions`, `custom_field_definitions`, `tasks`, `task_attachments`, `task_checklists`, `task_checklist_items`, `bdd_scenarios`, `task_activities`, `doc_folders` (hierarchical folders with `parent_id` self-reference, `position`, `created_by`), `documents` (BlockNote `content` JSONB, `folder_id`, `position`, soft-delete via `deleted_at`, `created_by`/`updated_by` referencing `project_members`), `doc_snapshots` (point-in-time content copies for diff/history, `snapshot_number` auto-incremented per document via a trigger), `doc_activities` (audit log + comments), `notifications` (task-assignment and @mention notifications with `recipient_user_id`, `actor_member_id`, `type`, `read_at`), `github_integrations` (per-project encrypted GitHub PAT), `github_repositories` (linked repo + webhook metadata), `github_pull_requests` (cached PR data synced from GitHub), `github_task_pr_links` (task↔PR join table), and seed data. |
 
 ## Schema (DBML)
 
@@ -316,6 +316,61 @@ Table task_checklist_items {
   updated_at   timestamp
 }
 
+// --- GITHUB INTEGRATION ---
+Table github_integrations {
+  id               uuid [primary key]
+  project_id       uuid [not null, unique, ref: > projects.id]
+  access_token_enc text [not null, note: 'AES-256-GCM encrypted GitHub PAT (base64)']
+  created_at       timestamp
+  updated_at       timestamp
+}
+
+Table github_repositories {
+  id                 uuid [primary key]
+  project_id         uuid [not null, unique, ref: > projects.id]
+  integration_id     uuid [not null, ref: > github_integrations.id]
+  owner              text [not null]
+  repo_name          text [not null]
+  full_name          text [not null, note: '"owner/repo"']
+  webhook_id         bigint [null, note: 'GitHub webhook ID; NULL until webhook is registered']
+  webhook_secret_enc text [null, note: 'AES-256-GCM encrypted HMAC secret for webhook signature verification']
+  default_branch     text [not null, default: 'main']
+  created_at         timestamp
+  updated_at         timestamp
+}
+
+Table github_pull_requests {
+  id           uuid [primary key]
+  project_id   uuid [not null, ref: > projects.id]
+  repo_id      uuid [not null, ref: > github_repositories.id]
+  pr_number    integer [not null]
+  github_pr_id bigint [not null]
+  title        text [not null, default: '']
+  state        text [not null, default: 'open', note: 'open | closed | merged']
+  html_url     text [not null, default: '']
+  head_branch  text [not null, default: '']
+  base_branch  text [not null, default: '']
+  author       text [not null, default: '']
+  merged_at    timestamp [null]
+  created_at   timestamp
+  updated_at   timestamp
+
+  indexes {
+    (repo_id, pr_number) [unique]
+  }
+}
+
+Table github_task_pr_links {
+  id              uuid [primary key]
+  task_id         uuid [not null, ref: > tasks.id]
+  pull_request_id uuid [not null, ref: > github_pull_requests.id]
+  created_at      timestamp
+
+  indexes {
+    (task_id, pull_request_id) [unique]
+  }
+}
+
 // --- RELATIONSHIPS ---
 Ref: projects.id < project_members.project_id
 Ref: users.id < project_members.user_id
@@ -362,4 +417,12 @@ Ref: users.id < notifications.recipient_user_id
 Ref: project_members.id < notifications.actor_member_id
 Ref: tasks.id < notifications.task_id
 Ref: projects.id < notifications.project_id
+
+Ref: projects.id < github_integrations.project_id
+Ref: projects.id < github_repositories.project_id
+Ref: github_integrations.id < github_repositories.integration_id
+Ref: projects.id < github_pull_requests.project_id
+Ref: github_repositories.id < github_pull_requests.repo_id
+Ref: tasks.id < github_task_pr_links.task_id
+Ref: github_pull_requests.id < github_task_pr_links.pull_request_id
 ```

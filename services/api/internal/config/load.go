@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -117,7 +118,27 @@ func Load() (*Config, error) {
 			SecretAccessKey: storageSecretKey,
 			UseSSL:          storageUseSSL,
 		},
+		GitHub: GitHubConfig{
+			// GITHUB_ENCRYPTION_KEY must be a 64-character lowercase hex string
+			// representing 32 bytes (AES-256).  It is optional; when absent the
+			// GitHub integration endpoints will fail with a clear error at runtime.
+			EncryptionKey: env("GITHUB_ENCRYPTION_KEY", ""),
+			// WebhookURL is derived from PUBLIC_URL by appending the webhook path.
+			// Set PUBLIC_URL to the externally reachable base URL of this service,
+			// e.g. "https://api.example.com".  Leave empty in development to skip
+			// webhook creation when linking GitHub repositories.
+			WebhookURL: buildWebhookURL(env("PUBLIC_URL", "")),
+		},
 	}, nil
+}
+
+// buildWebhookURL appends the standard GitHub webhook path to the public base URL.
+// Returns an empty string when publicURL is empty (disables automatic webhook creation).
+func buildWebhookURL(publicURL string) string {
+	if publicURL == "" {
+		return ""
+	}
+	return strings.TrimRight(publicURL, "/") + "/api/v1/github/webhook"
 }
 
 // env returns the environment variable value or a fallback default.

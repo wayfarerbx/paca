@@ -42,6 +42,7 @@ import (
 	"github.com/paca/api/internal/transport/http/router"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
+	"gorm.io/gorm"
 )
 
 const (
@@ -81,6 +82,7 @@ type e2eEnv struct {
 	viewSvc        *sprintsvc.ViewService
 	attachmentRepo *pgRepo.AttachmentRepository
 	attachmentSvc  *attachmentsvc.Service
+	db             *gorm.DB // raw connection for per-test service wiring
 }
 
 func newE2EEnv(t *testing.T) *e2eEnv {
@@ -218,6 +220,7 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 		Sprint:       handler.NewSprintHandler(sprintService, viewService),
 		View:         handler.NewViewHandler(viewService),
 		Attachment:   handler.NewAttachmentHandler(attachmentService),
+		GitHub:       nil, // GitHub handler is wired per-test in github_test.go
 		Log:          log,
 	})
 
@@ -249,6 +252,7 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 		viewSvc:        viewService,
 		attachmentRepo: attachmentRepo,
 		attachmentSvc:  attachmentService,
+		db:             db,
 	}
 }
 
