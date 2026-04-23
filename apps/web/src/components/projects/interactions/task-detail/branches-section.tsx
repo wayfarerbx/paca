@@ -23,10 +23,9 @@ import { cn } from "@/lib/utils";
 function CopyButton({ text }: { text: string }) {
 	const [copied, setCopied] = useState(false);
 	function copy() {
-		void navigator.clipboard.writeText(text).then(() => {
-			setCopied(true);
-			setTimeout(() => setCopied(false), 2000);
-		});
+		navigator.clipboard?.writeText(text)?.catch(() => {});
+		setCopied(true);
+		setTimeout(() => setCopied(false), 2000);
 	}
 	return (
 		<button
