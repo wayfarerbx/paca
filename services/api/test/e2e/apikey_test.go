@@ -161,7 +161,7 @@ func TestE2EAPIKey_AuthMethods(t *testing.T) {
 	_, rawKey := createAPIKey(t, env, client, token, "sdk-key")
 
 	t.Run("x_api_key_header", func(t *testing.T) {
-		req := mustRequest(env.ctx, t, http.MethodGet, env.base+"/api/v1/users/me/api-keys", nil)
+		req := mustRequest(env.ctx, t, http.MethodGet, env.base+"/api/v1/users/me", nil)
 		req.Header.Set("X-API-Key", rawKey)
 		resp := mustDo(t, &http.Client{}, req)
 		defer func() { _ = resp.Body.Close() }()
@@ -169,7 +169,7 @@ func TestE2EAPIKey_AuthMethods(t *testing.T) {
 	})
 
 	t.Run("authorization_apikey_header", func(t *testing.T) {
-		req := mustRequest(env.ctx, t, http.MethodGet, env.base+"/api/v1/users/me/api-keys", nil)
+		req := mustRequest(env.ctx, t, http.MethodGet, env.base+"/api/v1/users/me", nil)
 		req.Header.Set("Authorization", "ApiKey "+rawKey)
 		resp := mustDo(t, &http.Client{}, req)
 		defer func() { _ = resp.Body.Close() }()

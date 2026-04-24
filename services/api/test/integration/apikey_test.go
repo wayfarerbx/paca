@@ -15,10 +15,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	apikeydom "github.com/paca/api/internal/domain/apikey"
+	userdom "github.com/paca/api/internal/domain/user"
 	"github.com/paca/api/internal/platform/authz"
 	jwttoken "github.com/paca/api/internal/platform/token"
 	apikeysvc "github.com/paca/api/internal/service/apikey"
 	authsvc "github.com/paca/api/internal/service/auth"
+	usersvc "github.com/paca/api/internal/service/user"
 	"github.com/paca/api/internal/transport/http/handler"
 	"github.com/paca/api/internal/transport/http/router"
 )
@@ -112,12 +114,13 @@ func (r *fakeAPIKeyRepo) UpdateLastUsed(_ context.Context, id uuid.UUID, at time
 // Router builder
 // ---------------------------------------------------------------------------
 
-func buildAPIKeyTestRouter(apiKeyRepo *fakeAPIKeyRepo) (*gin.Engine, *jwttoken.Manager) {
+func buildAPIKeyTestRouter(apiKeyRepo *fakeAPIKeyRepo) (*gin.Engine, *jwttoken.Manager, *fakeUserRepo) {
 	gin.SetMode(gin.TestMode)
 	tm := jwttoken.New(testSecret, 15*time.Minute, 168*time.Hour)
 	store := &fakeRefreshStore{}
 	userRepo := newFakeUserRepo()
 	authService := authsvc.New(userRepo, tm, store, 168*time.Hour, 24*time.Hour)
+	userService := usersvc.New(userRepo, userRepo)
 	apiKeyService := apikeysvc.New(apiKeyRepo)
 	log := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
@@ -127,11 +130,11 @@ func buildAPIKeyTestRouter(apiKeyRepo *fakeAPIKeyRepo) (*gin.Engine, *jwttoken.M
 		Authorizer:   authz.NewAuthorizer(nil),
 		Health:       handler.NewHealthHandler(),
 		Auth:         handler.NewAuthHandler(authService, testCookieCfg),
-		User:         handler.NewUserHandler(nil),
+		User:         handler.NewUserHandler(userService),
 		APIKey:       handler.NewAPIKeyHandler(apiKeyService),
 		Log:          log,
 	})
-	return r, tm
+	return r, tm, userRepo
 }
 
 // issueUserToken issues a JWT for a regular user.
@@ -151,7 +154,7 @@ func issueUserToken(t *testing.T, userID string) string {
 
 func TestAPIKey_ListEmpty(t *testing.T) {
 	repo := newFakeAPIKeyRepo()
-	r, _ := buildAPIKeyTestRouter(repo)
+	r, _, _ := buildAPIKeyTestRouter(repo)
 
 	userID := uuid.NewString()
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/v1/users/me/api-keys", nil)
@@ -166,7 +169,7 @@ func TestAPIKey_ListEmpty(t *testing.T) {
 
 func TestAPIKey_CreateAndList(t *testing.T) {
 	repo := newFakeAPIKeyRepo()
-	r, _ := buildAPIKeyTestRouter(repo)
+	r, _, _ := buildAPIKeyTestRouter(repo)
 
 	userID := uuid.NewString()
 	tok := issueUserToken(t, userID)
@@ -223,7 +226,7 @@ func TestAPIKey_CreateAndList(t *testing.T) {
 
 func TestAPIKey_CreateRequiresName(t *testing.T) {
 	repo := newFakeAPIKeyRepo()
-	r, _ := buildAPIKeyTestRouter(repo)
+	r, _, _ := buildAPIKeyTestRouter(repo)
 
 	userID := uuid.NewString()
 	body, _ := json.Marshal(map[string]string{"name": ""})
@@ -240,7 +243,7 @@ func TestAPIKey_CreateRequiresName(t *testing.T) {
 
 func TestAPIKey_RevokeAndCannotReuse(t *testing.T) {
 	repo := newFakeAPIKeyRepo()
-	r, _ := buildAPIKeyTestRouter(repo)
+	r, _, _ := buildAPIKeyTestRouter(repo)
 
 	userID := uuid.NewString()
 	tok := issueUserToken(t, userID)
@@ -286,10 +289,15 @@ func TestAPIKey_RevokeAndCannotReuse(t *testing.T) {
 
 func TestAPIKey_AuthenticateViaAPIKey(t *testing.T) {
 	repo := newFakeAPIKeyRepo()
-	r, _ := buildAPIKeyTestRouter(repo)
+	r, _, userRepo := buildAPIKeyTestRouter(repo)
 
-	userID := uuid.NewString()
-	tok := issueUserToken(t, userID)
+	userID := uuid.MustParse(uuid.NewString())
+	_ = userRepo.Create(context.Background(), &userdom.User{
+		ID:       userID,
+		Username: "apikeyuser",
+		Role:     userdom.RoleUser,
+	})
+	tok := issueUserToken(t, userID.String())
 
 	// Create a key.
 	body, _ := json.Marshal(map[string]string{"name": "sdk key"})
@@ -307,7 +315,7 @@ func TestAPIKey_AuthenticateViaAPIKey(t *testing.T) {
 	_ = json.NewDecoder(w.Body).Decode(&env)
 
 	// Use the API key via X-API-Key header.
-	req2 := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/v1/users/me/api-keys", nil)
+	req2 := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/v1/users/me", nil)
 	req2.Header.Set("X-API-Key", env.Data.Key)
 	w2 := httptest.NewRecorder()
 	r.ServeHTTP(w2, req2)
@@ -318,7 +326,7 @@ func TestAPIKey_AuthenticateViaAPIKey(t *testing.T) {
 
 func TestAPIKey_RevokeOtherUserKeyForbidden(t *testing.T) {
 	repo := newFakeAPIKeyRepo()
-	r, _ := buildAPIKeyTestRouter(repo)
+	r, _, _ := buildAPIKeyTestRouter(repo)
 
 	ownerID := uuid.NewString()
 	otherID := uuid.NewString()
