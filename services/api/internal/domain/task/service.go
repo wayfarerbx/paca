@@ -61,6 +61,8 @@ type TaskStatusService interface {
 	UpdateTaskStatus(ctx context.Context, projectID, id uuid.UUID, in UpdateTaskStatusInput) (*TaskStatus, error)
 	// DeleteTaskStatus removes the task status identified by id, verifying it belongs to projectID.
 	DeleteTaskStatus(ctx context.Context, projectID, id uuid.UUID) error
+	// SetDefaultTaskStatus atomically marks statusID as the default for the project.
+	SetDefaultTaskStatus(ctx context.Context, projectID, statusID uuid.UUID) (*TaskStatus, error)
 }
 
 // CreateTaskStatusInput carries fields required to create a task status.

@@ -53,6 +53,7 @@ type TaskStatus struct {
 	Color     *string
 	Position  int
 	Category  StatusCategory
+	IsDefault bool
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

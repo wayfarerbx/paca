@@ -152,6 +152,7 @@ CREATE TABLE IF NOT EXISTS task_statuses (
     color       TEXT,
     position    INTEGER     NOT NULL DEFAULT 0,
     category    TEXT        NOT NULL CHECK (category IN ('backlog','refinement','ready','todo','inprogress','done')),
+    is_default  BOOLEAN     NOT NULL DEFAULT false,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

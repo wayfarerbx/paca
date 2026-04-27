@@ -59,6 +59,11 @@ const DeleteTaskStatusSchema = z.object({
   statusId: z.string(),
 });
 
+const SetDefaultTaskStatusSchema = z.object({
+  projectId: z.string(),
+  statusId: z.string(),
+});
+
 /**
  * Returns all task type and status related MCP tools.
  */
@@ -275,6 +280,24 @@ export function getTaskStatusTools(): Tool[] {
         required: ["projectId", "statusId"],
       },
     },
+    {
+      name: "set_default_task_status",
+      description: "Set a task status as the default for the project",
+      inputSchema: {
+        type: "object",
+        properties: {
+          projectId: {
+            type: "string",
+            description: "The ID of the project",
+          },
+          statusId: {
+            type: "string",
+            description: "The ID of the task status to set as default",
+          },
+        },
+        required: ["projectId", "statusId"],
+      },
+    },
   ];
 }
 
@@ -295,6 +318,7 @@ ID: ${status.id}
 Color: ${status.color || "None"}
 Category: ${status.category}
 Position: ${status.position}
+Default: ${status.is_default ?? false}
 Created: ${status.createdAt}`;
 }
 
@@ -441,6 +465,19 @@ export async function handleTaskTypeTool(
           {
             type: "text",
             text: `Task status ${statusId} deleted successfully`,
+          },
+        ],
+      };
+    }
+
+    case "set_default_task_status": {
+      const { projectId, statusId } = SetDefaultTaskStatusSchema.parse(args);
+      const status = await client.setDefaultTaskStatus(projectId, statusId);
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Default task status set successfully:\n\n${formatTaskStatus(status)}`,
           },
         ],
       };

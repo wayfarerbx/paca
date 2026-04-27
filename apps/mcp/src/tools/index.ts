@@ -135,7 +135,7 @@ export async function handleToolCall(
         name === "update_task_type" || name === "delete_task_type" ||
         name === "set_default_task_type" || name === "list_task_statuses" ||
         name === "create_task_status" || name === "update_task_status" ||
-        name === "delete_task_status") {
+        name === "delete_task_status" || name === "set_default_task_status") {
       return handleTaskTypeTool(name, args, clients.extendedClient);
     }
 

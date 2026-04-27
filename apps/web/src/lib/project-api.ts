@@ -312,6 +312,7 @@ export interface TaskStatus {
 	color?: string | null;
 	position: number;
 	category: StatusCategory;
+	is_default?: boolean;
 	created_at: string;
 	updated_at: string;
 }
@@ -365,6 +366,16 @@ export async function deleteTaskStatus(
 	await apiClient.instance.delete(
 		`/projects/${projectId}/task-statuses/${statusId}`,
 	);
+}
+
+export async function setDefaultTaskStatus(
+	projectId: string,
+	statusId: string,
+): Promise<TaskStatus> {
+	const { data } = await apiClient.instance.put<SuccessEnvelope<TaskStatus>>(
+		`/projects/${projectId}/task-statuses/${statusId}/set-default`,
+	);
+	return data.data;
 }
 
 // ── Custom Field Definitions ─────────────────────────────────────────────────

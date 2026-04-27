@@ -199,6 +199,15 @@ func (s *Service) DeleteTaskStatus(ctx context.Context, projectID, id uuid.UUID)
 	return s.repo.DeleteTaskStatus(ctx, id)
 }
 
+// SetDefaultTaskStatus marks statusID as the project's default task status,
+// returning the updated status.
+func (s *Service) SetDefaultTaskStatus(ctx context.Context, projectID, statusID uuid.UUID) (*taskdom.TaskStatus, error) {
+	if err := s.repo.SetDefaultTaskStatus(ctx, projectID, statusID); err != nil {
+		return nil, err
+	}
+	return s.repo.FindTaskStatusByID(ctx, statusID)
+}
+
 // --- Tasks ------------------------------------------------------------------
 
 // ListTasks returns a page of tasks for a project with optional filters.
@@ -230,11 +239,30 @@ func (s *Service) GetTaskByNumber(ctx context.Context, projectID uuid.UUID, task
 	return s.repo.FindTaskByNumber(ctx, projectID, taskNumber)
 }
 
-// CreateTask creates a new task.
+// CreateTask creates a new task. When TaskTypeID or StatusID are not provided,
+// the project's default task type / status is resolved automatically.
 func (s *Service) CreateTask(ctx context.Context, in taskdom.CreateTaskInput) (*taskdom.Task, error) {
 	title := strings.TrimSpace(in.Title)
 	if title == "" {
 		return nil, taskdom.ErrTaskTitleInvalid
+	}
+
+	taskTypeID := in.TaskTypeID
+	if taskTypeID == nil {
+		if dt, err := s.repo.FindDefaultTaskType(ctx, in.ProjectID); err != nil {
+			return nil, err
+		} else if dt != nil {
+			taskTypeID = &dt.ID
+		}
+	}
+
+	statusID := in.StatusID
+	if statusID == nil {
+		if ds, err := s.repo.FindDefaultTaskStatus(ctx, in.ProjectID); err != nil {
+			return nil, err
+		} else if ds != nil {
+			statusID = &ds.ID
+		}
 	}
 
 	cf := in.CustomFields
@@ -250,8 +278,8 @@ func (s *Service) CreateTask(ctx context.Context, in taskdom.CreateTaskInput) (*
 	t := &taskdom.Task{
 		ID:           uuid.New(),
 		ProjectID:    in.ProjectID,
-		TaskTypeID:   in.TaskTypeID,
-		StatusID:     in.StatusID,
+		TaskTypeID:   taskTypeID,
+		StatusID:     statusID,
 		SprintID:     in.SprintID,
 		ParentTaskID: in.ParentTaskID,
 		Title:        title,

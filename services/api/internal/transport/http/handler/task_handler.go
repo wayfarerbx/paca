@@ -264,6 +264,26 @@ func (h *TaskHandler) DeleteTaskStatus(c *gin.Context) {
 	presenter.OK(c, gin.H{"message": "task status deleted"})
 }
 
+// SetDefaultTaskStatus handles PUT /projects/:projectId/task-statuses/:statusId/set-default.
+func (h *TaskHandler) SetDefaultTaskStatus(c *gin.Context) {
+	projectID, err := parseProjectID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	statusID, err := parseTaskStatusID(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	s, err := h.svc.SetDefaultTaskStatus(c.Request.Context(), projectID, statusID)
+	if err != nil {
+		presenter.Error(c, err)
+		return
+	}
+	presenter.OK(c, dto.TaskStatusFromEntity(s))
+}
+
 // --- Tasks ------------------------------------------------------------------
 
 // ListTasks handles GET /projects/:projectId/tasks.

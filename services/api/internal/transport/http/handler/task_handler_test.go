@@ -97,6 +97,10 @@ func (f *fakeTaskSvc) UpdateTaskStatus(_ context.Context, _, _ uuid.UUID, _ task
 
 func (f *fakeTaskSvc) DeleteTaskStatus(_ context.Context, _, _ uuid.UUID) error { return nil }
 
+func (f *fakeTaskSvc) SetDefaultTaskStatus(_ context.Context, _, _ uuid.UUID) (*taskdom.TaskStatus, error) {
+	return &taskdom.TaskStatus{}, nil
+}
+
 // -- TaskService --
 
 func (f *fakeTaskSvc) ListTasks(_ context.Context, projectID uuid.UUID, filter taskdom.TaskFilter, _, _ int) ([]*taskdom.Task, int64, error) {

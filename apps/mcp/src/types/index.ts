@@ -423,6 +423,7 @@ export interface TaskStatus {
   color?: string | null;
   position: number;
   category: StatusCategory;
+  is_default?: boolean;
   created_at: string;
   updated_at: string;
 }

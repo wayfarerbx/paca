@@ -244,6 +244,16 @@ export class PacaAPIExtendedClient {
     await this.delete(`/api/v1/projects/${projectId}/task-statuses/${statusId}`);
   }
 
+  async setDefaultTaskStatus(
+    projectId: string,
+    statusId: string
+  ): Promise<TaskStatus> {
+    return this.put(
+      `/api/v1/projects/${projectId}/task-statuses/${statusId}/set-default`,
+      {}
+    );
+  }
+
   // ==================== Custom Field Definitions ====================
 
   async listCustomFieldDefinitions(projectId: string): Promise<CustomFieldDefinition[]> {

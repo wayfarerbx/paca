@@ -211,6 +211,7 @@ type TaskStatusResponse struct {
 	Color     *string                `json:"color,omitempty"`
 	Position  int                    `json:"position"`
 	Category  taskdom.StatusCategory `json:"category"`
+	IsDefault bool                   `json:"is_default"`
 	CreatedAt time.Time              `json:"created_at"`
 	UpdatedAt time.Time              `json:"updated_at"`
 }
@@ -224,6 +225,7 @@ func TaskStatusFromEntity(s *taskdom.TaskStatus) TaskStatusResponse {
 		Color:     s.Color,
 		Position:  s.Position,
 		Category:  s.Category,
+		IsDefault: s.IsDefault,
 		CreatedAt: s.CreatedAt,
 		UpdatedAt: s.UpdatedAt,
 	}

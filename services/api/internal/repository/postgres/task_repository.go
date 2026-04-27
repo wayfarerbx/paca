@@ -37,6 +37,7 @@ type taskStatusRecord struct {
 	Color     *string `gorm:"type:text"`
 	Position  int     `gorm:"not null;default:0"`
 	Category  string  `gorm:"not null"`
+	IsDefault bool    `gorm:"not null;default:false;column:is_default"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -226,6 +227,7 @@ func (r *TaskRepository) CreateTaskStatus(ctx context.Context, s *taskdom.TaskSt
 		Color:     s.Color,
 		Position:  s.Position,
 		Category:  string(s.Category),
+		IsDefault: s.IsDefault,
 		CreatedAt: s.CreatedAt,
 		UpdatedAt: s.UpdatedAt,
 	}
@@ -257,6 +259,58 @@ func (r *TaskRepository) DeleteTaskStatus(ctx context.Context, id uuid.UUID) err
 		return fmt.Errorf("task status repo: delete: %w", res.Error)
 	}
 	return nil
+}
+
+// SetDefaultTaskStatus atomically clears is_default for every status in the
+// project and marks the given status as the new default.
+func (r *TaskRepository) SetDefaultTaskStatus(ctx context.Context, projectID, statusID uuid.UUID) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&taskStatusRecord{}).
+			Where("project_id = ?", projectID.String()).
+			Update("is_default", false).Error; err != nil {
+			return fmt.Errorf("task status repo: clear defaults: %w", err)
+		}
+		res := tx.Model(&taskStatusRecord{}).
+			Where("id = ? AND project_id = ?", statusID.String(), projectID.String()).
+			Update("is_default", true)
+		if res.Error != nil {
+			return fmt.Errorf("task status repo: set default: %w", res.Error)
+		}
+		if res.RowsAffected == 0 {
+			return taskdom.ErrStatusNotFound
+		}
+		return nil
+	})
+}
+
+// FindDefaultTaskType returns the project's default task type, or nil if none is set.
+func (r *TaskRepository) FindDefaultTaskType(ctx context.Context, projectID uuid.UUID) (*taskdom.TaskType, error) {
+	var rec taskTypeRecord
+	err := r.db.WithContext(ctx).
+		Where("project_id = ? AND is_default = true", projectID.String()).
+		First(&rec).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("task type repo: find default: %w", err)
+	}
+	return toTaskTypeEntity(&rec), nil
+}
+
+// FindDefaultTaskStatus returns the project's default task status, or nil if none is set.
+func (r *TaskRepository) FindDefaultTaskStatus(ctx context.Context, projectID uuid.UUID) (*taskdom.TaskStatus, error) {
+	var rec taskStatusRecord
+	err := r.db.WithContext(ctx).
+		Where("project_id = ? AND is_default = true", projectID.String()).
+		First(&rec).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("task status repo: find default: %w", err)
+	}
+	return toTaskStatusEntity(&rec), nil
 }
 
 // --- Tasks ------------------------------------------------------------------
@@ -504,6 +558,7 @@ func toTaskStatusEntity(r *taskStatusRecord) *taskdom.TaskStatus {
 		Color:     r.Color,
 		Position:  r.Position,
 		Category:  taskdom.StatusCategory(r.Category),
+		IsDefault: r.IsDefault,
 		CreatedAt: r.CreatedAt,
 		UpdatedAt: r.UpdatedAt,
 	}

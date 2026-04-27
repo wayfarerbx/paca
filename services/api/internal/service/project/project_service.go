@@ -263,7 +263,7 @@ func (s *Service) seedDefaultTaskTypes(ctx context.Context, projectID uuid.UUID,
 // seedDefaultTaskStatuses creates the four built-in task statuses for a new project.
 func (s *Service) seedDefaultTaskStatuses(ctx context.Context, projectID uuid.UUID, now time.Time) error {
 	defaults := []*taskdom.TaskStatus{
-		{ID: uuid.New(), ProjectID: projectID, Name: "Backlog", Color: ptr("#64748b"), Position: 1, Category: taskdom.StatusCategoryBacklog, CreatedAt: now, UpdatedAt: now},
+		{ID: uuid.New(), ProjectID: projectID, Name: "Backlog", Color: ptr("#64748b"), Position: 1, Category: taskdom.StatusCategoryBacklog, IsDefault: true, CreatedAt: now, UpdatedAt: now},
 		{ID: uuid.New(), ProjectID: projectID, Name: "Todo", Color: ptr("#eab308"), Position: 2, Category: taskdom.StatusCategoryTodo, CreatedAt: now, UpdatedAt: now},
 		{ID: uuid.New(), ProjectID: projectID, Name: "In Progress", Color: ptr("#3b82f6"), Position: 3, Category: taskdom.StatusCategoryInProgress, CreatedAt: now, UpdatedAt: now},
 		{ID: uuid.New(), ProjectID: projectID, Name: "Done", Color: ptr("#22c55e"), Position: 4, Category: taskdom.StatusCategoryDone, CreatedAt: now, UpdatedAt: now},

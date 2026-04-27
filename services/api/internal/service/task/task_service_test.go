@@ -111,6 +111,18 @@ func (r *fakeTaskRepo) SetDefaultTaskType(_ context.Context, projectID, typeID u
 	return nil
 }
 
+func (r *fakeTaskRepo) FindDefaultTaskType(_ context.Context, projectID uuid.UUID) (*taskdom.TaskType, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for _, t := range r.types {
+		if t.ProjectID == projectID && t.IsDefault {
+			cp := *t
+			return &cp, nil
+		}
+	}
+	return nil, nil
+}
+
 // -- TaskStatus methods --
 
 func (r *fakeTaskRepo) ListTaskStatuses(_ context.Context, projectID uuid.UUID) ([]*taskdom.TaskStatus, error) {
@@ -161,6 +173,38 @@ func (r *fakeTaskRepo) DeleteTaskStatus(_ context.Context, id uuid.UUID) error {
 	defer r.mu.Unlock()
 	delete(r.statuses, id)
 	return nil
+}
+
+func (r *fakeTaskRepo) SetDefaultTaskStatus(_ context.Context, projectID, statusID uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	found := false
+	for _, s := range r.statuses {
+		if s.ProjectID == projectID {
+			if s.ID == statusID {
+				s.IsDefault = true
+				found = true
+			} else {
+				s.IsDefault = false
+			}
+		}
+	}
+	if !found {
+		return taskdom.ErrStatusNotFound
+	}
+	return nil
+}
+
+func (r *fakeTaskRepo) FindDefaultTaskStatus(_ context.Context, projectID uuid.UUID) (*taskdom.TaskStatus, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	for _, s := range r.statuses {
+		if s.ProjectID == projectID && s.IsDefault {
+			cp := *s
+			return &cp, nil
+		}
+	}
+	return nil, nil
 }
 
 // -- Task methods --

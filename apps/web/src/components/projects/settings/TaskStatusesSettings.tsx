@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { Edit2, LayoutList, Plus, Trash2 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Edit2, LayoutList, Plus, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { DeleteTaskStatusDialog } from "@/components/projects/task-statuses/DeleteTaskStatusDialog";
 import { TaskStatusFormDialog } from "@/components/projects/task-statuses/TaskStatusFormDialog";
@@ -14,6 +14,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import {
+	setDefaultTaskStatus,
 	STATUS_CATEGORY_LABELS,
 	type TaskStatus,
 	taskStatusesQueryOptions,
@@ -54,9 +55,19 @@ export function TaskStatusesSettings({
 	const { data: statuses, isLoading } = useQuery(
 		taskStatusesQueryOptions(projectId),
 	);
+	const queryClient = useQueryClient();
 	const [createOpen, setCreateOpen] = useState(false);
 	const [editStatus, setEditStatus] = useState<TaskStatus | null>(null);
 	const [deleteStatus, setDeleteStatus] = useState<TaskStatus | null>(null);
+
+	const setDefaultMutation = useMutation({
+		mutationFn: (statusId: string) => setDefaultTaskStatus(projectId, statusId),
+		onSuccess: () => {
+			queryClient.invalidateQueries({
+				queryKey: taskStatusesQueryOptions(projectId).queryKey,
+			});
+		},
+	});
 
 	const sorted = [...(statuses ?? [])].sort((a, b) => a.position - b.position);
 
@@ -135,6 +146,9 @@ export function TaskStatusesSettings({
 								<TableHead className="w-36 px-5 text-xs font-semibold uppercase tracking-wide">
 									Category
 								</TableHead>
+								<TableHead className="px-5 text-xs font-semibold uppercase tracking-wide">
+									Default
+								</TableHead>
 								<TableHead className="w-20 px-5 text-xs font-semibold uppercase tracking-wide" />
 							</TableRow>
 						</TableHeader>
@@ -159,8 +173,30 @@ export function TaskStatusesSettings({
 										<StatusCategoryBadge category={status.category} />
 									</TableCell>
 									<TableCell className="px-5">
+										{status.is_default ? (
+											<span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+												<Star className="size-3 fill-current" />
+												Default
+											</span>
+										) : null}
+									</TableCell>
+									<TableCell className="px-5">
 										{canWrite ? (
 											<div className="flex items-center justify-end gap-0.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+												{!status.is_default ? (
+													<Button
+														variant="ghost"
+														size="icon-sm"
+														onClick={() =>
+															setDefaultMutation.mutate(status.id)
+														}
+														disabled={setDefaultMutation.isPending}
+														title="Set as default status"
+														aria-label="Set as default status"
+													>
+														<Star className="size-3.5" />
+													</Button>
+												) : null}
 												<Button
 													variant="ghost"
 													size="icon-sm"

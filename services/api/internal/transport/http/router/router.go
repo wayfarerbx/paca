@@ -285,6 +285,10 @@ func New(deps Deps) *gin.Engine {
 						httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
 						deps.Task.DeleteTaskStatus,
 					)
+					taskStatuses.PUT("/:statusId/set-default",
+						httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
+						deps.Task.SetDefaultTaskStatus,
+					)
 				}
 
 				// Sprints
