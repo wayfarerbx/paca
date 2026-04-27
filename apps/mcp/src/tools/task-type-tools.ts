@@ -308,9 +308,9 @@ ID: ${type.id}
 Icon: ${type.icon || "None"}
 Color: ${type.color || "None"}
 Description: ${type.description || "None"}
-Default: ${type.isDefault}
-System: ${type.isSystem}
-Created: ${type.createdAt}`;
+Default: ${type.is_default}
+System: ${type.is_system}
+Created: ${type.created_at}`;
 }
 
 function formatTaskStatus(status: any): string {
@@ -320,7 +320,7 @@ Color: ${status.color || "None"}
 Category: ${status.category}
 Position: ${status.position}
 Default: ${status.is_default ?? false}
-Created: ${status.createdAt}`;
+Created: ${status.created_at}`;
 }
 
 /**

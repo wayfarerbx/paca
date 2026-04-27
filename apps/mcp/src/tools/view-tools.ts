@@ -454,19 +454,19 @@ function formatView(view: any): string {
 	return `View: ${view.name}
 ID: ${view.id}
 Context: ${view.context}
-Sprint ID: ${view.sprintId || "None"}
+Sprint ID: ${view.sprint_id || "None"}
 Position: ${view.position}
-Created: ${view.createdAt}`;
+Created: ${view.created_at}`;
 }
 
 function formatCustomField(field: any): string {
-	return `Custom Field: ${field.displayName}
+	return `Custom Field: ${field.display_name}
 ID: ${field.id}
-Key: ${field.fieldKey}
-Type: ${field.fieldType}
+Key: ${field.field_key}
+Type: ${field.field_type}
 Options: ${field.options.length > 0 ? field.options.join(", ") : "None"}
-Required: ${field.isRequired}
-Created: ${field.createdAt}`;
+Required: ${field.is_required}
+Created: ${field.created_at}`;
 }
 
 /**

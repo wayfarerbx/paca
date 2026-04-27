@@ -276,36 +276,37 @@ export function getTaskGitHubTools(): Tool[] {
 }
 
 function formatTaskActivity(activity: any): string {
-	return `Activity: ${activity.type}
+	return `Activity: ${activity.activity_type}
 ID: ${activity.id}
-User: ${activity.userName} (${activity.userId})
-Description: ${activity.description}
-Created: ${activity.createdAt}`;
+User: ${activity.actor_name} (${activity.actor_id})
+Description: ${JSON.stringify(activity.content, null, 2)}
+Created: ${activity.created_at}`;
 }
 
 function formatTaskComment(comment: any): string {
 	return `Comment:
 ID: ${comment.id}
-User: ${comment.userName} (${comment.userId})
+User: ${comment.user_name} (${comment.user_id})
 Content: ${comment.content}
-Created: ${comment.createdAt}
-Updated: ${comment.updatedAt}`;
+Created: ${comment.created_at}
+Updated: ${comment.updated_at}`;
 }
 
 function formatPullRequest(pr: any): string {
-	return `Pull Request: #${pr.number} - ${pr.title}
+	return `Pull Request: #${pr.pr_number} - ${pr.title}
 ID: ${pr.id}
 State: ${pr.state}
 Author: ${pr.author}
-URL: ${pr.url}
-Created: ${pr.createdAt}
-Merged: ${pr.mergedAt ? `Yes (${pr.mergedAt})` : "No"}`;
+URL: ${pr.html_url}
+Created: ${pr.created_at}
+Merged: ${pr.merged_at ? `Yes (${pr.merged_at})` : "No"}`;
 }
 
 function formatBranch(branch: any): string {
-	return `Branch: ${branch.name}
-URL: ${branch.url}
-Protected: ${branch.protected}`;
+	return `Branch: ${branch.branch_name}
+Task ID: ${branch.task_id}
+Repo ID: ${branch.repo_id}
+Created: ${branch.created_at}`;
 }
 
 /**

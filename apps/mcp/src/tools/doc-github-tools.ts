@@ -329,34 +329,38 @@ export function getGitHubTools(): Tool[] {
 function formatDocFolder(folder: any): string {
 	return `Folder: ${folder.name}
 ID: ${folder.id}
-Parent ID: ${folder.parentId || "None (Root)"}
+Parent ID: ${folder.parent_id || "None (Root)"}
 Position: ${folder.position}
-Created by: ${folder.createdBy || "Unknown"}
-Created: ${folder.createdAt}`;
+Created by: ${folder.created_by || "Unknown"}
+Created: ${folder.created_at}`;
 }
 
 function formatDocSnapshot(snapshot: any): string {
-	return `Snapshot #${snapshot.snapshotNumber}
+	return `Snapshot #${snapshot.snapshot_number}
 ID: ${snapshot.id}
 Title: ${snapshot.title}
-Created by: ${snapshot.createdByName}
-Created: ${snapshot.createdAt}`;
+Created by: ${snapshot.created_by_name}
+Created: ${snapshot.created_at}`;
 }
 
 function formatGitHubIntegration(integration: any): string {
 	return `GitHub Integration:
-Has Token: ${integration.hasToken}
-Token Scopes: ${integration.tokenScopes.join(", ") || "None"}
-Linked Repositories: ${integration.linkedRepositories.length}`;
+ID: ${integration.id}
+Project ID: ${integration.project_id}
+Created: ${integration.created_at}
+Updated: ${integration.updated_at}`;
 }
 
 function formatGitHubRepo(repo: any): string {
-	return `Repository: ${repo.fullName}
+	return `Repository: ${repo.full_name}
 ID: ${repo.id}
 Owner: ${repo.owner}
-URL: ${repo.url}
-Private: ${repo.isPrivate}
-Default Branch: ${repo.defaultBranch}`;
+Repo Name: ${repo.repo_name}
+Full Name: ${repo.full_name}
+Private: ${repo.private ? "Yes" : "No"}
+Default Branch: ${repo.default_branch}
+Webhook ID: ${repo.webhook_id}
+Created: ${repo.created_at}`;
 }
 
 /**

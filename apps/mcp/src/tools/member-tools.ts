@@ -249,20 +249,20 @@ export function getProjectRoleTools(): Tool[] {
 }
 
 function formatProjectMember(member: any): string {
-	return `Member: ${member.userName} (${member.userEmail})
-User ID: ${member.userId}
-Role: ${member.roleName}
-Role ID: ${member.roleId}
-Joined: ${member.joinedAt}`;
+	return `Member: ${member.username} (${member.full_name})
+User ID: ${member.user_id}
+Role: ${member.role_name}
+Role ID: ${member.project_role_id}
+Joined: ${member.joined_at || "N/A"}`;
 }
 
 function formatProjectRole(role: any): string {
-	return `Role: ${role.name}
+	return `Role: ${role.role_name}
 ID: ${role.id}
 Description: ${role.description || "None"}
-System: ${role.isSystem}
-Permissions: ${role.permissions.join(", ")}
-Created: ${role.createdAt}`;
+System: ${role.is_system}
+Permissions: ${JSON.stringify(role.permissions, null, 2)}
+Created: ${role.created_at}`;
 }
 
 /**

@@ -370,12 +370,12 @@ export function getBDDScenarioTools(): Tool[] {
 }
 
 function formatAttachment(attachment: any): string {
-	return `Attachment: ${attachment.fileName}
+	return `Attachment: ${attachment.file?.file_name || "Unknown"}
 ID: ${attachment.id}
-Size: ${attachment.fileSize} bytes
-Type: ${attachment.mimeType}
-Uploaded by: ${attachment.uploadedBy}
-Uploaded at: ${attachment.uploadedAt}`;
+Size: ${attachment.file?.file_size || 0} bytes
+Type: ${attachment.file?.content_type || "Unknown"}
+Uploaded by: ${attachment.created_by || "Unknown"}
+Uploaded at: ${attachment.created_at}`;
 }
 
 function formatBDDScenario(scenario: any): string {
@@ -383,15 +383,15 @@ function formatBDDScenario(scenario: any): string {
 ID: ${scenario.id}
 
 Given:
-${scenario.given}
+${scenario.given || "None"}
 
 When:
-${scenario.when}
+${scenario.when || "None"}
 
 Then:
-${scenario.then}
+${scenario.then || "None"}
 
-Created: ${scenario.createdAt}`;
+Created: ${scenario.created_at}`;
 }
 
 /**
