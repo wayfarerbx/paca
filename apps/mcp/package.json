@@ -23,7 +23,6 @@
     "@blocknote/core": "^0.48.1",
     "@modelcontextprotocol/sdk": "0.6.0",
     "jsdom": "^29.0.2",
-    "node-fetch": "^3.3.2",
     "rehype-stringify": "^10.0.1",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",

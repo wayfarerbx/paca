@@ -1,4 +1,3 @@
-import fetch from "node-fetch";
 import type {
 	CompleteSprintInput,
 	CreateDocumentInput,
@@ -57,7 +56,7 @@ export class PacaAPIClient {
 			options.body = JSON.stringify(body);
 		}
 
-		const response = await fetch(url, options as any);
+		const response = await fetch(url, options);
 
 		if (!response.ok) {
 			const errorText = await response.text();

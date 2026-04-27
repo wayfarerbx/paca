@@ -20,15 +20,16 @@ import (
 // ---------------------------------------------------------------------------
 
 type fakeTaskRepo struct {
-	mu                   sync.RWMutex
-	types                map[uuid.UUID]*taskdom.TaskType
-	statuses             map[uuid.UUID]*taskdom.TaskStatus
-	tasks                map[uuid.UUID]*taskdom.Task
-	customFields         map[uuid.UUID]*taskdom.CustomFieldDefinition
-	counters             map[uuid.UUID]int64 // project-scoped task number counters
-	bddScenarios         map[uuid.UUID]*taskdom.BDDScenario
-	findDefaultTypeErr   error // injected error for FindDefaultTaskType
-	findDefaultStatusErr error // injected error for FindDefaultTaskStatus
+	mu                    sync.RWMutex
+	types                 map[uuid.UUID]*taskdom.TaskType
+	statuses              map[uuid.UUID]*taskdom.TaskStatus
+	tasks                 map[uuid.UUID]*taskdom.Task
+	customFields          map[uuid.UUID]*taskdom.CustomFieldDefinition
+	counters              map[uuid.UUID]int64 // project-scoped task number counters
+	bddScenarios          map[uuid.UUID]*taskdom.BDDScenario
+	findDefaultTypeErr    error // injected error for FindDefaultTaskType
+	findDefaultStatusErr  error // injected error for FindDefaultTaskStatus
+	setDefaultStatusErr   error // injected error for SetDefaultTaskStatus
 }
 
 func newFakeTaskRepo() *fakeTaskRepo {
@@ -184,6 +185,9 @@ func (r *fakeTaskRepo) DeleteTaskStatus(_ context.Context, id uuid.UUID) error {
 func (r *fakeTaskRepo) SetDefaultTaskStatus(_ context.Context, projectID, statusID uuid.UUID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if r.setDefaultStatusErr != nil {
+		return r.setDefaultStatusErr
+	}
 	found := false
 	for _, s := range r.statuses {
 		if s.ProjectID == projectID {
@@ -1208,6 +1212,19 @@ func TestSetDefaultTaskStatus_NotFound(t *testing.T) {
 	_, err := svc.SetDefaultTaskStatus(ctx, uuid.New(), uuid.New())
 	if err != taskdom.ErrStatusNotFound {
 		t.Errorf("expected ErrStatusNotFound, got %v", err)
+	}
+}
+
+func TestSetDefaultTaskStatus_RepoErrorPropagates(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+
+	repo.setDefaultStatusErr = errors.New("db unavailable")
+
+	_, err := svc.SetDefaultTaskStatus(ctx, uuid.New(), uuid.New())
+	if err == nil || err.Error() != "db unavailable" {
+		t.Errorf("expected db unavailable error, got %v", err)
 	}
 }
 
