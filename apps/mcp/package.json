@@ -4,7 +4,7 @@
   "description": "Paca MCP server - Complete API access for AI-powered project management",
   "type": "module",
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com",
+    "registry": "https://registry.npmjs.org",
     "access": "public"
   },
   "bin": {

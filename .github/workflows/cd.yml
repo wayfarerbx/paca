@@ -8,7 +8,7 @@ name: cd
 #   ghcr.io/paca-ai/paca-api:<tag>       — Go API service Docker image
 #   ghcr.io/paca-ai/paca-realtime:<tag>  — Node realtime service Docker image
 #   ghcr.io/paca-ai/paca-web:<tag>       — Web app Docker image (nginx)
-#   npm.pkg.github.com @paca-ai/paca     — MCP server npm package
+#   registry.npmjs.org @paca-ai/paca-mcp — MCP server npm package
 
 on:
   release:
@@ -161,7 +161,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ─────────────────────────────────────────────────────────────────────────────
-  # MCP server npm package → GitHub Packages
+  # MCP server npm package → npmjs.com
   # ─────────────────────────────────────────────────────────────────────────────
   publish-mcp:
     name: Publish MCP package
@@ -202,14 +202,14 @@ jobs:
           VERSION="${{ github.event.release.tag_name }}"
           npm version "${VERSION#v}" --no-git-tag-version
 
-      - name: Setup Node.js with GitHub Packages registry
+      - name: Setup Node.js with npm registry
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          registry-url: "https://npm.pkg.github.com"
+          registry-url: "https://registry.npmjs.org"
           scope: "@paca-ai"
 
-      - name: Publish to GitHub Packages
+      - name: Publish to npm
         run: npm publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
