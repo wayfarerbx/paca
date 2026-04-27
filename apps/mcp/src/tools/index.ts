@@ -184,8 +184,6 @@ export async function handleToolCall(
 		// Attachment and BDD scenario tools
 		if (
 			name === "list_task_attachments" ||
-			name === "initiate_attachment_upload" ||
-			name === "complete_attachment_upload" ||
 			name === "get_attachment_download_url" ||
 			name === "delete_task_attachment" ||
 			name === "list_bdd_scenarios" ||

@@ -11,24 +11,6 @@ const ListTaskAttachmentsSchema = z.object({
 	taskId: z.string(),
 });
 
-const InitiateAttachmentUploadSchema = z.object({
-	projectId: z.string(),
-	taskId: z.string(),
-	fileName: z.string(),
-	fileSize: z.number(),
-	mimeType: z.string(),
-});
-
-const CompleteAttachmentUploadSchema = z.object({
-	projectId: z.string(),
-	taskId: z.string(),
-	uploadId: z.string(),
-	key: z.string(),
-	fileName: z.string(),
-	fileSize: z.number(),
-	mimeType: z.string(),
-});
-
 const GetAttachmentDownloadURLSchema = z.object({
 	projectId: z.string(),
 	taskId: z.string(),
@@ -100,82 +82,6 @@ export function getAttachmentTools(): Tool[] {
 					},
 				},
 				required: ["projectId", "taskId"],
-			},
-		},
-		{
-			name: "initiate_attachment_upload",
-			description: "Initiate an attachment upload for a task",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The ID of the project",
-					},
-					taskId: {
-						type: "string",
-						description: "The ID of the task",
-					},
-					fileName: {
-						type: "string",
-						description: "The name of the file",
-					},
-					fileSize: {
-						type: "number",
-						description: "The size of the file in bytes",
-					},
-					mimeType: {
-						type: "string",
-						description: "The MIME type of the file",
-					},
-				},
-				required: ["projectId", "taskId", "fileName", "fileSize", "mimeType"],
-			},
-		},
-		{
-			name: "complete_attachment_upload",
-			description: "Complete an attachment upload for a task",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The ID of the project",
-					},
-					taskId: {
-						type: "string",
-						description: "The ID of the task",
-					},
-					uploadId: {
-						type: "string",
-						description: "The upload ID",
-					},
-					key: {
-						type: "string",
-						description: "The file key",
-					},
-					fileName: {
-						type: "string",
-						description: "The name of the file",
-					},
-					fileSize: {
-						type: "number",
-						description: "The size of the file in bytes",
-					},
-					mimeType: {
-						type: "string",
-						description: "The MIME type of the file",
-					},
-				},
-				required: [
-					"projectId",
-					"taskId",
-					"uploadId",
-					"key",
-					"fileName",
-					"fileSize",
-					"mimeType",
-				],
 			},
 		},
 		{
@@ -416,46 +322,6 @@ export async function handleAttachmentTool(
 					{
 						type: "text",
 						text: `Attachments:\n\n${formatted}`,
-					},
-				],
-			};
-		}
-
-		case "initiate_attachment_upload": {
-			const { projectId, taskId, fileName, fileSize, mimeType } =
-				InitiateAttachmentUploadSchema.parse(args);
-			const result = await viewsClient.initiateUpload(
-				projectId,
-				taskId,
-				fileName,
-				fileSize,
-				mimeType,
-			);
-			return {
-				content: [
-					{
-						type: "text",
-						text: `Upload initiated:\n\n${JSON.stringify(result, null, 2)}`,
-					},
-				],
-			};
-		}
-
-		case "complete_attachment_upload": {
-			const { projectId, taskId, uploadId, key, fileName, fileSize, mimeType } =
-				CompleteAttachmentUploadSchema.parse(args);
-			const attachment = await viewsClient.completeUpload(projectId, taskId, {
-				upload_id: uploadId,
-				key,
-				file_name: fileName,
-				file_size: fileSize,
-				content_type: mimeType,
-			});
-			return {
-				content: [
-					{
-						type: "text",
-						text: `Attachment uploaded successfully:\n\n${formatAttachment(attachment)}`,
 					},
 				],
 			};

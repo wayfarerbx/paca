@@ -47,7 +47,7 @@ export PACA_API_URL="http://localhost:8080"  # Default: http://localhost:8080
 
 ## Available Tools
 
-The MCP server provides **88 tools** across **17 categories** for comprehensive project management.
+The MCP server provides **86 tools** across **17 categories** for comprehensive project management.
 
 ### 📁 Project Management (5 tools)
 - `list_projects` - List all accessible projects
@@ -123,10 +123,8 @@ The MCP server provides **88 tools** across **17 categories** for comprehensive 
 - `update_custom_field` - Update a custom field definition
 - `delete_custom_field` - Delete a custom field definition
 
-### 📎 Attachments (5 tools)
+### 📎 Attachments (3 tools)
 - `list_task_attachments` - List all attachments for a task
-- `initiate_attachment_upload` - Initiate an attachment upload
-- `complete_attachment_upload` - Complete an attachment upload
 - `get_attachment_download_url` - Get a download URL for an attachment
 - `delete_task_attachment` - Delete an attachment
 
