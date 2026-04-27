@@ -1,14 +1,24 @@
 #!/usr/bin/env node
 
+import { createRequire } from "node:module";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { createServer } from "./server.js";
 import type { PacaConfig } from "./types/index.js";
+
+const require = createRequire(import.meta.url);
 
 /**
  * Main entry point for the Paca MCP server.
  * Initializes the API clients and starts the MCP server.
  */
 async function main() {
+	// Handle --version flag
+	if (process.argv.includes("--version") || process.argv.includes("-v")) {
+		const { version } = require("../package.json") as { version: string };
+		console.log(version);
+		process.exit(0);
+	}
+
 	// Get configuration from environment variables
 	const apiKey = process.env.PACA_API_KEY;
 	const baseURL = process.env.PACA_API_URL || "http://localhost:8080";
