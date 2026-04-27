@@ -1,6 +1,6 @@
 {
   "name": "paca",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Paca MCP server - Complete API access for AI-powered project management",
   "private": true,
   "type": "module",
