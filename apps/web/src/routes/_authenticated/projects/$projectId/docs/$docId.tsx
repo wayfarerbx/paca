@@ -166,7 +166,7 @@ function DocEditorPage() {
 	if (isError) {
 		return (
 			<div className="flex flex-1 flex-col items-center justify-center gap-4 text-muted-foreground">
-				<div className="flex size-14 items-center justify-center rounded-2xl bg-muted/50">
+					<div className="flex size-14 items-center justify-center rounded-xl bg-muted/50">
 					<AlertCircle className="size-7 text-muted-foreground/60" />
 				</div>
 				<div className="text-center">

@@ -5,7 +5,6 @@ import { useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useIsDark } from "@/hooks/use-is-dark";
 import { ApiErrorCode, getApiErrorCode } from "@/lib/api-error";
 import { changeMyPassword } from "@/lib/auth-api";
 import { cn } from "@/lib/utils";
@@ -66,7 +65,6 @@ function validateConfirmPassword(newPassword: string, value: string) {
 
 export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
 	const queryClient = useQueryClient();
-	const isDark = useIsDark();
 	const [currentPassword, setCurrentPassword] = useState("");
 	const [newPassword, setNewPassword] = useState("");
 	const [confirmPassword, setConfirmPassword] = useState("");
@@ -370,7 +368,7 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
 				<p className="text-sm text-destructive">{formError}</p>
 			) : null}
 			{success ? (
-				<p className="text-sm text-green-600 dark:text-green-400">
+				<p className="text-sm text-primary">
 					Password changed successfully.
 				</p>
 			) : null}
@@ -381,13 +379,6 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
 					buttonVariants({ size: "lg" }),
 					"mt-1 h-11 w-full font-semibold tracking-wide",
 				)}
-				style={{
-					background: mutation.isPending
-						? undefined
-						: isDark
-							? "linear-gradient(135deg, #4a6cf7 0%, #3352d8 100%)"
-							: "linear-gradient(135deg, #2e4980 0%, #1b3360 100%)",
-				}}
 				disabled={mutation.isPending || hasValidationErrors}
 			>
 				{mutation.isPending ? "Updating…" : "Change password"}

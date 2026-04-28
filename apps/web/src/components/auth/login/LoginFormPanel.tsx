@@ -5,7 +5,6 @@ import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useIsDark } from "@/hooks/use-is-dark";
 import { useLoginForm } from "@/hooks/use-login-form";
 import { cn } from "@/lib/utils";
 
@@ -34,14 +33,10 @@ function validatePassword(value: string) {
 export function LoginFormPanel() {
 	const { form, serverError } = useLoginForm();
 	const [showPassword, setShowPassword] = useState(false);
-	const isDark = useIsDark();
-	const logoSrc = isDark ? "/paca-logo-dark.svg" : "/paca-logo.svg";
+	const logoSrc = "/paca-logo.svg";
 
 	return (
 		<div className="relative flex flex-col justify-center px-8 py-10 sm:px-10">
-			{/* Top accent line */}
-			<div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(50,205,50,0.45),transparent)] lg:hidden" />
-			<div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-[radial-gradient(circle,rgba(50,205,50,0.14),transparent_65%)] lg:hidden" />
 
 			<div className="relative">
 				{/* Mobile logo */}
@@ -200,15 +195,8 @@ export function LoginFormPanel() {
 								type="submit"
 								className={cn(
 									buttonVariants({ size: "lg" }),
-									"mt-1 h-11 w-full font-semibold tracking-wide",
+									"mt-1 h-11 w-full font-semibold tracking-wide bg-primary text-primary-foreground hover:bg-primary/90",
 								)}
-								style={{
-									background: isSubmitting
-										? undefined
-										: isDark
-											? "linear-gradient(135deg, #4a6cf7 0%, #3352d8 100%)"
-											: "linear-gradient(135deg, #2e4980 0%, #1b3360 100%)",
-								}}
 								disabled={isSubmitting || !username.trim() || !password}
 							>
 								{isSubmitting ? "Signing in…" : "Sign in"}

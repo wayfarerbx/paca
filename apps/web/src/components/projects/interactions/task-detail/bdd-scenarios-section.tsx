@@ -217,7 +217,7 @@ function ScenarioCard({
 						/>
 						<ClauseRow
 							label="Then"
-							color="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+							color="bg-emerald-500/15 text-emerald-600 dark:text-emerald-500"
 							value={then}
 							placeholder="the expected outcome or result…"
 							onChange={setThen}
@@ -303,7 +303,7 @@ function NewScenarioForm({
 				/>
 				<ClauseRow
 					label="Then"
-					color="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+					color="bg-emerald-500/15 text-emerald-600 dark:text-emerald-500"
 					value={then}
 					placeholder="the expected outcome or result…"
 					onChange={setThen}

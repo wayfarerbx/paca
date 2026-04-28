@@ -22,36 +22,18 @@ import { GitHubIcon } from "@/components/icons/github-icon";
 
 export function BrandPanel() {
 	return (
-		<div className="relative hidden flex-col justify-between overflow-hidden rounded-l-3xl p-10 lg:flex">
-			{/* Base gradient — deep navy */}
-			<div className="pointer-events-none absolute inset-0 bg-[#091830]" />
-			<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_10%_0%,#1b3d6e,transparent)] opacity-80" />
-			<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_90%_100%,#0b2040,transparent)]" />
-
-			{/* Subtle grid texture */}
-			<div
-				className="pointer-events-none absolute inset-0 opacity-[0.055]"
-				style={{
-					backgroundImage:
-						"linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)",
-					backgroundSize: "36px 36px",
-				}}
-			/>
-
-			{/* Green ambient glow — top left */}
-			<div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(50,205,50,0.16),transparent_60%)]" />
-
-			{/* Blue depth glow — bottom right */}
-			<div className="pointer-events-none absolute -bottom-20 -right-10 h-80 w-80 rounded-full bg-[radial-gradient(circle,rgba(46,73,128,0.55),transparent_55%)]" />
+		<div className="relative hidden flex-col justify-between overflow-hidden rounded-l-xl bg-[#0a0a0a] p-10 lg:flex">
+			{/* Lime ambient glow — top */}
+			<div className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(158,217,87,0.08),transparent_60%)]" />
 
 			{/* Decorative concentric rings — right side */}
-			<div className="pointer-events-none absolute right-0 top-1/2 h-105 w-105 -translate-y-1/2 translate-x-[42%] rounded-full border border-white/6" />
-			<div className="pointer-events-none absolute right-0 top-1/2 h-70 w-70 -translate-y-1/2 translate-x-[42%] rounded-full border border-white/8" />
+			<div className="pointer-events-none absolute right-0 top-1/2 h-105 w-105 -translate-y-1/2 translate-x-[42%] rounded-full border border-white/5" />
+			<div className="pointer-events-none absolute right-0 top-1/2 h-70 w-70 -translate-y-1/2 translate-x-[42%] rounded-full border border-white/7" />
 
 			<div className="relative">
 				{/* Logo + brand */}
 				<div className="mb-8 flex items-center gap-3">
-					<div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/8 shadow-lg shadow-black/20 backdrop-blur-sm">
+					<div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/6 shadow-sm shadow-black/40">
 						<img
 							src="/paca-logo-dark.svg"
 							alt="Paca logo"
@@ -70,13 +52,7 @@ export function BrandPanel() {
 
 				<h2 className="display-title mb-3 text-[1.85rem] font-bold leading-tight text-balance text-white">
 					One team, one board,{" "}
-					<span
-						className="bg-clip-text text-transparent"
-						style={{
-							backgroundImage:
-								"linear-gradient(90deg, #32cd32 0%, #7de87d 100%)",
-						}}
-					>
+					<span className="text-[#9ed957]">
 						human and AI.
 					</span>
 				</h2>
@@ -93,7 +69,7 @@ export function BrandPanel() {
 							key={title}
 							className="flex items-start gap-3.5 rounded-xl border border-white/8 bg-white/4 px-4 py-3.5 transition-colors hover:border-white/[0.14] hover:bg-white/[0.07]"
 						>
-							<div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-[rgba(50,205,50,0.14)] ring-1 ring-[rgba(50,205,50,0.22)]">
+							<div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-[rgba(158,217,87,0.12)] ring-1 ring-[rgba(158,217,87,0.2)]">
 								<Icon className="size-3.5 text-(--palm)" />
 							</div>
 							<div>

@@ -632,7 +632,7 @@ function TeamPage() {
 						))}
 					</div>
 				) : !members?.length ? (
-					<div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/60 bg-muted/10 py-14">
+					<div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border/60 bg-muted/10 py-14">
 						<div className="flex size-12 items-center justify-center rounded-xl bg-primary/10">
 							<Users className="size-6 text-primary" />
 						</div>

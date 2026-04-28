@@ -234,7 +234,7 @@ export function TaskDetailModal({
 									</span>
 								)}
 								{status && (
-									<span className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/40 px-3 py-1 text-[11px] font-semibold text-muted-foreground tracking-wide backdrop-blur-sm">
+									<span className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/40 px-3 py-1 text-[11px] font-semibold text-muted-foreground tracking-wide">
 										<span
 											className="size-1.75 rounded-full shrink-0 ring-2 ring-offset-1 ring-offset-background"
 											style={{
@@ -426,7 +426,7 @@ export function TaskDetailModal({
 	) : (
 		<div className="flex h-full items-center justify-center">
 			<div className="flex flex-col items-center gap-4 text-muted-foreground/70">
-				<div className="flex size-14 items-center justify-center rounded-2xl bg-muted/50">
+				<div className="flex size-14 items-center justify-center rounded-xl bg-muted/50">
 					<AlertCircle className="size-7 text-muted-foreground/60" />
 				</div>
 				<div className="text-center">
@@ -471,7 +471,7 @@ export function TaskDetailModal({
 					"inset-0 lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2",
 					"flex flex-col overflow-hidden",
 					"lg:h-[90vh] lg:w-[92vw] lg:max-w-6xl",
-					"lg:rounded-2xl lg:border lg:border-border/50 bg-background",
+					"lg:rounded-xl lg:border lg:border-border/50 bg-background",
 					"lg:shadow-[0_25px_60px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.05)_inset]",
 					"transition-all duration-200 origin-center",
 					open

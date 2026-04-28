@@ -469,7 +469,7 @@ export function BoardView({
 					"flex flex-col gap-2 rounded-xl p-2 min-h-28 transition-all duration-200",
 					isOver
 						? "bg-primary/8 ring-2 ring-primary/20"
-						: "bg-muted/40 dark:bg-black/30",
+						: "bg-muted/40 dark:bg-muted",
 				)}
 				onDragOver={(e) => {
 					e.preventDefault();
@@ -624,7 +624,7 @@ export function BoardView({
 			<div className="flex flex-1 min-h-0 flex-col overflow-auto">
 				<div className="min-w-max px-6 pt-5 pb-8 flex flex-col gap-0">
 					{/* Sticky column-header row */}
-					<div className="flex gap-4 pb-2 sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border/20 mb-1">
+					<div className="flex gap-4 pb-2 sticky top-0 z-10 bg-background border-b border-border/20 mb-1">
 						{/* Swimlane label placeholder to align with row labels */}
 						<div className="w-36 shrink-0" />
 						{effectiveColumnDefs.map((colDef) => (

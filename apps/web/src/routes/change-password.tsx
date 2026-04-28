@@ -75,33 +75,18 @@ function ChangePasswordPage() {
 
 			{/* Main content */}
 			<main className="flex flex-1 items-center justify-center px-4 py-6">
-				<div className="island-shell rise-in w-full max-w-4xl overflow-hidden rounded-3xl">
+				<div className="island-shell rise-in w-full max-w-4xl overflow-hidden rounded-xl">
 					<div className="grid lg:grid-cols-[1fr_420px]">
 						{/* Brand / context panel */}
-						<div className="relative hidden flex-col justify-between overflow-hidden rounded-l-3xl p-10 lg:flex">
-							{/* Backgrounds */}
-							<div className="pointer-events-none absolute inset-0 bg-[#091830]" />
-							<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_10%_0%,#1b3d6e,transparent)] opacity-80" />
-							<div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_90%_100%,#0b2040,transparent)]" />
-							{/* Grid texture */}
-							<div
-								className="pointer-events-none absolute inset-0 opacity-[0.055]"
-								style={{
-									backgroundImage:
-										"linear-gradient(rgba(255,255,255,0.6) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.6) 1px,transparent 1px)",
-									backgroundSize: "36px 36px",
-								}}
-							/>
-							{/* Amber warning glow */}
-							<div className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(251,191,36,0.18),transparent_60%)]" />
-							<div className="pointer-events-none absolute -bottom-20 -right-10 h-80 w-80 rounded-full bg-[radial-gradient(circle,rgba(46,73,128,0.55),transparent_55%)]" />
-							{/* Concentric rings */}
-							<div className="pointer-events-none absolute right-0 top-1/2 h-96 w-96 -translate-y-1/2 translate-x-[42%] rounded-full border border-white/6" />
-							<div className="pointer-events-none absolute right-0 top-1/2 h-64 w-64 -translate-y-1/2 translate-x-[42%] rounded-full border border-white/8" />
-
+					<div className="relative hidden flex-col justify-between overflow-hidden rounded-l-xl bg-[#0a0a0a] p-10 lg:flex">
+						{/* Lime ambient glow */}
+						<div className="pointer-events-none absolute -left-20 -top-20 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(158,217,87,0.07),transparent_60%)]" />
+						{/* Concentric rings */}
+						<div className="pointer-events-none absolute right-0 top-1/2 h-96 w-96 -translate-y-1/2 translate-x-[42%] rounded-full border border-white/5" />
+						<div className="pointer-events-none absolute right-0 top-1/2 h-64 w-64 -translate-y-1/2 translate-x-[42%] rounded-full border border-white/7" />
 							<div className="relative">
 								<div className="mb-10 flex items-center gap-3">
-									<div className="flex size-9 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/8 shadow-lg shadow-black/20 backdrop-blur-sm">
+									<div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/6 shadow-sm shadow-black/40">
 										<img
 											src="/paca-logo-dark.svg"
 											alt="Paca logo"
@@ -153,7 +138,7 @@ function ChangePasswordPage() {
 						{/* Form panel */}
 						<div className="relative flex flex-col justify-center px-8 py-10 sm:px-10">
 							{/* Mobile top accent */}
-							<div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(251,191,36,0.45),transparent)] lg:hidden" />
+							<div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-border/40 lg:hidden" />
 
 							<div className="relative">
 								{/* Mobile logo */}

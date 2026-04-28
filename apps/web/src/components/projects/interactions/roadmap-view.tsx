@@ -305,7 +305,7 @@ export function RoadmapView({
 					<div
 						className={cn(
 							"sticky top-0 z-20 flex h-11 shrink-0",
-							"border-b border-border/25 bg-background/95 backdrop-blur-sm",
+							"border-b border-border/25 bg-background",
 						)}
 					>
 						{/* Task column label */}
