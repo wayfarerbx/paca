@@ -105,7 +105,7 @@ export function AddFieldDialog({
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: stopPropagation on modal content prevents backdrop close */}
 			{/* biome-ignore lint/a11y/useKeyWithClickEvents: stopPropagation only; no action triggered */}
 			<div
-				className="relative z-10 w-full max-w-sm rounded-2xl border border-border/40 bg-background p-6 shadow-[0_25px_60px_-12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.04)_inset]"
+				className="relative z-10 w-full max-w-sm rounded-xl border border-border/40 bg-background p-6 shadow-[0_25px_60px_-12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.04)_inset]"
 				onClick={(e) => e.stopPropagation()}
 			>
 				{/* Header */}

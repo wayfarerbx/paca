@@ -58,7 +58,7 @@ export function TaskDetailPanel({
 									</span>
 								)}
 								{status && (
-									<span className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/40 px-3 py-1 text-[11px] font-semibold text-muted-foreground tracking-wide backdrop-blur-sm">
+									<span className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-muted/40 px-3 py-1 text-[11px] font-semibold text-muted-foreground tracking-wide">
 										<span
 											className="size-1.75 rounded-full shrink-0 ring-2 ring-offset-1 ring-offset-background"
 											style={{

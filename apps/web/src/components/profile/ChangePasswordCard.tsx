@@ -109,7 +109,7 @@ export function ChangePasswordCard({ mustChange }: ChangePasswordCardProps) {
 					</div>
 					{error ? <p className="text-sm text-destructive">{error}</p> : null}
 					{success ? (
-						<p className="text-sm text-green-600 dark:text-green-400">
+						<p className="text-sm text-primary">
 							Password changed successfully.
 						</p>
 					) : null}

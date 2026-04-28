@@ -298,11 +298,11 @@ function ProjectCard({ project }: { project: Project }) {
 		<Link
 			to="/projects/$projectId"
 			params={{ projectId: project.id }}
-			className="group relative flex flex-col rounded-2xl border border-border/60 bg-card p-5 transition-all duration-200 hover:border-primary/40 hover:shadow-md hover:shadow-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+			className="group relative flex flex-col rounded-xl border border-border/60 bg-card p-5 transition-all duration-200 hover:border-primary/40 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
 		>
-			<div className="absolute inset-x-0 top-0 h-px rounded-t-2xl bg-linear-to-r from-transparent via-primary/30 to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+			<div className="absolute inset-x-0 top-0 h-px rounded-t-xl bg-primary/40 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
 			<div className="flex items-start gap-3.5 mb-4">
-				<div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-primary/20 to-primary/5 border border-primary/15 font-[Syne] text-sm font-bold text-primary">
+				<div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 border border-primary/15 font-[Syne] text-sm font-bold text-primary">
 					{initials || <FolderKanban className="size-4" />}
 				</div>
 				<div className="min-w-0 flex-1">
@@ -346,7 +346,7 @@ function StatCard({
 }) {
 	return (
 		<Card className="relative overflow-hidden border-border/60">
-			<div className="absolute inset-x-0 top-0 h-0.5 bg-linear-to-r from-transparent via-primary/50 to-transparent" />
+			<div className="absolute inset-x-0 top-0 h-px bg-primary/40" />
 			<CardContent className="p-5">
 				<div
 					className={`flex size-9 items-center justify-center rounded-[10px] ${iconClass}`}
@@ -433,7 +433,6 @@ function HomePage() {
 								variant="secondary"
 								className="gap-1.5 px-2.5 py-0.5 text-xs font-semibold border border-border/60"
 							>
-								<span className="size-1.5 rounded-full bg-secondary inline-block" />
 								Scrumban workspace
 							</Badge>
 						</div>
@@ -494,14 +493,14 @@ function HomePage() {
 						label="Team Members"
 						value={1}
 						sub="Including you"
-						iconClass="bg-secondary/15 text-secondary"
+						iconClass="bg-muted text-muted-foreground"
 					/>
 					<StatCard
 						icon={Bot}
 						label="AI Agents"
 						value={0}
 						sub="None configured"
-						iconClass="bg-secondary/15 text-secondary"
+						iconClass="bg-muted text-muted-foreground"
 					/>
 				</div>
 
@@ -539,7 +538,7 @@ function HomePage() {
 								<button
 									type="button"
 									onClick={() => setCreateOpen(true)}
-									className="group flex min-h-30 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border/60 bg-muted/10 p-5 text-muted-foreground/50 transition-all hover:border-primary/40 hover:bg-primary/3 hover:text-primary/70"
+									className="group flex min-h-30 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/60 bg-muted/10 p-5 text-muted-foreground/50 transition-all hover:border-primary/40 hover:bg-primary/5 hover:text-primary/70"
 								>
 									<div className="flex size-9 items-center justify-center rounded-xl border border-dashed border-current transition-colors">
 										<Plus className="size-4" />
@@ -574,7 +573,7 @@ function HomePage() {
 									{GETTING_STARTED.map(({ step, title, description }) => (
 										<li key={step}>
 											<div className="flex items-start gap-3.5 rounded-xl border border-border/40 bg-muted/20 px-4 py-3.5 transition-all hover:bg-muted/50 hover:border-primary/20 group">
-												<div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/5 border border-primary/20 font-mono text-[11px] font-bold text-primary tabular-nums">
+												<div className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 border border-primary/20 font-mono text-[11px] font-bold text-primary tabular-nums">
 													{step}
 												</div>
 												<div className="min-w-0 flex-1">
@@ -634,7 +633,7 @@ function HomePage() {
 												onClick={onClick}
 												className="group flex w-full cursor-pointer items-center gap-3 rounded-xl border border-border/50 bg-background/50 px-3.5 py-3 text-left transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm hover:shadow-primary/5"
 											>
-												<div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-primary/15 to-primary/5 text-primary transition-colors group-hover:from-primary/25 group-hover:to-primary/10">
+												<div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary/20">
 													<Icon className="size-4" />
 												</div>
 												<div className="min-w-0 flex-1">
@@ -653,12 +652,12 @@ function HomePage() {
 							</Card>
 
 							<Card className="relative overflow-hidden border-border/60">
-								<div className="absolute inset-x-0 top-0 h-0.5 bg-linear-to-r from-transparent via-secondary/60 to-transparent" />
-								<div className="pointer-events-none absolute -bottom-8 -right-8 size-32 rounded-full bg-secondary/10 blur-2xl" />
+								<div className="absolute inset-x-0 top-0 h-px bg-primary/30" />
+								<div className="pointer-events-none absolute -bottom-8 -right-8 size-32 rounded-full bg-primary/5" />
 								<CardContent className="relative p-5">
 									<div className="mb-2 flex items-center gap-2">
-										<Zap className="size-3.5 text-secondary" />
-										<p className="font-[Syne] text-xs font-bold uppercase tracking-widest text-secondary">
+										<Zap className="size-3.5 text-primary" />
+										<p className="font-[Syne] text-xs font-bold uppercase tracking-widest text-primary">
 											How Paca works
 										</p>
 									</div>

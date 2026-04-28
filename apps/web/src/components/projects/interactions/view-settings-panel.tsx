@@ -52,7 +52,7 @@ const CATEGORY_COLORS: Record<StatusCategory, string> = {
 	ready: "bg-sky-400/70",
 	todo: "bg-amber-400/70",
 	inprogress: "bg-primary/70",
-	done: "bg-emerald-400/70",
+	done: "bg-emerald-500/70",
 };
 
 // ── Primitives ────────────────────────────────────────────────────────────────

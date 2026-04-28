@@ -119,8 +119,8 @@ function ProjectDashboardPage() {
 
 			<div className="flex flex-col gap-8 p-6">
 				{/* Coming soon callout */}
-				<div className="rounded-2xl border border-dashed border-primary/30 bg-primary/3 p-8 text-center">
-					<div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10">
+				<div className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-8 text-center">
+					<div className="mx-auto flex size-14 items-center justify-center rounded-xl bg-primary/10">
 						<LayoutDashboard className="size-7 text-primary" />
 					</div>
 					<h2 className="mt-4 font-[Syne] text-xl font-bold tracking-tight">

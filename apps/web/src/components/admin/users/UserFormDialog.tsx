@@ -143,7 +143,7 @@ export function UserFormDialog({
 				<DialogContent className="sm:max-w-md">
 					<DialogHeader>
 						<div className="flex items-center gap-2.5">
-							<div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-400">
+							<div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
 								<KeyRound className="size-4" />
 							</div>
 							<DialogTitle className="text-base">User created</DialogTitle>

@@ -141,7 +141,7 @@ function SprintPage() {
 			{completeOpen && (
 				// biome-ignore lint/a11y/noStaticElementInteractions: modal backdrop
 				<div
-					className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+					className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
 					onClick={(e) => {
 						if (e.target === e.currentTarget) setCompleteOpen(false);
 					}}

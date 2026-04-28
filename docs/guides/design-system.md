@@ -8,6 +8,7 @@ This document defines the visual language, component patterns, and interaction c
 
 ## Table of Contents
 
+- [Design Concept](#design-concept)
 - [Color Philosophy](#color-philosophy)
 - [Typography](#typography)
 - [Spacing & Layout](#spacing--layout)
@@ -35,6 +36,41 @@ This document defines the visual language, component patterns, and interaction c
 
 ---
 
+## Design Concept
+
+### High-Contrast Minimalism
+
+Paca's visual language is **High-Contrast Minimalism** — an aesthetic built on two principles that reinforce each other:
+
+**Minimalism** strips away noise. No gradient meshes, no dot grids, no layered translucency effects. Surfaces are flat, pure, and intentional. Every visual element earns its presence.
+
+**High Contrast** makes hierarchy unmistakable. Deep black text on pure white, pure white text on near-black, and a single electric lime accent (`#9ed957`) that signals action, focus, and energy without ambiguity.
+
+### Palette
+
+| Token | Light | Dark | Role |
+|---|---|---|---|
+| `--background` | `#ffffff` | `#0a0a0a` | Page and modal root — absolutely pure |
+| `--foreground` | `#111111` | `#f0f0f0` | Primary text — near-black / near-white |
+| `--primary` | `#9ed957` | `#9ed957` | Lime accent — CTAs, active states, focus rings |
+| `--primary-foreground` | `#0d0d0d` | `#0a0a0a` | Text on lime buttons — always dark |
+| `--card` | `#ffffff` | `#111111` | Component surface |
+| `--muted` | `#f5f5f5` | `#1a1a1a` | Subtle background fills |
+| `--muted-foreground` | `#737373` | `#888888` | Labels, placeholders, secondary text |
+| `--border` | `#d4d4d4` | `#2a2a2a` | Structural dividers |
+| `--sidebar` | `#fafafa` | `#0d0d0d` | Navigation surface |
+
+### Design Rules
+
+1. **Pure backgrounds**: Light mode is `#ffffff` — no tints, no gradients. Dark mode is `#0a0a0a`. Never tint the root canvas.
+2. **One accent, consistently applied**: Lime (`#9ed957`) is the only chromatic accent. Use it for primary actions, active nav indicators, focus rings, and kicker labels.
+3. **No decorative backgrounds**: No mesh gradients, no dot grids. Contrast comes from content relationships, not ornamental texture.
+4. **Sharp but subtle radii**: Border radius is `0.5rem` (8px) — just enough softness to feel crafted, not rounded to the point of looking playful.
+5. **Flat shadows**: Shadows are `0 1px 3px rgba(0,0,0,0.07)` at most — present for elevation cues, never decorative.
+6. **Emerald for completion**: The emerald green (`bg-emerald-500`) is reserved exclusively for success/completed states (checkboxes, progress bars at 100%).
+
+---
+
 ## Color Philosophy
 
 We use **opacity-modulated semantic tokens** — never raw hex values in component code. Colors are expressed as `token/opacity` where the opacity communicates hierarchy:
@@ -48,7 +84,7 @@ We use **opacity-modulated semantic tokens** — never raw hex values in compone
 | Destructive | `text-destructive` | Delete buttons, validation errors |
 | Success | `bg-emerald-500` (via Tailwind) | Completed states, checkmarks, confirmations |
 
-**Key rule:** Every "secondary" or "subtle" background uses a fraction of `muted` or `card` with opacity between 10–50%. This creates the layered, translucent feel.
+**Key rule:** Every "secondary" or "subtle" background uses a fraction of `muted` or `card` with opacity between 10–50%. Because `--muted` is a neutral gray (`#f5f5f5` light / `#1a1a1a` dark), opacity fractions produce clean, achromatic layers — no blue tinting, no color bleed. The single chromatic accent (`--primary: #9ed957`) therefore lands with full punch wherever it appears.
 
 ---
 
@@ -177,16 +213,19 @@ Every section heading has a horizontal gradient line that fades to transparent:
 
 ## Shadows & Depth
 
-Shadows are used sparingly — primarily for modals and elevated popovers:
+Shadows are minimal — High-Contrast Minimalism uses content relationships and borders to convey depth, not elaborate shadow stacks:
 
 | Context | Shadow |
 |---|---|
-| **Modal** | `shadow-[0_25px_60px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.05)_inset]` |
-| **Popover / Dropdown** | `shadow-lg` |
+| **Modal** | `shadow-[0_8px_32px_-4px_rgba(0,0,0,0.18),0_0_0_1px_rgba(0,0,0,0.06)]` |
+| **Popover / Dropdown** | `shadow-md` |
 | **Send / CTA button** | `shadow-sm` |
 | **Completed checkbox** | `shadow-sm shadow-emerald-500/20` |
 | **Progress bar (100%)** | `shadow-sm shadow-emerald-500/30` |
-| **Focused input** | `shadow-sm shadow-primary/5` |
+| **Focused input** | `shadow-sm shadow-primary/10` |
+| **island-shell** | `0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04)` |
+
+**Rule:** Never use blue- or color-tinted shadows. All shadows are neutral black at low opacity.
 
 ---
 
@@ -549,8 +588,8 @@ For inline empty states:
 <div role="dialog" aria-modal="true"
   className="fixed left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2
     flex h-[90vh] w-[92vw] max-w-6xl flex-col overflow-hidden
-    rounded-2xl border border-border/50 bg-background
-    shadow-[0_25px_60px_-12px_rgba(0,0,0,0.25),0_0_0_1px_rgba(255,255,255,0.05)_inset]
+    rounded-xl border border-border/50 bg-background
+    shadow-[0_8px_32px_-4px_rgba(0,0,0,0.18),0_0_0_1px_rgba(0,0,0,0.06)]
     transition-all duration-200 origin-center">
 ```
 
@@ -566,9 +605,9 @@ For inline empty states:
 ### Dialog (nested, like "Add Field")
 
 ```tsx
-<div className="relative z-10 w-full max-w-sm rounded-2xl border border-border/40
+<div className="relative z-10 w-full max-w-sm rounded-xl border border-border/40
   bg-background p-6
-  shadow-[0_25px_60px_-12px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.04)_inset]">
+  shadow-[0_8px_32px_-4px_rgba(0,0,0,0.14),0_0_0_1px_rgba(0,0,0,0.05)]">
 ```
 
 ---

@@ -42,7 +42,7 @@ function PRStateBadge({ state }: { state: PullRequest["state"] }) {
 		);
 	}
 	return (
-		<span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+		<span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-500">
 			<GitPullRequest className="size-3" />
 			Open
 		</span>

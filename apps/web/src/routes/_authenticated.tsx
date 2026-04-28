@@ -70,8 +70,8 @@ function AuthenticatedLayout() {
 		<SidebarProvider className="h-svh">
 			<AppSidebar />
 			<SidebarInset className="min-w-0 overflow-hidden">
-				<header className="flex h-12 shrink-0 items-center gap-2 bg-background/85 backdrop-blur-xl px-4 sticky top-0 z-10">
-					<div className="absolute inset-x-0 bottom-0 h-px bg-linear-to-r from-transparent via-border to-transparent" />
+				<header className="flex h-12 shrink-0 items-center gap-2 bg-background border-b border-border/40 px-4 sticky top-0 z-10">
+					<div className="absolute inset-x-0 bottom-0 h-px bg-border/40" />
 					<SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground transition-colors" />
 					<div className="w-px h-4 bg-border/60" />
 					<div className="ml-auto">

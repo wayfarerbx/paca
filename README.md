@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/paca-logo.svg" alt="Paca logo" width="414" />
+  <img src="docs/assets/paca-logo.svg" alt="Paca logo" width="256" />
 </p>
 
 <h1 align="center">Paca</h1>
