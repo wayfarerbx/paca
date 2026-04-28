@@ -149,7 +149,7 @@ export function getTaskTools(): Tool[] {
 						description: "The importance of the task",
 					},
 					storyPoints: {
-						type: "number",
+						type: ["number", "null"],
 						description: "Story points estimate for the task (Fibonacci: 1, 2, 3, 5, 8, 13, ...)",
 					},
 					tags: {
