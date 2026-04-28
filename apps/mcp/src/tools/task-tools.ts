@@ -26,7 +26,7 @@ const CreateTaskSchema = z.object({
 	sprintId: z.string().optional(),
 	assigneeId: z.string().optional(),
 	importance: z.number().optional(),
-	storyPoints: z.number().nullable().optional(),
+	storyPoints: z.number().int().min(0).nullable().optional(),
 	tags: z.array(z.string()).optional(),
 	startDate: z.string().optional(),
 	dueDate: z.string().optional(),
@@ -42,7 +42,7 @@ const UpdateTaskSchema = z.object({
 	sprintId: z.string().optional(),
 	assigneeId: z.string().optional(),
 	importance: z.number().optional(),
-	storyPoints: z.number().nullable().optional(),
+	storyPoints: z.number().int().min(0).nullable().optional(),
 	tags: z.array(z.string()).optional(),
 	startDate: z.string().optional(),
 	dueDate: z.string().optional(),
@@ -213,7 +213,7 @@ export function getTaskTools(): Tool[] {
 						description: "The importance of the task",
 					},
 					storyPoints: {
-						type: "number",
+						type: ["number", "null"],
 						description: "Story points estimate for the task (set to null to clear)",
 					},
 					tags: {
