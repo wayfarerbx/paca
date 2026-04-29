@@ -1,24 +1,23 @@
-import { GitBranch, ShieldCheck, Users } from "lucide-react";
+import { BookOpen, Bot, RefreshCcw } from "lucide-react";
+import { GitHubIcon } from "@/components/icons/github-icon";
 
 const FEATURES = [
 	{
-		icon: Users,
-		title: "Fluid Roles",
-		desc: "From PO and BA to Dev and QA, work can move between humans and AI agents seamlessly.",
+		icon: Bot,
+		title: "AI Agents as Peers",
+		desc: "AI Agents join your Scrum team as first-class members — not plugins — picking tasks from the same backlog as humans.",
 	},
 	{
-		icon: GitBranch,
-		title: "Contextual Assignment",
-		desc: "Tasks are assigned by strengths: AI for speed and precision, humans for judgment and creativity.",
+		icon: BookOpen,
+		title: "BDD & SDD Hub",
+		desc: "Align POs, BAs, and Agents through Gherkin scenarios and System Design Docs that keep the whole team in sync.",
 	},
 	{
-		icon: ShieldCheck,
-		title: "Human-in-Control",
-		desc: "Every AI contribution stays transparent and supervised so teams remain the final decision-makers.",
+		icon: RefreshCcw,
+		title: "The P-A-C-A Cycle",
+		desc: "Plan → Act → Check → Adapt. A Human-in-the-loop sprint loop built for complex, emergent projects where AI amplifies the team.",
 	},
 ] as const;
-
-import { GitHubIcon } from "@/components/icons/github-icon";
 
 export function BrandPanel() {
 	return (
@@ -55,9 +54,9 @@ export function BrandPanel() {
 					<span className="text-[#9ed957]">human and AI.</span>
 				</h2>
 				<p className="mb-8 text-sm leading-relaxed text-white/55">
-					Paca is the open-source collaborative task management engine where
-					human creativity and AI efficiency work together in a shared Scrumban
-					workflow.
+					Paca is the open-source project management engine designed for Complex
+					Projects — where AI Agents and humans collaborate on the same Scrumban
+					board as equal, first-class teammates.
 				</p>
 
 				{/* Feature cards */}
