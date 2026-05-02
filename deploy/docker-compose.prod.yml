@@ -6,12 +6,12 @@
 # and environment variables as a handoff into their own platform.
 #
 # ── Pre-built images ──────────────────────────────────────────────────────────
-# By default this file pulls the official pre-built images from GitHub Container
-# Registry (GHCR).  To pin a specific release, set the IMAGE env vars:
+# By default this file pulls the official pre-built images from DockerHub.
+# To pin a specific release, set the IMAGE env vars:
 #
-#   PACA_API_IMAGE=ghcr.io/paca-ai/paca-api:1.2.3
-#   PACA_WEB_IMAGE=ghcr.io/paca-ai/paca-web:1.2.3
-#   PACA_REALTIME_IMAGE=ghcr.io/paca-ai/paca-realtime:1.2.3
+#   PACA_API_IMAGE=pacaai/paca-api:1.2.3
+#   PACA_WEB_IMAGE=pacaai/paca-web:1.2.3
+#   PACA_REALTIME_IMAGE=pacaai/paca-realtime:1.2.3
 #
 # To build the images locally instead of pulling (e.g. with custom patches),
 # append --build to the docker compose up command.
@@ -64,7 +64,7 @@ services:
       retries: 10
 
   api:
-    image: ${PACA_API_IMAGE:-ghcr.io/paca-ai/paca-api:latest}
+    image: ${PACA_API_IMAGE:-pacaai/paca-api:latest}
     build:
       context: ../services/api
     restart: unless-stopped
@@ -107,7 +107,7 @@ services:
         required: false  # skipped when --scale minio=0 (AWS S3 mode)
 
   web:
-    image: ${PACA_WEB_IMAGE:-ghcr.io/paca-ai/paca-web:latest}
+    image: ${PACA_WEB_IMAGE:-pacaai/paca-web:latest}
     build:
       context: ../apps/web
       args:
@@ -119,7 +119,7 @@ services:
       - api
 
   realtime:
-    image: ${PACA_REALTIME_IMAGE:-ghcr.io/paca-ai/paca-realtime:latest}
+    image: ${PACA_REALTIME_IMAGE:-pacaai/paca-realtime:latest}
     build:
       context: ../services/realtime
     restart: unless-stopped

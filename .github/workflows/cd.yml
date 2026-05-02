@@ -2,12 +2,15 @@ name: cd
 
 # Triggered when a GitHub Release is published (draft → published or created as
 # published).  Each job builds one artefact and pushes it to the appropriate
-# GitHub registry so that self-hosters can pull pre-built images/packages.
+# GitHub registry and DockerHub so that self-hosters can pull pre-built images/packages.
 #
 # Artefacts produced per release:
 #   ghcr.io/paca-ai/paca-api:<tag>       — Go API service Docker image
+#   <dockerhub-username>/paca-api:<tag>  — Go API service Docker image
 #   ghcr.io/paca-ai/paca-realtime:<tag>  — Node realtime service Docker image
+#   <dockerhub-username>/paca-realtime:<tag> — Node realtime service Docker image
 #   ghcr.io/paca-ai/paca-web:<tag>       — Web app Docker image (nginx)
+#   <dockerhub-username>/paca-web:<tag>  — Web app Docker image (nginx)
 #   registry.npmjs.org @paca-ai/paca-mcp — MCP server npm package
 
 on:
@@ -45,11 +48,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/paca-api
+          images: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/paca-api
+            ${{ secrets.DOCKERHUB_USERNAME }}/paca-api
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -88,11 +99,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/paca-realtime
+          images: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/paca-realtime
+            ${{ secrets.DOCKERHUB_USERNAME }}/paca-realtime
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -136,11 +155,19 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/paca-web
+          images: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/paca-web
+            ${{ secrets.DOCKERHUB_USERNAME }}/paca-web
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
