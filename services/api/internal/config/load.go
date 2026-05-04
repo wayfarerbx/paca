@@ -70,6 +70,19 @@ func Load() (*Config, error) {
 		errs = append(errs, err)
 	}
 
+	cacheProjectTTL, err := parseDuration(env("CACHE_PROJECT_TTL", "5m"))
+	if err != nil {
+		return nil, fmt.Errorf("config: CACHE_PROJECT_TTL: %w", err)
+	}
+	cacheConfigTTL, err := parseDuration(env("CACHE_CONFIG_TTL", "10m"))
+	if err != nil {
+		return nil, fmt.Errorf("config: CACHE_CONFIG_TTL: %w", err)
+	}
+	cacheSprintTTL, err := parseDuration(env("CACHE_SPRINT_TTL", "2m"))
+	if err != nil {
+		return nil, fmt.Errorf("config: CACHE_SPRINT_TTL: %w", err)
+	}
+
 	adminUser, err := requireEnv("ADMIN_USERNAME")
 	if err != nil {
 		errs = append(errs, err)
@@ -112,6 +125,11 @@ func Load() (*Config, error) {
 		},
 		Redis: RedisConfig{
 			URL: redisURL,
+		},
+		Cache: CacheConfig{
+			ProjectTTL: cacheProjectTTL,
+			ConfigTTL:  cacheConfigTTL,
+			SprintTTL:  cacheSprintTTL,
 		},
 		JWT: JWTConfig{
 			Secret:            secret,
