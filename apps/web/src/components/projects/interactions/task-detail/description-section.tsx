@@ -141,13 +141,15 @@ export function DescriptionSection({
 					<span>Description</span>
 					<div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
 				</h3>
-				<button
-					type="button"
-					className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors duration-150 font-medium"
-				>
-					<Sparkles className="size-3" />
-					Write with AI
-				</button>
+				{canEdit && (
+					<button
+						type="button"
+						className="flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors duration-150 font-medium"
+					>
+						<Sparkles className="size-3" />
+						Write with AI
+					</button>
+				)}
 			</div>
 
 			{/* biome-ignore lint/a11y/noStaticElementInteractions: wrapper captures blur from BlockNote rich-text editor */}

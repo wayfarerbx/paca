@@ -19,9 +19,10 @@ type FieldChange = {
 interface TaskActivityPaneProps {
 	projectId: string;
 	taskId: string;
+	canEdit?: boolean;
 }
 
-export function TaskActivityPane({ projectId, taskId }: TaskActivityPaneProps) {
+export function TaskActivityPane({ projectId, taskId, canEdit = true }: TaskActivityPaneProps) {
 	const { data: membersData } = useQuery(projectMembersQueryOptions(projectId));
 	const { data: sprintsData } = useQuery(sprintsQueryOptions(projectId));
 
@@ -100,7 +101,7 @@ export function TaskActivityPane({ projectId, taskId }: TaskActivityPaneProps) {
 			entityId={taskId}
 			queryKey={queryKey}
 			queryFn={() => listTaskActivities(projectId, taskId)}
-			addComment={(text) => addComment(projectId, taskId, text)}
+			addComment={canEdit ? (text) => addComment(projectId, taskId, text) : undefined}
 			describeActivity={describeActivity}
 			getCommentText={(content) => (content as { text?: string }).text ?? ""}
 		/>

@@ -1182,6 +1182,7 @@ export function InteractionLayout({
 				statuses={statuses}
 				taskTypes={taskTypes}
 				members={members}
+				canEdit={canEdit}
 			/>
 		</div>
 	);

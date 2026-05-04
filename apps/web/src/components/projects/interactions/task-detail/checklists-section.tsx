@@ -3,7 +3,7 @@ import { useState } from "react";
 import { ChecklistSection } from "./checklist-section";
 import type { Checklist } from "./types";
 
-export function ChecklistsSection() {
+export function ChecklistsSection({ canEdit = true }: { canEdit?: boolean }) {
 	const [checklists, setChecklists] = useState<Checklist[]>([]);
 
 	const handleCreate = () => {
@@ -24,14 +24,16 @@ export function ChecklistsSection() {
 					<span>Checklists</span>
 					<div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
 				</h3>
-				<button
-					type="button"
-					onClick={handleCreate}
-					className="flex items-center gap-1.5 rounded-lg bg-muted/40 text-muted-foreground/80 hover:bg-muted/60 hover:text-foreground px-2.5 py-1.5 text-[11px] font-semibold transition-all duration-150"
-				>
-					<Plus className="size-3" />
-					Create checklist
-				</button>
+				{canEdit && (
+					<button
+						type="button"
+						onClick={handleCreate}
+						className="flex items-center gap-1.5 rounded-lg bg-muted/40 text-muted-foreground/80 hover:bg-muted/60 hover:text-foreground px-2.5 py-1.5 text-[11px] font-semibold transition-all duration-150"
+					>
+						<Plus className="size-3" />
+						Create checklist
+					</button>
+				)}
 			</div>
 
 			{checklists.length > 0 ? (
