@@ -11,6 +11,10 @@ import (
 	"github.com/paca/api/internal/platform/cache"
 )
 
+// ErrViewNotFound is re-exported from the domain package so callers can
+// reference the sentinel without importing sprintdom directly.
+var ErrViewNotFound = sprintdom.ErrViewNotFound
+
 // CachedViewService decorates a sprintdom.ViewService with a
 // Valkey/Redis-backed cache.
 //
@@ -86,7 +90,9 @@ func (c *CachedViewService) ListProjectViews(ctx context.Context, projectID uuid
 }
 
 // GetView returns a single view, reading from cache when available and
-// populating it on a miss.
+// populating it on a miss. On a cache hit the cached view's ProjectID is
+// compared with the requested projectID; a mismatch returns ErrViewNotFound
+// without delegating to the underlying service, preventing cross-project leaks.
 func (c *CachedViewService) GetView(ctx context.Context, projectID, id uuid.UUID) (*sprintdom.SprintView, error) {
 	if c.ttl == 0 {
 		return c.svc.GetView(ctx, projectID, id)
@@ -94,6 +100,9 @@ func (c *CachedViewService) GetView(ctx context.Context, projectID, id uuid.UUID
 	key := viewItemKey(id)
 	var result sprintdom.SprintView
 	if ok, err := c.st.Get(ctx, key, &result); ok {
+		if result.ProjectID != projectID {
+			return nil, ErrViewNotFound
+		}
 		return &result, nil
 	} else if err != nil {
 		c.log.WarnContext(ctx, "cache: GetView get", "err", err)

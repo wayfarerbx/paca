@@ -75,7 +75,9 @@ func (c *CachedSprintService) ListSprints(ctx context.Context, projectID uuid.UU
 }
 
 // GetSprint returns a single sprint, reading from cache when available and
-// populating it on a miss.
+// populating it on a miss. On a cache hit the cached sprint's ProjectID is
+// compared with the requested projectID; a mismatch returns ErrSprintNotFound
+// without delegating to the underlying service, preventing cross-project leaks.
 func (c *CachedSprintService) GetSprint(ctx context.Context, projectID, id uuid.UUID) (*sprintdom.Sprint, error) {
 	if c.ttl == 0 {
 		return c.svc.GetSprint(ctx, projectID, id)
@@ -83,6 +85,9 @@ func (c *CachedSprintService) GetSprint(ctx context.Context, projectID, id uuid.
 	key := sprintItemKey(id)
 	var result sprintdom.Sprint
 	if ok, err := c.st.Get(ctx, key, &result); ok {
+		if result.ProjectID != projectID {
+			return nil, sprintdom.ErrSprintNotFound
+		}
 		return &result, nil
 	} else if err != nil {
 		c.log.WarnContext(ctx, "cache: GetSprint get", "err", err)
