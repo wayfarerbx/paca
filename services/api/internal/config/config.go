@@ -8,6 +8,7 @@ type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	Redis    RedisConfig
+	Cache    CacheConfig
 	JWT      JWTConfig
 	Admin    AdminConfig
 	Storage  StorageConfig
@@ -43,6 +44,29 @@ type DatabaseConfig struct {
 // RedisConfig holds Redis connection settings.
 type RedisConfig struct {
 	URL string
+}
+
+// CacheConfig holds TTL settings for the different cache categories.
+//
+// Each TTL controls how long the corresponding data is served from Valkey/Redis
+// before a fresh database read is made.  Set a TTL to zero to disable caching
+// for that category entirely.
+//
+// Environment variables (loaded by config.Load):
+//
+//	CACHE_PROJECT_TTL  – project + member data          (default: 5m)
+//	CACHE_CONFIG_TTL   – task types, statuses, custom
+//	                     field definitions, and roles    (default: 10m)
+//	CACHE_SPRINT_TTL   – sprints and views               (default: 2m)
+type CacheConfig struct {
+	// ProjectTTL is the cache duration for project detail and member list data.
+	ProjectTTL time.Duration
+	// ConfigTTL is the cache duration for infrequently-changing project
+	// configuration: task types, task statuses, custom field definitions, and
+	// project roles.  Global roles also use this TTL.
+	ConfigTTL time.Duration
+	// SprintTTL is the cache duration for sprint and view configuration data.
+	SprintTTL time.Duration
 }
 
 // JWTConfig holds JWT signing and expiry settings.

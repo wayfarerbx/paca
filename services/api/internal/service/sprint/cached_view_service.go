@@ -1,0 +1,183 @@
+package sprintsvc
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"time"
+
+	"github.com/google/uuid"
+	sprintdom "github.com/paca/api/internal/domain/sprint"
+	"github.com/paca/api/internal/platform/cache"
+)
+
+// CachedViewService decorates a sprintdom.ViewService with a
+// Valkey/Redis-backed cache.
+//
+// # What is cached
+//
+//   - ListProjectViews – views for a project+context (backlog/timeline);
+//     keyed by project ID and view context.
+//   - GetView          – single view; keyed by view ID.
+//
+// Sprint-context views (ListViews by sprintID) are NOT cached because their
+// invalidation would require knowing the project ID from the sprint ID, which
+// would add an extra DB round-trip that negates the benefit.
+//
+// Task positions (ListTaskPositions) are NOT cached because they are updated
+// frequently during drag-and-drop interactions.
+//
+// Cache errors are non-fatal: read errors fall through to the real service;
+// write/delete errors are logged so mutations always succeed.
+type CachedViewService struct {
+	svc sprintdom.ViewService
+	st  *cache.Store
+	ttl time.Duration
+	log *slog.Logger
+}
+
+// NewCachedViewService wraps svc with a caching layer backed by st.
+// ttl controls how long cached entries live; zero disables caching.
+// log receives non-fatal cache warnings.
+func NewCachedViewService(svc sprintdom.ViewService, st *cache.Store, ttl time.Duration, log *slog.Logger) *CachedViewService {
+	return &CachedViewService{svc: svc, st: st, ttl: ttl, log: log}
+}
+
+// --- cache key helpers -------------------------------------------------------
+
+func projectViewsKey(projectID uuid.UUID, viewCtx sprintdom.ViewContext) string {
+	return fmt.Sprintf("project:%s:views:%s", projectID, viewCtx)
+}
+
+func viewItemKey(id uuid.UUID) string {
+	return fmt.Sprintf("view:%s", id)
+}
+
+// --- ViewService -------------------------------------------------------------
+
+// ListViews returns all views for a sprint (sprint context). Not cached; see
+// type-level documentation for rationale.
+func (c *CachedViewService) ListViews(ctx context.Context, sprintID uuid.UUID) ([]*sprintdom.SprintView, error) {
+	return c.svc.ListViews(ctx, sprintID)
+}
+
+// ListProjectViews returns all views for a project filtered by viewCtx,
+// reading from cache when available and populating it on a miss.
+func (c *CachedViewService) ListProjectViews(ctx context.Context, projectID uuid.UUID, viewCtx sprintdom.ViewContext) ([]*sprintdom.SprintView, error) {
+	if c.ttl == 0 {
+		return c.svc.ListProjectViews(ctx, projectID, viewCtx)
+	}
+	key := projectViewsKey(projectID, viewCtx)
+	var result []*sprintdom.SprintView
+	if ok, err := c.st.Get(ctx, key, &result); ok {
+		return result, nil
+	} else if err != nil {
+		c.log.WarnContext(ctx, "cache: ListProjectViews get", "err", err)
+	}
+
+	result, err := c.svc.ListProjectViews(ctx, projectID, viewCtx)
+	if err != nil {
+		return nil, err
+	}
+	if err := c.st.Set(ctx, key, result, c.ttl); err != nil {
+		c.log.WarnContext(ctx, "cache: ListProjectViews set", "err", err)
+	}
+	return result, nil
+}
+
+// GetView returns a single view, reading from cache when available and
+// populating it on a miss.
+func (c *CachedViewService) GetView(ctx context.Context, projectID, id uuid.UUID) (*sprintdom.SprintView, error) {
+	if c.ttl == 0 {
+		return c.svc.GetView(ctx, projectID, id)
+	}
+	key := viewItemKey(id)
+	var result sprintdom.SprintView
+	if ok, err := c.st.Get(ctx, key, &result); ok {
+		return &result, nil
+	} else if err != nil {
+		c.log.WarnContext(ctx, "cache: GetView get", "err", err)
+	}
+
+	v, err := c.svc.GetView(ctx, projectID, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := c.st.Set(ctx, key, v, c.ttl); err != nil {
+		c.log.WarnContext(ctx, "cache: GetView set", "err", err)
+	}
+	return v, nil
+}
+
+func (c *CachedViewService) CreateView(ctx context.Context, in sprintdom.CreateViewInput) (*sprintdom.SprintView, error) {
+	v, err := c.svc.CreateView(ctx, in)
+	if err != nil {
+		return nil, err
+	}
+	// Invalidate the project-level view list for the relevant context.
+	if err := c.st.Delete(ctx, projectViewsKey(in.ProjectID, in.ViewContext)); err != nil {
+		c.log.WarnContext(ctx, "cache: CreateView delete", "err", err)
+	}
+	return v, nil
+}
+
+func (c *CachedViewService) UpdateView(ctx context.Context, projectID, id uuid.UUID, in sprintdom.UpdateViewInput) (*sprintdom.SprintView, error) {
+	v, err := c.svc.UpdateView(ctx, projectID, id, in)
+	if err != nil {
+		return nil, err
+	}
+	// Invalidate both the project-level list and the individual item cache.
+	toDelete := []string{viewItemKey(id)}
+	toDelete = append(toDelete,
+		projectViewsKey(projectID, sprintdom.ViewContextBacklog),
+		projectViewsKey(projectID, sprintdom.ViewContextTimeline),
+	)
+	if err := c.st.Delete(ctx, toDelete...); err != nil {
+		c.log.WarnContext(ctx, "cache: UpdateView delete", "err", err)
+	}
+	return v, nil
+}
+
+func (c *CachedViewService) DeleteView(ctx context.Context, projectID, id uuid.UUID) error {
+	if err := c.svc.DeleteView(ctx, projectID, id); err != nil {
+		return err
+	}
+	toDelete := []string{viewItemKey(id),
+		projectViewsKey(projectID, sprintdom.ViewContextBacklog),
+		projectViewsKey(projectID, sprintdom.ViewContextTimeline),
+	}
+	if err := c.st.Delete(ctx, toDelete...); err != nil {
+		c.log.WarnContext(ctx, "cache: DeleteView delete", "err", err)
+	}
+	return nil
+}
+
+func (c *CachedViewService) MoveTask(ctx context.Context, projectID, viewID uuid.UUID, in sprintdom.MoveTaskInput) error {
+	return c.svc.MoveTask(ctx, projectID, viewID, in)
+}
+
+func (c *CachedViewService) BulkMoveTasks(ctx context.Context, projectID, viewID uuid.UUID, items []sprintdom.MoveTaskInput) error {
+	return c.svc.BulkMoveTasks(ctx, projectID, viewID, items)
+}
+
+func (c *CachedViewService) ListTaskPositions(ctx context.Context, projectID, viewID uuid.UUID) ([]*sprintdom.ViewTaskPosition, error) {
+	return c.svc.ListTaskPositions(ctx, projectID, viewID)
+}
+
+// ReorderViews reorders sprint-context views and invalidates the sprint-level
+// view list. Project-level view lists (backlog/timeline) are not affected.
+func (c *CachedViewService) ReorderViews(ctx context.Context, sprintID uuid.UUID, viewIDs []uuid.UUID) error {
+	return c.svc.ReorderViews(ctx, sprintID, viewIDs)
+}
+
+// ReorderProjectViews reorders project-level views (backlog or timeline) and
+// invalidates the corresponding cached list.
+func (c *CachedViewService) ReorderProjectViews(ctx context.Context, projectID uuid.UUID, viewCtx sprintdom.ViewContext, viewIDs []uuid.UUID) error {
+	if err := c.svc.ReorderProjectViews(ctx, projectID, viewCtx, viewIDs); err != nil {
+		return err
+	}
+	if err := c.st.Delete(ctx, projectViewsKey(projectID, viewCtx)); err != nil {
+		c.log.WarnContext(ctx, "cache: ReorderProjectViews delete", "err", err)
+	}
+	return nil
+}

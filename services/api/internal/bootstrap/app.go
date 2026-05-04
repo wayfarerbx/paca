@@ -79,6 +79,8 @@ func New(cfg *config.Config) (*App, error) {
 		return nil, fmt.Errorf("bootstrap: %w", err)
 	}
 
+	cacheStore := cache.NewStore(redisClient, "paca:")
+
 	publisher := messaging.NewPublisher(redisClient, log)
 
 	tokenManager := jwttoken.New(cfg.JWT.Secret, cfg.JWT.AccessTTL, cfg.JWT.RefreshTTL)
@@ -123,11 +125,11 @@ func New(cfg *config.Config) (*App, error) {
 	// --- Services -----------------------------------------------------------
 	authService := authsvc.New(userRepo, tokenManager, refreshStore, cfg.JWT.RefreshTTL, cfg.JWT.RefreshSessionTTL)
 	userService := usersvc.New(userRepo, permissionStore, globalRoleRepo)
-	globalRoleService := globalrolesvc.New(globalRoleRepo)
-	projectService := projectsvc.New(projectRepo, taskRepo)
-	taskService := tasksvc.New(taskRepo)
-	sprintService := sprintsvc.New(sprintRepo, taskRepo)
-	viewService := sprintsvc.NewViewService(viewRepo)
+	globalRoleService := globalrolesvc.NewCachedService(globalrolesvc.New(globalRoleRepo), cacheStore, cfg.Cache.ConfigTTL, log)
+	projectService := projectsvc.NewCachedService(projectsvc.New(projectRepo, taskRepo), cacheStore, cfg.Cache.ProjectTTL, cfg.Cache.ConfigTTL, log)
+	taskService := tasksvc.NewCachedService(tasksvc.New(taskRepo), cacheStore, cfg.Cache.ConfigTTL, log)
+	sprintService := sprintsvc.NewCachedSprintService(sprintsvc.New(sprintRepo, taskRepo), cacheStore, cfg.Cache.SprintTTL, log)
+	viewService := sprintsvc.NewCachedViewService(sprintsvc.NewViewService(viewRepo), cacheStore, cfg.Cache.SprintTTL, log)
 	notificationService := notificationsvc.New(notificationRepo, projectRepo, publisher)
 	notificationConsumer := worker.NewNotificationConsumer(redisClient, notificationService, log)
 	activityService := tasksvc.NewActivityService(activityRepo, projectRepo, publisher).
