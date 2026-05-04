@@ -170,8 +170,7 @@ func (c *CachedViewService) ListTaskPositions(ctx context.Context, projectID, vi
 	return c.svc.ListTaskPositions(ctx, projectID, viewID)
 }
 
-// ReorderViews reorders sprint-context views and invalidates the sprint-level
-// view list. Project-level view lists (backlog/timeline) are not affected.
+// ReorderViews delegates directly to the underlying service (not cached).
 func (c *CachedViewService) ReorderViews(ctx context.Context, sprintID uuid.UUID, viewIDs []uuid.UUID) error {
 	return c.svc.ReorderViews(ctx, sprintID, viewIDs)
 }
