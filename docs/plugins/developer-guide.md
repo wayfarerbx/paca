@@ -2,6 +2,8 @@
 
 This guide walks you through building a complete Paca plugin from scratch. By the end you will have a working plugin with a backend WASM module, a frontend micro-frontend component, and a published manifest.
 
+> **Example plugin:** A fully working reference implementation is available at [github.com/Paca-AI/paca-plugin-example](https://github.com/Paca-AI/paca-plugin-example). It demonstrates every backend and frontend SDK feature and can be used as a starting point for new plugins.
+
 ## Prerequisites
 
 - Go 1.21+ with TinyGo 0.32+ for WASM compilation.
@@ -44,12 +46,10 @@ my-plugin/
 ```json
 {
   "id": "com.example.my-plugin",
-  "name": "My Plugin",
-  "version": "0.1.0",
+  "displayName": "My Plugin",
   "description": "A short description of what this plugin does.",
-  "author": "Your Name <you@example.com>",
-  "license": "MIT",
-  "minCoreVersion": "0.5.0",
+  "version": "0.1.0",
+  "permissions": ["db.read", "db.write", "events.subscribe"],
 
   "frontend": {
     "remoteEntryUrl": "https://cdn.example.com/my-plugin/0.1.0/remoteEntry.js",
@@ -64,12 +64,7 @@ my-plugin/
   },
 
   "backend": {
-    "wasm": "my-plugin.wasm",
-    "permissions": [
-      "db:read:tasks",
-      "db:write:plugin_data",
-      "http:register_routes"
-    ],
+    "eventSubscriptions": ["task.deleted"],
     "routes": [
       { "method": "GET",  "path": "/tasks/:taskId/my-items" },
       { "method": "POST", "path": "/tasks/:taskId/my-items" }
@@ -97,35 +92,39 @@ go 1.21
 require github.com/Paca-AI/plugin-sdk v0.1.0
 ```
 
+> **Local development:** If you're developing inside the Paca monorepo, replace the module reference with a local path:
+> ```
+> replace github.com/Paca-AI/plugin-sdk => ../../../paca/plugins/sdk/backend
+> ```
+
 ### `backend/main.go`
 
 ```go
+//go:build wasip1
+
 package main
 
-import "github.com/Paca-AI/plugin-sdk/plugin"
+import plugin "github.com/Paca-AI/plugin-sdk"
 
-type MyPlugin struct{}
+type myPlugin struct {
+    db  *plugin.DB
+    kv  *plugin.KV
+    log *plugin.Logger
+}
 
-func (p MyPlugin) OnInit(ctx plugin.Context) error {
-    ctx.GET("/tasks/:taskId/my-items", listItems)
-    ctx.POST("/tasks/:taskId/my-items", createItem)
+func (p *myPlugin) Init(ctx *plugin.Context) error {
+    p.db  = ctx.DB()
+    p.kv  = ctx.KV()
+    p.log = ctx.Log()
+
+    ctx.Route("GET",  "/tasks/:taskId/my-items", p.listItems)
+    ctx.Route("POST", "/tasks/:taskId/my-items", p.createItem)
     return nil
 }
 
-func (p MyPlugin) OnShutdown() error { return nil }
+func (p *myPlugin) Shutdown() {}
 
-//export Init
-func Init() { plugin.Run(MyPlugin{}) }
-
-//export HandleRequest
-func HandleRequest(routeID int32) { plugin.DispatchRequest(routeID) }
-
-//export HandleEvent
-func HandleEvent(eventID int32) { plugin.DispatchEvent(eventID) }
-
-//export Shutdown
-func Shutdown() { plugin.Shutdown() }
-
+func init() { plugin.Run(&myPlugin{}) }
 func main() {}
 ```
 
@@ -134,9 +133,7 @@ func main() {}
 ```go
 package main
 
-import (
-    "github.com/Paca-AI/plugin-sdk/plugin"
-)
+import plugin "github.com/Paca-AI/plugin-sdk"
 
 type MyItem struct {
     ID     string `json:"id"`
@@ -144,47 +141,39 @@ type MyItem struct {
     Title  string `json:"title"`
 }
 
-func listItems(req *plugin.Request, resp *plugin.Response) {
-    taskID := req.PathParams["taskId"]
-    rows, err := plugin.DB().Query(plugin.SelectQuery{
-        Table: "my_items",
-        Where: map[string]any{"task_id": taskID},
-    })
+func (p *myPlugin) listItems(req *plugin.Request, resp *plugin.Response) {
+    taskID := req.PathParam("taskId")
+    result, err := p.db.Query(
+        `SELECT id, task_id, title FROM my_items WHERE task_id = $1`,
+        taskID,
+    )
     if err != nil {
-        resp.Error(500, "internal_error", err.Error())
+        p.log.Error("listItems query failed")
+        resp.Error(500, "query failed")
         return
     }
-
-    var items []MyItem
-    if err := rows.Scan(&items); err != nil {
-        resp.Error(500, "scan_error", err.Error())
-        return
-    }
-    resp.JSON(200, items)
+    resp.JSON(200, result)
 }
 
-func createItem(req *plugin.Request, resp *plugin.Response) {
-    var body struct {
+func (p *myPlugin) createItem(req *plugin.Request, resp *plugin.Response) {
+    body, err := plugin.JSONBody[struct {
         Title string `json:"title"`
-    }
-    if err := plugin.JSONBody(req, &body); err != nil || body.Title == "" {
-        resp.Error(400, "bad_request", "title is required")
+    }](req)
+    if err != nil || body.Title == "" {
+        resp.Error(400, "title is required")
         return
     }
 
-    result, err := plugin.DB().Exec(plugin.ExecQuery{
-        Table: "my_items",
-        Op:    plugin.Insert,
-        Data: map[string]any{
-            "task_id": req.PathParams["taskId"],
-            "title":   body.Title,
-        },
-    })
+    result, err := p.db.Query(
+        `INSERT INTO my_items (task_id, title) VALUES ($1, $2) RETURNING id, task_id, title`,
+        req.PathParam("taskId"), body.Title,
+    )
     if err != nil {
-        resp.Error(500, "create_failed", err.Error())
+        p.log.Error("createItem insert failed")
+        resp.Error(500, "create failed")
         return
     }
-    resp.JSON(201, result.Row)
+    resp.JSON(201, result)
 }
 ```
 
@@ -285,17 +274,18 @@ import {
 
 export default function TaskDetailSection(props: TaskDetailSectionProps) {
   return (
-    <PluginQueryClientProvider sdk={props.sdk}>
+    <PluginQueryClientProvider>
       <MyFeaturePanel {...props} />
     </PluginQueryClientProvider>
   );
 }
 
-function MyFeaturePanel({ sdk, taskId }: TaskDetailSectionProps) {
-  const { data: items = [], isLoading } = usePluginQuery({
-    queryKey: ["my-items", taskId],
-    queryFn: () => sdk.api.get<MyItem[]>(`tasks/${taskId}/my-items`),
-  });
+function MyFeaturePanel({ api, meta, taskId }: TaskDetailSectionProps) {
+  const { data: items = [], isLoading } = usePluginQuery(
+    meta.pluginId,
+    ["my-items", taskId],
+    () => api.pluginGet<MyItem[]>(meta.pluginId, `tasks/${taskId}/my-items`),
+  );
 
   if (isLoading) return <div>Loading...</div>;
 
@@ -313,7 +303,7 @@ function MyFeaturePanel({ sdk, taskId }: TaskDetailSectionProps) {
 
 interface MyItem {
   id: string;
-  taskId: string;
+  task_id: string;
   title: string;
 }
 ```
@@ -322,8 +312,8 @@ interface MyItem {
 
 ```sh
 cd frontend
-pnpm install
-pnpm build
+bun install
+bun run build
 ```
 
 Output goes to `dist/remoteEntry.js` (and associated chunks).
@@ -379,27 +369,43 @@ Open a task detail panel — your `TaskDetailSection` component should appear.
 
 ### Unit Testing the Backend
 
-Use standard Go testing with a mock host context from the SDK's `plugintest` package:
+Use standard Go testing with the SDK's `plugintest` package, which provides in-memory backends for DB, KV, Logger, and Config:
 
 ```go
 package main_test
 
 import (
     "testing"
+
+    plugin "github.com/Paca-AI/plugin-sdk"
     "github.com/Paca-AI/plugin-sdk/plugintest"
 )
 
 func TestListItems(t *testing.T) {
-    ctx := plugintest.NewContext()
-    ctx.DB().Seed("my_items", []map[string]any{
-        {"id": "abc", "task_id": "task-1", "title": "Test item"},
+    tc := plugintest.NewContext(t)
+
+    // Seed initial data
+    tc.DB.SeedRows("my_items",
+        []string{"id", "task_id", "title"},
+        [][]any{
+            {"abc", "task-1", "Test item"},
+        },
+    )
+
+    // Init the plugin
+    var p myPlugin
+    if err := p.Init(tc.PluginContext()); err != nil {
+        t.Fatal(err)
+    }
+
+    // Call a route
+    res := tc.Call("GET", "/tasks/:taskId/my-items", plugintest.Request{
+        PathParams: map[string]string{"taskId": "task-1"},
+        Caller:     plugin.CallerIdentity{ProjectID: "proj-1"},
     })
-
-    req := plugintest.Request{PathParams: map[string]string{"taskId": "task-1"}}
-    resp := plugintest.NewResponse()
-    listItems(&req, resp)
-
-    if resp.StatusCode != 200 { t.Fatalf("got %d", resp.StatusCode) }
+    if res.StatusCode != 200 {
+        t.Fatalf("expected 200, got %d: %s", res.StatusCode, res.BodyString())
+    }
 }
 ```
 

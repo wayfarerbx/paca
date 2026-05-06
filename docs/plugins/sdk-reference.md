@@ -7,6 +7,8 @@ The Paca Plugin SDK consists of two packages:
 
 Both packages are maintained in `plugins/sdk/` within the monorepo.
 
+See [paca-plugin-example](https://github.com/Paca-AI/paca-plugin-example) for a working reference implementation that exercises every API documented here.
+
 ---
 
 ## TypeScript SDK (`@paca-ai/plugin-sdk-react`)
@@ -42,30 +44,40 @@ interface PluginSDK {
 
 ### `PluginApiClient`
 
-A thin wrapper around `fetch` that:
-- Prefixes all requests with `/api/v1/plugins/{pluginId}/projects/{projectId}/`.
-- Sends cookies for authentication (`credentials: "include"`).
-- Throws typed `PluginApiError` on non-2xx responses.
+The API client provides typed wrappers for common Paca API calls and plugin route helpers. The host creates and injects the instance — plugins must not construct their own.
 
 ```ts
-interface PluginApiClient {
-  get<T>(path: string, options?: RequestInit): Promise<T>;
-  post<T>(path: string, body: unknown, options?: RequestInit): Promise<T>;
-  put<T>(path: string, body: unknown, options?: RequestInit): Promise<T>;
-  patch<T>(path: string, body: unknown, options?: RequestInit): Promise<T>;
-  delete<T>(path: string, options?: RequestInit): Promise<T>;
+class PluginApiClient {
+  constructor(opts: PluginApiClientOptions)
+
+  // Core read-only helpers (scoped to the current project)
+  listTasks(filters?: TaskFilters): Promise<TaskSummary[]>
+  getTask(taskId: string): Promise<Task>
+  getProject(): Promise<ProjectSummary>
+  listMembers(): Promise<ProjectMember[]>
+
+  // Plugin route helpers (prefixed with /plugins/{pluginId}/projects/{projectId}/)
+  pluginGet<T>(pluginId: string, path: string): Promise<T>
+  pluginPost<T>(pluginId: string, path: string, body: unknown): Promise<T>
+  pluginPatch<T>(pluginId: string, path: string, body: unknown): Promise<T>
+  pluginDelete(pluginId: string, path: string): Promise<void>
 }
 
-class PluginApiError extends Error {
-  status: number;
-  code: string;
-  details?: unknown;
+interface PluginApiClientOptions {
+  baseUrl: string;    // e.g. "https://app.paca.dev/api/v1"
+  projectId: string;  // current project ID, injected by the host
+  fetch: (url: string, init?: RequestInit) => Promise<Response>;
 }
 ```
 
 **Example:**
 ```ts
-const scenarios = await sdk.api.get<BDDScenario[]>(`tasks/${taskId}/bdd-scenarios`);
+// Call a backend route registered by this plugin
+const result = await api.pluginGet<{ data: MyItem[] }>(meta.pluginId, `tasks/${taskId}/items`);
+
+// Fetch core platform data
+const members = await api.listMembers();
+const tasks = await api.listTasks({ status_ids: ["done"] });
 ```
 
 ---
@@ -77,13 +89,13 @@ Utilities for showing UI feedback without depending on host internals.
 ```ts
 interface PluginUI {
   /** Show a toast notification */
-  toast(options: ToastOptions): void;
+  toast(opts: ToastOptions): void;
 
   /** Show a confirmation dialog; resolves true if confirmed */
-  confirm(message: string, options?: ConfirmOptions): Promise<boolean>;
+  confirm(opts: ConfirmOptions): Promise<boolean>;
 
-  /** Navigate to a Paca route (uses host router) */
-  navigate(to: string): void;
+  /** Navigate within the host application using its router */
+  navigate(path: string): void;
 }
 
 interface ToastOptions {
@@ -94,7 +106,8 @@ interface ToastOptions {
 }
 
 interface ConfirmOptions {
-  title?: string;
+  title: string;         // required — shown as the dialog heading
+  description?: string;
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: "default" | "destructive";
@@ -107,11 +120,9 @@ interface ConfirmOptions {
 
 ```ts
 interface PluginMeta {
-  pluginId: string;      // e.g. "com.paca.bdd"
-  pluginVersion: string;
-  coreVersion: string;
-  projectId: string;     // current project scope
-  userId: string;        // authenticated user ID
+  pluginId: string;     // e.g. "com.paca.example"
+  displayName: string;  // human-readable plugin name
+  version: string;      // semver version string
 }
 ```
 
@@ -119,7 +130,17 @@ interface PluginMeta {
 
 ### Extension Point Component Contracts
 
-Each extension point has a typed React component interface. Your exported component **must** match the prop signature for its extension point.
+Each extension point has a typed React component interface exported from `@paca-ai/plugin-sdk-react`. All interfaces extend `BaseExtensionProps`, which injects `api`, `ui`, and `meta` as top-level props.
+
+```ts
+interface BaseExtensionProps {
+  api: PluginApiClient;
+  ui: PluginUI;
+  meta: PluginMeta;
+}
+```
+
+Your exported component **must** match the prop signature for its extension point.
 
 #### `task.detail.section`
 
@@ -128,38 +149,34 @@ import type { TaskDetailSectionProps } from "@paca-ai/plugin-sdk-react";
 
 export default function MyTaskDetailSection(props: TaskDetailSectionProps) { ... }
 
-interface TaskDetailSectionProps {
+interface TaskDetailSectionProps extends BaseExtensionProps {
   taskId: string;
   projectId: string;
-  task: TaskSummary;
-  permissions: ProjectPermissions;
-  sdk: PluginSDK;
 }
 ```
 
 #### `sidebar.general.section`
 
 ```ts
-import type { GeneralSidebarSectionProps } from "@paca-ai/plugin-sdk-react";
+import type { SidebarGeneralSectionProps } from "@paca-ai/plugin-sdk-react";
 
-export default function MyGeneralSection(props: GeneralSidebarSectionProps) { ... }
+export default function MyGeneralSection(props: SidebarGeneralSectionProps) { ... }
 
-interface GeneralSidebarSectionProps {
-  sdk: PluginSDK;
+interface SidebarGeneralSectionProps extends BaseExtensionProps {
+  isCollapsed: boolean;
 }
 ```
 
 #### `sidebar.project.section`
 
 ```ts
-import type { ProjectSidebarSectionProps } from "@paca-ai/plugin-sdk-react";
+import type { SidebarProjectSectionProps } from "@paca-ai/plugin-sdk-react";
 
-export default function MyProjectSection(props: ProjectSidebarSectionProps) { ... }
+export default function MyProjectSection(props: SidebarProjectSectionProps) { ... }
 
-interface ProjectSidebarSectionProps {
+interface SidebarProjectSectionProps extends BaseExtensionProps {
   projectId: string;
-  permissions: ProjectPermissions;
-  sdk: PluginSDK;
+  isCollapsed: boolean;
 }
 ```
 
@@ -170,26 +187,21 @@ import type { ProjectSettingsTabProps } from "@paca-ai/plugin-sdk-react";
 
 export default function MySettingsTab(props: ProjectSettingsTabProps) { ... }
 
-interface ProjectSettingsTabProps {
+interface ProjectSettingsTabProps extends BaseExtensionProps {
   projectId: string;
-  permissions: ProjectPermissions;
-  sdk: PluginSDK;
 }
 ```
 
 #### `view`
 
 ```ts
-import type { ViewProps } from "@paca-ai/plugin-sdk-react";
+import type { ViewExtensionProps } from "@paca-ai/plugin-sdk-react";
 
-export default function MyView(props: ViewProps) { ... }
+export default function MyView(props: ViewExtensionProps) { ... }
 
-interface ViewProps {
+interface ViewExtensionProps extends BaseExtensionProps {
   projectId: string;
-  viewId: string;
-  filters: TaskFilters;
-  permissions: ProjectPermissions;
-  sdk: PluginSDK;
+  viewConfig?: Record<string, unknown>;
 }
 ```
 
@@ -198,32 +210,49 @@ interface ViewProps {
 ### Shared Types
 
 ```ts
+// Task
 interface TaskSummary {
   id: string;
-  taskNumber: number;
   title: string;
-  statusId: string | null;
-  taskTypeId: string | null;
-  assigneeId: string | null;
-  sprintId: string | null;
-  dueDate: string | null;  // ISO 8601
-  tags: string[];
+  task_number: number;      // snake_case matching the API JSON
+  status_id: string | null;
+  assignee_id: string | null;
 }
 
-interface ProjectPermissions {
-  canEdit: boolean;
-  canDelete: boolean;
-  canManageMembers: boolean;
-  canManageSettings: boolean;
-  isAdmin: boolean;
+interface Task extends TaskSummary {
+  project_id: string;
 }
 
 interface TaskFilters {
-  statusIds?: string[];
-  assigneeIds?: string[];
-  taskTypeIds?: string[];
-  sprintId?: string;
-  search?: string;
+  status_ids?: string[];
+  assignee_ids?: string[];
+  sprint_id?: string;
+  parent_task_id?: string;
+  page?: number;
+  page_size?: number;
+}
+
+// Project
+interface ProjectSummary {
+  id: string;
+  name: string;
+  description: string;
+  task_id_prefix: string;
+}
+
+// Members
+interface ProjectMember {
+  id: string;
+  username: string;
+  full_name: string;
+  role_name: string;
+}
+
+interface ProjectPermissions {
+  canManageProject: boolean;
+  canManageMembers: boolean;
+  canWriteTasks: boolean;
+  canReadTasks: boolean;
 }
 ```
 
@@ -231,28 +260,41 @@ interface TaskFilters {
 
 ### React Query Integration
 
-Plugins may use TanStack Query locally. The SDK exports a pre-configured `QueryClient` scoped to the plugin (keyed under the plugin ID) so plugin queries don't pollute the host's cache:
+Plugins may use TanStack Query. The SDK exports `PluginQueryClientProvider` and `usePluginQuery` to namespace cache entries under the plugin ID so they cannot collide with the host or sibling plugins.
 
 ```ts
-import { PluginQueryClientProvider, usePluginQuery } from "@paca-ai/plugin-sdk-react";
+import {
+  PluginQueryClientProvider,
+  usePluginQuery,
+  usePluginQueryClient,
+} from "@paca-ai/plugin-sdk-react";
 
 // Wrap your root component
 export default function Root(props: TaskDetailSectionProps) {
   return (
-    <PluginQueryClientProvider sdk={props.sdk}>
+    <PluginQueryClientProvider>
       <MyComponent {...props} />
     </PluginQueryClientProvider>
   );
 }
 
-// Use inside the provider
-function MyComponent({ sdk, taskId }: TaskDetailSectionProps) {
-  const { data } = usePluginQuery({
-    queryKey: ["bdd-scenarios", taskId],
-    queryFn: () => sdk.api.get(`tasks/${taskId}/bdd-scenarios`),
-  });
+// Use inside the provider — query key is prefixed with ["plugin", pluginId, ...]
+function MyComponent({ api, meta, taskId }: TaskDetailSectionProps) {
+  const { data, isLoading } = usePluginQuery(
+    meta.pluginId,
+    ["my-items", taskId],
+    () => api.pluginGet<MyItem[]>(meta.pluginId, `tasks/${taskId}/items`),
+  );
+}
+
+// Manual cache invalidation
+function afterMutation(pluginId: string) {
+  const qc = usePluginQueryClient();
+  qc.invalidateQueries({ queryKey: ["plugin", pluginId, "my-items"] });
 }
 ```
+
+`PluginQueryClientProvider` accepts an optional `queryClient` prop to reuse the host's `QueryClient` instance. When running inside the host's Module Federation shell the host injects its client automatically.
 
 ---
 
@@ -264,40 +306,46 @@ function MyComponent({ sdk, taskId }: TaskDetailSectionProps) {
 go get github.com/Paca-AI/plugin-sdk
 ```
 
-Build target must be `GOARCH=wasm GOOS=wasip1` (using TinyGo for smaller binaries, or standard Go 1.21+ WASI preview 1 support).
+Build target must be `GOARCH=wasm GOOS=wasip1`. Standard Go 1.21+ WASI preview 1 is supported; TinyGo produces smaller binaries.
 
 ---
 
-### Entry Points
+### Entry Point
 
-Every plugin must export three functions for the host to call:
+Every plugin has a single Go entry file. The SDK exports all required WASM symbols internally — you only need to implement the `Plugin` interface and call `plugin.Run` from `init()`.
 
 ```go
+//go:build wasip1
+
 package main
 
-import "github.com/Paca-AI/plugin-sdk/plugin"
+import plugin "github.com/Paca-AI/plugin-sdk"
 
-func main() {} // required for WASM
-
-//export Init
-func Init() {
-    plugin.Run(MyPlugin{})
+type myPlugin struct {
+    db  *plugin.DB
+    kv  *plugin.KV
+    log *plugin.Logger
+    cfg *plugin.Config
 }
 
-//export HandleRequest
-func HandleRequest(routeID int32) {
-    plugin.DispatchRequest(routeID)
+func (p *myPlugin) Init(ctx *plugin.Context) error {
+    // Store handles for use in route/event handlers
+    p.db  = ctx.DB()
+    p.kv  = ctx.KV()
+    p.log = ctx.Log()
+    p.cfg = ctx.Config()
+
+    ctx.Route("GET",    "/tasks/:taskId/items",     p.listItems)
+    ctx.Route("POST",   "/tasks/:taskId/items",     p.createItem)
+    ctx.Route("DELETE", "/tasks/:taskId/items/:id", p.deleteItem)
+    ctx.On("task.deleted", p.onTaskDeleted)
+    return nil
 }
 
-//export HandleEvent
-func HandleEvent(eventID int32) {
-    plugin.DispatchEvent(eventID)
-}
+func (p *myPlugin) Shutdown() {}
 
-//export Shutdown
-func Shutdown() {
-    plugin.Shutdown()
-}
+func init() { plugin.Run(&myPlugin{}) }
+func main() {}
 ```
 
 ---
@@ -306,12 +354,12 @@ func Shutdown() {
 
 ```go
 type Plugin interface {
-    // OnInit is called once when the plugin is loaded.
-    // Register routes and event handlers here.
-    OnInit(ctx Context) error
+    // Init is called once when the plugin is loaded.
+    // Register all routes and event handlers here.
+    Init(ctx *Context) error
 
-    // OnShutdown is called before the plugin is unloaded.
-    OnShutdown() error
+    // Shutdown is called before the plugin is unloaded.
+    Shutdown()
 }
 ```
 
@@ -319,25 +367,23 @@ type Plugin interface {
 
 ### `plugin.Context`
 
-Passed to `OnInit`. Provides registration methods and access to host services.
+Passed to `Init`. Provides route/event registration and access to host services.
 
 ```go
-type Context interface {
-    // Route registration
-    GET(path string, handler RouteHandler)
-    POST(path string, handler RouteHandler)
-    PUT(path string, handler RouteHandler)
-    PATCH(path string, handler RouteHandler)
-    DELETE(path string, handler RouteHandler)
+// Route registers an HTTP handler for method + path.
+// method must be one of: GET, POST, PUT, PATCH, DELETE
+// path may contain named segments, e.g. /tasks/:taskId/items/:id
+func (c *Context) Route(method, path string, handler RouteHandler)
 
-    // Event subscription (declared routes must match plugin.json)
-    On(event string, handler EventHandler)
+// On subscribes to a platform event topic.
+// topic must be declared in plugin.json under backend.eventSubscriptions.
+func (c *Context) On(topic string, handler EventHandler)
 
-    // Services (available after OnInit in handlers)
-    DB() DB
-    KV() KV
-    Log() Logger
-}
+// Host service accessors — store these on your plugin struct during Init.
+func (c *Context) DB()     *DB
+func (c *Context) KV()     *KV
+func (c *Context) Log()    *Logger
+func (c *Context) Config() *Config
 ```
 
 ---
@@ -348,32 +394,49 @@ type Context interface {
 type RouteHandler func(req *Request, resp *Response)
 
 type Request struct {
-    Method      string
-    Path        string
-    PathParams  map[string]string
-    QueryParams map[string][]string
-    Headers     map[string]string
-    Body        []byte
-    Caller      CallerIdentity
+    Method  string
+    Path    string
+    Headers map[string]string
+    Body    []byte
+    Caller  CallerIdentity
 }
 
 type CallerIdentity struct {
-    UserID    string
-    ProjectID string
-    RoleID    string
-    IsAdmin   bool
+    CallerID   string
+    CallerRole string
+    ProjectID  string
 }
 
-type Response struct {
-    // Set these fields then call resp.Send()
-    StatusCode int
-    Headers    map[string]string
-    Body       any // marshalled to JSON
-}
+// PathParam returns the named path parameter from the route pattern.
+func (r *Request) PathParam(name string) string
+
+// QueryParam returns the named URL query parameter.
+func (r *Request) QueryParam(name string) string
 
 func (r *Response) JSON(status int, body any)
-func (r *Response) Error(status int, code, message string)
+func (r *Response) Text(status int, text string)
 func (r *Response) NoContent()
+func (r *Response) Error(status int, message string)
+```
+
+#### `plugin.JSONBody`
+
+Decodes the JSON request body into a typed value:
+
+```go
+func JSONBody[T any](req *Request) (T, error)
+```
+
+**Example:**
+
+```go
+body, err := plugin.JSONBody[struct {
+    Title string `json:"title"`
+}](req)
+if err != nil || body.Title == "" {
+    resp.Error(400, "title is required")
+    return
+}
 ```
 
 ---
@@ -381,76 +444,108 @@ func (r *Response) NoContent()
 ### `plugin.EventHandler`
 
 ```go
-type EventHandler func(event Event)
+type EventHandler func(event *Event)
 
 type Event struct {
-    Type      string          // e.g. "task.deleted"
-    ProjectID string
-    Payload   json.RawMessage // event-specific payload
-    OccurredAt time.Time
+    Topic   string // e.g. "task.deleted"
+    Payload []byte // raw JSON bytes
 }
+```
+
+#### `plugin.JSONPayload`
+
+Decodes the event payload into a typed value:
+
+```go
+func JSONPayload[T any](evt *Event) (T, error)
+```
+
+**Example:**
+
+```go
+func (p *myPlugin) onTaskDeleted(evt *plugin.Event) {
+    payload, err := plugin.JSONPayload[struct {
+        TaskID string `json:"task_id"`
+    }](evt)
+    if err != nil {
+        p.log.Error("bad payload")
+        return
+    }
+    p.db.Exec(`DELETE FROM my_items WHERE task_id = $1`, payload.TaskID)
+}
+```
+
+#### `plugin.EmitEvent`
+
+Emits a custom event that other plugins or the platform can subscribe to:
+
+```go
+func EmitEvent(topic string, payload any)
 ```
 
 ---
 
 ### `plugin.DB`
 
-Typed query builder — no raw SQL.
+Provides raw parameterised SQL access to the plugin's own tables. Plugins may also read core platform tables.
 
 ```go
-type DB interface {
-    // Plugin-owned table operations
-    Exec(query ExecQuery) (Result, error)
-    Query(query SelectQuery) (Rows, error)
+// Query executes a SELECT (or INSERT … RETURNING) and returns the result rows.
+func (d *DB) Query(sql string, params ...any) (*DBQueryResult, error)
 
-    // Core read-only queries (scoped to Caller.ProjectID)
-    Tasks() TaskQuery
-    Members() MemberQuery
-    Project() ProjectQuery
+// Exec executes an INSERT, UPDATE, or DELETE and returns the affected row count.
+func (d *DB) Exec(sql string, params ...any) (int64, error)
 
-    // Transactions
-    WithTx(fn func(DB) error) error
+type DBQueryResult struct {
+    Columns []string
+    Rows    [][]any
 }
+```
 
-// ExecQuery for plugin_data tables
-type ExecQuery struct {
-    Table  string            // must be within the plugin's schema
-    Op     ExecOp            // Insert, Update, Delete
-    Data   map[string]any
-    Where  map[string]any
-}
+**Example:**
 
-// SelectQuery for plugin_data tables
-type SelectQuery struct {
-    Table   string
-    Where   map[string]any
-    OrderBy string
-    Limit   int
-    Offset  int
-}
+```go
+// SELECT with a WHERE clause
+result, err := p.db.Query(
+    `SELECT id, title FROM my_items WHERE task_id = $1`,
+    taskID,
+)
 
-type TaskQuery interface {
-    Where(filters TaskFilters) TaskQuery
-    OrderBy(field, dir string) TaskQuery
-    Limit(n int) TaskQuery
-    Offset(n int) TaskQuery
-    List() ([]Task, error)
-    Get(id string) (*Task, error)
-}
+// INSERT with RETURNING
+result, err := p.db.Query(
+    `INSERT INTO my_items (task_id, title) VALUES ($1, $2) RETURNING id, title`,
+    taskID, title,
+)
+
+// DELETE
+_, err = p.db.Exec(
+    `DELETE FROM my_items WHERE id = $1`,
+    itemID,
+)
 ```
 
 ---
 
 ### `plugin.KV`
 
-Simple key-value store backed by a per-plugin PostgreSQL JSONB column.
+Per-plugin persistent key-value store backed by the platform database. Values are plain strings.
 
 ```go
-type KV interface {
-    Get(key string, dest any) error      // JSON-unmarshals into dest
-    Set(key string, value any) error     // JSON-marshals value
-    Delete(key string) error
+func (kv *KV) Get(key string) (value string, ok bool)
+func (kv *KV) Set(key, value string)
+func (kv *KV) Delete(key string)
+```
+
+**Example:**
+
+```go
+// Increment a counter
+count := 0
+if v, ok := p.kv.Get("item.count"); ok {
+    fmt.Sscanf(v, "%d", &count)
 }
+count++
+p.kv.Set("item.count", fmt.Sprintf("%d", count))
 ```
 
 ---
@@ -458,16 +553,29 @@ type KV interface {
 ### `plugin.Logger`
 
 ```go
-type Logger interface {
-    Debug(msg string, fields ...Field)
-    Info(msg string, fields ...Field)
-    Warn(msg string, fields ...Field)
-    Error(msg string, fields ...Field)
-}
+func (l *Logger) Debug(msg string)
+func (l *Logger) Info(msg string)
+func (l *Logger) Warn(msg string)
+func (l *Logger) Error(msg string)
+```
 
-func String(key, val string) Field
-func Int(key string, val int) Field
-func Err(err error) Field
+---
+
+### `plugin.Config`
+
+Read-only access to operator-supplied configuration values for this plugin.
+
+```go
+func (c *Config) Get(key string) (value string, ok bool)
+```
+
+**Example:**
+
+```go
+prefix, _ := p.cfg.Get("greeting.prefix")
+if prefix == "" {
+    prefix = "Hello"
+}
 ```
 
 ---
@@ -475,60 +583,171 @@ func Err(err error) Field
 ### Full Plugin Example (Go)
 
 ```go
+//go:build wasip1
+
 package main
 
 import (
-    "encoding/json"
-    "github.com/Paca-AI/plugin-sdk/plugin"
+    "fmt"
+    plugin "github.com/Paca-AI/plugin-sdk"
 )
 
-type BDDPlugin struct{}
+type examplePlugin struct {
+    db  *plugin.DB
+    kv  *plugin.KV
+    log *plugin.Logger
+    cfg *plugin.Config
+}
 
-func (p BDDPlugin) OnInit(ctx plugin.Context) error {
-    ctx.GET("/tasks/:taskId/bdd-scenarios", listScenarios)
-    ctx.POST("/tasks/:taskId/bdd-scenarios", createScenario)
-    ctx.DELETE("/tasks/:taskId/bdd-scenarios/:scenarioId", deleteScenario)
+func (p *examplePlugin) Init(ctx *plugin.Context) error {
+    p.db  = ctx.DB()
+    p.kv  = ctx.KV()
+    p.log = ctx.Log()
+    p.cfg = ctx.Config()
 
-    ctx.On("task.deleted", onTaskDeleted)
+    ctx.Route("GET",    "/tasks/:taskId/messages",     p.listMessages)
+    ctx.Route("POST",   "/tasks/:taskId/messages",     p.createMessage)
+    ctx.Route("DELETE", "/tasks/:taskId/messages/:id", p.deleteMessage)
+    ctx.On("task.deleted", p.onTaskDeleted)
     return nil
 }
 
-func (p BDDPlugin) OnShutdown() error { return nil }
+func (p *examplePlugin) Shutdown() {}
 
-func listScenarios(req *plugin.Request, resp *plugin.Response) {
-    taskID := req.PathParams["taskId"]
-    rows, err := plugin.DB().Query(plugin.SelectQuery{
-        Table: "bdd_scenarios",
-        Where: map[string]any{"task_id": taskID},
-    })
+func (p *examplePlugin) listMessages(req *plugin.Request, resp *plugin.Response) {
+    taskID := req.PathParam("taskId")
+    result, err := p.db.Query(
+        `SELECT id, name, message FROM hello_messages WHERE task_id = $1`,
+        taskID,
+    )
     if err != nil {
-        resp.Error(500, "internal_error", err.Error())
+        p.log.Error("listMessages query failed")
+        resp.Error(500, "query failed")
         return
     }
-    resp.JSON(200, rows.All())
+    resp.JSON(200, result)
 }
 
-func onTaskDeleted(event plugin.Event) {
-    var payload struct{ TaskID string `json:"task_id"` }
-    json.Unmarshal(event.Payload, &payload)
-    plugin.DB().Exec(plugin.ExecQuery{
-        Table: "bdd_scenarios",
-        Op:    plugin.Delete,
-        Where: map[string]any{"task_id": payload.TaskID},
-    })
+func (p *examplePlugin) createMessage(req *plugin.Request, resp *plugin.Response) {
+    body, err := plugin.JSONBody[struct {
+        Name    string `json:"name"`
+        Message string `json:"message"`
+    }](req)
+    if err != nil || body.Name == "" {
+        resp.Error(400, "name is required")
+        return
+    }
+
+    prefix, _ := p.cfg.Get("greeting.prefix")
+    if prefix == "" {
+        prefix = "Hello"
+    }
+    greeting := fmt.Sprintf("%s, %s! %s", prefix, body.Name, body.Message)
+
+    result, err := p.db.Query(
+        `INSERT INTO hello_messages (task_id, name, message)
+         VALUES ($1, $2, $3) RETURNING id, name, message`,
+        req.PathParam("taskId"), body.Name, greeting,
+    )
+    if err != nil {
+        resp.Error(500, "insert failed")
+        return
+    }
+    resp.JSON(201, result)
 }
 
-//export Init
-func Init() { plugin.Run(BDDPlugin{}) }
+func (p *examplePlugin) deleteMessage(req *plugin.Request, resp *plugin.Response) {
+    _, err := p.db.Exec(
+        `DELETE FROM hello_messages WHERE id = $1`,
+        req.PathParam("id"),
+    )
+    if err != nil {
+        resp.Error(500, "delete failed")
+        return
+    }
+    resp.NoContent()
+}
 
-//export HandleRequest
-func HandleRequest(routeID int32) { plugin.DispatchRequest(routeID) }
+func (p *examplePlugin) onTaskDeleted(evt *plugin.Event) {
+    payload, err := plugin.JSONPayload[struct {
+        TaskID string `json:"task_id"`
+    }](evt)
+    if err != nil {
+        p.log.Error("bad task.deleted payload")
+        return
+    }
+    p.db.Exec(`DELETE FROM hello_messages WHERE task_id = $1`, payload.TaskID)
+}
 
-//export HandleEvent
-func HandleEvent(eventID int32) { plugin.DispatchEvent(eventID) }
-
-//export Shutdown
-func Shutdown() { plugin.Shutdown() }
-
+func init() { plugin.Run(&examplePlugin{}) }
 func main() {}
 ```
+
+---
+
+### Unit Testing with `plugintest`
+
+The `plugintest` package (part of the SDK) provides in-memory backends so you can test route and event handlers without a live database or WASM runtime.
+
+```go
+package main_test
+
+import (
+    "encoding/json"
+    "testing"
+
+    plugin "github.com/Paca-AI/plugin-sdk"
+    "github.com/Paca-AI/plugin-sdk/plugintest"
+)
+
+func TestListMessages(t *testing.T) {
+    tc := plugintest.NewContext(t)
+
+    // Seed initial data
+    tc.DB.SeedRows("hello_messages",
+        []string{"id", "task_id", "name", "message"},
+        [][]any{
+            {"id-1", "task-a", "Alice", "Hello, Alice!"},
+        },
+    )
+
+    // Set config values the plugin reads during Init
+    tc.Config.Set("greeting.prefix", "Hi")
+
+    // Init the plugin
+    var p examplePlugin
+    if err := p.Init(tc.PluginContext()); err != nil {
+        t.Fatal(err)
+    }
+
+    // Call a route
+    res := tc.Call("GET", "/tasks/:taskId/messages", plugintest.Request{
+        PathParams: map[string]string{"taskId": "task-a"},
+        Caller:     plugin.CallerIdentity{ProjectID: "proj-1"},
+    })
+    if res.StatusCode != 200 {
+        t.Fatalf("expected 200, got %d: %s", res.StatusCode, res.BodyString())
+    }
+
+    // Dispatch a platform event
+    payload, _ := json.Marshal(map[string]string{"task_id": "task-a"})
+    plugin.DispatchEvent(tc.PluginContext(), "task.deleted", payload)
+
+    if rows := tc.DB.AllRows("hello_messages"); len(rows) != 0 {
+        t.Fatalf("expected rows deleted, got %d", len(rows))
+    }
+}
+```
+
+Key `plugintest` API:
+
+| Symbol | Description |
+|---|---|
+| `plugintest.NewContext(t)` | Create a fresh test harness; cleanup registered automatically. |
+| `tc.DB.SeedRows(table, cols, rows)` | Pre-populate an in-memory table. |
+| `tc.DB.AllRows(table)` | Read all rows after mutations. |
+| `tc.KV.Set(key, value)` | Pre-seed KV entries. |
+| `tc.Config.Set(key, value)` | Pre-seed config values. |
+| `tc.PluginContext()` | Return `*plugin.Context` to pass to `Plugin.Init`. |
+| `tc.Call(method, path, req)` | Dispatch a test request; returns `*plugin.Response`. |
+| `plugin.DispatchEvent(ctx, topic, payload)` | Fire a platform event directly to the plugin's handler. |
