@@ -409,7 +409,7 @@ export function InteractionLayout({
 		activeView?.layout === "Plugin"
 			? (pluginViewRegistrations.find(
 					(r) =>
-						r.pluginId === activeView.config?.plugin_id &&
+						r.pluginId === activeView.config?.plugin_manifest_id &&
 						r.component === activeView.config?.plugin_component,
 				) ?? null)
 			: null;
@@ -804,7 +804,7 @@ export function InteractionLayout({
 			const config =
 				payload.layout === "Plugin" && payload.pluginRegistration
 					? {
-							plugin_id: payload.pluginRegistration.pluginId,
+							plugin_manifest_id: payload.pluginRegistration.pluginId,
 							plugin_component: payload.pluginRegistration.component,
 						}
 					: buildDefaultViewConfig(payload.layout);

@@ -134,8 +134,8 @@ func TestViewFromEntity_PluginConfigRoundtrip(t *testing.T) {
 
 	resp := dto.ViewFromEntity(entity)
 
-	if resp.Config.PluginID != entity.Config.PluginID {
-		t.Errorf("PluginID: want %q, got %q", entity.Config.PluginID, resp.Config.PluginID)
+	if resp.Config.PluginManifestID != entity.Config.PluginID {
+		t.Errorf("PluginManifestID: want %q, got %q", entity.Config.PluginID, resp.Config.PluginManifestID)
 	}
 	if resp.Config.PluginComponent != entity.Config.PluginComponent {
 		t.Errorf("PluginComponent: want %q, got %q", entity.Config.PluginComponent, resp.Config.PluginComponent)
@@ -216,8 +216,8 @@ func TestCreateViewRequest_ToCreateInput_PluginConfigRoundtrip(t *testing.T) {
 		Name:     "Plugin View",
 		ViewType: sprintdom.ViewTypePlugin,
 		Config: &dto.ViewConfigDTO{
-			PluginID:        pluginID,
-			PluginComponent: "KanbanByPriority",
+			PluginManifestID: pluginID,
+			PluginComponent:  "KanbanByPriority",
 		},
 	}
 

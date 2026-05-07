@@ -644,6 +644,15 @@ Error codes:
 
 ## Sprint View Contracts
 
+Plugin view config identifier note:
+
+- In view `config`, `plugin_manifest_id` is the canonical plugin identifier for
+  `view_type = "plugin"`; it uses the manifest reverse-DNS format (for example
+  `com.paca.checklist`).
+- `plugin_component` identifies the frontend component export to render.
+- This is distinct from plugin-extension-settings APIs where `plugin_id` means
+  the plugin UUID.
+
 ### `GET /api/v1/projects/:projectId/sprints/:sprintId/views`
 
 Function:

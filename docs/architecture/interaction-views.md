@@ -87,6 +87,17 @@ Each view stores both presentation settings and reusable filters.
 }
 ```
 
+For plugin views (`view_type = "plugin"`), config also includes:
+
+```json
+{
+  "plugin_manifest_id": "com.paca.checklist",
+  "plugin_component": "KanbanByPriority"
+}
+```
+
+`plugin_manifest_id` is the plugin manifest reverse-DNS identifier.
+
 ### Rule of thumb
 
 - **Presentation** belongs in top-level config keys such as `column_by`, `sort_by`, and `slice_by`

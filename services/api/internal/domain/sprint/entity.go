@@ -171,6 +171,8 @@ type ViewConfig struct {
 	SliceBy   string       `json:"slice_by,omitempty"`
 	Filters   *ViewFilters `json:"filters,omitempty"`
 	// Plugin view fields (only set when view_type = "plugin")
+	// PluginID stores the plugin manifest identifier (reverse-DNS), not the
+	// plugin UUID used by plugin-extension-settings APIs.
 	PluginID        string `json:"plugin_id,omitempty"`
 	PluginComponent string `json:"plugin_component,omitempty"`
 }
