@@ -3,9 +3,11 @@
 The Paca Plugin SDK consists of two packages:
 
 - **`@paca-ai/plugin-sdk-react`** — TypeScript/React SDK for frontend plugin components.
-- **`github.com/Paca-AI/plugin-sdk`** — Go SDK for backend WASM plugins.
+  - Repository: [github.com/Paca-AI/plugin-sdk-react](https://github.com/Paca-AI/plugin-sdk-react)
+- **`github.com/Paca-AI/plugin-sdk-go`** — Go SDK for backend WASM plugins.
+  - Repository: [github.com/Paca-AI/plugin-sdk-go](https://github.com/Paca-AI/plugin-sdk-go)
 
-Both packages are maintained in `plugins/sdk/` within the monorepo.
+Both packages are maintained in separate repositories for better modularity and easier dependency management.
 
 See [paca-plugin-example](https://github.com/Paca-AI/paca-plugin-example) for a working reference implementation that exercises every API documented here.
 
@@ -298,12 +300,12 @@ function afterMutation(pluginId: string) {
 
 ---
 
-## Go SDK (`github.com/Paca-AI/plugin-sdk`)
+## Go SDK (`github.com/Paca-AI/plugin-sdk-go`)
 
 ### Installation
 
 ```sh
-go get github.com/Paca-AI/plugin-sdk
+go get github.com/Paca-AI/plugin-sdk-go
 ```
 
 Build target must be `GOARCH=wasm GOOS=wasip1`. Standard Go 1.21+ WASI preview 1 is supported; TinyGo produces smaller binaries.
@@ -319,278 +321,7 @@ Every plugin has a single Go entry file. The SDK exports all required WASM symbo
 
 package main
 
-import plugin "github.com/Paca-AI/plugin-sdk"
-
-type myPlugin struct {
-    db  *plugin.DB
-    kv  *plugin.KV
-    log *plugin.Logger
-    cfg *plugin.Config
-}
-
-func (p *myPlugin) Init(ctx *plugin.Context) error {
-    // Store handles for use in route/event handlers
-    p.db  = ctx.DB()
-    p.kv  = ctx.KV()
-    p.log = ctx.Log()
-    p.cfg = ctx.Config()
-
-    ctx.Route("GET",    "/tasks/:taskId/items",     p.listItems)
-    ctx.Route("POST",   "/tasks/:taskId/items",     p.createItem)
-    ctx.Route("DELETE", "/tasks/:taskId/items/:id", p.deleteItem)
-    ctx.On("task.deleted", p.onTaskDeleted)
-    return nil
-}
-
-func (p *myPlugin) Shutdown() {}
-
-func init() { plugin.Run(&myPlugin{}) }
-func main() {}
-```
-
----
-
-### `plugin.Plugin` Interface
-
-```go
-type Plugin interface {
-    // Init is called once when the plugin is loaded.
-    // Register all routes and event handlers here.
-    Init(ctx *Context) error
-
-    // Shutdown is called before the plugin is unloaded.
-    Shutdown()
-}
-```
-
----
-
-### `plugin.Context`
-
-Passed to `Init`. Provides route/event registration and access to host services.
-
-```go
-// Route registers an HTTP handler for method + path.
-// method must be one of: GET, POST, PUT, PATCH, DELETE
-// path may contain named segments, e.g. /tasks/:taskId/items/:id
-func (c *Context) Route(method, path string, handler RouteHandler)
-
-// On subscribes to a platform event topic.
-// topic must be declared in plugin.json under backend.eventSubscriptions.
-func (c *Context) On(topic string, handler EventHandler)
-
-// Host service accessors — store these on your plugin struct during Init.
-func (c *Context) DB()     *DB
-func (c *Context) KV()     *KV
-func (c *Context) Log()    *Logger
-func (c *Context) Config() *Config
-```
-
----
-
-### `plugin.RouteHandler`
-
-```go
-type RouteHandler func(req *Request, resp *Response)
-
-type Request struct {
-    Method  string
-    Path    string
-    Headers map[string]string
-    Body    []byte
-    Caller  CallerIdentity
-}
-
-type CallerIdentity struct {
-    CallerID   string
-    CallerRole string
-    ProjectID  string
-}
-
-// PathParam returns the named path parameter from the route pattern.
-func (r *Request) PathParam(name string) string
-
-// QueryParam returns the named URL query parameter.
-func (r *Request) QueryParam(name string) string
-
-func (r *Response) JSON(status int, body any)
-func (r *Response) Text(status int, text string)
-func (r *Response) NoContent()
-func (r *Response) Error(status int, message string)
-```
-
-#### `plugin.JSONBody`
-
-Decodes the JSON request body into a typed value:
-
-```go
-func JSONBody[T any](req *Request) (T, error)
-```
-
-**Example:**
-
-```go
-body, err := plugin.JSONBody[struct {
-    Title string `json:"title"`
-}](req)
-if err != nil || body.Title == "" {
-    resp.Error(400, "title is required")
-    return
-}
-```
-
----
-
-### `plugin.EventHandler`
-
-```go
-type EventHandler func(event *Event)
-
-type Event struct {
-    Topic   string // e.g. "task.deleted"
-    Payload []byte // raw JSON bytes
-}
-```
-
-#### `plugin.JSONPayload`
-
-Decodes the event payload into a typed value:
-
-```go
-func JSONPayload[T any](evt *Event) (T, error)
-```
-
-**Example:**
-
-```go
-func (p *myPlugin) onTaskDeleted(evt *plugin.Event) {
-    payload, err := plugin.JSONPayload[struct {
-        TaskID string `json:"task_id"`
-    }](evt)
-    if err != nil {
-        p.log.Error("bad payload")
-        return
-    }
-    p.db.Exec(`DELETE FROM my_items WHERE task_id = $1`, payload.TaskID)
-}
-```
-
-#### `plugin.EmitEvent`
-
-Emits a custom event that other plugins or the platform can subscribe to:
-
-```go
-func EmitEvent(topic string, payload any)
-```
-
----
-
-### `plugin.DB`
-
-Provides raw parameterised SQL access to the plugin's own tables. Plugins may also read core platform tables.
-
-```go
-// Query executes a SELECT (or INSERT … RETURNING) and returns the result rows.
-func (d *DB) Query(sql string, params ...any) (*DBQueryResult, error)
-
-// Exec executes an INSERT, UPDATE, or DELETE and returns the affected row count.
-func (d *DB) Exec(sql string, params ...any) (int64, error)
-
-type DBQueryResult struct {
-    Columns []string
-    Rows    [][]any
-}
-```
-
-**Example:**
-
-```go
-// SELECT with a WHERE clause
-result, err := p.db.Query(
-    `SELECT id, title FROM my_items WHERE task_id = $1`,
-    taskID,
-)
-
-// INSERT with RETURNING
-result, err := p.db.Query(
-    `INSERT INTO my_items (task_id, title) VALUES ($1, $2) RETURNING id, title`,
-    taskID, title,
-)
-
-// DELETE
-_, err = p.db.Exec(
-    `DELETE FROM my_items WHERE id = $1`,
-    itemID,
-)
-```
-
----
-
-### `plugin.KV`
-
-Per-plugin persistent key-value store backed by the platform database. Values are plain strings.
-
-```go
-func (kv *KV) Get(key string) (value string, ok bool)
-func (kv *KV) Set(key, value string)
-func (kv *KV) Delete(key string)
-```
-
-**Example:**
-
-```go
-// Increment a counter
-count := 0
-if v, ok := p.kv.Get("item.count"); ok {
-    fmt.Sscanf(v, "%d", &count)
-}
-count++
-p.kv.Set("item.count", fmt.Sprintf("%d", count))
-```
-
----
-
-### `plugin.Logger`
-
-```go
-func (l *Logger) Debug(msg string)
-func (l *Logger) Info(msg string)
-func (l *Logger) Warn(msg string)
-func (l *Logger) Error(msg string)
-```
-
----
-
-### `plugin.Config`
-
-Read-only access to operator-supplied configuration values for this plugin.
-
-```go
-func (c *Config) Get(key string) (value string, ok bool)
-```
-
-**Example:**
-
-```go
-prefix, _ := p.cfg.Get("greeting.prefix")
-if prefix == "" {
-    prefix = "Hello"
-}
-```
-
----
-
-### Full Plugin Example (Go)
-
-```go
-//go:build wasip1
-
-package main
-
-import (
-    "fmt"
-    plugin "github.com/Paca-AI/plugin-sdk"
-)
+import plugin "github.com/Paca-AI/plugin-sdk-go"
 
 type examplePlugin struct {
     db  *plugin.DB
@@ -696,8 +427,8 @@ import (
     "encoding/json"
     "testing"
 
-    plugin "github.com/Paca-AI/plugin-sdk"
-    "github.com/Paca-AI/plugin-sdk/plugintest"
+    plugin "github.com/Paca-AI/plugin-sdk-go"
+    "github.com/Paca-AI/plugin-sdk-go/plugintest"
 )
 
 func TestListMessages(t *testing.T) {

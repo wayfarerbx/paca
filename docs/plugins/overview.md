@@ -100,26 +100,28 @@ Uploaded → Validated (manifest + WASM signature check) → Installed
 - A per-plugin permission list in `plugin.json` gates which host functions are available.
 - WASM execution is CPU/memory-limited via `wazero`'s resource controls.
 
-## Directory Structure (after migration)
+## Directory Structure
 
 ```
-plugins/                          ← new top-level directory
-  sdk/
-    frontend/                     ← @paca-ai/plugin-sdk-react (TypeScript)
-    backend/                      ← github.com/Paca-AI/plugin-sdk (Go)
-  first-party/
-    bdd/                          ← BDD Scenario plugin
-    checklist/                    ← Checklist plugin
-    github/                       ← GitHub Integration plugin
-    time-tracking/                ← Time Tracking plugin
-  docs/
-    overview.md                   ← this file
-    frontend-plugin-system.md
-    backend-plugin-system.md
-    sdk-reference.md
-    first-party-plugins.md
-    developer-guide.md
+plugins/                          ← local plugin store
+  local/
+    backend/                      ← Backend WASM binaries, migrations, manifests
+      <plugin-id>/
+        plugin.json
+        backend.wasm
+        migrations/
+    frontend/                     ← Frontend JS/CSS bundles
+      <plugin-id>/
+        assets/
+          remoteEntry.js
+          ...
+  README.md                       ← This file
 ```
+
+The Plugin SDKs are now maintained in separate repositories:
+
+- **Backend SDK (Go)**: [github.com/Paca-AI/plugin-sdk-go](https://github.com/Paca-AI/plugin-sdk-go)
+- **Frontend SDK (React/TypeScript)**: [github.com/Paca-AI/plugin-sdk-react](https://github.com/Paca-AI/plugin-sdk-react)
 
 ## Related Documents
 

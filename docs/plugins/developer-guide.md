@@ -89,13 +89,10 @@ module github.com/example/my-plugin
 
 go 1.21
 
-require github.com/Paca-AI/plugin-sdk v0.1.0
+require github.com/Paca-AI/plugin-sdk-go v0.1.0
 ```
 
-> **Local development:** If you're developing inside the Paca monorepo, replace the module reference with a local path:
-> ```
-> replace github.com/Paca-AI/plugin-sdk => ../../../paca/plugins/sdk/backend
-> ```
+> **Note:** The plugin SDK is now maintained in a separate repository. Use the official package from GitHub.
 
 ### `backend/main.go`
 
@@ -104,7 +101,7 @@ require github.com/Paca-AI/plugin-sdk v0.1.0
 
 package main
 
-import plugin "github.com/Paca-AI/plugin-sdk"
+import plugin "github.com/Paca-AI/plugin-sdk-go"
 
 type myPlugin struct {
     db  *plugin.DB
@@ -133,7 +130,7 @@ func main() {}
 ```go
 package main
 
-import plugin "github.com/Paca-AI/plugin-sdk"
+import plugin "github.com/Paca-AI/plugin-sdk-go"
 
 type MyItem struct {
     ID     string `json:"id"`
@@ -377,8 +374,8 @@ package main_test
 import (
     "testing"
 
-    plugin "github.com/Paca-AI/plugin-sdk"
-    "github.com/Paca-AI/plugin-sdk/plugintest"
+    plugin "github.com/Paca-AI/plugin-sdk-go"
+    "github.com/Paca-AI/plugin-sdk-go/plugintest"
 )
 
 func TestListItems(t *testing.T) {

@@ -23,7 +23,7 @@ Before any feature migration:
 
 1. Implement the host-side plugin runtime (`services/api/internal/plugin/`).
 2. Implement the frontend extension point registry and `<ExtensionPoint>` primitive (`apps/web/src/lib/plugins/`).
-3. Publish initial versions of `@paca-ai/plugin-sdk-react` and `github.com/Paca-AI/plugin-sdk`.
+3. Publish initial versions of `@paca-ai/plugin-sdk-react` and `github.com/Paca-AI/plugin-sdk-go`.
 4. Add the `plugins` and `plugin_extension_settings` tables via a core migration.
 5. Implement `GET /api/v1/plugins` (list enabled plugins with their manifests).
 6. Implement `PATCH /api/v1/admin/plugin-extension-settings` (super admin sets system-wide extension point ordering/visibility).
