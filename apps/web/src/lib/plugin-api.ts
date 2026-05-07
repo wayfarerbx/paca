@@ -95,7 +95,8 @@ export type ExtensionPointId =
 	| "view";
 
 export interface PluginRegistration {
-	pluginId: string;
+	pluginUUID: string; // The database UUID for API calls
+	pluginId: string; // The reverse-DNS identifier (e.g., "com.paca.checklist")
 	pluginName: string;
 	remoteEntryUrl: string;
 	component: string;
@@ -119,7 +120,8 @@ export function buildRegistryMap(
 			const point = reg.point as ExtensionPointId;
 			const regs = map.get(point) ?? [];
 			regs.push({
-				pluginId: plugin.manifest.id,
+				pluginUUID: plugin.id, // UUID for API calls
+				pluginId: plugin.manifest.id, // reverse-DNS for display/keys
 				pluginName: plugin.manifest.displayName,
 				remoteEntryUrl,
 				component: reg.component,

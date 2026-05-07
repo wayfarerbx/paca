@@ -401,9 +401,9 @@ export function InteractionLayout({
 	const [activePluginViewId, setActivePluginViewId] = useState<string | null>(
 		null,
 	);
-	// Resolve the active plugin view registration
+	// Resolve the active plugin view registration using composite key
 	const activePluginView =
-		pluginViews.find((r) => r.pluginId === activePluginViewId) ?? null;
+		pluginViews.find((r) => `${r.pluginId}:${r.component}` === activePluginViewId) ?? null;
 
 	useEffect(() => {
 		if (!activeViewId) return;
@@ -1026,23 +1026,26 @@ export function InteractionLayout({
 						/>
 					)}
 					{/* Plugin view tabs */}
-					{pluginViews.map((reg) => (
-						<button
-							key={reg.pluginId}
-							type="button"
-							onClick={() => {
-								setActivePluginViewId(reg.pluginId);
-								setPreferredViewId("");
-							}}
-							className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-all duration-150 ${
-								activePluginViewId === reg.pluginId
-									? "bg-accent text-foreground"
-									: "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-							}`}
-						>
-							{reg.pluginName}
-						</button>
-					))}
+					{pluginViews.map((reg) => {
+						const viewKey = `${reg.pluginId}:${reg.component}`;
+						return (
+							<button
+								key={viewKey}
+								type="button"
+								onClick={() => {
+									setActivePluginViewId(viewKey);
+									setPreferredViewId("");
+								}}
+								className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium transition-all duration-150 ${
+									activePluginViewId === viewKey
+										? "bg-accent text-foreground"
+										: "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+								}`}
+							>
+								{reg.pluginName}
+							</button>
+						);
+					})}
 				</div>
 
 				<div className="flex shrink-0 items-center gap-1 pl-3 border-l border-border/25 ml-2">

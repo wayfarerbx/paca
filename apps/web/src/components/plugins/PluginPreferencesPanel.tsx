@@ -32,8 +32,8 @@ interface DraggableItemProps {
 	index: number;
 	total: number;
 	onToggleHidden: (reg: PluginRegistration) => void;
-	onDragStart: (e: DragEvent, index: number) => void;
-	onDragOver: (e: DragEvent, index: number) => void;
+	onDragStart: (e: DragEvent<HTMLLIElement>, index: number) => void;
+	onDragOver: (e: DragEvent<HTMLLIElement>, index: number) => void;
 	onDrop: (index: number) => void;
 	dragOverIndex: number | null;
 }
@@ -104,11 +104,11 @@ function PointSection({
 	const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 	const dragIndexRef = useRef<number>(-1);
 
-	const handleDragStart = (_e: DragEvent, index: number) => {
+	const handleDragStart = (_e: DragEvent<HTMLLIElement>, index: number) => {
 		dragIndexRef.current = index;
 	};
 
-	const handleDragOver = (e: DragEvent, index: number) => {
+	const handleDragOver = (e: DragEvent<HTMLLIElement>, index: number) => {
 		e.preventDefault();
 		setDragOverIndex(index);
 	};
@@ -163,7 +163,7 @@ export function PluginPreferencesPanel() {
 	const handleToggleHidden = useCallback(
 		(point: ExtensionPointId, reg: PluginRegistration) => {
 			mutation.mutate({
-				plugin_id: reg.pluginId,
+				plugin_id: reg.pluginUUID, // Use UUID for API call
 				extension_point: point,
 				settings: { hidden: !reg.hidden, order: reg.order },
 			});
@@ -183,7 +183,7 @@ export function PluginPreferencesPanel() {
 				const reg = reordered[i];
 				if (reg.order !== i || reg === moved) {
 					mutation.mutate({
-						plugin_id: reg.pluginId,
+						plugin_id: reg.pluginUUID, // Use UUID for API call
 						extension_point: point,
 						settings: { hidden: reg.hidden ?? false, order: i },
 					});
