@@ -67,7 +67,7 @@ func (c *MarketplaceClient) List(ctx context.Context) (*MarketplaceCatalog, erro
 		return nil, fmt.Errorf("marketplace catalog URL is not configured")
 	}
 
-	if err := validateMarketplaceURL(c.catalogURL); err != nil {
+	if err := validateMarketplaceURL(ctx, c.catalogURL); err != nil {
 		return nil, fmt.Errorf("marketplace: invalid catalog URL: %w", err)
 	}
 
@@ -93,7 +93,7 @@ func (c *MarketplaceClient) List(ctx context.Context) (*MarketplaceCatalog, erro
 	}
 
 	for i := range catalog.Plugins {
-		if err := validateMarketplacePlugin(catalog.Plugins[i]); err != nil {
+		if err := validateMarketplacePlugin(ctx, catalog.Plugins[i]); err != nil {
 			return nil, fmt.Errorf("marketplace: invalid plugin entry %q: %w", catalog.Plugins[i].Name, err)
 		}
 	}
@@ -116,7 +116,7 @@ func (c *MarketplaceClient) FindPlugin(ctx context.Context, name string) (*Marke
 	return nil, ErrMarketplacePluginNotFound
 }
 
-func validateMarketplacePlugin(p MarketplacePlugin) error {
+func validateMarketplacePlugin(ctx context.Context, p MarketplacePlugin) error {
 	if strings.TrimSpace(p.Name) == "" {
 		return fmt.Errorf("name is required")
 	}
@@ -126,25 +126,25 @@ func validateMarketplacePlugin(p MarketplacePlugin) error {
 	if strings.TrimSpace(p.Artifacts.BackendTarGzURL) == "" {
 		return fmt.Errorf("artifacts.backend_tar_gz_url is required")
 	}
-	if err := validateMarketplaceURL(p.Artifacts.BackendTarGzURL); err != nil {
+	if err := validateMarketplaceURL(ctx, p.Artifacts.BackendTarGzURL); err != nil {
 		return fmt.Errorf("artifacts.backend_tar_gz_url: %w", err)
 	}
 	if strings.TrimSpace(p.Artifacts.FrontendTarGzURL) == "" {
 		return fmt.Errorf("artifacts.frontend_tar_gz_url is required")
 	}
-	if err := validateMarketplaceURL(p.Artifacts.FrontendTarGzURL); err != nil {
+	if err := validateMarketplaceURL(ctx, p.Artifacts.FrontendTarGzURL); err != nil {
 		return fmt.Errorf("artifacts.frontend_tar_gz_url: %w", err)
 	}
 	if strings.TrimSpace(p.Artifacts.MigrationsTarGzURL) == "" {
 		return fmt.Errorf("artifacts.migrations_tar_gz_url is required")
 	}
-	if err := validateMarketplaceURL(p.Artifacts.MigrationsTarGzURL); err != nil {
+	if err := validateMarketplaceURL(ctx, p.Artifacts.MigrationsTarGzURL); err != nil {
 		return fmt.Errorf("artifacts.migrations_tar_gz_url: %w", err)
 	}
 	if strings.TrimSpace(p.Artifacts.ManifestTarGzURL) == "" {
 		return fmt.Errorf("artifacts.manifest_tar_gz_url is required")
 	}
-	if err := validateMarketplaceURL(p.Artifacts.ManifestTarGzURL); err != nil {
+	if err := validateMarketplaceURL(ctx, p.Artifacts.ManifestTarGzURL); err != nil {
 		return fmt.Errorf("artifacts.manifest_tar_gz_url: %w", err)
 	}
 	return nil
@@ -157,7 +157,7 @@ func validateMarketplacePlugin(p MarketplacePlugin) error {
 // could resolve to a public IP during validation but to a private IP during the
 // actual request. For production deployments, consider implementing DNS pinning
 // or using a dedicated egress proxy with allowlist-based filtering.
-func validateMarketplaceURL(rawURL string) error {
+func validateMarketplaceURL(ctx context.Context, rawURL string) error {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return fmt.Errorf("invalid URL: %w", err)
@@ -175,15 +175,16 @@ func validateMarketplaceURL(rawURL string) error {
 	}
 
 	// Resolve hostname to IP addresses
-	ips, err := net.LookupIP(host)
+	resolver := &net.Resolver{}
+	ips, err := resolver.LookupIPAddr(ctx, host)
 	if err != nil {
 		return fmt.Errorf("failed to resolve hostname: %w", err)
 	}
 
 	// Check each resolved IP against private/internal ranges
-	for _, ip := range ips {
-		if isPrivateOrInternalIP(ip) {
-			return fmt.Errorf("URL resolves to private/internal IP address: %s", ip.String())
+	for _, ipAddr := range ips {
+		if isPrivateOrInternalIP(ipAddr.IP) {
+			return fmt.Errorf("URL resolves to private/internal IP address: %s", ipAddr.IP.String())
 		}
 	}
 

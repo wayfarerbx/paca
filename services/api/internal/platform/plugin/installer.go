@@ -219,7 +219,7 @@ func untarGz(r io.Reader, dest string, maxExtractedSize int64) error {
 
 	tr := tar.NewReader(gz)
 	destClean := filepath.Clean(dest)
-	
+
 	const maxFiles = 10000
 	var fileCount int
 	var totalExtracted int64
