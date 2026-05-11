@@ -119,7 +119,22 @@ export class PluginRegistry {
 			apiKey: config.apiKey,
 		};
 
-		return plugin.entry.handleToolCall(toolName, args, context);
+		try {
+			return await plugin.entry.handleToolCall(toolName, args, context);
+		} catch (error) {
+			const message =
+				error instanceof Error ? error.message : "Unknown plugin tool error";
+
+			return {
+				content: [
+					{
+						type: "text",
+						text: `Plugin tool "${toolName}" failed: ${message}`,
+					},
+				],
+				isError: true,
+			};
+		}
 	}
 }
 
