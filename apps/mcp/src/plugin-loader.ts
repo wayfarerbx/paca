@@ -178,7 +178,7 @@ export async function loadPlugins(config: PacaConfig): Promise<PluginRegistry> {
 		// biome-ignore lint/style/noNonNullAssertion: filtered above
 		const url = plugin.manifest.mcp!.remoteEntryUrl;
 		try {
-			const entry = await loadPluginEntry(plugin.name, url);
+			const entry = await loadPluginEntry(plugin.name, url, config.baseURL);
 			loaded.push({ pluginId: plugin.name, entry });
 			console.error(
 				`[plugin-loader] Loaded "${plugin.name}" (${entry.tools.length} tool(s))`,
@@ -231,11 +231,12 @@ async function fetchInstalledPlugins(
 async function loadPluginEntry(
 	pluginId: string,
 	url: string,
+	baseURL: string,
 ): Promise<PluginMCPEntry> {
 	// Dynamic import works for both file:// and https:// URLs in Node 18+.
 	// For http:// URLs (common in local dev), we fetch the source first and
 	// evaluate it via a data: URL import.
-	const importUrl = await resolveImportUrl(url);
+	const importUrl = await resolveImportUrl(url, baseURL);
 	const mod = await import(importUrl);
 
 	const entry: unknown = mod.default ?? mod;
@@ -248,17 +249,34 @@ async function loadPluginEntry(
  * Node.js `import()` supports `https://` URLs but NOT `http://` ones.
  * For local development we fetch the source over HTTP and re-expose it as a
  * `data:` URL so `import()` can evaluate it without network restrictions.
+ *
+ * Relative/path-only URLs (e.g. `/plugins-mcp/<id>/mcp.js`) are resolved
+ * against `baseURL` so Node's `fetch()` always receives an absolute URL.
  */
-async function resolveImportUrl(url: string): Promise<string> {
-	if (url.startsWith("https://") || url.startsWith("file://")) {
-		return url;
+async function resolveImportUrl(url: string, baseURL: string): Promise<string> {
+	// Resolve relative, path-only, and scheme-relative URLs against baseURL so
+	// that Node's fetch() always receives a fully-qualified absolute URL.
+	// new URL() handles all cases correctly:
+	//   "/plugins-mcp/id/mcp.js" → "<baseURL>/plugins-mcp/id/mcp.js"
+	//   "//cdn.example.com/mcp.js" → inherits scheme from baseURL
+	//   "https://cdn.example.com/mcp.js" → unchanged
+	let resolved: URL;
+	try {
+		resolved = new URL(url, baseURL);
+	} catch {
+		throw new Error(`Invalid plugin remoteEntryUrl: "${url}"`);
+	}
+	const resolvedUrl = resolved.href;
+
+	if (resolvedUrl.startsWith("https://") || resolvedUrl.startsWith("file://")) {
+		return resolvedUrl;
 	}
 
 	// http:// — fetch source and wrap in a data: URL
-	const response = await fetch(url);
+	const response = await fetch(resolvedUrl);
 	if (!response.ok) {
 		throw new Error(
-			`Failed to fetch plugin module from ${url}: ${response.status} ${response.statusText}`,
+			`Failed to fetch plugin module from ${resolvedUrl}: ${response.status} ${response.statusText}`,
 		);
 	}
 	const source = await response.text();
