@@ -206,15 +206,17 @@ func (h *PluginHandler) DeletePlugin(c *gin.Context) {
 	}
 
 	var pluginName string
-	plugins, err := h.svc.ListPlugins(c.Request.Context())
-	if err != nil {
-		presenter.Error(c, err)
-		return
-	}
-	for _, p := range plugins {
-		if p.ID == id {
-			pluginName = p.Name
-			break
+	if h.runtime != nil || h.installer != nil {
+		plugins, err := h.svc.ListPlugins(c.Request.Context())
+		if err != nil {
+			presenter.Error(c, err)
+			return
+		}
+		for _, p := range plugins {
+			if p.ID == id {
+				pluginName = p.Name
+				break
+			}
 		}
 	}
 
