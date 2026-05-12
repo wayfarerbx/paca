@@ -838,15 +838,14 @@ func (r *Runtime) registerEventFunctions(b wazero.HostModuleBuilder, p plugindom
 	// Appends a task-activity event to paca.task_activities stream so the
 	// ActivityConsumer worker can persist it to PostgreSQL.
 	// Payload JSON shape:
-	//   {"task_id":"uuid","project_id":"uuid","actor_id":"uuid",
-	//    "activity_type":"task.checklist.created","content":{...}}
+	//   {"task_id":"uuid","activity_type":"task.checklist.created","content":{...}}
+	// actor_id and project_id are derived from the request context to prevent
+	// spoofing; plugin-supplied values for those fields are ignored.
 	b.NewFunctionBuilder().
 		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
 			raw, _ := readString(m, stack[0], stack[1])
 			var inp struct {
 				TaskID       string `json:"task_id"`
-				ProjectID    string `json:"project_id"`
-				ActorID      string `json:"actor_id"`
 				ActivityType string `json:"activity_type"`
 				Content      any    `json:"content"`
 			}
@@ -855,21 +854,81 @@ func (r *Runtime) registerEventFunctions(b wazero.HostModuleBuilder, p plugindom
 				stack[0] = 0
 				return
 			}
+
+			// Validate task_id is a well-formed UUID.
+			taskID, err := uuid.Parse(inp.TaskID)
+			if err != nil {
+				r.log.Warn("paca.activity_record: invalid task_id", "plugin", p.Name, "task_id", inp.TaskID)
+				stack[0] = 0
+				return
+			}
+
+			// Derive actor_id and project_id from the authenticated request
+			// context.  These must not be trusted from the plugin payload to
+			// prevent actor impersonation or cross-project writes.
+			var actorID, projectIDStr string
+			if req, ok := ctx.Value(pluginRequestKey{}).(*HTTPRequest); ok {
+				actorID = req.UserID
+				projectIDStr = req.ProjectID
+			}
+
+			if projectIDStr == "" {
+				r.log.Warn("paca.activity_record: missing project context", "plugin", p.Name)
+				stack[0] = 0
+				return
+			}
+			projectID, err := uuid.Parse(projectIDStr)
+			if err != nil {
+				r.log.Warn("paca.activity_record: invalid project_id in context", "plugin", p.Name)
+				stack[0] = 0
+				return
+			}
+
+			// Require a non-empty actor_id so every activity has an
+			// attributable author; an empty UserID indicates the request
+			// is unauthenticated or the claim is missing.
+			if actorID == "" {
+				r.log.Warn("paca.activity_record: missing actor in context", "plugin", p.Name)
+				stack[0] = 0
+				return
+			}
+
+			// Verify the task belongs to the project derived from the request
+			// context before writing to the activity stream.
+			if r.services.DB == nil {
+				r.log.Warn("paca.activity_record: DB not available", "plugin", p.Name)
+				stack[0] = 0
+				return
+			}
+			var exists bool
+			if err := r.services.DB.QueryRowContext(ctx,
+				`SELECT EXISTS(SELECT 1 FROM tasks WHERE id = $1 AND project_id = $2 AND deleted_at IS NULL)`,
+				taskID, projectID).Scan(&exists); err != nil {
+				r.log.Error("paca.activity_record: DB query failed",
+					"plugin", p.Name, "task_id", taskID, "project_id", projectID, "error", err)
+				stack[0] = 0
+				return
+			}
+			if !exists {
+				r.log.Warn("paca.activity_record: task not found in project",
+					"plugin", p.Name, "task_id", taskID, "project_id", projectID)
+				stack[0] = 0
+				return
+			}
+
 			contentBytes, _ := json.Marshal(inp.Content)
 			now := time.Now().UTC()
 			activityID := uuid.New().String()
 			payload := map[string]any{
 				"id":            activityID,
-				"task_id":       inp.TaskID,
-				"project_id":    inp.ProjectID,
+				"task_id":       taskID.String(),
+				"project_id":    projectID.String(),
 				"activity_type": inp.ActivityType,
 				"content":       string(contentBytes),
 				"created_at":    now.Format(time.RFC3339Nano),
 				"updated_at":    now.Format(time.RFC3339Nano),
 			}
-			if inp.ActorID != "" {
-				payload["actor_id"] = inp.ActorID
-			}
+			payload["actor_id"] = actorID
 			if r.services.Publisher != nil {
 				_ = r.services.Publisher.Append(ctx, events.StreamTaskActivities, inp.ActivityType, payload)
 				_ = r.services.Publisher.Publish(ctx, events.ChannelRealtime, map[string]any{
