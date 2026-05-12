@@ -90,18 +90,18 @@ For a full setup walkthrough, see the [MCP Server Setup Guide](../../docs/guides
 
 - **API Key Authentication**: Secure access using Paca API keys
 - **Comprehensive Project Management**: Full project lifecycle with member and role management
-- **Advanced Task Management**: Tasks with types, statuses, custom fields, attachments, and BDD scenarios
+- **Advanced Task Management**: Tasks with types, statuses, custom fields, and attachments
 - **Sprint Management**: Complete sprint lifecycle management
 - **Document Management**: Documents with folder hierarchy, version history, and file support
 - **View Management**: Multiple view types (sprint, backlog, timeline) with task positioning
 - **GitHub Integration**: Repository linking, PR management, and branch creation
-- **Collaboration Tools**: Comments, activities, and BDD scenarios for team collaboration
+- **Collaboration Tools**: Comments and activities for team collaboration
 - **BlockNote Integration**: Automatic conversion between BlockNote JSON and Markdown
 - **Plugin MCP Tools**: Plugins can contribute additional MCP tools, loaded automatically at startup
 
 ## Available Tools
 
-The MCP server provides **86 tools** across **17 categories** for comprehensive project management.
+The MCP server provides **81 tools** across **16 categories** for comprehensive project management.
 
 ### 📁 Project Management (5 tools)
 - `list_projects` - List all accessible projects
@@ -181,13 +181,6 @@ The MCP server provides **86 tools** across **17 categories** for comprehensive 
 - `list_task_attachments` - List all attachments for a task
 - `get_attachment_download_url` - Get a download URL for an attachment
 - `delete_task_attachment` - Delete an attachment
-
-### 🧪 BDD Scenarios (5 tools)
-- `list_bdd_scenarios` - List all BDD scenarios for a task
-- `create_bdd_scenario` - Create a new BDD scenario (Given/When/Then)
-- `get_bdd_scenario` - Get details of a BDD scenario
-- `update_bdd_scenario` - Update an existing BDD scenario
-- `delete_bdd_scenario` - Delete a BDD scenario
 
 ### 📁 Document Folders (4 tools)
 - `list_doc_folders` - List all folders in a project

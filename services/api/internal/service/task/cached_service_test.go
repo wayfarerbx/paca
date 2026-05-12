@@ -185,26 +185,6 @@ func (s *stubTaskSvc) DeleteCustomFieldDefinition(ctx context.Context, projectID
 	return nil
 }
 
-// BDDScenario methods (all pass-through)
-
-func (s *stubTaskSvc) ListBDDScenarios(_ context.Context, _, _ uuid.UUID) ([]*taskdom.BDDScenario, error) {
-	return nil, nil
-}
-
-func (s *stubTaskSvc) GetBDDScenario(_ context.Context, _, _, id uuid.UUID) (*taskdom.BDDScenario, error) {
-	return &taskdom.BDDScenario{ID: id}, nil
-}
-
-func (s *stubTaskSvc) CreateBDDScenario(_ context.Context, in taskdom.CreateBDDScenarioInput) (*taskdom.BDDScenario, error) {
-	return &taskdom.BDDScenario{ID: uuid.New(), TaskID: in.TaskID}, nil
-}
-
-func (s *stubTaskSvc) UpdateBDDScenario(_ context.Context, _, _, id uuid.UUID, _ taskdom.UpdateBDDScenarioInput) (*taskdom.BDDScenario, error) {
-	return &taskdom.BDDScenario{ID: id}, nil
-}
-
-func (s *stubTaskSvc) DeleteBDDScenario(_ context.Context, _, _, _ uuid.UUID) error { return nil }
-
 // ---------------------------------------------------------------------------
 // ListTaskTypes
 // ---------------------------------------------------------------------------

@@ -56,7 +56,7 @@ func NewStore(ctx context.Context, cfg StoreConfig) (*Store, error) {
 }
 
 // LoadWASM fetches the compiled WASM binary for the plugin identified by name
-// (e.g. "com.paca.checklist").  The binary is expected at:
+// (e.g. "com.paca.bdd").  The binary is expected at:
 //
 //   - local: {WASMDir}/{name}/backend.wasm
 //   - s3:    s3://{S3Bucket}/{S3Prefix}/{name}/backend.wasm
@@ -138,7 +138,7 @@ func (s *Store) ListMigrations(ctx context.Context, name string) ([]MigrationFil
 
 // MigrationFile holds a migration filename and its SQL content.
 type MigrationFile struct {
-	Name string // e.g. "0001_create_task_checklists.sql"
+	Name string // e.g. "0001_create_scenarios.sql"
 	SQL  string
 }
 

@@ -19,7 +19,7 @@ import (
 //   - ListTaskStatuses    – keyed by project; invalidated on any status mutation.
 //   - ListCustomFieldDefinitions – keyed by project; invalidated on any field mutation.
 //
-// All other methods (tasks, BDD scenarios) are delegated directly to the
+// All other methods (tasks) are delegated directly to the
 // underlying service without caching.
 //
 // Cache errors are non-fatal: on a read error the decorator falls through to
@@ -307,33 +307,4 @@ func (c *CachedService) DeleteCustomFieldDefinition(ctx context.Context, project
 		c.log.WarnContext(ctx, "cache: DeleteCustomFieldDefinition delete", "err", err)
 	}
 	return nil
-}
-
-// --- BDD Scenarios (pass-through) --------------------------------------------
-// BDD scenarios are task-level and change frequently enough that caching adds
-// complexity without meaningful benefit.
-
-// ListBDDScenarios delegates directly to the underlying service (not cached).
-func (c *CachedService) ListBDDScenarios(ctx context.Context, projectID, taskID uuid.UUID) ([]*taskdom.BDDScenario, error) {
-	return c.svc.ListBDDScenarios(ctx, projectID, taskID)
-}
-
-// GetBDDScenario delegates directly to the underlying service (not cached).
-func (c *CachedService) GetBDDScenario(ctx context.Context, projectID, taskID, id uuid.UUID) (*taskdom.BDDScenario, error) {
-	return c.svc.GetBDDScenario(ctx, projectID, taskID, id)
-}
-
-// CreateBDDScenario delegates directly to the underlying service (not cached).
-func (c *CachedService) CreateBDDScenario(ctx context.Context, in taskdom.CreateBDDScenarioInput) (*taskdom.BDDScenario, error) {
-	return c.svc.CreateBDDScenario(ctx, in)
-}
-
-// UpdateBDDScenario delegates directly to the underlying service (not cached).
-func (c *CachedService) UpdateBDDScenario(ctx context.Context, projectID, taskID, id uuid.UUID, in taskdom.UpdateBDDScenarioInput) (*taskdom.BDDScenario, error) {
-	return c.svc.UpdateBDDScenario(ctx, projectID, taskID, id, in)
-}
-
-// DeleteBDDScenario delegates directly to the underlying service (not cached).
-func (c *CachedService) DeleteBDDScenario(ctx context.Context, projectID, taskID, id uuid.UUID) error {
-	return c.svc.DeleteBDDScenario(ctx, projectID, taskID, id)
 }

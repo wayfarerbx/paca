@@ -22,9 +22,6 @@ var (
 	ErrCustomFieldTypeInvalid = errors.New("custom field: invalid field type")
 	ErrCustomFieldNameInvalid = errors.New("custom field: display name is empty or invalid")
 
-	ErrBDDScenarioNotFound     = errors.New("bdd scenario: not found")
-	ErrBDDScenarioTitleInvalid = errors.New("bdd scenario: title is empty or invalid")
-
 	// Activity / comment errors.
 	ErrActivityNotFound    = errors.New("activity: not found")
 	ErrActivityForbidden   = errors.New("activity: only the author can modify this comment")

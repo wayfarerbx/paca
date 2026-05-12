@@ -149,12 +149,12 @@ func installPluginViaAPI(t *testing.T, p *pluginE2EEnv, token, name string) stri
 // GET /api/v1/plugins
 // ---------------------------------------------------------------------------
 
-func TestE2EPlugin_ListPlugins_RequiresAuth(t *testing.T) {
+func TestE2EPlugin_ListPlugins_AllowsAnonymous(t *testing.T) {
 	p := newPluginE2EEnv(t)
 
 	resp := p.doPlugin(t, http.MethodGet, "/api/v1/plugins", "", nil)
 	defer func() { _ = resp.Body.Close() }()
-	assertStatus(t, resp, http.StatusUnauthorized)
+	assertStatus(t, resp, http.StatusOK)
 }
 
 func TestE2EPlugin_ListPlugins_EmptyInitially(t *testing.T) {

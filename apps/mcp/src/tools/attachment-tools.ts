@@ -1,7 +1,6 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import type {
-	PacaAPITaskExtendedClient,
 	PacaAPIViewsClient,
 } from "../api/index.js";
 import { formatList } from "../utils/index.js";
@@ -21,44 +20,6 @@ const DeleteTaskAttachmentSchema = z.object({
 	projectId: z.string(),
 	taskId: z.string(),
 	attachmentId: z.string(),
-});
-
-const ListBDDScenariosSchema = z.object({
-	projectId: z.string(),
-	taskId: z.string(),
-});
-
-const CreateBDDScenarioSchema = z.object({
-	projectId: z.string(),
-	taskId: z.string(),
-	title: z.string(),
-	given: z.string(),
-	when: z.string(),
-	// biome-ignore lint/suspicious/noThenProperty: BDD scenario uses "then" as domain terminology
-	then: z.string(),
-});
-
-const GetBDDScenarioSchema = z.object({
-	projectId: z.string(),
-	taskId: z.string(),
-	scenarioId: z.string(),
-});
-
-const UpdateBDDScenarioSchema = z.object({
-	projectId: z.string(),
-	taskId: z.string(),
-	scenarioId: z.string(),
-	title: z.string().optional(),
-	given: z.string().optional(),
-	when: z.string().optional(),
-	// biome-ignore lint/suspicious/noThenProperty: BDD scenario uses "then" as domain terminology
-	then: z.string().optional(),
-});
-
-const DeleteBDDScenarioSchema = z.object({
-	projectId: z.string(),
-	taskId: z.string(),
-	scenarioId: z.string(),
 });
 
 /**
@@ -131,150 +92,6 @@ export function getAttachmentTools(): Tool[] {
 	];
 }
 
-/**
- * Returns all BDD scenario-related MCP tools.
- */
-export function getBDDScenarioTools(): Tool[] {
-	return [
-		{
-			name: "list_bdd_scenarios",
-			description: "List all BDD scenarios for a task",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-					},
-					taskId: {
-						type: "string",
-						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
-					},
-				},
-				required: ["projectId", "taskId"],
-			},
-		},
-		{
-			name: "create_bdd_scenario",
-			description: "Create a new BDD scenario for a task",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-					},
-					taskId: {
-						type: "string",
-						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
-					},
-					title: {
-						type: "string",
-						description: "The title of the scenario",
-					},
-					given: {
-						type: "string",
-						description: "The Given clause",
-					},
-					when: {
-						type: "string",
-						description: "The When clause",
-					},
-					// biome-ignore lint/suspicious/noThenProperty: BDD scenario uses "then" as domain terminology
-					then: {
-						type: "string",
-						description: "The Then clause",
-					},
-				},
-				required: ["projectId", "taskId", "title", "given", "when", "then"],
-			},
-		},
-		{
-			name: "get_bdd_scenario",
-			description: "Get details of a specific BDD scenario",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-					},
-					taskId: {
-						type: "string",
-						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
-					},
-					scenarioId: {
-						type: "string",
-						description: "The technical UUID of the BDD scenario (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_bdd_scenarios to get the scenario ID.",
-					},
-				},
-				required: ["projectId", "taskId", "scenarioId"],
-			},
-		},
-		{
-			name: "update_bdd_scenario",
-			description: "Update an existing BDD scenario",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-					},
-					taskId: {
-						type: "string",
-						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
-					},
-					scenarioId: {
-						type: "string",
-						description: "The technical UUID of the BDD scenario (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_bdd_scenarios to get the scenario ID.",
-					},
-					title: {
-						type: "string",
-						description: "The new title",
-					},
-					given: {
-						type: "string",
-						description: "The new Given clause",
-					},
-					when: {
-						type: "string",
-						description: "The new When clause",
-					},
-					// biome-ignore lint/suspicious/noThenProperty: BDD scenario uses "then" as domain terminology
-					then: {
-						type: "string",
-						description: "The new Then clause",
-					},
-				},
-				required: ["projectId", "taskId", "scenarioId"],
-			},
-		},
-		{
-			name: "delete_bdd_scenario",
-			description: "Delete a BDD scenario",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-					},
-					taskId: {
-						type: "string",
-						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
-					},
-					scenarioId: {
-						type: "string",
-						description: "The technical UUID of the BDD scenario (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_bdd_scenarios to get the scenario ID.",
-					},
-				},
-				required: ["projectId", "taskId", "scenarioId"],
-			},
-		},
-	];
-}
-
 function formatAttachment(attachment: any): string {
 	return `Attachment: ${attachment.file?.file_name || "Unknown"}
 ID: ${attachment.id}
@@ -284,30 +101,13 @@ Uploaded by: ${attachment.created_by || "Unknown"}
 Uploaded at: ${attachment.created_at}`;
 }
 
-function formatBDDScenario(scenario: any): string {
-	return `BDD Scenario: ${scenario.title}
-ID: ${scenario.id}
-
-Given:
-${scenario.given || "None"}
-
-When:
-${scenario.when || "None"}
-
-Then:
-${scenario.then || "None"}
-
-Created: ${scenario.created_at}`;
-}
-
 /**
- * Handles attachment and BDD scenario tool calls.
+ * Handles attachment tool calls.
  */
 export async function handleAttachmentTool(
 	toolName: string,
 	args: any,
 	viewsClient: PacaAPIViewsClient,
-	taskClient: PacaAPITaskExtendedClient,
 ): Promise<any> {
 	switch (toolName) {
 		case "list_task_attachments": {
@@ -359,96 +159,7 @@ export async function handleAttachmentTool(
 			};
 		}
 
-		case "list_bdd_scenarios": {
-			const { projectId, taskId } = ListBDDScenariosSchema.parse(args);
-			const scenarios = await taskClient.listBDDScenarios(projectId, taskId);
-			const formatted = formatList(scenarios, formatBDDScenario);
-			return {
-				content: [
-					{
-						type: "text",
-						text: `BDD Scenarios:\n\n${formatted}`,
-					},
-				],
-			};
-		}
-
-		case "create_bdd_scenario": {
-			const { projectId, taskId, title, given, when, then } =
-				CreateBDDScenarioSchema.parse(args);
-			const scenario = await taskClient.createBDDScenario(projectId, taskId, {
-				title,
-				given,
-				when,
-				then,
-			});
-			return {
-				content: [
-					{
-						type: "text",
-						text: `BDD scenario created successfully:\n\n${formatBDDScenario(scenario)}`,
-					},
-				],
-			};
-		}
-
-		case "get_bdd_scenario": {
-			const { projectId, taskId, scenarioId } =
-				GetBDDScenarioSchema.parse(args);
-			const scenario = await taskClient.getBDDScenario(
-				projectId,
-				taskId,
-				scenarioId,
-			);
-			return {
-				content: [
-					{
-						type: "text",
-						text: formatBDDScenario(scenario),
-					},
-				],
-			};
-		}
-
-		case "update_bdd_scenario": {
-			const { projectId, taskId, scenarioId, title, given, when, then } =
-				UpdateBDDScenarioSchema.parse(args);
-			const scenario = await taskClient.updateBDDScenario(
-				projectId,
-				taskId,
-				scenarioId,
-				{
-					title,
-					given,
-					when,
-					then,
-				},
-			);
-			return {
-				content: [
-					{
-						type: "text",
-						text: `BDD scenario updated successfully:\n\n${formatBDDScenario(scenario)}`,
-					},
-				],
-			};
-		}
-
-		case "delete_bdd_scenario": {
-			const { projectId, taskId, scenarioId } =
-				DeleteBDDScenarioSchema.parse(args);
-			await taskClient.deleteBDDScenario(projectId, taskId, scenarioId);
-			return {
-				content: [
-					{
-						type: "text",
-						text: `BDD scenario ${scenarioId} deleted successfully`,
-					},
-				],
-			};
-		}
-
 		default:
-			throw new Error(`Unknown attachment/BDD tool: ${toolName}`);
+			throw new Error(`Unknown attachment tool: ${toolName}`);
 	}
 }

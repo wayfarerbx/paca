@@ -591,37 +591,6 @@ export interface UpdateCommentInput {
 	text: string;
 }
 
-// ==================== BDD Scenarios ====================
-
-export interface BDDScenario {
-	id: string;
-	task_id: string;
-	title: string;
-	given: string;
-	when: string;
-	then: string;
-	created_at: string;
-	updated_at: string;
-}
-
-export interface BDDScenarioListResult {
-	items: BDDScenario[];
-}
-
-export interface CreateBDDScenarioInput {
-	title: string;
-	given?: string;
-	when?: string;
-	then?: string;
-}
-
-export interface UpdateBDDScenarioInput {
-	title?: string;
-	given?: string;
-	when?: string;
-	then?: string;
-}
-
 // ==================== GitHub Integration ====================
 
 export interface GitHubIntegration {

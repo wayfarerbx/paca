@@ -420,37 +420,6 @@ func New(deps Deps) *gin.Engine {
 					deps.Task.DeleteTask,
 				)
 
-				// BDD scenarios — task-level acceptance criteria
-				bddScenarios := tasks.Group("/:taskId/bdd-scenarios")
-				{
-					bddScenarios.GET("",
-						httpmw.RequirePublicProjectOrPermissions(deps.ProjectVisibilitySvc, deps.Authorizer,
-							httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
-							httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionTasksRead}},
-						),
-						deps.Task.ListBDDScenarios,
-					)
-					bddScenarios.POST("",
-						httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
-						deps.Task.CreateBDDScenario,
-					)
-					bddScenarios.GET("/:scenarioId",
-						httpmw.RequirePublicProjectOrPermissions(deps.ProjectVisibilitySvc, deps.Authorizer,
-							httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
-							httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionTasksRead}},
-						),
-						deps.Task.GetBDDScenario,
-					)
-					bddScenarios.PATCH("/:scenarioId",
-						httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
-						deps.Task.UpdateBDDScenario,
-					)
-					bddScenarios.DELETE("/:scenarioId",
-						httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
-						deps.Task.DeleteBDDScenario,
-					)
-				}
-
 				// Activities — task activity log and user comments
 				activities := tasks.Group("/:taskId/activities")
 				{
@@ -726,9 +695,9 @@ func New(deps Deps) *gin.Engine {
 
 		// Plugin routes — management (admin), extension settings (admin), and proxy (per-plugin).
 		if deps.Plugin != nil {
-			// Public listing: any authenticated user can see installed plugins.
+			// Public listing: any authenticated user can see installed plugins, anonymous users can also access.
 			pluginGroup := v1.Group("/plugins")
-			pluginGroup.Use(httpmw.Authn(deps.TokenManager, deps.APIKeyAuth))
+			pluginGroup.Use(httpmw.OptionalAuthn(deps.TokenManager, deps.APIKeyAuth))
 			pluginGroup.Use(httpmw.RequireFreshPassword())
 			{
 				pluginGroup.GET("", deps.Plugin.ListPlugins)

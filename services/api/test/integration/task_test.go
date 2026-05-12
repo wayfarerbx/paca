@@ -39,7 +39,6 @@ type fakeTaskRepo struct {
 	statuses     map[uuid.UUID]*taskdom.TaskStatus
 	tasks        map[uuid.UUID]*taskdom.Task
 	customFields map[uuid.UUID]*taskdom.CustomFieldDefinition
-	bddScenarios map[uuid.UUID]*taskdom.BDDScenario
 	counters     map[uuid.UUID]int64
 }
 
@@ -49,7 +48,6 @@ func newFakeTaskRepoIT() *fakeTaskRepo {
 		statuses:     make(map[uuid.UUID]*taskdom.TaskStatus),
 		tasks:        make(map[uuid.UUID]*taskdom.Task),
 		customFields: make(map[uuid.UUID]*taskdom.CustomFieldDefinition),
-		bddScenarios: make(map[uuid.UUID]*taskdom.BDDScenario),
 		counters:     make(map[uuid.UUID]int64),
 	}
 }
@@ -448,61 +446,6 @@ func (r *fakeTaskRepo) DeleteCustomFieldDefinition(_ context.Context, id uuid.UU
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	delete(r.customFields, id)
-	return nil
-}
-
-// -- fakeTaskRepo: BDDScenario methods --
-
-func (r *fakeTaskRepo) ListBDDScenarios(_ context.Context, taskID uuid.UUID) ([]*taskdom.BDDScenario, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	var out []*taskdom.BDDScenario
-	for _, s := range r.bddScenarios {
-		if s.TaskID == taskID {
-			cp := *s
-			out = append(out, &cp)
-		}
-	}
-	return out, nil
-}
-
-func (r *fakeTaskRepo) FindBDDScenarioByID(_ context.Context, id uuid.UUID) (*taskdom.BDDScenario, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	s, ok := r.bddScenarios[id]
-	if !ok {
-		return nil, taskdom.ErrBDDScenarioNotFound
-	}
-	cp := *s
-	return &cp, nil
-}
-
-func (r *fakeTaskRepo) CreateBDDScenario(_ context.Context, s *taskdom.BDDScenario) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	cp := *s
-	r.bddScenarios[s.ID] = &cp
-	return nil
-}
-
-func (r *fakeTaskRepo) UpdateBDDScenario(_ context.Context, s *taskdom.BDDScenario) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if _, ok := r.bddScenarios[s.ID]; !ok {
-		return taskdom.ErrBDDScenarioNotFound
-	}
-	cp := *s
-	r.bddScenarios[s.ID] = &cp
-	return nil
-}
-
-func (r *fakeTaskRepo) DeleteBDDScenario(_ context.Context, id uuid.UUID) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if _, ok := r.bddScenarios[id]; !ok {
-		return taskdom.ErrBDDScenarioNotFound
-	}
-	delete(r.bddScenarios, id)
 	return nil
 }
 
@@ -2766,190 +2709,6 @@ func TestIntegrationCompleteSprint_Forbidden(t *testing.T) {
 		fmt.Sprintf("/api/v1/projects/%s/sprints/%s/complete", projectID, sprintID), tok, map[string]any{}))
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("expected 403, got %d (%s)", w.Code, w.Body.String())
-	}
-}
-
-// ---------------------------------------------------------------------------
-// BDD Scenario integration tests
-// ---------------------------------------------------------------------------
-
-func TestBDDScenarios_CreateAndList(t *testing.T) {
-	taskRepo := newFakeTaskRepoIT()
-	projectID := uuid.New()
-	store := &projectPermStore{
-		projectPerms: map[uuid.UUID][]authz.Permission{
-			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
-		},
-	}
-	r := buildTaskTestRouter(taskRepo, store)
-	tok := issueTaskToken(t, uuid.NewString())
-
-	// Create a task first.
-	createTaskW := serve(r, authedJSONReq(t.Context(), http.MethodPost,
-		fmt.Sprintf("/api/v1/projects/%s/tasks", projectID), tok,
-		map[string]any{"title": "Feature X"},
-	))
-	if createTaskW.Code != http.StatusCreated {
-		t.Fatalf("create task: expected 201, got %d: %s", createTaskW.Code, createTaskW.Body.String())
-	}
-	taskID := taskIDFrom(t, "task", createTaskW.Body.Bytes())
-
-	// Initially no BDD scenarios.
-	listW := serve(r, authedJSONReq(t.Context(), http.MethodGet,
-		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/bdd-scenarios", projectID, taskID), tok, nil,
-	))
-	if listW.Code != http.StatusOK {
-		t.Fatalf("initial list: expected 200, got %d", listW.Code)
-	}
-	if cnt := taskListCount(t, listW.Body.Bytes()); cnt != 0 {
-		t.Fatalf("expected 0 scenarios initially, got %d", cnt)
-	}
-
-	// Create a BDD scenario.
-	createW := serve(r, authedJSONReq(t.Context(), http.MethodPost,
-		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/bdd-scenarios", projectID, taskID), tok,
-		map[string]any{
-			"title": "User logs in",
-			"given": "the user is on the login page",
-			"when":  "they enter valid credentials",
-			"then":  "they are redirected to dashboard",
-		},
-	))
-	if createW.Code != http.StatusCreated {
-		t.Fatalf("create scenario: expected 201, got %d: %s", createW.Code, createW.Body.String())
-	}
-	scenarioID := taskIDFrom(t, "scenario", createW.Body.Bytes())
-
-	// List — should have 1 scenario.
-	listW2 := serve(r, authedJSONReq(t.Context(), http.MethodGet,
-		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/bdd-scenarios", projectID, taskID), tok, nil,
-	))
-	if listW2.Code != http.StatusOK {
-		t.Fatalf("list: expected 200, got %d", listW2.Code)
-	}
-	if cnt := taskListCount(t, listW2.Body.Bytes()); cnt != 1 {
-		t.Fatalf("expected 1 scenario, got %d", cnt)
-	}
-
-	// Get by ID.
-	getW := serve(r, authedJSONReq(t.Context(), http.MethodGet,
-		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/bdd-scenarios/%s", projectID, taskID, scenarioID), tok, nil,
-	))
-	if getW.Code != http.StatusOK {
-		t.Fatalf("get: expected 200, got %d: %s", getW.Code, getW.Body.String())
-	}
-}
-
-func TestBDDScenarios_Update(t *testing.T) {
-	taskRepo := newFakeTaskRepoIT()
-	projectID := uuid.New()
-	store := &projectPermStore{
-		projectPerms: map[uuid.UUID][]authz.Permission{
-			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
-		},
-	}
-	r := buildTaskTestRouter(taskRepo, store)
-	tok := issueTaskToken(t, uuid.NewString())
-
-	// Create task + scenario.
-	createTaskW := serve(r, authedJSONReq(t.Context(), http.MethodPost,
-		fmt.Sprintf("/api/v1/projects/%s/tasks", projectID), tok,
-		map[string]any{"title": "Feature Y"},
-	))
-	taskID := taskIDFrom(t, "task", createTaskW.Body.Bytes())
-
-	createW := serve(r, authedJSONReq(t.Context(), http.MethodPost,
-		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/bdd-scenarios", projectID, taskID), tok,
-		map[string]any{"title": "Original"},
-	))
-	scenarioID := taskIDFrom(t, "scenario", createW.Body.Bytes())
-
-	// Update.
-	patchW := serve(r, authedJSONReq(t.Context(), http.MethodPatch,
-		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/bdd-scenarios/%s", projectID, taskID, scenarioID), tok,
-		map[string]any{"title": "Updated", "given": "new given clause"},
-	))
-	if patchW.Code != http.StatusOK {
-		t.Fatalf("patch: expected 200, got %d: %s", patchW.Code, patchW.Body.String())
-	}
-
-	// Verify persisted values.
-	var env struct {
-		Data struct {
-			Title string `json:"title"`
-			Given string `json:"given"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(patchW.Body.Bytes(), &env); err != nil {
-		t.Fatalf("json.Unmarshal env: %v", err)
-	}
-	if env.Data.Title != "Updated" {
-		t.Errorf("expected title 'Updated', got %q", env.Data.Title)
-	}
-	if env.Data.Given != "new given clause" {
-		t.Errorf("expected given 'new given clause', got %q", env.Data.Given)
-	}
-}
-
-func TestBDDScenarios_Delete(t *testing.T) {
-	taskRepo := newFakeTaskRepoIT()
-	projectID := uuid.New()
-	store := &projectPermStore{
-		projectPerms: map[uuid.UUID][]authz.Permission{
-			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
-		},
-	}
-	r := buildTaskTestRouter(taskRepo, store)
-	tok := issueTaskToken(t, uuid.NewString())
-
-	// Create task + scenario.
-	createTaskW := serve(r, authedJSONReq(t.Context(), http.MethodPost,
-		fmt.Sprintf("/api/v1/projects/%s/tasks", projectID), tok,
-		map[string]any{"title": "Feature Z"},
-	))
-	taskID := taskIDFrom(t, "task", createTaskW.Body.Bytes())
-
-	createW := serve(r, authedJSONReq(t.Context(), http.MethodPost,
-		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/bdd-scenarios", projectID, taskID), tok,
-		map[string]any{"title": "Delete me"},
-	))
-	scenarioID := taskIDFrom(t, "scenario", createW.Body.Bytes())
-
-	// Delete.
-	delW := serve(r, authedJSONReq(t.Context(), http.MethodDelete,
-		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/bdd-scenarios/%s", projectID, taskID, scenarioID), tok, nil,
-	))
-	if delW.Code != http.StatusOK {
-		t.Fatalf("delete: expected 200, got %d: %s", delW.Code, delW.Body.String())
-	}
-
-	// Get after delete → 404.
-	getW := serve(r, authedJSONReq(t.Context(), http.MethodGet,
-		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/bdd-scenarios/%s", projectID, taskID, scenarioID), tok, nil,
-	))
-	if getW.Code != http.StatusNotFound {
-		t.Fatalf("get after delete: expected 404, got %d", getW.Code)
-	}
-}
-
-func TestBDDScenarios_RequiresTasksWritePermission(t *testing.T) {
-	taskRepo := newFakeTaskRepoIT()
-	projectID := uuid.New()
-	store := &projectPermStore{
-		projectPerms: map[uuid.UUID][]authz.Permission{
-			projectID: {authz.PermissionTasksRead}, // read only, no write
-		},
-	}
-	r := buildTaskTestRouter(taskRepo, store)
-	tok := issueTaskToken(t, uuid.NewString())
-
-	taskID := uuid.New()
-	w := serve(r, authedJSONReq(t.Context(), http.MethodPost,
-		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/bdd-scenarios", projectID, taskID), tok,
-		map[string]any{"title": "Should fail"},
-	))
-	if w.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 without tasks.write, got %d (%s)", w.Code, w.Body.String())
 	}
 }
 

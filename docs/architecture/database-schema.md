@@ -8,7 +8,7 @@ Interactive diagram: [https://dbdiagram.io/d/Paca-69c212ae78c6c4bc7a4fc190](http
 
 | File | Purpose |
 |---|---|
-| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects, project roles/members, task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views`, `view_task_positions`, `custom_field_definitions`, `tasks`, `task_attachments`, `task_checklists`, `task_checklist_items`, `bdd_scenarios`, `task_activities`, `doc_folders` (hierarchical folders with `parent_id` self-reference, `position`, `created_by`), `documents` (BlockNote `content` JSONB, `folder_id`, `position`, soft-delete via `deleted_at`, `created_by`/`updated_by` referencing `project_members`), `doc_snapshots` (point-in-time content copies for diff/history, `snapshot_number` auto-incremented per document via a trigger), `doc_activities` (audit log + comments), `notifications` (task-assignment and @mention notifications with `recipient_user_id`, `actor_member_id`, `type`, `read_at`), `github_integrations` (per-project encrypted GitHub PAT), `github_repositories` (linked repo + webhook metadata), `github_pull_requests` (cached PR data synced from GitHub), `github_task_pr_links` (task↔PR join table), and seed data. |
+| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects, project roles/members, task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views`, `view_task_positions`, `custom_field_definitions`, `tasks`, `task_attachments`, `task_activities`, `doc_folders` (hierarchical folders with `parent_id` self-reference, `position`, `created_by`), `documents` (BlockNote `content` JSONB, `folder_id`, `position`, soft-delete via `deleted_at`, `created_by`/`updated_by` referencing `project_members`), `doc_snapshots` (point-in-time content copies for diff/history, `snapshot_number` auto-incremented per document via a trigger), `doc_activities` (audit log + comments), `notifications` (task-assignment and @mention notifications with `recipient_user_id`, `actor_member_id`, `type`, `read_at`), `github_integrations` (per-project encrypted GitHub PAT), `github_repositories` (linked repo + webhook metadata), `github_pull_requests` (cached PR data synced from GitHub), `github_task_pr_links` (task↔PR join table), and seed data. Note: `task_checklists`, `task_checklist_items`, and `bdd_scenarios` tables were originally here but have been migrated to the `com.paca.checklist` and `com.paca.bdd` plugins respectively. |
 
 ## Schema (DBML)
 
@@ -184,15 +184,8 @@ Table view_task_positions {
 }
 
 // --- FEATURES & UTILITIES ---
-Table bdd_scenarios {
-  id uuid [primary key]
-  task_id uuid
-  title varchar
-  given text
-  when text
-  then text
-  created_at timestamp
-}
+// Note: bdd_scenarios table is owned by the com.paca.bdd plugin.
+// Note: task_checklists and task_checklist_items are owned by the com.paca.checklist plugin.
 
 Table time_logs {
   id uuid [primary key]
@@ -290,32 +283,6 @@ Table notifications {
   created_at        timestamp
 }
 
-// --- TASK CHECKLISTS ---
-Table task_checklists {
-  id         uuid [primary key]
-  task_id    uuid [not null, ref: > tasks.id]
-  title      varchar [not null]
-  position   integer [not null, default: 0, note: 'Zero-based order among checklists on the same task']
-  created_by uuid [null, ref: > project_members.id]
-  created_at timestamp
-  updated_at timestamp
-}
-
-Table task_checklist_items {
-  id           uuid [primary key]
-  checklist_id uuid [not null, ref: > task_checklists.id]
-  title        text [not null]
-  is_checked   boolean [not null, default: false]
-  checked_by   uuid [null, ref: > project_members.id, note: 'Who checked this item']
-  checked_at   timestamp [null]
-  assignee_id  uuid [null, ref: > project_members.id, note: 'Optional per-item owner']
-  due_date     date [null]
-  position     integer [not null, default: 0, note: 'Zero-based order within the checklist']
-  created_by   uuid [null, ref: > project_members.id]
-  created_at   timestamp
-  updated_at   timestamp
-}
-
 // --- GITHUB INTEGRATION ---
 Table github_integrations {
   id               uuid [primary key]
@@ -402,7 +369,6 @@ Ref: projects.id < tasks.project_id
 Ref: projects.id < sprints.project_id
 Ref: sprints.id < tasks.sprint_id
 Ref: tasks.id < tasks.parent_task_id
-Ref: tasks.id < bdd_scenarios.task_id
 Ref: tasks.id < time_logs.task_id
 Ref: tasks.id < task_activities.task_id
 Ref: projects.id < documents.project_id

@@ -44,16 +44,12 @@ Indexes: `(task_id, created_at)` for efficient chronological listing.
 | `task.deleted`                | Task soft-deleted                         |
 | `task.attachment.added`       | Attachment linked                         |
 | `task.attachment.removed`     | Attachment unlinked                       |
-| `task.bdd_scenario.created`   | BDD scenario added                        |
-| `task.bdd_scenario.updated`   | BDD scenario edited                       |
-| `task.bdd_scenario.deleted`   | BDD scenario removed                      |
-| `task.checklist.created`      | Checklist group created                   |
-| `task.checklist.updated`      | Checklist group renamed                   |
-| `task.checklist.deleted`      | Checklist group removed                   |
-| `task.checklist_item.created` | Checklist item added                      |
-| `task.checklist_item.updated` | Checklist item edited or checked          |
-| `task.checklist_item.deleted` | Checklist item removed                    |
 | `comment`                     | User comment (user-created)               |
+
+> **Plugin activities**: Installed plugins may emit additional activity types
+> (e.g. `task.bdd_scenario.created`, `task.checklist.created`). Plugin-emitted
+> activities should include a `_description` string in their `content`
+> payload for human-readable display.
 
 ---
 
@@ -86,31 +82,6 @@ Tracked fields: `title`, `status_id`, `assignee_id`, `reporter_id`,
 ### `task.attachment.added` / `task.attachment.removed`
 ```json
 { "file_name": "screenshot.png", "file_size": 102400 }
-```
-
-### `task.bdd_scenario.created` / `task.bdd_scenario.deleted`
-```json
-{ "title": "User can log in" }
-```
-
-### `task.bdd_scenario.updated`
-```json
-{ "title": "User can log in", "changes": ["given", "when", "then"] }
-```
-
-### `task.checklist.created` / `task.checklist.deleted`
-```json
-{ "title": "Acceptance Criteria" }
-```
-
-### `task.checklist_item.created` / `task.checklist_item.deleted`
-```json
-{ "text": "AC item text" }
-```
-
-### `task.checklist_item.updated`
-```json
-{ "text": "AC item", "changes": [{"field":"is_checked","old":false,"new":true}] }
 ```
 
 ### `comment`

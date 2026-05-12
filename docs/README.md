@@ -22,7 +22,6 @@ This directory is the main documentation home for Paca.
 - [plugins/backend-plugin-system.md](plugins/backend-plugin-system.md): WASM runtime, host function bridge, and route registration.
 - [plugins/marketplace.md](plugins/marketplace.md): public GitHub marketplace catalog schema and install flow.
 - [plugins/sdk-reference.md](plugins/sdk-reference.md): full API reference for `@paca-ai/plugin-sdk-react` (TypeScript) and `github.com/Paca-AI/plugin-sdk` (Go).
-- [plugins/first-party-plugins.md](plugins/first-party-plugins.md): migration plan for BDD, Checklist, GitHub Integration, and Time Tracking plugins.
 - [plugins/developer-guide.md](plugins/developer-guide.md): step-by-step guide to building and publishing a Paca plugin.
 
 ## Principles

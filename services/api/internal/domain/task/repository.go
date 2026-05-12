@@ -12,7 +12,6 @@ type Repository interface {
 	TaskStatusRepository
 	TaskRepository
 	CustomFieldDefinitionRepository
-	BDDScenarioRepository
 }
 
 // TaskTypeRepository defines persistence operations for task types.
@@ -76,13 +75,4 @@ type CustomFieldDefinitionRepository interface {
 	CreateCustomFieldDefinition(ctx context.Context, f *CustomFieldDefinition) error
 	UpdateCustomFieldDefinition(ctx context.Context, f *CustomFieldDefinition) error
 	DeleteCustomFieldDefinition(ctx context.Context, id uuid.UUID) error
-}
-
-// BDDScenarioRepository defines persistence operations for BDD scenarios.
-type BDDScenarioRepository interface {
-	ListBDDScenarios(ctx context.Context, taskID uuid.UUID) ([]*BDDScenario, error)
-	FindBDDScenarioByID(ctx context.Context, id uuid.UUID) (*BDDScenario, error)
-	CreateBDDScenario(ctx context.Context, s *BDDScenario) error
-	UpdateBDDScenario(ctx context.Context, s *BDDScenario) error
-	DeleteBDDScenario(ctx context.Context, id uuid.UUID) error
 }

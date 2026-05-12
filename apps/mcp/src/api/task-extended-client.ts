@@ -1,6 +1,4 @@
 import type {
-	BDDScenario,
-	CreateBDDScenarioInput,
 	CreateBranchInput,
 	CreateBranchResult,
 	CreateCommentInput,
@@ -10,12 +8,11 @@ import type {
 	SuccessEnvelope,
 	TaskActivity,
 	TaskBranch,
-	UpdateBDDScenarioInput,
 	UpdateCommentInput,
 } from "../types/index.js";
 
 /**
- * Extended API client for Task Activities, Comments, BDD Scenarios, and GitHub.
+ * Extended API client for Task Activities, Comments, and GitHub.
  */
 export class PacaAPITaskExtendedClient {
 	private config: PacaConfig;
@@ -134,70 +131,6 @@ export class PacaAPITaskExtendedClient {
 	): Promise<void> {
 		await this.delete(
 			`/api/v1/projects/${projectId}/tasks/${taskId}/activities/comments/${commentId}`,
-		);
-	}
-
-	// ==================== BDD Scenarios ====================
-
-	async listBDDScenarios(
-		projectId: string,
-		taskId: string,
-	): Promise<BDDScenario[]> {
-		const response = await this.get(
-			`/api/v1/projects/${projectId}/tasks/${taskId}/bdd-scenarios`,
-		);
-		if (Array.isArray(response)) {
-			return response;
-		}
-		return (
-			response.items ||
-			response.scenarios ||
-			response.bddScenarios ||
-			response.data ||
-			[]
-		);
-	}
-
-	async createBDDScenario(
-		projectId: string,
-		taskId: string,
-		input: CreateBDDScenarioInput,
-	): Promise<BDDScenario> {
-		return this.post(
-			`/api/v1/projects/${projectId}/tasks/${taskId}/bdd-scenarios`,
-			input,
-		);
-	}
-
-	async getBDDScenario(
-		projectId: string,
-		taskId: string,
-		scenarioId: string,
-	): Promise<BDDScenario> {
-		return this.get(
-			`/api/v1/projects/${projectId}/tasks/${taskId}/bdd-scenarios/${scenarioId}`,
-		);
-	}
-
-	async updateBDDScenario(
-		projectId: string,
-		taskId: string,
-		scenarioId: string,
-		input: UpdateBDDScenarioInput,
-	): Promise<BDDScenario> {
-		return this.patch(
-			`/api/v1/projects/${projectId}/tasks/${taskId}/bdd-scenarios/${scenarioId}`,
-			input,
-		);
-	}
-
-	async deleteBDDScenario(
-		projectId: string,
-		taskId: string,
-		scenarioId: string,
-	): Promise<void> {
-		await this.delete(
-			`/api/v1/projects/${projectId}/tasks/${taskId}/bdd-scenarios/${scenarioId}`,
 		);
 	}
 

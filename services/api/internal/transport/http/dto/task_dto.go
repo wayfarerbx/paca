@@ -428,52 +428,6 @@ func CustomFieldDefinitionFromEntity(f *taskdom.CustomFieldDefinition) CustomFie
 	}
 }
 
-// --- BDD Scenarios ----------------------------------------------------------
-
-// CreateBDDScenarioRequest is the body for
-// POST /projects/:projectId/tasks/:taskId/bdd-scenarios.
-type CreateBDDScenarioRequest struct {
-	Title string `json:"title"    binding:"required"`
-	Given string `json:"given"`
-	When  string `json:"when"`
-	Then  string `json:"then"`
-}
-
-// UpdateBDDScenarioRequest is the body for
-// PATCH /projects/:projectId/tasks/:taskId/bdd-scenarios/:scenarioId.
-type UpdateBDDScenarioRequest struct {
-	Title *string `json:"title"`
-	Given *string `json:"given"`
-	When  *string `json:"when"`
-	Then  *string `json:"then"`
-}
-
-// BDDScenarioResponse is the public representation of a BDD scenario.
-type BDDScenarioResponse struct {
-	ID        uuid.UUID `json:"id"`
-	TaskID    uuid.UUID `json:"task_id"`
-	Title     string    `json:"title"`
-	Given     string    `json:"given"`
-	When      string    `json:"when"`
-	Then      string    `json:"then"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-}
-
-// BDDScenarioFromEntity maps a domain BDDScenario to a DTO.
-func BDDScenarioFromEntity(s *taskdom.BDDScenario) BDDScenarioResponse {
-	return BDDScenarioResponse{
-		ID:        s.ID,
-		TaskID:    s.TaskID,
-		Title:     s.Title,
-		Given:     s.Given,
-		When:      s.When,
-		Then:      s.Then,
-		CreatedAt: s.CreatedAt,
-		UpdatedAt: s.UpdatedAt,
-	}
-}
-
 // --- Activity / Comment DTOs -----------------------------------------------
 
 // ActivityResponse is the public representation of a task activity entry.

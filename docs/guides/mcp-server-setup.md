@@ -149,7 +149,7 @@ console.log("Projects:", result.content);
 
 ## Available Tools
 
-The Paca MCP server provides **86 tools** across **17 categories**:
+The Paca MCP server provides **81 tools** across **16 categories**:
 
 - 📁 **Project Management** (5 tools): Create, read, update, delete projects
 - ✅ **Task Management** (6 tools): Full task lifecycle management
@@ -162,7 +162,6 @@ The Paca MCP server provides **86 tools** across **17 categories**:
 - 🎯 **Views** (9 tools): Sprint, backlog, and timeline views
 - 🔧 **Custom Fields** (5 tools): Custom field definitions
 - 📎 **Attachments** (3 tools): File attachment management
-- 🧪 **BDD Scenarios** (5 tools): Behavior-driven development scenarios
 - 📁 **Document Folders** (4 tools): Document organization
 - 📸 **Document Snapshots** (2 tools): Document versioning
 - 🔗 **GitHub Integration** (7 tools): Repository and PR linking

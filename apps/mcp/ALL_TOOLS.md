@@ -78,31 +78,22 @@ This document lists all MCP tools implemented for the Paca API server.
 - `update_custom_field` - Update a custom field definition
 - `delete_custom_field` - Delete a custom field definition
 
-### 11. Attachments (5 tools)
+### 11. Attachments (3 tools)
 - `list_task_attachments` - List all attachments for a task
-- `initiate_attachment_upload` - Initiate an attachment upload for a task
-- `complete_attachment_upload` - Complete an attachment upload for a task
 - `get_attachment_download_url` - Get a download URL for an attachment
 - `delete_task_attachment` - Delete an attachment from a task
 
-### 12. BDD Scenarios (5 tools)
-- `list_bdd_scenarios` - List all BDD scenarios for a task
-- `create_bdd_scenario` - Create a new BDD scenario for a task
-- `get_bdd_scenario` - Get details of a specific BDD scenario
-- `update_bdd_scenario` - Update an existing BDD scenario
-- `delete_bdd_scenario` - Delete a BDD scenario
-
-### 13. Document Folders (4 tools)
+### 12. Document Folders (4 tools)
 - `list_doc_folders` - List all folders in a project
 - `create_doc_folder` - Create a new document folder
 - `update_doc_folder` - Update a document folder
 - `delete_doc_folder` - Delete a document folder
 
-### 14. Document Snapshots (2 tools)
+### 13. Document Snapshots (2 tools)
 - `list_doc_snapshots` - List all snapshots of a document
 - `get_doc_snapshot` - Get a specific document snapshot
 
-### 15. GitHub Integration (7 tools)
+### 14. GitHub Integration (7 tools)
 - `get_github_integration` - Get GitHub integration status for a project
 - `set_github_token` - Set GitHub token for a project
 - `delete_github_token` - Delete GitHub token for a project
@@ -111,13 +102,13 @@ This document lists all MCP tools implemented for the Paca API server.
 - `link_github_repository` - Link a GitHub repository to a project
 - `unlink_github_repository` - Unlink a GitHub repository from a project
 
-### 16. Task Activities (4 tools)
+### 15. Task Activities (4 tools)
 - `list_task_activities` - List all activities for a task
 - `add_task_comment` - Add a comment to a task
 - `update_task_comment` - Update a task comment
 - `delete_task_comment` - Delete a task comment
 
-### 17. Task GitHub (5 tools)
+### 16. Task GitHub (5 tools)
 - `list_task_prs` - List pull requests linked to a task
 - `link_pr_to_task` - Link a pull request to a task
 - `unlink_pr_from_task` - Unlink a pull request from a task
@@ -126,8 +117,8 @@ This document lists all MCP tools implemented for the Paca API server.
 
 ## Statistics
 
-- **Total Tools**: 86 MCP tools
-- **Categories**: 17 different categories
+- **Total Tools**: 81 MCP tools
+- **Categories**: 16 different categories
 - **API Endpoints Covered**: 80+ endpoints
 
 ## API Endpoints by Category
@@ -208,17 +199,8 @@ This document lists all MCP tools implemented for the Paca API server.
 
 ### Attachments
 - GET /api/v1/projects/:projectId/tasks/:taskId/attachments
-- POST /api/v1/projects/:projectId/tasks/:taskId/attachments/initiate-upload
-- POST /api/v1/projects/:projectId/tasks/:taskId/attachments/complete-upload
 - GET /api/v1/projects/:projectId/tasks/:taskId/attachments/:attachmentId/download-url
 - DELETE /api/v1/projects/:projectId/tasks/:taskId/attachments/:attachmentId
-
-### BDD Scenarios
-- GET /api/v1/projects/:projectId/tasks/:taskId/bdd-scenarios
-- POST /api/v1/projects/:projectId/tasks/:taskId/bdd-scenarios
-- GET /api/v1/projects/:projectId/tasks/:taskId/bdd-scenarios/:scenarioId
-- PATCH /api/v1/projects/:projectId/tasks/:taskId/bdd-scenarios/:scenarioId
-- DELETE /api/v1/projects/:projectId/tasks/:taskId/bdd-scenarios/:scenarioId
 
 ### Document Folders
 - GET /api/v1/projects/:projectId/docs/folders
@@ -260,7 +242,7 @@ src/
 │   ├── client.ts              # Base API client
 │   ├── extended-client.ts     # Members, roles, task types, statuses
 │   ├── views-client.ts        # Views, custom fields, attachments
-│   ├── task-extended-client.ts # Activities, comments, BDD, task GitHub
+│   ├── task-extended-client.ts # Activities, comments, task GitHub
 │   ├── doc-client.ts          # Doc folders, snapshots, files
 │   ├── github-client.ts       # GitHub integration
 │   └── index.ts               # Exports
@@ -272,7 +254,7 @@ src/
 │   ├── member-tools.ts        # Member & role tools
 │   ├── task-type-tools.ts     # Task type & status tools
 │   ├── view-tools.ts          # View & custom field tools
-│   ├── attachment-tools.ts    # Attachment & BDD tools
+│   ├── attachment-tools.ts    # Attachment tools
 │   ├── doc-github-tools.ts    # Doc & GitHub tools
 │   ├── task-activity-tools.ts # Task activity & GitHub tools
 │   └── index.ts               # Tool registry & router
@@ -319,14 +301,11 @@ create_task({
   typeId: "task-type-id"
 })
 
-// 5. Add a BDD scenario
-create_bdd_scenario({
+// 5. Add a comment
+add_task_comment({
   projectId: "project-id",
   taskId: "task-id",
-  title: "User can login",
-  given: "User is on login page",
-  when: "User enters valid credentials",
-  then: "User is redirected to dashboard"
+  text: "Ready for review."
 })
 ```
 

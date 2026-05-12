@@ -118,11 +118,6 @@ const (
 	// CodeCustomFieldNameInvalid indicates an empty or invalid display name.
 	CodeCustomFieldNameInvalid Code = "CUSTOM_FIELD_NAME_INVALID"
 
-	// CodeBDDScenarioNotFound indicates the requested BDD scenario does not exist.
-	CodeBDDScenarioNotFound Code = "BDD_SCENARIO_NOT_FOUND"
-	// CodeBDDScenarioTitleInvalid indicates an empty or invalid BDD scenario title.
-	CodeBDDScenarioTitleInvalid Code = "BDD_SCENARIO_TITLE_INVALID"
-
 	// CodeFileNotFound indicates the requested file record does not exist.
 	CodeFileNotFound Code = "FILE_NOT_FOUND"
 	// CodeAttachmentNotFound indicates the requested task attachment does not exist.

@@ -1588,10 +1588,6 @@ Sub-resources of tasks that are not yet implemented.
 | `POST` | `/api/v1/projects/:projectId/tasks/:taskId/children` | Create a child task under the specified parent task. |
 | `GET` | `/api/v1/projects/:projectId/tasks/:taskId/activities` | List audit/activity entries for a task. |
 | `POST` | `/api/v1/projects/:projectId/tasks/:taskId/activities` | Add a task activity entry such as comment, status change note, or system event. |
-| `GET` | `/api/v1/projects/:projectId/tasks/:taskId/bdd-scenarios` | List BDD scenarios attached to a task. |
-| `POST` | `/api/v1/projects/:projectId/tasks/:taskId/bdd-scenarios` | Add a BDD scenario to a task. |
-| `PATCH` | `/api/v1/projects/:projectId/tasks/:taskId/bdd-scenarios/:scenarioId` | Update a BDD scenario. |
-| `DELETE` | `/api/v1/projects/:projectId/tasks/:taskId/bdd-scenarios/:scenarioId` | Delete a BDD scenario. |
 | `GET` | `/api/v1/projects/:projectId/tasks/:taskId/time-logs` | List time logs recorded against a task. |
 | `POST` | `/api/v1/projects/:projectId/tasks/:taskId/time-logs` | Record time spent on a task. |
 | `PATCH` | `/api/v1/projects/:projectId/tasks/:taskId/time-logs/:timeLogId` | Update a time log entry. |
@@ -1632,7 +1628,7 @@ To keep the API coherent and aligned with the current codebase, implement the ne
 6. ~~Add task CRUD endpoints.~~ ✅ Done
 7. ~~Add sprint CRUD, sprint backlog view (`GET /sprints/:id/tasks`), and product-backlog view (`GET /product-backlog`).~~ ✅ Done
 8. ~~Add sprint saved views: board, table, roadmap with manual task ordering.~~ ✅ Done
-9. Add task sub-resource endpoints: child tasks, activities, BDD scenarios, and time logs.
+9. Add task sub-resource endpoints: child tasks, activities, and time logs.
 10. ~~Add custom field definitions.~~ ✅ Done
 11. Add knowledge and reporting: documents and dashboards.
 

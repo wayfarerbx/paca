@@ -9,7 +9,6 @@ import type {
 } from "../api/index.js";
 import {
 	getAttachmentTools,
-	getBDDScenarioTools,
 	handleAttachmentTool,
 } from "./attachment-tools.js";
 import {
@@ -58,7 +57,6 @@ export function getAllTools(): Tool[] {
 		...getViewTools(),
 		...getCustomFieldTools(),
 		...getAttachmentTools(),
-		...getBDDScenarioTools(),
 		...getDocTools(),
 		...getGitHubTools(),
 		...getTaskActivityTools(),
@@ -181,22 +179,16 @@ export async function handleToolCall(
 			return handleViewTool(name, args, clients.viewsClient);
 		}
 
-		// Attachment and BDD scenario tools
+		// Attachment tools
 		if (
 			name === "list_task_attachments" ||
 			name === "get_attachment_download_url" ||
-			name === "delete_task_attachment" ||
-			name === "list_bdd_scenarios" ||
-			name === "create_bdd_scenario" ||
-			name === "get_bdd_scenario" ||
-			name === "update_bdd_scenario" ||
-			name === "delete_bdd_scenario"
+			name === "delete_task_attachment"
 		) {
 			return handleAttachmentTool(
 				name,
 				args,
 				clients.viewsClient,
-				clients.taskExtendedClient,
 			);
 		}
 

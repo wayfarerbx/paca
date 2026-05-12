@@ -40,7 +40,7 @@ type ViewConfigDTO struct {
 	SliceBy   string          `json:"slice_by,omitempty"`
 	Filters   *ViewFiltersDTO `json:"filters,omitempty"`
 	// PluginManifestID is the reverse-DNS plugin manifest identifier
-	// (for example "com.paca.checklist").
+	// (for example "com.paca.bdd").
 	PluginManifestID string `json:"plugin_manifest_id,omitempty"`
 	PluginComponent  string `json:"plugin_component,omitempty"`
 }

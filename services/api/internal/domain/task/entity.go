@@ -97,18 +97,6 @@ type CustomFieldDefinition struct {
 	UpdatedAt   time.Time
 }
 
-// BDDScenario captures the Given / When / Then acceptance criteria for a Task.
-type BDDScenario struct {
-	ID        uuid.UUID
-	TaskID    uuid.UUID
-	Title     string
-	Given     string
-	When      string
-	Then      string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-}
-
 // Task is the core work item aggregate.
 type Task struct {
 	ID           uuid.UUID

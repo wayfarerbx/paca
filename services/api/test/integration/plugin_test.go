@@ -330,7 +330,7 @@ func TestIntegPlugin_ListPlugins_ReturnsSeeded(t *testing.T) {
 	}
 }
 
-func TestIntegPlugin_ListPlugins_RequiresAuth(t *testing.T) {
+func TestIntegPlugin_ListPlugins_AllowsAnonymous(t *testing.T) {
 	env := newPluginTestEnv(t, false)
 
 	req, _ := http.NewRequestWithContext(context.Background(), http.MethodGet, env.url("/api/v1/plugins"), http.NoBody)
@@ -339,8 +339,8 @@ func TestIntegPlugin_ListPlugins_RequiresAuth(t *testing.T) {
 		t.Fatalf("do request: %v", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusUnauthorized {
-		t.Errorf("expected 401, got %d", resp.StatusCode)
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200, got %d", resp.StatusCode)
 	}
 }
 

@@ -30,15 +30,6 @@ const (
 	// ActivityTypeAttachmentRemoved is recorded when an attachment is detached.
 	ActivityTypeAttachmentRemoved ActivityType = "task.attachment.removed"
 
-	// --- BDD scenario events -------------------------------------------------
-
-	// ActivityTypeBDDScenarioCreated is recorded when a BDD scenario is added.
-	ActivityTypeBDDScenarioCreated ActivityType = "task.bdd_scenario.created"
-	// ActivityTypeBDDScenarioUpdated is recorded when a BDD scenario is edited.
-	ActivityTypeBDDScenarioUpdated ActivityType = "task.bdd_scenario.updated"
-	// ActivityTypeBDDScenarioDeleted is recorded when a BDD scenario is removed.
-	ActivityTypeBDDScenarioDeleted ActivityType = "task.bdd_scenario.deleted"
-
 	// --- Comment -------------------------------------------------------------
 
 	// ActivityTypeComment is a user-authored comment on the task.

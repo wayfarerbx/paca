@@ -406,25 +406,6 @@ CREATE TABLE IF NOT EXISTS task_checklist_items (
 CREATE INDEX IF NOT EXISTS idx_task_checklist_items_checklist_id ON task_checklist_items (checklist_id, position);
 
 -- -------------------------------------------------------------------------
--- BDD SCENARIOS
--- BDD scenarios capture the Given / When / Then acceptance criteria for a
--- task.  Each scenario belongs to exactly one task and is deleted when the
--- task is deleted (ON DELETE CASCADE).
--- -------------------------------------------------------------------------
-
-CREATE TABLE IF NOT EXISTS bdd_scenarios (
-    id          UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-    task_id     UUID         NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    title       VARCHAR      NOT NULL DEFAULT '',
-    given_text  TEXT         NOT NULL DEFAULT '',
-    when_text   TEXT         NOT NULL DEFAULT '',
-    then_text   TEXT         NOT NULL DEFAULT '',
-    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS idx_bdd_scenarios_task_id ON bdd_scenarios (task_id);
-
 -- -------------------------------------------------------------------------
 -- TASK ACTIVITIES
 -- Unified log of system-generated change events and user comments on tasks.

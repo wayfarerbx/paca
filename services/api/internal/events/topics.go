@@ -9,7 +9,7 @@ const StreamAnalytics = "paca.analytics"
 
 // StreamTaskActivities is the Valkey Stream key used to fan out task-activity
 // events from the API to the internal consumer that persists them to PostgreSQL.
-// System-generated activities (task created, updated, BDD changes, etc.) are
+// System-generated activities (task created, updated, plugin changes, etc.) are
 // appended here instead of being written directly to the database; the
 // ActivityConsumer worker reads this stream and handles the DB write.
 const StreamTaskActivities = "paca.task_activities"
@@ -42,11 +42,6 @@ const (
 	// --- Task attachment events ---------------------------------------------
 	TopicTaskAttachmentAdded   = "task.attachment.added"
 	TopicTaskAttachmentRemoved = "task.attachment.removed"
-
-	// --- Task BDD scenario events -------------------------------------------
-	TopicTaskBDDScenarioCreated = "task.bdd_scenario.created"
-	TopicTaskBDDScenarioUpdated = "task.bdd_scenario.updated"
-	TopicTaskBDDScenarioDeleted = "task.bdd_scenario.deleted"
 
 	// --- Comment events -----------------------------------------------------
 	TopicTaskCommentAdded   = "task.comment.added"

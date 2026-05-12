@@ -26,10 +26,9 @@ type fakeTaskRepo struct {
 	tasks                map[uuid.UUID]*taskdom.Task
 	customFields         map[uuid.UUID]*taskdom.CustomFieldDefinition
 	counters             map[uuid.UUID]int64 // project-scoped task number counters
-	bddScenarios         map[uuid.UUID]*taskdom.BDDScenario
-	findDefaultTypeErr   error // injected error for FindDefaultTaskType
-	findDefaultStatusErr error // injected error for FindDefaultTaskStatus
-	setDefaultStatusErr  error // injected error for SetDefaultTaskStatus
+	findDefaultTypeErr   error               // injected error for FindDefaultTaskType
+	findDefaultStatusErr error               // injected error for FindDefaultTaskStatus
+	setDefaultStatusErr  error               // injected error for SetDefaultTaskStatus
 }
 
 func newFakeTaskRepo() *fakeTaskRepo {
@@ -39,7 +38,6 @@ func newFakeTaskRepo() *fakeTaskRepo {
 		tasks:        make(map[uuid.UUID]*taskdom.Task),
 		customFields: make(map[uuid.UUID]*taskdom.CustomFieldDefinition),
 		counters:     make(map[uuid.UUID]int64),
-		bddScenarios: make(map[uuid.UUID]*taskdom.BDDScenario),
 	}
 }
 
@@ -312,61 +310,6 @@ func (r *fakeTaskRepo) DeleteTask(_ context.Context, id uuid.UUID) error {
 // BulkMoveSprintTasks is not exercised by task service tests but must satisfy
 // the taskdom.TaskRepository interface.
 func (r *fakeTaskRepo) BulkMoveSprintTasks(_ context.Context, _, _ uuid.UUID, _ *uuid.UUID) error {
-	return nil
-}
-
-// -- BDDScenario methods --
-
-func (r *fakeTaskRepo) ListBDDScenarios(_ context.Context, taskID uuid.UUID) ([]*taskdom.BDDScenario, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	out := make([]*taskdom.BDDScenario, 0)
-	for _, s := range r.bddScenarios {
-		if s.TaskID == taskID {
-			cp := *s
-			out = append(out, &cp)
-		}
-	}
-	return out, nil
-}
-
-func (r *fakeTaskRepo) FindBDDScenarioByID(_ context.Context, id uuid.UUID) (*taskdom.BDDScenario, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	s, ok := r.bddScenarios[id]
-	if !ok {
-		return nil, taskdom.ErrBDDScenarioNotFound
-	}
-	cp := *s
-	return &cp, nil
-}
-
-func (r *fakeTaskRepo) CreateBDDScenario(_ context.Context, s *taskdom.BDDScenario) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	cp := *s
-	r.bddScenarios[s.ID] = &cp
-	return nil
-}
-
-func (r *fakeTaskRepo) UpdateBDDScenario(_ context.Context, s *taskdom.BDDScenario) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if _, ok := r.bddScenarios[s.ID]; !ok {
-		return taskdom.ErrBDDScenarioNotFound
-	}
-	cp := *s
-	r.bddScenarios[s.ID] = &cp
-	return nil
-}
-
-func (r *fakeTaskRepo) DeleteBDDScenario(_ context.Context, id uuid.UUID) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if _, ok := r.bddScenarios[id]; !ok {
-		return taskdom.ErrBDDScenarioNotFound
-	}
-	delete(r.bddScenarios, id)
 	return nil
 }
 

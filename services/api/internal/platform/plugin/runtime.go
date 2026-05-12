@@ -12,6 +12,7 @@ import (
 	"time"
 
 	plugindom "github.com/Paca-AI/api/internal/domain/plugin"
+	"github.com/Paca-AI/api/internal/events"
 	"github.com/google/uuid"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
@@ -55,6 +56,7 @@ type HostServices struct {
 // EventPublisher abstracts the messaging.Publisher to avoid a circular import.
 type EventPublisher interface {
 	Publish(ctx context.Context, channel string, payload any) error
+	Append(ctx context.Context, stream, eventType string, payload any) error
 }
 
 // pluginInstance wraps a compiled wazero module for a single installed plugin.
@@ -738,6 +740,7 @@ type HTTPRequest struct {
 	Path       string            `json:"path"`
 	ProjectID  string            `json:"project_id"`
 	CallerID   string            `json:"caller_id"`
+	UserID     string            `json:"user_id"`
 	CallerRole string            `json:"caller_role"`
 	Headers    map[string]string `json:"headers"`
 	Body       []byte            `json:"body"`
@@ -779,6 +782,7 @@ func (r *Runtime) registerHTTPFunctions(b wazero.HostModuleBuilder, _ plugindom.
 			}
 			copy(stack, writeJSONResult(m, map[string]string{
 				"caller_id":   req.CallerID,
+				"user_id":     req.UserID,
 				"caller_role": req.CallerRole,
 				"project_id":  req.ProjectID,
 			}))
@@ -829,6 +833,113 @@ func (r *Runtime) registerEventFunctions(b wazero.HostModuleBuilder, p plugindom
 		}), []api.ValueType{api.ValueTypeI64, api.ValueTypeI64},
 			[]api.ValueType{api.ValueTypeI32}).
 		Export("event_subscribe")
+
+	// paca.activity_record(payloadPtr i64, payloadLen i64) -> ok i32
+	// Appends a task-activity event to paca.task_activities stream so the
+	// ActivityConsumer worker can persist it to PostgreSQL.
+	// Payload JSON shape:
+	//   {"task_id":"uuid","activity_type":"task.checklist.created","content":{...}}
+	// actor_id and project_id are derived from the request context to prevent
+	// spoofing; plugin-supplied values for those fields are ignored.
+	b.NewFunctionBuilder().
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
+			raw, _ := readString(m, stack[0], stack[1])
+			var inp struct {
+				TaskID       string `json:"task_id"`
+				ActivityType string `json:"activity_type"`
+				Content      any    `json:"content"`
+			}
+			if err := json.Unmarshal([]byte(raw), &inp); err != nil || inp.TaskID == "" || inp.ActivityType == "" {
+				r.log.Warn("paca.activity_record: invalid payload", "plugin", p.Name)
+				stack[0] = 0
+				return
+			}
+
+			// Validate task_id is a well-formed UUID.
+			taskID, err := uuid.Parse(inp.TaskID)
+			if err != nil {
+				r.log.Warn("paca.activity_record: invalid task_id", "plugin", p.Name, "task_id", inp.TaskID)
+				stack[0] = 0
+				return
+			}
+
+			// Derive actor_id and project_id from the authenticated request
+			// context.  These must not be trusted from the plugin payload to
+			// prevent actor impersonation or cross-project writes.
+			var actorID, projectIDStr string
+			if req, ok := ctx.Value(pluginRequestKey{}).(*HTTPRequest); ok {
+				actorID = req.UserID
+				projectIDStr = req.ProjectID
+			}
+
+			if projectIDStr == "" {
+				r.log.Warn("paca.activity_record: missing project context", "plugin", p.Name)
+				stack[0] = 0
+				return
+			}
+			projectID, err := uuid.Parse(projectIDStr)
+			if err != nil {
+				r.log.Warn("paca.activity_record: invalid project_id in context", "plugin", p.Name)
+				stack[0] = 0
+				return
+			}
+
+			// Require a non-empty actor_id so every activity has an
+			// attributable author; an empty UserID indicates the request
+			// is unauthenticated or the claim is missing.
+			if actorID == "" {
+				r.log.Warn("paca.activity_record: missing actor in context", "plugin", p.Name)
+				stack[0] = 0
+				return
+			}
+
+			// Verify the task belongs to the project derived from the request
+			// context before writing to the activity stream.
+			if r.services.DB == nil {
+				r.log.Warn("paca.activity_record: DB not available", "plugin", p.Name)
+				stack[0] = 0
+				return
+			}
+			var exists bool
+			if err := r.services.DB.QueryRowContext(ctx,
+				`SELECT EXISTS(SELECT 1 FROM tasks WHERE id = $1 AND project_id = $2 AND deleted_at IS NULL)`,
+				taskID, projectID).Scan(&exists); err != nil {
+				r.log.Error("paca.activity_record: DB query failed",
+					"plugin", p.Name, "task_id", taskID, "project_id", projectID, "error", err)
+				stack[0] = 0
+				return
+			}
+			if !exists {
+				r.log.Warn("paca.activity_record: task not found in project",
+					"plugin", p.Name, "task_id", taskID, "project_id", projectID)
+				stack[0] = 0
+				return
+			}
+
+			contentBytes, _ := json.Marshal(inp.Content)
+			now := time.Now().UTC()
+			activityID := uuid.New().String()
+			payload := map[string]any{
+				"id":            activityID,
+				"task_id":       taskID.String(),
+				"project_id":    projectID.String(),
+				"activity_type": inp.ActivityType,
+				"content":       string(contentBytes),
+				"created_at":    now.Format(time.RFC3339Nano),
+				"updated_at":    now.Format(time.RFC3339Nano),
+			}
+			payload["actor_id"] = actorID
+			if r.services.Publisher != nil {
+				_ = r.services.Publisher.Append(ctx, events.StreamTaskActivities, inp.ActivityType, payload)
+				_ = r.services.Publisher.Publish(ctx, events.ChannelRealtime, map[string]any{
+					"type":    inp.ActivityType,
+					"payload": payload,
+				})
+			}
+			stack[0] = 1
+		}), []api.ValueType{api.ValueTypeI64, api.ValueTypeI64},
+			[]api.ValueType{api.ValueTypeI32}).
+		Export("activity_record")
 
 	// paca.log(level i32, msgPtr, msgLen)
 	b.NewFunctionBuilder().

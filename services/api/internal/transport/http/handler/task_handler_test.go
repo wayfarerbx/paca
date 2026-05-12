@@ -27,16 +27,14 @@ type fakeTaskSvc struct {
 	mu            sync.RWMutex
 	tasks         map[uuid.UUID]*taskdom.Task
 	types         map[uuid.UUID]*taskdom.TaskType
-	bddScenarios  map[uuid.UUID]*taskdom.BDDScenario
 	lastProjectID uuid.UUID
 	lastFilter    taskdom.TaskFilter
 }
 
 func newFakeTaskSvc() *fakeTaskSvc {
 	return &fakeTaskSvc{
-		tasks:        make(map[uuid.UUID]*taskdom.Task),
-		types:        make(map[uuid.UUID]*taskdom.TaskType),
-		bddScenarios: make(map[uuid.UUID]*taskdom.BDDScenario),
+		tasks: make(map[uuid.UUID]*taskdom.Task),
+		types: make(map[uuid.UUID]*taskdom.TaskType),
 	}
 }
 
@@ -213,87 +211,6 @@ func (f *fakeTaskSvc) DeleteCustomFieldDefinition(_ context.Context, _, _ uuid.U
 	return nil
 }
 
-// -- BDDScenarioService --
-
-func (f *fakeTaskSvc) ListBDDScenarios(_ context.Context, _, taskID uuid.UUID) ([]*taskdom.BDDScenario, error) {
-	f.mu.RLock()
-	defer f.mu.RUnlock()
-	var out []*taskdom.BDDScenario
-	for _, s := range f.bddScenarios {
-		if s.TaskID == taskID {
-			cp := *s
-			out = append(out, &cp)
-		}
-	}
-	return out, nil
-}
-
-func (f *fakeTaskSvc) GetBDDScenario(_ context.Context, _, _, id uuid.UUID) (*taskdom.BDDScenario, error) {
-	f.mu.RLock()
-	defer f.mu.RUnlock()
-	s, ok := f.bddScenarios[id]
-	if !ok {
-		return nil, taskdom.ErrBDDScenarioNotFound
-	}
-	cp := *s
-	return &cp, nil
-}
-
-func (f *fakeTaskSvc) CreateBDDScenario(_ context.Context, in taskdom.CreateBDDScenarioInput) (*taskdom.BDDScenario, error) {
-	if in.Title == "" {
-		return nil, taskdom.ErrBDDScenarioTitleInvalid
-	}
-	now := time.Now()
-	s := &taskdom.BDDScenario{
-		ID:     uuid.New(),
-		TaskID: in.TaskID,
-		Title:  in.Title,
-		Given:  in.Given,
-		When:   in.When,
-		Then:   in.Then,
-
-		CreatedAt: now,
-		UpdatedAt: now,
-	}
-	f.mu.Lock()
-	f.bddScenarios[s.ID] = s
-	f.mu.Unlock()
-	return s, nil
-}
-
-func (f *fakeTaskSvc) UpdateBDDScenario(_ context.Context, _, _, id uuid.UUID, in taskdom.UpdateBDDScenarioInput) (*taskdom.BDDScenario, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	s, ok := f.bddScenarios[id]
-	if !ok {
-		return nil, taskdom.ErrBDDScenarioNotFound
-	}
-	if in.Title != nil {
-		s.Title = *in.Title
-	}
-	if in.Given != nil {
-		s.Given = *in.Given
-	}
-	if in.When != nil {
-		s.When = *in.When
-	}
-	if in.Then != nil {
-		s.Then = *in.Then
-	}
-	cp := *s
-	return &cp, nil
-}
-
-func (f *fakeTaskSvc) DeleteBDDScenario(_ context.Context, _, _, id uuid.UUID) error {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	if _, ok := f.bddScenarios[id]; !ok {
-		return taskdom.ErrBDDScenarioNotFound
-	}
-	delete(f.bddScenarios, id)
-	return nil
-}
-
 // ---------------------------------------------------------------------------
 // Fake activity service
 // ---------------------------------------------------------------------------
@@ -465,12 +382,6 @@ func buildTaskHandlerRouterWithActivity(svc *fakeTaskSvc, actSvc *fakeActivitySv
 	projectGroup.GET("/tasks/:taskId", h.GetTask)
 	projectGroup.PATCH("/tasks/:taskId", h.UpdateTask)
 	projectGroup.DELETE("/tasks/:taskId", h.DeleteTask)
-	// BDD scenarios
-	projectGroup.GET("/tasks/:taskId/bdd-scenarios", h.ListBDDScenarios)
-	projectGroup.POST("/tasks/:taskId/bdd-scenarios", h.CreateBDDScenario)
-	projectGroup.GET("/tasks/:taskId/bdd-scenarios/:scenarioId", h.GetBDDScenario)
-	projectGroup.PATCH("/tasks/:taskId/bdd-scenarios/:scenarioId", h.UpdateBDDScenario)
-	projectGroup.DELETE("/tasks/:taskId/bdd-scenarios/:scenarioId", h.DeleteBDDScenario)
 	// Activities / comments
 	projectGroup.GET("/tasks/:taskId/activities", h.ListTaskActivities)
 	projectGroup.POST("/tasks/:taskId/activities/comments", h.AddComment)
@@ -894,220 +805,6 @@ func TestTaskHandler_GetTaskByNumber_InvalidNumberReturns400(t *testing.T) {
 	)
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for invalid task number, got %d: %s", w.Code, w.Body.String())
-	}
-}
-
-// ---------------------------------------------------------------------------
-// BDD Scenario handler tests
-// ---------------------------------------------------------------------------
-
-func TestBDDScenarioHandler_CreateAndList(t *testing.T) {
-	svc := newFakeTaskSvc()
-	r := buildTaskHandlerRouter(svc)
-	projectID := uuid.New()
-	taskID := uuid.New()
-
-	// Pre-seed a task so the fake service's GetTask can resolve it.
-	task := &taskdom.Task{ID: taskID, ProjectID: projectID, Title: "feat", Tags: []string{}, CustomFields: map[string]any{}}
-	svc.mu.Lock()
-	svc.tasks[taskID] = task
-	svc.mu.Unlock()
-
-	// Create a BDD scenario.
-	createW := doTaskRequest(r, http.MethodPost,
-		fmt.Sprintf("/projects/%s/tasks/%s/bdd-scenarios", projectID, taskID),
-		map[string]any{"title": "User login", "given": "the user is on login page", "when": "they submit valid credentials", "then": "they are redirected"},
-	)
-	if createW.Code != http.StatusCreated {
-		t.Fatalf("create: expected 201, got %d: %s", createW.Code, createW.Body.String())
-	}
-
-	// List BDD scenarios.
-	listW := doTaskRequest(r, http.MethodGet,
-		fmt.Sprintf("/projects/%s/tasks/%s/bdd-scenarios", projectID, taskID),
-		nil,
-	)
-	if listW.Code != http.StatusOK {
-		t.Fatalf("list: expected 200, got %d: %s", listW.Code, listW.Body.String())
-	}
-	var listEnv struct {
-		Data struct {
-			Items []map[string]any `json:"items"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(listW.Body.Bytes(), &listEnv); err != nil {
-		t.Fatalf("unmarshal list: %v", err)
-	}
-	if len(listEnv.Data.Items) != 1 {
-		t.Fatalf("expected 1 scenario, got %d", len(listEnv.Data.Items))
-	}
-}
-
-func TestBDDScenarioHandler_CreateMissingTitle(t *testing.T) {
-	svc := newFakeTaskSvc()
-	r := buildTaskHandlerRouter(svc)
-	projectID := uuid.New()
-	taskID := uuid.New()
-
-	// Pre-seed a task so the ownership check passes (GetTask must resolve it).
-	task := &taskdom.Task{ID: taskID, ProjectID: projectID, Title: "feat", Tags: []string{}, CustomFields: map[string]any{}}
-	svc.mu.Lock()
-	svc.tasks[taskID] = task
-	svc.mu.Unlock()
-
-	w := doTaskRequest(r, http.MethodPost,
-		fmt.Sprintf("/projects/%s/tasks/%s/bdd-scenarios", projectID, taskID),
-		map[string]any{"given": "some context"},
-	)
-	// binding:"required" on Title → 400
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400 for missing title, got %d: %s", w.Code, w.Body.String())
-	}
-}
-
-func TestBDDScenarioHandler_GetNotFound(t *testing.T) {
-	svc := newFakeTaskSvc()
-	r := buildTaskHandlerRouter(svc)
-	projectID := uuid.New()
-	taskID := uuid.New()
-
-	w := doTaskRequest(r, http.MethodGet,
-		fmt.Sprintf("/projects/%s/tasks/%s/bdd-scenarios/%s", projectID, taskID, uuid.New()),
-		nil,
-	)
-	if w.Code != http.StatusNotFound {
-		t.Fatalf("expected 404, got %d: %s", w.Code, w.Body.String())
-	}
-}
-
-func TestBDDScenarioHandler_UpdateAndGet(t *testing.T) {
-	svc := newFakeTaskSvc()
-	r := buildTaskHandlerRouter(svc)
-	projectID := uuid.New()
-	taskID := uuid.New()
-
-	task := &taskdom.Task{ID: taskID, ProjectID: projectID, Title: "feat", Tags: []string{}, CustomFields: map[string]any{}}
-	svc.mu.Lock()
-	svc.tasks[taskID] = task
-	svc.mu.Unlock()
-
-	// Create.
-	createW := doTaskRequest(r, http.MethodPost,
-		fmt.Sprintf("/projects/%s/tasks/%s/bdd-scenarios", projectID, taskID),
-		map[string]any{"title": "Original"},
-	)
-	if createW.Code != http.StatusCreated {
-		t.Fatalf("create: expected 201, got %d", createW.Code)
-	}
-	var createEnv struct {
-		Data struct {
-			ID string `json:"id"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(createW.Body.Bytes(), &createEnv); err != nil {
-		t.Fatalf("json.Unmarshal createEnv: %v", err)
-	}
-	scenarioID := createEnv.Data.ID
-
-	// Patch title.
-	newTitle := "Updated title"
-	patchW := doTaskRequest(r, http.MethodPatch,
-		fmt.Sprintf("/projects/%s/tasks/%s/bdd-scenarios/%s", projectID, taskID, scenarioID),
-		map[string]any{"title": newTitle},
-	)
-	if patchW.Code != http.StatusOK {
-		t.Fatalf("patch: expected 200, got %d: %s", patchW.Code, patchW.Body.String())
-	}
-
-	// Get and verify updated title.
-	getW := doTaskRequest(r, http.MethodGet,
-		fmt.Sprintf("/projects/%s/tasks/%s/bdd-scenarios/%s", projectID, taskID, scenarioID),
-		nil,
-	)
-	if getW.Code != http.StatusOK {
-		t.Fatalf("get: expected 200, got %d", getW.Code)
-	}
-	var getEnv struct {
-		Data struct {
-			Title string `json:"title"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(getW.Body.Bytes(), &getEnv); err != nil {
-		t.Fatalf("json.Unmarshal getEnv: %v", err)
-	}
-	if getEnv.Data.Title != newTitle {
-		t.Errorf("expected title %q, got %q", newTitle, getEnv.Data.Title)
-	}
-}
-
-func TestBDDScenarioHandler_Delete(t *testing.T) {
-	svc := newFakeTaskSvc()
-	r := buildTaskHandlerRouter(svc)
-	projectID := uuid.New()
-	taskID := uuid.New()
-
-	task := &taskdom.Task{ID: taskID, ProjectID: projectID, Title: "feat", Tags: []string{}, CustomFields: map[string]any{}}
-	svc.mu.Lock()
-	svc.tasks[taskID] = task
-	svc.mu.Unlock()
-
-	// Create.
-	createW := doTaskRequest(r, http.MethodPost,
-		fmt.Sprintf("/projects/%s/tasks/%s/bdd-scenarios", projectID, taskID),
-		map[string]any{"title": "To delete"},
-	)
-	if createW.Code != http.StatusCreated {
-		t.Fatalf("create: expected 201, got %d", createW.Code)
-	}
-	var createEnv struct {
-		Data struct {
-			ID string `json:"id"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(createW.Body.Bytes(), &createEnv); err != nil {
-		t.Fatalf("json.Unmarshal createEnv: %v", err)
-	}
-	scenarioID := createEnv.Data.ID
-
-	// Delete.
-	delW := doTaskRequest(r, http.MethodDelete,
-		fmt.Sprintf("/projects/%s/tasks/%s/bdd-scenarios/%s", projectID, taskID, scenarioID),
-		nil,
-	)
-	if delW.Code != http.StatusOK {
-		t.Fatalf("delete: expected 200, got %d: %s", delW.Code, delW.Body.String())
-	}
-
-	// List should now be empty.
-	listW := doTaskRequest(r, http.MethodGet,
-		fmt.Sprintf("/projects/%s/tasks/%s/bdd-scenarios", projectID, taskID),
-		nil,
-	)
-	var listEnv struct {
-		Data struct {
-			Items []any `json:"items"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(listW.Body.Bytes(), &listEnv); err != nil {
-		t.Fatalf("json.Unmarshal listEnv: %v", err)
-	}
-	if len(listEnv.Data.Items) != 0 {
-		t.Errorf("expected 0 items after delete, got %d", len(listEnv.Data.Items))
-	}
-}
-
-func TestBDDScenarioHandler_DeleteNotFound(t *testing.T) {
-	svc := newFakeTaskSvc()
-	r := buildTaskHandlerRouter(svc)
-	projectID := uuid.New()
-	taskID := uuid.New()
-
-	w := doTaskRequest(r, http.MethodDelete,
-		fmt.Sprintf("/projects/%s/tasks/%s/bdd-scenarios/%s", projectID, taskID, uuid.New()),
-		nil,
-	)
-	if w.Code != http.StatusNotFound {
-		t.Fatalf("expected 404, got %d: %s", w.Code, w.Body.String())
 	}
 }
 
