@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -46,6 +48,9 @@ type HostServices struct {
 	Log *slog.Logger
 	// Publisher exposes event emission to plugins.
 	Publisher EventPublisher
+	// Config contains host-side config values exposed to plugins via
+	// paca.config_get when explicitly allowlisted in plugin manifest.
+	Config map[string]string
 	// HTTPClient is used by the paca.http_request host function.
 	HTTPClient *http.Client
 	// AllowedOutboundDomains is the allowlist for paca.http_request outbound
@@ -332,6 +337,9 @@ func (r *Runtime) registerHostModule(ctx context.Context, rt wazero.Runtime, p p
 
 	// --- HTTP host functions (PLUG-BE-06) ----------------------------------
 	r.registerHTTPFunctions(builder, p)
+
+	// --- Outbound fetch host function (PLUG-BE-08) -------------------------
+	r.registerFetchFunction(builder, p)
 
 	// --- Event and utility functions (PLUG-BE-07) --------------------------
 	r.registerEventFunctions(builder, p)
@@ -962,11 +970,171 @@ func (r *Runtime) registerEventFunctions(b wazero.HostModuleBuilder, p plugindom
 	// paca.config_get(keyPtr, keyLen, valuePtrPtr, valueLenPtr)
 	b.NewFunctionBuilder().
 		WithGoModuleFunction(api.GoModuleFunc(func(_ context.Context, m api.Module, stack []uint64) {
-			m.Memory().WriteUint32Le(uint32(stack[2]), 0)
-			m.Memory().WriteUint32Le(uint32(stack[3]), 0)
+			key, err := readString(m, stack[0], stack[1])
+			if err != nil || key == "" {
+				m.Memory().WriteUint32Le(uint32(stack[2]), 0)
+				m.Memory().WriteUint32Le(uint32(stack[3]), 0)
+				return
+			}
+			if !isAllowedConfigKey(key, p.Manifest.Backend) {
+				m.Memory().WriteUint32Le(uint32(stack[2]), 0)
+				m.Memory().WriteUint32Le(uint32(stack[3]), 0)
+				return
+			}
+			val, ok := r.services.Config[key]
+			if !ok || val == "" {
+				m.Memory().WriteUint32Le(uint32(stack[2]), 0)
+				m.Memory().WriteUint32Le(uint32(stack[3]), 0)
+				return
+			}
+			ptrLen, werr := writeToMemory(m, []byte(val))
+			if werr != nil {
+				m.Memory().WriteUint32Le(uint32(stack[2]), 0)
+				m.Memory().WriteUint32Le(uint32(stack[3]), 0)
+				return
+			}
+			m.Memory().WriteUint32Le(uint32(stack[2]), uint32(ptrLen[0]))
+			m.Memory().WriteUint32Le(uint32(stack[3]), uint32(ptrLen[1]))
 		}), []api.ValueType{api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64},
 			nil).
 		Export("config_get")
+}
+
+func isAllowedConfigKey(key string, backend *plugindom.BackendManifest) bool {
+	if backend == nil || len(backend.AllowedConfigKeys) == 0 {
+		return false
+	}
+	for _, allowed := range backend.AllowedConfigKeys {
+		if allowed == key {
+			return true
+		}
+	}
+	return false
+}
+
+// -------------------------------------------------------------------------
+// Outbound fetch host function (PLUG-BE-08)
+// -------------------------------------------------------------------------
+
+// registerFetchFunction registers the paca.fetch host function that allows
+// plugins to make outbound HTTP requests to domains listed in their manifest.
+func (r *Runtime) registerFetchFunction(b wazero.HostModuleBuilder, p plugindom.Plugin) {
+	// paca.fetch(reqPtr, reqLen, resPtrPtr, resLenPtr)
+	//   reqPtr/reqLen   – JSON-encoded fetchHostRequest in WASM memory
+	//   resPtrPtr       – pointer to uint32 that receives response JSON ptr
+	//   resLenPtr       – pointer to uint32 that receives response JSON len
+	//
+	// Response JSON: {"status":200,"body":"..."} on success, or
+	//                {"status":0,"error":"<msg>"}   on transport error.
+	b.NewFunctionBuilder().
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
+			writeBack := func(ptrLen []uint64) {
+				m.Memory().WriteUint32Le(uint32(stack[2]), uint32(ptrLen[0]))
+				m.Memory().WriteUint32Le(uint32(stack[3]), uint32(ptrLen[1]))
+			}
+			writeErr := func(msg string) {
+				type errResp struct {
+					Status int    `json:"status"`
+					Error  string `json:"error"`
+				}
+				writeBack(writeJSONResult(m, errResp{Status: 0, Error: msg}))
+			}
+
+			reqBytes, err := readFromMemory(m, stack[0], stack[1])
+			if err != nil {
+				writeErr("fetch: read request: " + err.Error())
+				return
+			}
+
+			var req struct {
+				Method  string            `json:"method"`
+				URL     string            `json:"url"`
+				Headers map[string]string `json:"headers"`
+				Body    string            `json:"body"`
+			}
+			if err := json.Unmarshal(reqBytes, &req); err != nil {
+				writeErr("fetch: decode request: " + err.Error())
+				return
+			}
+
+			// Validate the target domain against the plugin's allowlist.
+			if !isAllowedFetchDomain(req.URL, p.Manifest.Backend.AllowedOutboundDomains) {
+				writeErr("fetch: domain not permitted by plugin manifest")
+				return
+			}
+
+			// Execute the request via the shared HTTP client.
+			httpClient := r.services.HTTPClient
+			if httpClient == nil {
+				httpClient = &http.Client{Timeout: 30 * time.Second}
+			}
+
+			var bodyReader io.Reader
+			if req.Body != "" {
+				bodyReader = strings.NewReader(req.Body)
+			}
+
+			httpReq, err := http.NewRequestWithContext(ctx, req.Method, req.URL, bodyReader)
+			if err != nil {
+				writeErr("fetch: build request: " + err.Error())
+				return
+			}
+			for k, v := range req.Headers {
+				httpReq.Header.Set(k, v)
+			}
+
+			resp, err := httpClient.Do(httpReq)
+			if err != nil {
+				writeErr("fetch: " + err.Error())
+				return
+			}
+			defer resp.Body.Close()
+
+			respBody, err := io.ReadAll(resp.Body)
+			if err != nil {
+				writeErr("fetch: read response body: " + err.Error())
+				return
+			}
+
+			type successResp struct {
+				Status  int               `json:"status"`
+				Body    string            `json:"body"`
+				Headers map[string]string `json:"headers"`
+			}
+			// Flatten response headers to first-value map.
+			hdrs := make(map[string]string, len(resp.Header))
+			for k, vv := range resp.Header {
+				if len(vv) > 0 {
+					hdrs[k] = vv[0]
+				}
+			}
+			writeBack(writeJSONResult(m, successResp{
+				Status:  resp.StatusCode,
+				Body:    string(respBody),
+				Headers: hdrs,
+			}))
+		}), []api.ValueType{api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64, api.ValueTypeI64},
+			nil).
+		Export("fetch")
+}
+
+// isAllowedFetchDomain reports whether rawURL's host is in the allowlist.
+// An empty allowlist means no outbound requests are permitted.
+func isAllowedFetchDomain(rawURL string, allowed []string) bool {
+	if len(allowed) == 0 {
+		return false
+	}
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+	host := parsed.Hostname() // strips port
+	for _, a := range allowed {
+		if strings.EqualFold(host, a) {
+			return true
+		}
+	}
+	return false
 }
 
 // -------------------------------------------------------------------------

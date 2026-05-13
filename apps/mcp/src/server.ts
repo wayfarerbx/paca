@@ -7,7 +7,6 @@ import {
 	PacaAPIClient,
 	PacaAPIDocClient,
 	PacaAPIExtendedClient,
-	PacaAPIGitHubClient,
 	PacaAPITaskExtendedClient,
 	PacaAPIViewsClient,
 } from "./api/index.js";
@@ -29,7 +28,6 @@ export async function createServer(config: PacaConfig): Promise<Server> {
 	const viewsClient = new PacaAPIViewsClient(config);
 	const taskExtendedClient = new PacaAPITaskExtendedClient(config);
 	const docClient = new PacaAPIDocClient(config);
-	const githubClient = new PacaAPIGitHubClient(config);
 
 	const clients = {
 		apiClient,
@@ -37,7 +35,6 @@ export async function createServer(config: PacaConfig): Promise<Server> {
 		viewsClient,
 		taskExtendedClient,
 		docClient,
-		githubClient,
 	};
 
 	// Load plugin MCP modules from the Paca API.

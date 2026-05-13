@@ -12,7 +12,6 @@ import (
 	attachmentdom "github.com/Paca-AI/api/internal/domain/attachment"
 	domainauth "github.com/Paca-AI/api/internal/domain/auth"
 	docdom "github.com/Paca-AI/api/internal/domain/doc"
-	githubdom "github.com/Paca-AI/api/internal/domain/github"
 	globalroledom "github.com/Paca-AI/api/internal/domain/globalrole"
 	notificationdom "github.com/Paca-AI/api/internal/domain/notification"
 	pluginom "github.com/Paca-AI/api/internal/domain/plugin"
@@ -228,32 +227,6 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusBadRequest, apierr.CodeDocCommentTextInvalid
 	case errors.Is(err, notificationdom.ErrNotificationNotFound):
 		return http.StatusNotFound, apierr.CodeNotificationNotFound
-	case errors.Is(err, githubdom.ErrIntegrationNotFound):
-		return http.StatusNotFound, apierr.CodeGitHubIntegrationNotFound
-	case errors.Is(err, githubdom.ErrRepositoryNotFound):
-		return http.StatusNotFound, apierr.CodeGitHubRepositoryNotFound
-	case errors.Is(err, githubdom.ErrPRNotFound):
-		return http.StatusNotFound, apierr.CodeGitHubPRNotFound
-	case errors.Is(err, githubdom.ErrPRLinkNotFound):
-		return http.StatusNotFound, apierr.CodeGitHubPRLinkNotFound
-	case errors.Is(err, githubdom.ErrPRAlreadyLinked):
-		return http.StatusConflict, apierr.CodeGitHubPRAlreadyLinked
-	case errors.Is(err, githubdom.ErrInvalidToken):
-		return http.StatusUnprocessableEntity, apierr.CodeGitHubInvalidToken
-	case errors.Is(err, githubdom.ErrWebhookURLRequired):
-		return http.StatusInternalServerError, apierr.CodeGitHubWebhookURLRequired
-	case errors.Is(err, githubdom.ErrRepoNotAccessible):
-		return http.StatusNotFound, apierr.CodeGitHubRepoNotAccessible
-	case errors.Is(err, githubdom.ErrRepoAlreadyLinked):
-		return http.StatusConflict, apierr.CodeGitHubRepoAlreadyLinked
-	case errors.Is(err, githubdom.ErrWebhookCreationFailed):
-		return http.StatusBadRequest, apierr.CodeGitHubWebhookCreationFailed
-	case errors.Is(err, githubdom.ErrWebhookURLNotPublic):
-		return http.StatusUnprocessableEntity, apierr.CodeGitHubWebhookURLNotPublic
-	case errors.Is(err, githubdom.ErrBranchAlreadyLinked):
-		return http.StatusConflict, apierr.CodeGitHubBranchAlreadyLinked
-	case errors.Is(err, githubdom.ErrTokenInsufficientPermissions):
-		return http.StatusForbidden, apierr.CodeGitHubTokenInsufficientPermissions
 	case errors.Is(err, apikeydom.ErrNotFound):
 		return http.StatusNotFound, apierr.CodeAPIKeyNotFound
 	case errors.Is(err, apikeydom.ErrRevoked):

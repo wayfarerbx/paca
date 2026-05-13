@@ -1,6 +1,6 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import type { PacaAPIDocClient, PacaAPIGitHubClient } from "../api/index.js";
+import type { PacaAPIDocClient } from "../api/index.js";
 import { formatList } from "../utils/index.js";
 
 const ListDocFoldersSchema = z.object({
@@ -35,38 +35,6 @@ const GetDocSnapshotSchema = z.object({
 	projectId: z.string(),
 	docId: z.string(),
 	snapshotId: z.string(),
-});
-
-const GetGitHubIntegrationSchema = z.object({
-	projectId: z.string(),
-});
-
-const SetGitHubTokenSchema = z.object({
-	projectId: z.string(),
-	token: z.string(),
-});
-
-const DeleteGitHubTokenSchema = z.object({
-	projectId: z.string(),
-});
-
-const ListGitHubRepositoriesSchema = z.object({
-	projectId: z.string(),
-});
-
-const ListLinkedGitHubReposSchema = z.object({
-	projectId: z.string(),
-});
-
-const LinkGitHubRepositorySchema = z.object({
-	projectId: z.string(),
-	owner: z.string(),
-	repo: z.string(),
-});
-
-const UnlinkGitHubRepositorySchema = z.object({
-	projectId: z.string(),
-	repoId: z.number(),
 });
 
 /**
@@ -201,128 +169,6 @@ export function getDocTools(): Tool[] {
 	];
 }
 
-/**
- * Returns all GitHub integration related MCP tools.
- */
-export function getGitHubTools(): Tool[] {
-	return [
-		{
-			name: "get_github_integration",
-			description: "Get GitHub integration status for a project",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-					},
-				},
-				required: ["projectId"],
-			},
-		},
-		{
-			name: "set_github_token",
-			description: "Set GitHub token for a project",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-					},
-					token: {
-						type: "string",
-						description: "The GitHub personal access token",
-					},
-				},
-				required: ["projectId", "token"],
-			},
-		},
-		{
-			name: "delete_github_token",
-			description: "Delete GitHub token for a project",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-					},
-				},
-				required: ["projectId"],
-			},
-		},
-		{
-			name: "list_github_repositories",
-			description: "List available GitHub repositories",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-					},
-				},
-				required: ["projectId"],
-			},
-		},
-		{
-			name: "list_linked_github_repos",
-			description: "List linked GitHub repositories",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-					},
-				},
-				required: ["projectId"],
-			},
-		},
-		{
-			name: "link_github_repository",
-			description: "Link a GitHub repository to a project",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-					},
-					owner: {
-						type: "string",
-						description: "The repository owner (GitHub username)",
-					},
-					repo: {
-						type: "string",
-						description: "The repository name",
-					},
-				},
-				required: ["projectId", "owner", "repo"],
-			},
-		},
-		{
-			name: "unlink_github_repository",
-			description: "Unlink a GitHub repository from a project",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-					},
-					repoId: {
-						type: "number",
-						description: "The numeric ID of the linked repository (e.g., 123456789). Use list_linked_github_repos to get the repository ID.",
-					},
-				},
-				required: ["projectId", "repoId"],
-			},
-		},
-	];
-}
-
 function formatDocFolder(folder: any): string {
 	return `Folder: ${folder.name}
 ID: ${folder.id}
@@ -340,34 +186,13 @@ Created by: ${snapshot.created_by_name}
 Created: ${snapshot.created_at}`;
 }
 
-function formatGitHubIntegration(integration: any): string {
-	return `GitHub Integration:
-ID: ${integration.id}
-Project ID: ${integration.project_id}
-Created: ${integration.created_at}
-Updated: ${integration.updated_at}`;
-}
-
-function formatGitHubRepo(repo: any): string {
-	return `Repository: ${repo.full_name}
-ID: ${repo.id}
-Owner: ${repo.owner}
-Repo Name: ${repo.repo_name}
-Full Name: ${repo.full_name}
-Private: ${repo.private ? "Yes" : "No"}
-Default Branch: ${repo.default_branch}
-Webhook ID: ${repo.webhook_id}
-Created: ${repo.created_at}`;
-}
-
 /**
- * Handles document and GitHub tool calls.
+ * Handles document tool calls.
  */
 export async function handleDocTool(
 	toolName: string,
 	args: any,
 	docClient: PacaAPIDocClient,
-	githubClient: PacaAPIGitHubClient,
 ): Promise<any> {
 	switch (toolName) {
 		case "list_doc_folders": {
@@ -462,103 +287,7 @@ export async function handleDocTool(
 			};
 		}
 
-		case "get_github_integration": {
-			const { projectId } = GetGitHubIntegrationSchema.parse(args);
-			const integration = await githubClient.getGitHubIntegration(projectId);
-			return {
-				content: [
-					{
-						type: "text",
-						text: formatGitHubIntegration(integration),
-					},
-				],
-			};
-		}
-
-		case "set_github_token": {
-			const { projectId, token } = SetGitHubTokenSchema.parse(args);
-			await githubClient.setGitHubToken(projectId, { token });
-			return {
-				content: [
-					{
-						type: "text",
-						text: `GitHub token set successfully`,
-					},
-				],
-			};
-		}
-
-		case "delete_github_token": {
-			const { projectId } = DeleteGitHubTokenSchema.parse(args);
-			await githubClient.deleteGitHubToken(projectId);
-			return {
-				content: [
-					{
-						type: "text",
-						text: `GitHub token deleted successfully`,
-					},
-				],
-			};
-		}
-
-		case "list_github_repositories": {
-			const { projectId } = ListGitHubRepositoriesSchema.parse(args);
-			const repos = await githubClient.listRepositories(projectId);
-			const formatted = formatList(repos, formatGitHubRepo);
-			return {
-				content: [
-					{
-						type: "text",
-						text: `GitHub Repositories:\n\n${formatted}`,
-					},
-				],
-			};
-		}
-
-		case "list_linked_github_repos": {
-			const { projectId } = ListLinkedGitHubReposSchema.parse(args);
-			const repos = await githubClient.listLinkedRepositories(projectId);
-			const formatted = formatList(repos, formatGitHubRepo);
-			return {
-				content: [
-					{
-						type: "text",
-						text: `Linked GitHub Repositories:\n\n${formatted}`,
-					},
-				],
-			};
-		}
-
-		case "link_github_repository": {
-			const { projectId, owner, repo } = LinkGitHubRepositorySchema.parse(args);
-			const linkedRepo = await githubClient.linkRepository(projectId, {
-				owner,
-				repo_name: repo,
-			});
-			return {
-				content: [
-					{
-						type: "text",
-						text: `Repository linked successfully:\n\n${formatGitHubRepo(linkedRepo)}`,
-					},
-				],
-			};
-		}
-
-		case "unlink_github_repository": {
-			const { projectId, repoId } = UnlinkGitHubRepositorySchema.parse(args);
-			await githubClient.unlinkRepository(projectId, String(repoId));
-			return {
-				content: [
-					{
-						type: "text",
-						text: `Repository ${repoId} unlinked successfully`,
-					},
-				],
-			};
-		}
-
 		default:
-			throw new Error(`Unknown doc/GitHub tool: ${toolName}`);
+			throw new Error(`Unknown doc tool: ${toolName}`);
 	}
 }

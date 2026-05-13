@@ -33,7 +33,6 @@ type Deps struct {
 	Document             *handler.DocumentHandler
 	DocFile              *handler.DocFileHandler
 	Notification         *handler.NotificationHandler
-	GitHub               *handler.GitHubHandler
 	APIKey               *handler.APIKeyHandler
 	Plugin               *handler.PluginHandler
 	Log                  *slog.Logger
@@ -478,39 +477,6 @@ func New(deps Deps) *gin.Engine {
 						deps.Attachment.DeleteTaskAttachment,
 					)
 				}
-
-				// GitHub — pull requests linked to a task and branch creation
-				if deps.GitHub != nil {
-					githubTask := tasks.Group("/:taskId/github")
-					{
-						githubTask.GET("/pull-requests",
-							httpmw.RequirePublicProjectOrPermissions(deps.ProjectVisibilitySvc, deps.Authorizer,
-								httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
-								httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionTasksRead}},
-							),
-							deps.GitHub.ListTaskPRs,
-						)
-						githubTask.POST("/pull-requests",
-							httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
-							deps.GitHub.LinkPRToTask,
-						)
-						githubTask.DELETE("/pull-requests/:prId",
-							httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
-							deps.GitHub.UnlinkPRFromTask,
-						)
-						githubTask.POST("/branches",
-							httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
-							deps.GitHub.CreateBranch,
-						)
-						githubTask.GET("/branches",
-							httpmw.RequirePublicProjectOrPermissions(deps.ProjectVisibilitySvc, deps.Authorizer,
-								httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
-								httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionTasksRead}},
-							),
-							deps.GitHub.ListTaskBranches,
-						)
-					}
-				}
 			}
 
 			// Custom field definitions — project-level schema
@@ -672,25 +638,6 @@ func New(deps Deps) *gin.Engine {
 				}
 			}
 
-			// GitHub integration — project-level PAT and repository linking
-			if deps.GitHub != nil {
-				githubIntegration := project.Group("/github")
-				githubIntegration.Use(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionProjectsWrite))
-				{
-					githubIntegration.GET("", deps.GitHub.GetIntegration)
-					githubIntegration.PUT("/token", deps.GitHub.SetToken)
-					githubIntegration.DELETE("/token", deps.GitHub.DeleteToken)
-					githubIntegration.GET("/repositories", deps.GitHub.ListRepositories)
-					githubIntegration.GET("/linked-repositories", deps.GitHub.ListLinkedRepositories)
-					githubIntegration.POST("/linked-repositories", deps.GitHub.LinkRepository)
-					githubIntegration.DELETE("/linked-repositories/:repoId", deps.GitHub.UnlinkRepository)
-				}
-			}
-		}
-
-		// GitHub webhook — public endpoint; signature verification is done in the handler.
-		if deps.GitHub != nil {
-			v1.POST("/github/webhook", deps.GitHub.ReceiveWebhook)
 		}
 
 		// Plugin routes — management (admin), extension settings (admin), and proxy (per-plugin).

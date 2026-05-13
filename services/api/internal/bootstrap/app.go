@@ -4,7 +4,6 @@ package bootstrap
 
 import (
 	"context"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,7 +20,6 @@ import (
 	"github.com/Paca-AI/api/internal/platform/logger"
 	"github.com/Paca-AI/api/internal/platform/messaging"
 	pluginrt "github.com/Paca-AI/api/internal/platform/plugin"
-	"github.com/Paca-AI/api/internal/platform/secret"
 	"github.com/Paca-AI/api/internal/platform/storage"
 	jwttoken "github.com/Paca-AI/api/internal/platform/token"
 	pgRepo "github.com/Paca-AI/api/internal/repository/postgres"
@@ -30,7 +28,6 @@ import (
 	attachmentsvc "github.com/Paca-AI/api/internal/service/attachment"
 	authsvc "github.com/Paca-AI/api/internal/service/auth"
 	docsvc "github.com/Paca-AI/api/internal/service/doc"
-	githubsvc "github.com/Paca-AI/api/internal/service/github"
 	globalrolesvc "github.com/Paca-AI/api/internal/service/globalrole"
 	notificationsvc "github.com/Paca-AI/api/internal/service/notification"
 	pluginsvc "github.com/Paca-AI/api/internal/service/plugin"
@@ -165,24 +162,6 @@ func New(cfg *config.Config) (*App, error) {
 	apiKeyRepo := pgRepo.NewAPIKeyRepository(db)
 	apiKeyService := apikeysvc.New(apiKeyRepo)
 
-	// GitHub integration — optional; only wired when GITHUB_ENCRYPTION_KEY is set.
-	var githubHandler *handler.GitHubHandler
-	if cfg.GitHub.EncryptionKey != "" {
-		ghKeyBytes, err := hex.DecodeString(cfg.GitHub.EncryptionKey)
-		if err != nil {
-			return nil, fmt.Errorf("bootstrap: github: invalid GITHUB_ENCRYPTION_KEY (must be 64 hex chars): %w", err)
-		}
-		ghEncryptor, err := secret.NewEncryptor(ghKeyBytes)
-		if err != nil {
-			return nil, fmt.Errorf("bootstrap: github: %w", err)
-		}
-		githubRepo := pgRepo.NewGitHubRepository(db)
-		githubService := githubsvc.New(githubRepo, ghEncryptor, cfg.GitHub.WebhookURL).
-			WithTaskLookup(&projectTaskLookup{projectRepo: projectRepo, taskRepo: taskRepo}).
-			WithPublisher(publisher)
-		githubHandler = handler.NewGitHubHandler(githubService)
-	}
-
 	// --- Plugin infrastructure ----------------------------------------------
 	// Get the underlying *sql.DB for plugin-scoped operations (migration runner
 	// and DB host function bridge both need raw database/sql, not GORM).
@@ -205,9 +184,14 @@ func New(cfg *config.Config) (*App, error) {
 	pluginMigrationRunner := pluginrt.NewMigrationRunner(sqlDB, pluginStore, log)
 
 	pluginRuntime := pluginrt.NewRuntime(pluginStore, pluginrt.HostServices{
-		DB:        sqlDB,
-		Log:       log,
-		Publisher: publisher,
+		DB:         sqlDB,
+		Log:        log,
+		Publisher:  publisher,
+		HTTPClient: &http.Client{Timeout: 30 * time.Second},
+		Config: map[string]string{
+			"ENCRYPTION_KEY": cfg.Security.EncryptionKey,
+			"PUBLIC_URL":     cfg.Server.PublicURL,
+		},
 	}, pluginrt.DefaultResourceLimits(), log)
 	marketplaceClient := pluginrt.NewMarketplaceClient(cfg.Plugins.MarketplaceCatalogURL, cfg.Plugins.MarketplaceTimeout)
 	installerHTTPClient := &http.Client{Timeout: cfg.Plugins.MarketplaceTimeout}
@@ -263,7 +247,6 @@ func New(cfg *config.Config) (*App, error) {
 		Document:     handler.NewDocumentHandler(docService, docActivityService),
 		DocFile:      handler.NewDocFileHandler(attachmentService),
 		Notification: handler.NewNotificationHandler(notificationService),
-		GitHub:       githubHandler,
 		APIKey:       handler.NewAPIKeyHandler(apiKeyService),
 		Plugin:       pluginHandler,
 		Log:          log,

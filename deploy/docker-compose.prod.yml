@@ -96,9 +96,10 @@ services:
       STORAGE_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY_ID:?set STORAGE_ACCESS_KEY_ID}
       STORAGE_SECRET_ACCESS_KEY: ${STORAGE_SECRET_ACCESS_KEY:?set STORAGE_SECRET_ACCESS_KEY}
       STORAGE_USE_SSL: ${STORAGE_USE_SSL:-false}
-      # GitHub integration — optional.  When GITHUB_ENCRYPTION_KEY is empty the
-      # feature is disabled.  Must be a 64-char lowercase hex string (32 bytes).
-      GITHUB_ENCRYPTION_KEY: ${GITHUB_ENCRYPTION_KEY:-}
+      # Encryption key for sensitive values (plugin tokens/secrets).
+      # Must be a 64-char lowercase hex string (32 bytes).
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      # Public base URL used by plugins to generate callback/webhook URLs.
       PUBLIC_URL: ${PUBLIC_URL:-}
       # Plugin subsystem — load WASM binaries + migrations from the local plugin store.
       PLUGINS_WASM_DIR: /plugins

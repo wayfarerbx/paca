@@ -3,7 +3,6 @@ import type {
 	PacaAPIClient,
 	PacaAPIDocClient,
 	PacaAPIExtendedClient,
-	PacaAPIGitHubClient,
 	PacaAPITaskExtendedClient,
 	PacaAPIViewsClient,
 } from "../api/index.js";
@@ -13,7 +12,6 @@ import {
 } from "./attachment-tools.js";
 import {
 	getDocTools,
-	getGitHubTools,
 	handleDocTool,
 } from "./doc-github-tools.js";
 import { getDocumentTools, handleDocumentTool } from "./document-tools.js";
@@ -26,7 +24,6 @@ import { getProjectTools, handleProjectTool } from "./project-tools.js";
 import { getSprintTools, handleSprintTool } from "./sprint-tools.js";
 import {
 	getTaskActivityTools,
-	getTaskGitHubTools,
 	handleTaskActivityTool,
 } from "./task-activity-tools.js";
 import { getTaskTools, handleTaskTool } from "./task-tools.js";
@@ -58,9 +55,7 @@ export function getAllTools(): Tool[] {
 		...getCustomFieldTools(),
 		...getAttachmentTools(),
 		...getDocTools(),
-		...getGitHubTools(),
 		...getTaskActivityTools(),
-		...getTaskGitHubTools(),
 	];
 }
 
@@ -76,7 +71,6 @@ export async function handleToolCall(
 		viewsClient: PacaAPIViewsClient;
 		taskExtendedClient: PacaAPITaskExtendedClient;
 		docClient: PacaAPIDocClient;
-		githubClient: PacaAPIGitHubClient;
 	},
 ): Promise<any> {
 	const { name, arguments: args } = request.params;
@@ -192,36 +186,24 @@ export async function handleToolCall(
 			);
 		}
 
-		// Document and GitHub integration tools
+		// Document tools
 		if (
 			name === "list_doc_folders" ||
 			name === "create_doc_folder" ||
 			name === "update_doc_folder" ||
 			name === "delete_doc_folder" ||
 			name === "list_doc_snapshots" ||
-			name === "get_doc_snapshot" ||
-			name === "get_github_integration" ||
-			name === "set_github_token" ||
-			name === "delete_github_token" ||
-			name === "list_github_repositories" ||
-			name === "list_linked_github_repos" ||
-			name === "link_github_repository" ||
-			name === "unlink_github_repository"
+			name === "get_doc_snapshot"
 		) {
-			return handleDocTool(name, args, clients.docClient, clients.githubClient);
+			return handleDocTool(name, args, clients.docClient);
 		}
 
-		// Task activity and GitHub tools
+		// Task activity tools
 		if (
 			name === "list_task_activities" ||
 			name === "add_task_comment" ||
 			name === "update_task_comment" ||
-			name === "delete_task_comment" ||
-			name === "list_task_prs" ||
-			name === "link_pr_to_task" ||
-			name === "unlink_pr_from_task" ||
-			name === "create_branch_for_task" ||
-			name === "list_task_branches"
+			name === "delete_task_comment"
 		) {
 			return handleTaskActivityTool(name, args, clients.taskExtendedClient);
 		}

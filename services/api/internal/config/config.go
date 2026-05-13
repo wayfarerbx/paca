@@ -12,7 +12,7 @@ type Config struct {
 	JWT      JWTConfig
 	Admin    AdminConfig
 	Storage  StorageConfig
-	GitHub   GitHubConfig
+	Security SecurityConfig
 	Plugins  PluginsConfig
 	Env      string // development | production
 }
@@ -20,7 +20,8 @@ type Config struct {
 // ServerConfig holds HTTP server settings.
 type ServerConfig struct {
 	Port         string
-	CookieSecure bool // set Secure flag on auth cookies; enable when behind an SSL-terminating proxy
+	CookieSecure bool   // set Secure flag on auth cookies; enable when behind an SSL-terminating proxy
+	PublicURL    string // externally reachable base URL (for example, https://paca.example.com)
 }
 
 // AdminConfig holds the default administrator credentials seeded on first startup.
@@ -130,15 +131,9 @@ type PluginsConfig struct {
 	MarketplaceTimeout time.Duration
 }
 
-// GitHubConfig holds settings for the GitHub integration feature.
-type GitHubConfig struct {
+// SecurityConfig holds secrets used by first-party and plugin features.
+type SecurityConfig struct {
 	// EncryptionKey is a 32-byte AES-256 key (hex-encoded) used to encrypt
-	// GitHub personal access tokens and webhook secrets at rest.
-	// Required when the GitHub integration feature is in use.
+	// sensitive data at rest.
 	EncryptionKey string
-
-	// WebhookURL is the fully-qualified URL GitHub will POST webhook events to,
-	// derived from the PUBLIC_URL environment variable by appending
-	// "/api/v1/github/webhook".  Empty in local development (skips webhook creation).
-	WebhookURL string
 }

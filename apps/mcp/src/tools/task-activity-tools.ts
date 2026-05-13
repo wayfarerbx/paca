@@ -26,37 +26,6 @@ const DeleteTaskCommentSchema = z.object({
 	commentId: z.string(),
 });
 
-const ListTaskPRsSchema = z.object({
-	projectId: z.string(),
-	taskId: z.string(),
-});
-
-const LinkPRToTaskSchema = z.object({
-	projectId: z.string(),
-	taskId: z.string(),
-	prId: z.number(),
-	repoId: z.string(),
-});
-
-const UnlinkPRFromTaskSchema = z.object({
-	projectId: z.string(),
-	taskId: z.string(),
-	prId: z.string(),
-});
-
-const CreateBranchForTaskSchema = z.object({
-	projectId: z.string(),
-	taskId: z.string(),
-	repoId: z.string(),
-	branchName: z.string(),
-	baseBranch: z.string().optional(),
-});
-
-const ListTaskBranchesSchema = z.object({
-	projectId: z.string(),
-	taskId: z.string(),
-});
-
 /**
  * Returns all task comment and activity related MCP tools.
  */
@@ -153,128 +122,6 @@ export function getTaskActivityTools(): Tool[] {
 	];
 }
 
-/**
- * Returns all task GitHub related MCP tools.
- */
-export function getTaskGitHubTools(): Tool[] {
-	return [
-		{
-			name: "list_task_prs",
-			description: "List pull requests linked to a task",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-					},
-					taskId: {
-						type: "string",
-						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
-					},
-				},
-				required: ["projectId", "taskId"],
-			},
-		},
-		{
-			name: "link_pr_to_task",
-			description: "Link a pull request to a task",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-					},
-					taskId: {
-						type: "string",
-						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
-					},
-					prId: {
-						type: "number",
-						description: "The GitHub pull request number (e.g., 123)",
-					},
-					repoId: {
-						type: "string",
-						description: "The technical UUID of the repository (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_linked_github_repos to get the repo ID.",
-					},
-				},
-				required: ["projectId", "taskId", "prId", "repoId"],
-			},
-		},
-		{
-			name: "unlink_pr_from_task",
-			description: "Unlink a pull request from a task",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-					},
-					taskId: {
-						type: "string",
-						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
-					},
-					prId: {
-						type: "string",
-						description: "The technical UUID of the linked pull request (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_task_prs to get the PR ID.",
-					},
-				},
-				required: ["projectId", "taskId", "prId"],
-			},
-		},
-		{
-			name: "create_branch_for_task",
-			description: "Create a branch for a task",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-					},
-					taskId: {
-						type: "string",
-						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
-					},
-					repoId: {
-						type: "string",
-						description: "The technical UUID of the repository (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_linked_github_repos to get the repo ID.",
-					},
-					branchName: {
-						type: "string",
-						description: "The name of the branch to create",
-					},
-					baseBranch: {
-						type: "string",
-						description: "The base branch to branch from (optional)",
-					},
-				},
-				required: ["projectId", "taskId", "repoId", "branchName"],
-			},
-		},
-		{
-			name: "list_task_branches",
-			description: "List branches for a task",
-			inputSchema: {
-				type: "object",
-				properties: {
-					projectId: {
-						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
-					},
-					taskId: {
-						type: "string",
-						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
-					},
-				},
-				required: ["projectId", "taskId"],
-			},
-		},
-	];
-}
-
 function formatTaskActivity(activity: any): string {
 	return `Activity: ${activity.activity_type}
 ID: ${activity.id}
@@ -292,25 +139,8 @@ Created: ${comment.created_at}
 Updated: ${comment.updated_at}`;
 }
 
-function formatPullRequest(pr: any): string {
-	return `Pull Request: #${pr.pr_number} - ${pr.title}
-ID: ${pr.id}
-State: ${pr.state}
-Author: ${pr.author}
-URL: ${pr.html_url}
-Created: ${pr.created_at}
-Merged: ${pr.merged_at ? `Yes (${pr.merged_at})` : "No"}`;
-}
-
-function formatBranch(branch: any): string {
-	return `Branch: ${branch.branch_name}
-Task ID: ${branch.task_id}
-Repo ID: ${branch.repo_id}
-Created: ${branch.created_at}`;
-}
-
 /**
- * Handles task activity, comment, and GitHub tool calls.
+ * Handles task activity and comment tool calls.
  */
 export async function handleTaskActivityTool(
 	toolName: string,
@@ -382,83 +212,7 @@ export async function handleTaskActivityTool(
 			};
 		}
 
-		case "list_task_prs": {
-			const { projectId, taskId } = ListTaskPRsSchema.parse(args);
-			const prs = await client.listTaskPRs(projectId, taskId);
-			const formatted = prs.map(formatPullRequest).join("\n\n---\n\n");
-			return {
-				content: [
-					{
-						type: "text",
-						text: `Pull Requests:\n\n${formatted}`,
-					},
-				],
-			};
-		}
-
-		case "link_pr_to_task": {
-			const { projectId, taskId, prId, repoId } =
-				LinkPRToTaskSchema.parse(args);
-			const pr = await client.linkPRToTask(projectId, taskId, {
-				repo_id: repoId,
-				pr_number: prId,
-			});
-			return {
-				content: [
-					{
-						type: "text",
-						text: `PR linked successfully:\n\n${formatPullRequest(pr)}`,
-					},
-				],
-			};
-		}
-
-		case "unlink_pr_from_task": {
-			const { projectId, taskId, prId } = UnlinkPRFromTaskSchema.parse(args);
-			await client.unlinkPRFromTask(projectId, taskId, prId);
-			return {
-				content: [
-					{
-						type: "text",
-						text: `PR ${prId} unlinked successfully`,
-					},
-				],
-			};
-		}
-
-		case "create_branch_for_task": {
-			const { projectId, taskId, repoId, branchName, baseBranch } =
-				CreateBranchForTaskSchema.parse(args);
-			const branch = await client.createBranch(projectId, taskId, {
-				repo_id: repoId,
-				branch_name: branchName,
-				source_branch: baseBranch,
-			});
-			return {
-				content: [
-					{
-						type: "text",
-						text: `Branch created successfully: ${branch.branch_name}`,
-					},
-				],
-			};
-		}
-
-		case "list_task_branches": {
-			const { projectId, taskId } = ListTaskBranchesSchema.parse(args);
-			const branches = await client.listTaskBranches(projectId, taskId);
-			const formatted = branches.map(formatBranch).join("\n\n---\n\n");
-			return {
-				content: [
-					{
-						type: "text",
-						text: `Branches:\n\n${formatted}`,
-					},
-				],
-			};
-		}
-
 		default:
-			throw new Error(`Unknown task activity/GitHub tool: ${toolName}`);
+			throw new Error(`Unknown task activity tool: ${toolName}`);
 	}
 }
