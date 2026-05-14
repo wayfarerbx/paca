@@ -67,7 +67,26 @@ my-plugin/
     "eventSubscriptions": ["task.deleted"],
     "routes": [
       { "method": "GET",  "path": "/tasks/:taskId/my-items" },
-      { "method": "POST", "path": "/tasks/:taskId/my-items" }
+      {
+        "method": "POST",
+        "path": "/tasks/:taskId/my-items",
+        "middlewares": [
+          { "name": "authn" },
+          { "name": "requireFreshPassword" },
+          {
+            "name": "requirePermissions",
+            "scope": "project",
+            "permissions": ["tasks.write"]
+          }
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/webhook",
+        "middlewares": [
+          { "name": "optionalAuthn" }
+        ]
+      }
     ],
     "migrations": [
       "0001_create_my_items.sql"
@@ -75,6 +94,11 @@ my-plugin/
   }
 }
 ```
+
+When `middlewares` is omitted on a route, Paca applies a secure default policy
+(`optionalAuthn` + `requireFreshPassword` + project-scoped `projects.read`).
+Use explicit `middlewares` when you need different behavior (for example,
+webhook endpoints that must accept anonymous requests).
 
 **Choosing an `id`:** Use reverse-domain notation: `com.yourcompany.feature-name`. First-party plugins use `com.paca.*`. The ID becomes part of the API path (`/api/v1/plugins/{id}/...`) and the database schema name, so it must be stable after first release.
 

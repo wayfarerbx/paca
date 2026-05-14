@@ -643,19 +643,15 @@ func New(deps Deps) *gin.Engine {
 		// Plugin routes — management (admin), extension settings (admin), and proxy (per-plugin).
 		if deps.Plugin != nil {
 			// Public listing: any authenticated user can see installed plugins, anonymous users can also access.
-			pluginGroup := v1.Group("/plugins")
-			pluginGroup.Use(httpmw.OptionalAuthn(deps.TokenManager, deps.APIKeyAuth))
-			pluginGroup.Use(httpmw.RequireFreshPassword())
-			{
-				pluginGroup.GET("", deps.Plugin.ListPlugins)
+			pluginList := v1.Group("/plugins")
+			pluginList.Use(httpmw.OptionalAuthn(deps.TokenManager, deps.APIKeyAuth))
+			pluginList.Use(httpmw.RequireFreshPassword())
+			pluginList.GET("", deps.Plugin.ListPlugins)
 
-				// Plugin proxy routes — forward requests to plugin WASM handlers.
-				// :path is a wildcard that captures the remainder of the URL after the prefix.
-				pluginGroup.Any("/:pluginId/projects/:projectId/*path",
-					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionProjectsRead),
-					deps.Plugin.ProxyRequest,
-				)
-			}
+			// Plugin proxy routes — forward requests to plugin WASM handlers.
+			// Route-level authn/authz middleware is enforced by the plugin proxy
+			// handler from plugin manifest policy.
+			v1.Any("/plugins/:pluginId/projects/:projectId/*path", deps.Plugin.ProxyRequest)
 
 			// Admin plugin management — requires global users.write permission
 			// (no dedicated plugin permission exists yet).

@@ -80,6 +80,28 @@ type FrontendManifest struct {
 type PluginRoute struct {
 	Method string `json:"method"` // GET | POST | PATCH | PUT | DELETE
 	Path   string `json:"path"`   // relative path, e.g. "/items" or "/items/:id"
+	// Public allows anonymous access for this route (no auth middleware).
+	// Kept for backward compatibility; equivalent to an empty middleware chain.
+	Public bool `json:"public,omitempty"`
+	// Middlewares defines host-enforced middleware to apply in order for this
+	// route. If omitted, the host applies its default policy.
+	Middlewares []PluginRouteMiddleware `json:"middlewares,omitempty"`
+}
+
+// PluginRouteMiddleware describes one middleware stage to enforce before the
+// plugin handler is invoked.
+type PluginRouteMiddleware struct {
+	// Name is the middleware identifier. Supported values:
+	// authn, optionalAuthn, requireFreshPassword, requireJWTAuth,
+	// requirePermissions.
+	Name string `json:"name"`
+	// Scope is used by requirePermissions: global | project.
+	Scope string `json:"scope,omitempty"`
+	// ProjectParam is the route param name for project scope resolution.
+	// Defaults to "projectId".
+	ProjectParam string `json:"projectParam,omitempty"`
+	// Permissions is used by requirePermissions, e.g. ["projects.read"].
+	Permissions []string `json:"permissions,omitempty"`
 }
 
 // ExtensionPointRegistration describes a frontend component registered into an

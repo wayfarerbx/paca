@@ -140,11 +140,30 @@ The host validates the requested permissions at install time against the allowli
       "events:emit"
     ],
     "routes": [
-      { "method": "GET",    "path": "/tasks/:taskId/bdd-scenarios" },
-      { "method": "POST",   "path": "/tasks/:taskId/bdd-scenarios" },
-      { "method": "GET",    "path": "/tasks/:taskId/bdd-scenarios/:scenarioId" },
-      { "method": "PUT",    "path": "/tasks/:taskId/bdd-scenarios/:scenarioId" },
-      { "method": "DELETE", "path": "/tasks/:taskId/bdd-scenarios/:scenarioId" }
+      {
+        "method": "GET",
+        "path": "/tasks/:taskId/bdd-scenarios"
+      },
+      {
+        "method": "POST",
+        "path": "/tasks/:taskId/bdd-scenarios",
+        "middlewares": [
+          { "name": "authn" },
+          { "name": "requireFreshPassword" },
+          {
+            "name": "requirePermissions",
+            "scope": "project",
+            "permissions": ["tasks.write"]
+          }
+        ]
+      },
+      {
+        "method": "POST",
+        "path": "/webhook",
+        "middlewares": [
+          { "name": "optionalAuthn" }
+        ]
+      }
     ],
     "migrations": [
       "0001_create_bdd_scenarios.sql"
@@ -156,7 +175,30 @@ The host validates the requested permissions at install time against the allowli
 }
 ```
 
-All routes declared under `backend.routes` are automatically mounted at `/api/v1/plugins/{pluginId}/projects/:projectId/{path}`. The host injects project-scope authentication middleware before the plugin handler runs.
+All routes declared under `backend.routes` are automatically mounted at `/api/v1/plugins/{pluginId}/projects/:projectId/{path}`.
+
+### Route Middleware Policy
+
+Each backend route can declare a host-enforced middleware chain in `backend.routes[].middlewares`.
+
+Supported middleware names:
+- `authn`
+- `optionalAuthn`
+- `requireFreshPassword`
+- `requireJWTAuth`
+- `requirePermissions`
+
+`requirePermissions` options:
+- `scope`: `global` or `project` (default: `global`)
+- `projectParam`: route param name for project scope (default: `projectId`)
+- `permissions`: required permission keys (for example `projects.read`, `tasks.write`)
+
+If `middlewares` is omitted, the host applies the backward-compatible default policy:
+- `optionalAuthn`
+- `requireFreshPassword`
+- `requirePermissions` with project scope and `projects.read`
+
+For legacy manifests, `backend.routes[].public: true` is still supported and means "no host auth middleware" for that route.
 
 ## Plugin Runtime Lifecycle
 

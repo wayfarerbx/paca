@@ -219,6 +219,7 @@ func New(cfg *config.Config) (*App, error) {
 	}
 
 	pluginHandler := handler.NewPluginHandler(pluginService, pluginRuntime, projectRepo).
+		WithRouteAuth(tokenManager, apiKeyService, authorizer).
 		WithMarketplace(marketplaceClient, pluginInstaller, pluginMigrationRunner)
 
 	// --- Handlers -----------------------------------------------------------
