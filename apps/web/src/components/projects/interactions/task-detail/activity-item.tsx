@@ -110,13 +110,14 @@ function activityDescription(
 	names: ActivityNameMaps,
 ): string {
 	const c = entry.content ?? {};
+	const content = c as Record<string, unknown>;
 	switch (entry.activity_type) {
 		case "task.created":
 			return "created this task";
 		case "task.deleted":
 			return "deleted this task";
 		case "task.updated": {
-			const changes = c.changes as FieldChange[] | undefined;
+			const changes = content.changes as FieldChange[] | undefined;
 			if (changes && changes.length === 1) {
 				return describeTaskChange(changes[0], names);
 			}
@@ -126,11 +127,11 @@ function activityDescription(
 			return "updated this task";
 		}
 		case "task.attachment.added":
-			return `added attachment${c.file_name ? `: ${c.file_name}` : ""}`;
+			return `added attachment${content.file_name ? `: ${content.file_name}` : ""}`;
 		case "task.attachment.removed":
-			return `removed attachment${c.file_name ? `: ${c.file_name}` : ""}`;
+			return `removed attachment${content.file_name ? `: ${content.file_name}` : ""}`;
 		default:
-			return (c._description as string | undefined) ?? "made a change";
+			return (content._description as string | undefined) ?? "made a change";
 	}
 }
 
