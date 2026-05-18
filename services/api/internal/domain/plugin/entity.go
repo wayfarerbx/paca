@@ -61,7 +61,8 @@ type BackendManifest struct {
 	// EventSubscriptions lists the event topics the plugin subscribes to.
 	EventSubscriptions []string `json:"eventSubscriptions,omitempty"`
 	// AllowedOutboundDomains is the list of hostnames the plugin is permitted to
-	// contact via paca.fetch.  Requests to unlisted domains are rejected.
+	// contact via paca.fetch. Matching is exact, case-insensitive hostname match
+	// only (no wildcard support). Requests to unlisted domains are rejected.
 	AllowedOutboundDomains []string `json:"allowedOutboundDomains,omitempty"`
 	// AllowedConfigKeys is the list of host config keys the plugin may read via
 	// paca.config_get. Keys not listed here are not exposed to the plugin.
@@ -79,7 +80,7 @@ type FrontendManifest struct {
 // PluginRoute defines a single HTTP route exposed by the plugin backend.
 type PluginRoute struct {
 	Method string `json:"method"` // GET | POST | PATCH | PUT | DELETE
-	Path   string `json:"path"`   // relative path, e.g. "/items" or "/items/:id"
+	Path   string `json:"path"`   // relative path, e.g. "/items", "/items/:id", or "/items/*rest"
 	// Public allows anonymous access for this route (no auth middleware).
 	// Kept for backward compatibility; equivalent to an empty middleware chain.
 	Public bool `json:"public,omitempty"`

@@ -658,14 +658,27 @@ func matchPluginRoute(routes []plugindom.PluginRoute, method, path string) *plug
 func matchPathPattern(pattern, path string) (map[string]string, bool) {
 	patternSegments := splitPathSegments(pattern)
 	pathSegments := splitPathSegments(path)
-	if len(patternSegments) != len(pathSegments) {
-		return nil, false
-	}
-
 	params := make(map[string]string)
+	pathIdx := 0
 	for i := range patternSegments {
 		patternSegment := patternSegments[i]
-		pathSegment := pathSegments[i]
+
+		if strings.HasPrefix(patternSegment, "*") {
+			name := strings.TrimPrefix(patternSegment, "*")
+			if name == "" || i != len(patternSegments)-1 {
+				return nil, false
+			}
+			if pathIdx > len(pathSegments) {
+				return nil, false
+			}
+			params[name] = strings.Join(pathSegments[pathIdx:], "/")
+			return params, true
+		}
+
+		if pathIdx >= len(pathSegments) {
+			return nil, false
+		}
+		pathSegment := pathSegments[pathIdx]
 
 		if strings.HasPrefix(patternSegment, ":") {
 			name := strings.TrimPrefix(patternSegment, ":")
@@ -673,12 +686,18 @@ func matchPathPattern(pattern, path string) (map[string]string, bool) {
 				return nil, false
 			}
 			params[name] = pathSegment
+			pathIdx++
 			continue
 		}
 
 		if patternSegment != pathSegment {
 			return nil, false
 		}
+		pathIdx++
+	}
+
+	if pathIdx != len(pathSegments) {
+		return nil, false
 	}
 
 	return params, true

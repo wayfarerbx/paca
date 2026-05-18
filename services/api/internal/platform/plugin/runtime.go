@@ -84,6 +84,32 @@ type Runtime struct {
 	plugins map[string]*pluginInstance // keyed by plugin.Name
 }
 
+const maxFetchResponseBodySize = 50 * 1024 * 1024 // 50 MiB
+
+var allowedFetchMethods = map[string]struct{}{
+	http.MethodGet:     {},
+	http.MethodPost:    {},
+	http.MethodPut:     {},
+	http.MethodPatch:   {},
+	http.MethodDelete:  {},
+	http.MethodHead:    {},
+	http.MethodOptions: {},
+}
+
+var disallowedFetchHeaders = map[string]struct{}{
+	"connection":          {},
+	"proxy-connection":    {},
+	"keep-alive":          {},
+	"proxy-authenticate":  {},
+	"proxy-authorization": {},
+	"te":                  {},
+	"trailer":             {},
+	"transfer-encoding":   {},
+	"upgrade":             {},
+	"host":                {},
+	"content-length":      {},
+}
+
 // NewRuntime creates a Runtime wired to the given store and host services.
 func NewRuntime(store *Store, services HostServices, limits ResourceLimits, log *slog.Logger) *Runtime {
 	return &Runtime{
@@ -1075,12 +1101,21 @@ func (r *Runtime) registerFetchFunction(b wazero.HostModuleBuilder, p plugindom.
 				bodyReader = strings.NewReader(req.Body)
 			}
 
-			httpReq, err := http.NewRequestWithContext(ctx, req.Method, req.URL, bodyReader)
+			method, ok := normalizeFetchMethod(req.Method)
+			if !ok {
+				writeErr("fetch: unsupported method")
+				return
+			}
+
+			httpReq, err := http.NewRequestWithContext(ctx, method, req.URL, bodyReader)
 			if err != nil {
 				writeErr("fetch: build request: " + err.Error())
 				return
 			}
 			for k, v := range req.Headers {
+				if !isAllowedFetchHeader(k) {
+					continue
+				}
 				httpReq.Header.Set(k, v)
 			}
 
@@ -1093,9 +1128,13 @@ func (r *Runtime) registerFetchFunction(b wazero.HostModuleBuilder, p plugindom.
 				_ = resp.Body.Close()
 			}()
 
-			respBody, err := io.ReadAll(resp.Body)
+			respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxFetchResponseBodySize+1))
 			if err != nil {
 				writeErr("fetch: read response body: " + err.Error())
+				return
+			}
+			if len(respBody) > maxFetchResponseBodySize {
+				writeErr(fmt.Sprintf("fetch: response body exceeds limit of %d bytes", maxFetchResponseBodySize))
 				return
 			}
 
@@ -1164,6 +1203,24 @@ func isAllowedFetchDomain(ctx context.Context, rawURL string, allowed []string) 
 	}
 
 	return true
+}
+
+func normalizeFetchMethod(raw string) (string, bool) {
+	method := strings.ToUpper(strings.TrimSpace(raw))
+	if method == "" {
+		method = http.MethodGet
+	}
+	_, ok := allowedFetchMethods[method]
+	return method, ok
+}
+
+func isAllowedFetchHeader(name string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(name))
+	if normalized == "" {
+		return false
+	}
+	_, blocked := disallowedFetchHeaders[normalized]
+	return !blocked
 }
 
 // -------------------------------------------------------------------------
