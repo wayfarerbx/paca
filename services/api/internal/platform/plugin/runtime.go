@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -1058,7 +1059,7 @@ func (r *Runtime) registerFetchFunction(b wazero.HostModuleBuilder, p plugindom.
 			}
 
 			// Validate the target domain against the plugin's allowlist.
-			if !isAllowedFetchDomain(req.URL, p.Manifest.Backend.AllowedOutboundDomains) {
+			if !isAllowedFetchDomain(ctx, req.URL, p.Manifest.Backend.AllowedOutboundDomains) {
 				writeErr("fetch: domain not permitted by plugin manifest")
 				return
 			}
@@ -1122,7 +1123,7 @@ func (r *Runtime) registerFetchFunction(b wazero.HostModuleBuilder, p plugindom.
 
 // isAllowedFetchDomain reports whether rawURL's host is in the allowlist.
 // An empty allowlist means no outbound requests are permitted.
-func isAllowedFetchDomain(rawURL string, allowed []string) bool {
+func isAllowedFetchDomain(ctx context.Context, rawURL string, allowed []string) bool {
 	if len(allowed) == 0 {
 		return false
 	}
@@ -1130,13 +1131,40 @@ func isAllowedFetchDomain(rawURL string, allowed []string) bool {
 	if err != nil {
 		return false
 	}
+
+	if !strings.EqualFold(parsed.Scheme, "https") {
+		return false
+	}
+
 	host := parsed.Hostname() // strips port
+	if host == "" {
+		return false
+	}
+
+	hostAllowed := false
 	for _, a := range allowed {
-		if strings.EqualFold(host, a) {
-			return true
+		if strings.EqualFold(host, strings.TrimSpace(a)) {
+			hostAllowed = true
+			break
 		}
 	}
-	return false
+	if !hostAllowed {
+		return false
+	}
+
+	resolver := &net.Resolver{}
+	ips, err := resolver.LookupIPAddr(ctx, host)
+	if err != nil {
+		return false
+	}
+
+	for _, ipAddr := range ips {
+		if isPrivateOrInternalIP(ipAddr.IP) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // -------------------------------------------------------------------------
