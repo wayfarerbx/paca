@@ -261,14 +261,30 @@ func extractTextFromBlocks(raw json.RawMessage) string {
 }
 
 // isContentEmpty checks if json.RawMessage content is empty or contains only whitespace.
-// It handles: empty byte slice, "null", "[]", or a whitespace-only JSON string.
+// It handles: empty byte slice, "null", an empty JSON array, or a whitespace-only JSON string.
 func isContentEmpty(content json.RawMessage) bool {
-	if len(content) == 0 || string(content) == "[]" || string(content) == "null" {
+	if len(content) == 0 {
 		return true
 	}
-	var str string
-	if json.Unmarshal(content, &str) == nil {
-		return strings.TrimSpace(str) == ""
+
+	trimmed := strings.TrimSpace(string(content))
+	if trimmed == "" {
+		return true
 	}
-	return false
+
+	var value any
+	if json.Unmarshal([]byte(trimmed), &value) != nil {
+		return false
+	}
+
+	switch v := value.(type) {
+	case nil:
+		return true
+	case string:
+		return strings.TrimSpace(v) == ""
+	case []any:
+		return len(v) == 0
+	default:
+		return false
+	}
 }
