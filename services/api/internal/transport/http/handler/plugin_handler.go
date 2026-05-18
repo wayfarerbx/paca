@@ -665,6 +665,7 @@ func matchPathPattern(pattern, path string) (map[string]string, bool) {
 
 		if strings.HasPrefix(patternSegment, "*") {
 			name := strings.TrimPrefix(patternSegment, "*")
+			// Catch-all wildcards are only supported as the last path segment.
 			if name == "" || i != len(patternSegments)-1 {
 				return nil, false
 			}

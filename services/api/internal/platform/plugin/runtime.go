@@ -1128,6 +1128,7 @@ func (r *Runtime) registerFetchFunction(b wazero.HostModuleBuilder, p plugindom.
 				_ = resp.Body.Close()
 			}()
 
+			// Read one extra byte so we can detect and reject oversized payloads.
 			respBody, err := io.ReadAll(io.LimitReader(resp.Body, maxFetchResponseBodySize+1))
 			if err != nil {
 				writeErr("fetch: read response body: " + err.Error())
