@@ -677,6 +677,8 @@ type routePatternScore struct {
 	wildcardSegments int
 }
 
+// scoreRoutePattern computes path-pattern specificity by counting static,
+// param, and wildcard segments.
 func scoreRoutePattern(pattern string) routePatternScore {
 	var score routePatternScore
 	for _, segment := range splitPathSegments(pattern) {
@@ -692,6 +694,8 @@ func scoreRoutePattern(pattern string) routePatternScore {
 	return score
 }
 
+// moreSpecificThan orders routes by specificity:
+// fewer wildcards, then more static segments, then fewer param segments.
 func (score routePatternScore) moreSpecificThan(other routePatternScore) bool {
 	if score.wildcardSegments != other.wildcardSegments {
 		return score.wildcardSegments < other.wildcardSegments
