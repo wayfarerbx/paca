@@ -2760,7 +2760,7 @@ func TestActivities_AddAndListComment(t *testing.T) {
 	// Add a comment
 	w = serve(r, authedJSONReq(t.Context(), http.MethodPost,
 		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/activities/comments", projectID, taskID), tok,
-		map[string]any{"content": "Hello from comment"},
+		map[string]any{"content": []map[string]any{{"type": "paragraph", "content": []map[string]any{{"type": "text", "text": "Hello from comment"}}}}},
 	))
 	if w.Code != http.StatusCreated {
 		t.Fatalf("add comment: expected 201, got %d: %s", w.Code, w.Body.String())
@@ -2787,7 +2787,7 @@ func TestActivities_AddComment_RequiresAuth(t *testing.T) {
 
 	taskID := uuid.New()
 	// No token — should get 401
-	b, _ := json.Marshal(map[string]any{"content": "no auth"})
+	b, _ := json.Marshal(map[string]any{"content": []map[string]any{{"type": "paragraph", "content": []map[string]any{{"type": "text", "text": "no auth"}}}}})
 	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost,
 		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/activities/comments", projectID, taskID),
 		bytes.NewReader(b),
@@ -2823,7 +2823,7 @@ func TestActivities_UpdateComment(t *testing.T) {
 	// Add comment
 	w = serve(r, authedJSONReq(t.Context(), http.MethodPost,
 		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/activities/comments", projectID, taskID), tok,
-		map[string]any{"content": "original text"},
+		map[string]any{"content": []map[string]any{{"type": "paragraph", "content": []map[string]any{{"type": "text", "text": "original text"}}}}},
 	))
 	if w.Code != http.StatusCreated {
 		t.Fatalf("add comment: %d: %s", w.Code, w.Body.String())
@@ -2833,7 +2833,7 @@ func TestActivities_UpdateComment(t *testing.T) {
 	// Update comment
 	w = serve(r, authedJSONReq(t.Context(), http.MethodPatch,
 		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/activities/comments/%s", projectID, taskID, commentID), tok,
-		map[string]any{"content": "updated text"},
+		map[string]any{"content": []map[string]any{{"type": "paragraph", "content": []map[string]any{{"type": "text", "text": "updated text"}}}}},
 	))
 	if w.Code != http.StatusOK {
 		t.Fatalf("update comment: expected 200, got %d: %s", w.Code, w.Body.String())
@@ -2864,7 +2864,7 @@ func TestActivities_DeleteComment(t *testing.T) {
 	// Add comment
 	w = serve(r, authedJSONReq(t.Context(), http.MethodPost,
 		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/activities/comments", projectID, taskID), tok,
-		map[string]any{"content": "to be deleted"},
+		map[string]any{"content": []map[string]any{{"type": "paragraph", "content": []map[string]any{{"type": "text", "text": "to be deleted"}}}}},
 	))
 	if w.Code != http.StatusCreated {
 		t.Fatalf("add comment: %d: %s", w.Code, w.Body.String())

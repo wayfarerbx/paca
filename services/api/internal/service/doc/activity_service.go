@@ -80,8 +80,8 @@ func (s *ActivitySvc) ListActivities(ctx context.Context, documentID uuid.UUID) 
 
 // AddComment creates a user comment on the document.
 func (s *ActivitySvc) AddComment(ctx context.Context, in docdom.AddCommentInput) (*docdom.Activity, error) {
-	if isContentEmpty(in.Content) {
-		return nil, docdom.ErrCommentTextInvalid
+	if isContentEmpty(in.Content) || !isContentTypeValid(in.Content) {
+		return nil, docdom.ErrCommentContentInvalid
 	}
 	if s.memberRepo == nil {
 		return nil, projectdom.ErrMemberNotFound
@@ -137,8 +137,8 @@ func (s *ActivitySvc) UpdateComment(ctx context.Context, id uuid.UUID, projectID
 		return nil, docdom.ErrActivityForbidden
 	}
 
-	if isContentEmpty(content) {
-		return nil, docdom.ErrCommentTextInvalid
+	if isContentEmpty(content) || !isContentTypeValid(content) {
+		return nil, docdom.ErrCommentContentInvalid
 	}
 	a.Content = content
 	a.UpdatedAt = time.Now()
@@ -258,6 +258,22 @@ func extractTextFromBlocks(raw json.RawMessage) string {
 		return legacy.Text
 	}
 	return ""
+}
+
+// isContentTypeValid returns true only when content is a JSON array (BlockNote
+// blocks) or the legacy {"text": "..."} object.  A bare JSON string, number,
+// boolean, or any other value is rejected to prevent comments that the web UI
+// cannot render.
+func isContentTypeValid(content json.RawMessage) bool {
+	trimmed := strings.TrimSpace(string(content))
+	var arr []any
+	if json.Unmarshal([]byte(trimmed), &arr) == nil {
+		return true // blocks array
+	}
+	var legacy struct {
+		Text string `json:"text"`
+	}
+	return json.Unmarshal([]byte(trimmed), &legacy) == nil
 }
 
 // isContentEmpty checks if json.RawMessage content is empty or contains only whitespace.

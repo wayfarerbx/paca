@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -254,7 +255,7 @@ func (f *fakeActivitySvc) ListActivities(_ context.Context, taskID uuid.UUID) ([
 }
 
 func (f *fakeActivitySvc) AddComment(_ context.Context, in taskdom.AddCommentInput) (*taskdom.Activity, error) {
-	if len(in.Content) == 0 || string(in.Content) == "[]" || string(in.Content) == "null" {
+	if fakeIsContentEmpty(in.Content) || !fakeIsContentTypeValid(in.Content) {
 		return nil, taskdom.ErrCommentContentInvalid
 	}
 	now := time.Now()
@@ -274,7 +275,7 @@ func (f *fakeActivitySvc) AddComment(_ context.Context, in taskdom.AddCommentInp
 }
 
 func (f *fakeActivitySvc) UpdateComment(_ context.Context, id uuid.UUID, _ uuid.UUID, actorID uuid.UUID, content json.RawMessage) (*taskdom.Activity, error) {
-	if len(content) == 0 || string(content) == "[]" || string(content) == "null" {
+	if fakeIsContentEmpty(content) || !fakeIsContentTypeValid(content) {
 		return nil, taskdom.ErrCommentContentInvalid
 	}
 	f.mu.Lock()
@@ -974,4 +975,34 @@ func TestActivityHandler_UpdateComment_Forbidden(t *testing.T) {
 	if w.Code != http.StatusForbidden {
 		t.Fatalf("expected 403, got %d: %s", w.Code, w.Body.String())
 	}
+}
+
+// fakeIsContentEmpty mirrors the production isContentEmpty logic to keep
+// handler-test validation in sync with service-layer validation.
+func fakeIsContentEmpty(content json.RawMessage) bool {
+	if len(content) == 0 {
+		return true
+	}
+	trimmed := strings.TrimSpace(string(content))
+	if trimmed == "" || trimmed == "[]" || trimmed == "null" {
+		return true
+	}
+	var str string
+	if json.Unmarshal([]byte(trimmed), &str) == nil {
+		return strings.TrimSpace(str) == ""
+	}
+	return false
+}
+
+// fakeIsContentTypeValid mirrors the production isContentTypeValid logic.
+func fakeIsContentTypeValid(content json.RawMessage) bool {
+	trimmed := strings.TrimSpace(string(content))
+	var arr []any
+	if json.Unmarshal([]byte(trimmed), &arr) == nil {
+		return true
+	}
+	var legacy struct {
+		Text string `json:"text"`
+	}
+	return json.Unmarshal([]byte(trimmed), &legacy) == nil
 }

@@ -21,5 +21,5 @@ var (
 	ErrActivityNotFound    = errors.New("doc activity: not found")
 	ErrActivityForbidden   = errors.New("doc activity: only the author can modify this comment")
 	ErrActivityNotAComment = errors.New("doc activity: this entry is not a comment and cannot be edited")
-	ErrCommentTextInvalid  = errors.New("doc activity: comment text must not be empty")
+	ErrCommentContentInvalid = errors.New("doc activity: comment content must not be empty")
 )

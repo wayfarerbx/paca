@@ -141,8 +141,8 @@ const (
 	CodeActivityForbidden Code = "ACTIVITY_FORBIDDEN"
 	// CodeActivityNotAComment indicates the entry is system-generated and cannot be edited.
 	CodeActivityNotAComment Code = "ACTIVITY_NOT_A_COMMENT"
-	// CodeCommentTextInvalid indicates an empty or invalid comment text.
-	CodeCommentTextInvalid Code = "ACTIVITY_COMMENT_TEXT_INVALID"
+	// CodeCommentContentInvalid indicates an empty or invalid comment content.
+	CodeCommentContentInvalid Code = "ACTIVITY_COMMENT_CONTENT_INVALID"
 
 	// CodeDocNotFound indicates the requested document does not exist.
 	CodeDocNotFound Code = "DOC_NOT_FOUND"
@@ -164,8 +164,8 @@ const (
 	CodeDocActivityForbidden Code = "DOC_ACTIVITY_FORBIDDEN"
 	// CodeDocActivityNotAComment indicates the entry cannot be edited as a comment.
 	CodeDocActivityNotAComment Code = "DOC_ACTIVITY_NOT_A_COMMENT"
-	// CodeDocCommentTextInvalid indicates an empty or invalid comment text.
-	CodeDocCommentTextInvalid Code = "DOC_COMMENT_TEXT_INVALID"
+	// CodeDocCommentContentInvalid indicates an empty or invalid comment content.
+	CodeDocCommentContentInvalid Code = "DOC_COMMENT_CONTENT_INVALID"
 
 	// CodeNotificationNotFound indicates the requested notification does not exist
 	// or does not belong to the authenticated user.

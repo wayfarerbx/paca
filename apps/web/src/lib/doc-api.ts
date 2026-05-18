@@ -330,19 +330,11 @@ export async function listActivities(
 export async function addDocComment(
 	projectId: string,
 	docId: string,
-	content: unknown[] | string,
+	content: unknown[],
 ): Promise<DocActivity> {
-	let payload: unknown;
-	if (typeof content === "string") {
-		payload = { text: content };
-	} else if (Array.isArray(content)) {
-		payload = { content };
-	} else {
-		throw new Error("Invalid content type");
-	}
 	const { data } = await apiClient.instance.post<SuccessEnvelope<DocActivity>>(
 		`/projects/${projectId}/docs/${docId}/comments`,
-		payload,
+		{ content },
 	);
 	return data.data;
 }
@@ -351,19 +343,11 @@ export async function updateDocComment(
 	projectId: string,
 	docId: string,
 	commentId: string,
-	content: unknown[] | string,
+	content: unknown[],
 ): Promise<DocActivity> {
-	let payload: unknown;
-	if (typeof content === "string") {
-		payload = { text: content };
-	} else if (Array.isArray(content)) {
-		payload = { content };
-	} else {
-		throw new Error("Invalid content type");
-	}
 	const { data } = await apiClient.instance.patch<SuccessEnvelope<DocActivity>>(
 		`/projects/${projectId}/docs/${docId}/comments/${commentId}`,
-		payload,
+		{ content },
 	);
 	return data.data;
 }

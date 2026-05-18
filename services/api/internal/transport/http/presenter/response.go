@@ -202,7 +202,7 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 	case errors.Is(err, taskdom.ErrActivityNotAComment):
 		return http.StatusBadRequest, apierr.CodeActivityNotAComment
 	case errors.Is(err, taskdom.ErrCommentContentInvalid):
-		return http.StatusBadRequest, apierr.CodeCommentTextInvalid
+		return http.StatusBadRequest, apierr.CodeCommentContentInvalid
 	case errors.Is(err, docdom.ErrDocNotFound):
 		return http.StatusNotFound, apierr.CodeDocNotFound
 	case errors.Is(err, docdom.ErrDocTitleInvalid):
@@ -223,8 +223,8 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusForbidden, apierr.CodeDocActivityForbidden
 	case errors.Is(err, docdom.ErrActivityNotAComment):
 		return http.StatusBadRequest, apierr.CodeDocActivityNotAComment
-	case errors.Is(err, docdom.ErrCommentTextInvalid):
-		return http.StatusBadRequest, apierr.CodeDocCommentTextInvalid
+	case errors.Is(err, docdom.ErrCommentContentInvalid):
+		return http.StatusBadRequest, apierr.CodeDocCommentContentInvalid
 	case errors.Is(err, notificationdom.ErrNotificationNotFound):
 		return http.StatusNotFound, apierr.CodeNotificationNotFound
 	case errors.Is(err, apikeydom.ErrNotFound):
@@ -317,7 +317,7 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodeCustomFieldTypeInvalid,
 		apierr.CodeCustomFieldNameInvalid,
 		apierr.CodeActivityNotAComment,
-		apierr.CodeCommentTextInvalid:
+		apierr.CodeCommentContentInvalid:
 		return http.StatusBadRequest
 	case apierr.CodeActivityNotFound:
 		return http.StatusNotFound
@@ -340,7 +340,7 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodeDocFolderNotInProject,
 		apierr.CodeDocFolderSelfParent,
 		apierr.CodeDocActivityNotAComment,
-		apierr.CodeDocCommentTextInvalid:
+		apierr.CodeDocCommentContentInvalid:
 		return http.StatusBadRequest
 	case apierr.CodeDocActivityForbidden:
 		return http.StatusForbidden
