@@ -84,6 +84,7 @@ type Runtime struct {
 	plugins map[string]*pluginInstance // keyed by plugin.Name
 }
 
+// Keep fetch response cap aligned with existing plugin artifact per-file limit.
 const maxFetchResponseBodySize = 50 * 1024 * 1024 // 50 MiB
 
 var allowedFetchMethods = map[string]struct{}{

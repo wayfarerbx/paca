@@ -667,6 +667,7 @@ func matchPathPattern(pattern, path string) (map[string]string, bool) {
 			name := strings.TrimPrefix(patternSegment, "*")
 			// Catch-all wildcards are only supported as the last path segment.
 			if name == "" || i != len(patternSegments)-1 {
+				// Empty wildcard names are invalid ("/items/*" has no param key).
 				return nil, false
 			}
 			if pathIdx >= len(pathSegments) {
