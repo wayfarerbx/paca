@@ -165,7 +165,7 @@ function hasContent(block: { content?: unknown[] }): boolean {
 	if (!block.content || !Array.isArray(block.content)) return false;
 	for (const item of block.content) {
 		const inline = item as { text?: string } | null;
-		if (inline && inline.text && inline.text.trim() !== "") return true;
+		if (inline?.text && inline.text.trim() !== "") return true;
 	}
 	return false;
 }
