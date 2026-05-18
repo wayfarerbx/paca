@@ -11,14 +11,22 @@ import (
 // except PATCH /users/me/password.
 func RequireFreshPassword() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		claims := ClaimsFrom(c)
-		if claims != nil && claims.MustChangePassword {
-			presenter.Error(c, apierr.New(
-				apierr.CodePasswordChangeRequired,
-				"you must change your password before accessing this resource",
-			))
+		if !EnforceFreshPassword(c) {
 			return
 		}
 		c.Next()
 	}
+}
+
+// EnforceFreshPassword checks MustChangePassword without advancing the Gin handler chain.
+func EnforceFreshPassword(c *gin.Context) bool {
+	claims := ClaimsFrom(c)
+	if claims != nil && claims.MustChangePassword {
+		presenter.Error(c, apierr.New(
+			apierr.CodePasswordChangeRequired,
+			"you must change your password before accessing this resource",
+		))
+		return false
+	}
+	return true
 }

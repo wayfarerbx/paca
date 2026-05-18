@@ -40,45 +40,53 @@ func ProjectScopeFromParam(param string) ScopeResolver {
 // global and project-scoped checks.
 func RequirePermissions(authorizer *authz.Authorizer, scope ScopeResolver, permissions ...authz.Permission) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		claims := ClaimsFrom(c)
-		if claims == nil {
-			presenter.Error(c, apierr.New(apierr.CodeUnauthenticated, "unauthenticated"))
+		if !EnforcePermissions(c, authorizer, scope, permissions...) {
 			return
 		}
-
-		if authorizer == nil {
-			presenter.Error(c, apierr.New(apierr.CodeInternalError, "authorization not configured"))
-			return
-		}
-
-		userID, err := uuid.Parse(claims.Subject)
-		if err != nil {
-			presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid subject claim"))
-			return
-		}
-
-		resolver := scope
-		if resolver == nil {
-			resolver = GlobalScope()
-		}
-		projectID, err := resolver(c)
-		if err != nil {
-			presenter.Error(c, err)
-			return
-		}
-
-		allowed, err := authorizer.HasPermissions(c.Request.Context(), userID, projectID, claims.Role, permissions...)
-		if err != nil {
-			presenter.Error(c, err)
-			return
-		}
-		if !allowed {
-			presenter.Error(c, apierr.New(apierr.CodeForbidden, "insufficient permissions"))
-			return
-		}
-
 		c.Next()
 	}
+}
+
+// EnforcePermissions checks authorization without advancing the Gin handler chain.
+func EnforcePermissions(c *gin.Context, authorizer *authz.Authorizer, scope ScopeResolver, permissions ...authz.Permission) bool {
+	claims := ClaimsFrom(c)
+	if claims == nil {
+		presenter.Error(c, apierr.New(apierr.CodeUnauthenticated, "unauthenticated"))
+		return false
+	}
+
+	if authorizer == nil {
+		presenter.Error(c, apierr.New(apierr.CodeInternalError, "authorization not configured"))
+		return false
+	}
+
+	userID, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid subject claim"))
+		return false
+	}
+
+	resolver := scope
+	if resolver == nil {
+		resolver = GlobalScope()
+	}
+	projectID, err := resolver(c)
+	if err != nil {
+		presenter.Error(c, err)
+		return false
+	}
+
+	allowed, err := authorizer.HasPermissions(c.Request.Context(), userID, projectID, claims.Role, permissions...)
+	if err != nil {
+		presenter.Error(c, err)
+		return false
+	}
+	if !allowed {
+		presenter.Error(c, apierr.New(apierr.CodeForbidden, "insufficient permissions"))
+		return false
+	}
+
+	return true
 }
 
 // Authz keeps backwards-compatible middleware semantics for global scope.

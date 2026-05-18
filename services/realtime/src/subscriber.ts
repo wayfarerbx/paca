@@ -29,7 +29,8 @@ const CHANNEL = "paca.events";
 
 interface RealtimeMessage {
 	type: string;
-	payload: Record<string, unknown>;
+	payload?: unknown;
+	data?: unknown;
 }
 
 // createSubscriber connects a dedicated ioredis client in subscriber mode,
@@ -87,10 +88,9 @@ export function createSubscriber(
 }
 
 function routeEvent(io: Server, msg: RealtimeMessage, logger: Logger): void {
-	const { type, payload } = msg;
-
-	// Validate payload exists before processing
-	if (!payload || typeof payload !== "object") {
+	const { type } = msg;
+	const payload = eventPayload(msg);
+	if (!payload) {
 		logger.debug({ type }, "event has no payload — skipped");
 		return;
 	}
@@ -128,4 +128,14 @@ function routeEvent(io: Server, msg: RealtimeMessage, logger: Logger): void {
 	const room = projectRoomName(projectId, ns);
 	logger.debug({ type, room }, "routing event to room");
 	io.to(room).emit("event", { type, payload });
+}
+
+function eventPayload(msg: RealtimeMessage): Record<string, unknown> | null {
+	if (msg.payload && typeof msg.payload === "object") {
+		return msg.payload as Record<string, unknown>;
+	}
+	if (msg.data && typeof msg.data === "object") {
+		return msg.data as Record<string, unknown>;
+	}
+	return null;
 }

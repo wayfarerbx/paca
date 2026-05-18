@@ -563,17 +563,25 @@ func (h *PluginHandler) applyPluginRouteMiddlewares(c *gin.Context, route *plugi
 				presenter.Error(c, apierr.New(apierr.CodeInternalError, "plugin route auth middleware is not configured"))
 				return false
 			}
-			middleware.Authn(h.tokenManager, h.apiKeyAuth)(c)
+			if !middleware.EnforceAuthn(c, h.tokenManager, h.apiKeyAuth) {
+				return false
+			}
 		case "optionalauthn":
 			if h.tokenManager == nil {
 				presenter.Error(c, apierr.New(apierr.CodeInternalError, "plugin route auth middleware is not configured"))
 				return false
 			}
-			middleware.OptionalAuthn(h.tokenManager, h.apiKeyAuth)(c)
+			if !middleware.EnforceOptionalAuthn(c, h.tokenManager, h.apiKeyAuth) {
+				return false
+			}
 		case "requirefreshpassword":
-			middleware.RequireFreshPassword()(c)
+			if !middleware.EnforceFreshPassword(c) {
+				return false
+			}
 		case "requirejwtauth":
-			middleware.RequireJWTAuth()(c)
+			if !middleware.EnforceJWTAuth(c) {
+				return false
+			}
 		case "requirepermissions":
 			if h.authorizer == nil {
 				presenter.Error(c, apierr.New(apierr.CodeInternalError, "plugin route authorization middleware is not configured"))
@@ -603,13 +611,11 @@ func (h *PluginHandler) applyPluginRouteMiddlewares(c *gin.Context, route *plugi
 			for _, p := range mw.Permissions {
 				perms = append(perms, authz.Permission(p))
 			}
-			middleware.RequirePermissions(h.authorizer, scopeResolver, perms...)(c)
+			if !middleware.EnforcePermissions(c, h.authorizer, scopeResolver, perms...) {
+				return false
+			}
 		default:
 			presenter.Error(c, apierr.New(apierr.CodeInternalError, "plugin route uses unsupported middleware: "+mw.Name))
-			return false
-		}
-
-		if c.IsAborted() {
 			return false
 		}
 	}
@@ -619,7 +625,9 @@ func (h *PluginHandler) applyPluginRouteMiddlewares(c *gin.Context, route *plugi
 
 func (h *PluginHandler) routeMiddlewares(route *plugindom.PluginRoute) []plugindom.PluginRouteMiddleware {
 	if route != nil {
-		if len(route.Middlewares) > 0 {
+		// Distinguish omitted (nil) vs explicit empty list:
+		// nil -> apply default policy, [] -> no middlewares.
+		if route.Middlewares != nil {
 			return route.Middlewares
 		}
 		if route.Public {
@@ -643,16 +651,58 @@ func (h *PluginHandler) routeMiddlewares(route *plugindom.PluginRoute) []plugind
 
 func matchPluginRoute(routes []plugindom.PluginRoute, method, path string) *plugindom.PluginRoute {
 	method = strings.ToUpper(strings.TrimSpace(method))
+	var matched *plugindom.PluginRoute
+	var matchedScore routePatternScore
 	for i := range routes {
 		r := &routes[i]
 		if strings.ToUpper(strings.TrimSpace(r.Method)) != method {
 			continue
 		}
 		if _, ok := matchPathPattern(r.Path, path); ok {
-			return r
+			score := scoreRoutePattern(r.Path)
+			// Prefer more specific patterns (fewer wildcards, then more static segments).
+			// Ties keep manifest order for deterministic fallback behavior.
+			if matched == nil || score.moreSpecificThan(matchedScore) {
+				matched = r
+				matchedScore = score
+			}
 		}
 	}
-	return nil
+	return matched
+}
+
+type routePatternScore struct {
+	staticSegments   int
+	paramSegments    int
+	wildcardSegments int
+}
+
+func scoreRoutePattern(pattern string) routePatternScore {
+	var score routePatternScore
+	for _, segment := range splitPathSegments(pattern) {
+		switch {
+		case strings.HasPrefix(segment, "*"):
+			score.wildcardSegments++
+		case strings.HasPrefix(segment, ":"):
+			score.paramSegments++
+		default:
+			score.staticSegments++
+		}
+	}
+	return score
+}
+
+func (s routePatternScore) moreSpecificThan(other routePatternScore) bool {
+	if s.wildcardSegments != other.wildcardSegments {
+		return s.wildcardSegments < other.wildcardSegments
+	}
+	if s.staticSegments != other.staticSegments {
+		return s.staticSegments > other.staticSegments
+	}
+	if s.paramSegments != other.paramSegments {
+		return s.paramSegments < other.paramSegments
+	}
+	return false
 }
 
 func matchPathPattern(pattern, path string) (map[string]string, bool) {

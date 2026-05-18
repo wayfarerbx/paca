@@ -847,10 +847,13 @@ func (r *Runtime) registerEventFunctions(b wazero.HostModuleBuilder, p plugindom
 			if r.services.Publisher != nil {
 				var v any
 				_ = json.Unmarshal([]byte(payload), &v)
+				if v == nil {
+					v = map[string]any{}
+				}
 				if err := r.services.Publisher.Publish(ctx, "paca.events", map[string]any{
-					"type":   topic,
-					"source": p.Name,
-					"data":   v,
+					"type":    topic,
+					"source":  p.Name,
+					"payload": v,
 				}); err != nil {
 					r.log.Error("paca.event_emit", "plugin", p.Name, "error", err)
 					stack[0] = 0

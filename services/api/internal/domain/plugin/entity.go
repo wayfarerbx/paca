@@ -85,7 +85,8 @@ type PluginRoute struct {
 	// Kept for backward compatibility; equivalent to an empty middleware chain.
 	Public bool `json:"public,omitempty"`
 	// Middlewares defines host-enforced middleware to apply in order for this
-	// route. If omitted, the host applies its default policy.
+	// route. If omitted (null), the host applies its default policy. An explicit
+	// empty array disables all middleware for the route.
 	Middlewares []PluginRouteMiddleware `json:"middlewares,omitempty"`
 }
 
