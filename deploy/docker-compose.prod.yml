@@ -96,9 +96,10 @@ services:
       STORAGE_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY_ID:?set STORAGE_ACCESS_KEY_ID}
       STORAGE_SECRET_ACCESS_KEY: ${STORAGE_SECRET_ACCESS_KEY:?set STORAGE_SECRET_ACCESS_KEY}
       STORAGE_USE_SSL: ${STORAGE_USE_SSL:-false}
-      # GitHub integration — optional.  When GITHUB_ENCRYPTION_KEY is empty the
-      # feature is disabled.  Must be a 64-char lowercase hex string (32 bytes).
-      GITHUB_ENCRYPTION_KEY: ${GITHUB_ENCRYPTION_KEY:-}
+      # Encryption key for sensitive values (plugin tokens/secrets).
+      # Must be a 64-char lowercase hex string (32 bytes).
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+      # Public base URL used by plugins to generate callback/webhook URLs.
       PUBLIC_URL: ${PUBLIC_URL:-}
       # Plugin subsystem — load WASM binaries + migrations from the local plugin store.
       PLUGINS_WASM_DIR: /plugins
@@ -112,20 +113,26 @@ services:
       minio:
         condition: service_healthy
         required: false  # skipped when --scale minio=0 (AWS S3 mode)
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
     volumes:
       # Backend plugin store — WASM binaries and SQL migrations only.
       # Writable so the marketplace installer can download and extract artifacts.
       # Never mounted to the gateway, so the WASM files are not publicly reachable.
       # Layout: /plugins/<plugin-id>/backend.wasm  +  /plugins/<plugin-id>/migrations/
-      - ../plugins/local/backend:/plugins
+      - backend_plugins:/plugins
       # Frontend plugin store — built JS bundles and MCP bundles.
       # Writable for API marketplace installs; also mounted read-only by the gateway.
       # Layout: /plugins-frontend/<plugin-id>/assets/remoteEntry.js
-      - ../plugins/local/frontend:/plugins-frontend
+      - frontend_plugins:/plugins-frontend
       # MCP plugin store — self-contained ESM bundles served at /plugins-mcp/.
       # Writable for API marketplace installs; also mounted read-only by the gateway.
       # Layout: /plugins-mcp/<plugin-id>/mcp.js
-      - ../plugins/local/mcp:/plugins-mcp
+      - mcp_plugins:/plugins-mcp
 
   web:
     image: ${PACA_WEB_IMAGE:-pacaai/paca-web:latest}
@@ -166,10 +173,10 @@ services:
       - ./nginx/gateway.conf:/etc/nginx/conf.d/default.conf:ro
       # Frontend plugin store — built JS bundles, served at /plugins/.
       # Layout: /var/www/plugins/<plugin-id>/assets/remoteEntry.js
-      - ../plugins/local/frontend:/var/www/plugins:ro
+      - frontend_plugins:/var/www/plugins:ro
       # MCP plugin store — self-contained ESM bundles, served at /plugins-mcp/.
       # Layout: /var/www/plugins-mcp/<plugin-id>/mcp.js
-      - ../plugins/local/mcp:/var/www/plugins-mcp:ro
+      - mcp_plugins:/var/www/plugins-mcp:ro
     depends_on:
       - api
       - web
@@ -197,3 +204,6 @@ volumes:
   postgres_data:
   valkey_data:
   minio_data:
+  backend_plugins:
+  frontend_plugins:
+  mcp_plugins:

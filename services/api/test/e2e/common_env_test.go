@@ -229,7 +229,6 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 		View:                 handler.NewViewHandler(viewService),
 		Attachment:           handler.NewAttachmentHandler(attachmentService),
 		APIKey:               handler.NewAPIKeyHandler(apiKeyService),
-		GitHub:               nil, // GitHub handler is wired per-test in github_test.go
 		Log:                  log,
 	})
 

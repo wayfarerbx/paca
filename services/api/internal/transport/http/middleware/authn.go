@@ -42,100 +42,9 @@ func Authn(tm *jwttoken.Manager, apiKeyAuth ...APIKeyAuthenticator) gin.HandlerF
 		apiKeyAuthenticator = apiKeyAuth[0]
 	}
 	return func(c *gin.Context) {
-		tokenStr := ""
-		isAPIKey := false
-
-		// 1. Try the access_token cookie (browser clients).
-		if cookie, err := c.Cookie("access_token"); err == nil && cookie != "" {
-			tokenStr = cookie
-		}
-
-		// 2. Fall back to Authorization header (API/CLI clients).
-		if tokenStr == "" {
-			header := c.GetHeader("Authorization")
-			if header != "" {
-				parts := strings.SplitN(header, " ", 2)
-				if len(parts) == 2 {
-					switch strings.ToLower(parts[0]) {
-					case "bearer":
-						tokenStr = parts[1]
-					case "apikey":
-						tokenStr = parts[1]
-						isAPIKey = true
-					}
-				}
-			}
-		}
-
-		// 3. Try X-API-Key header.
-		if tokenStr == "" {
-			if v := c.GetHeader("X-API-Key"); v != "" {
-				tokenStr = v
-				isAPIKey = true
-			}
-		}
-
-		if tokenStr == "" {
-			presenter.Error(c, apierr.New(apierr.CodeMissingToken, "missing authentication"))
+		if !EnforceAuthn(c, tm, apiKeyAuthenticator) {
 			return
 		}
-
-		// --- API key path ---
-		if isAPIKey {
-			if apiKeyAuthenticator == nil {
-				presenter.Error(c, apierr.New(apierr.CodeUnauthenticated, "API key authentication not configured"))
-				return
-			}
-			key, err := apiKeyAuthenticator.Authenticate(c.Request.Context(), tokenStr)
-			if err != nil {
-				switch {
-				case errors.Is(err, apikeydom.ErrRevoked):
-					presenter.Error(c, apierr.New(apierr.CodeAPIKeyRevoked, "API key has been revoked"))
-				case errors.Is(err, apikeydom.ErrExpired):
-					presenter.Error(c, apierr.New(apierr.CodeAPIKeyExpired, "API key has expired"))
-				default:
-					// Return a generic token-invalid code for not-found and unexpected
-					// errors to avoid leaking key existence information.
-					presenter.Error(c, apierr.New(apierr.CodeTokenInvalid, "invalid or expired API key"))
-				}
-				return
-			}
-			// Build synthetic claims so downstream handlers work unchanged.
-			syntheticClaims := &domainauth.Claims{
-				RegisteredClaims: jwt.RegisteredClaims{
-					Subject: key.UserID.String(),
-				},
-				Kind: "access",
-			}
-			c.Set(claimsKey, syntheticClaims)
-			c.Set(authMethodKey, "apikey")
-			ctx := context.WithValue(c.Request.Context(), actorContextKey{}, key.UserID)
-			c.Request = c.Request.WithContext(ctx)
-			c.Next()
-			return
-		}
-
-		// --- JWT path ---
-		claims, err := tm.Verify(tokenStr)
-		if err != nil {
-			presenter.Error(c, apierr.New(apierr.CodeTokenInvalid, "invalid or expired token"))
-			return
-		}
-
-		if claims.Kind != "access" {
-			presenter.Error(c, apierr.New(apierr.CodeTokenInvalid, "expected access token"))
-			return
-		}
-
-		c.Set(claimsKey, claims)
-
-		// Embed the actor UUID in the Go request context so service layers can
-		// read it without coupling to Gin.
-		if actorID, parseErr := uuid.Parse(claims.Subject); parseErr == nil {
-			ctx := context.WithValue(c.Request.Context(), actorContextKey{}, actorID)
-			c.Request = c.Request.WithContext(ctx)
-		}
-
 		c.Next()
 	}
 }
@@ -150,74 +59,128 @@ func OptionalAuthn(tm *jwttoken.Manager, apiKeyAuth ...APIKeyAuthenticator) gin.
 		apiKeyAuthenticator = apiKeyAuth[0]
 	}
 	return func(c *gin.Context) {
-		tokenStr := ""
-		isAPIKey := false
-
-		if cookie, err := c.Cookie("access_token"); err == nil && cookie != "" {
-			tokenStr = cookie
-		}
-		if tokenStr == "" {
-			header := c.GetHeader("Authorization")
-			if header != "" {
-				parts := strings.SplitN(header, " ", 2)
-				if len(parts) == 2 {
-					switch strings.ToLower(parts[0]) {
-					case "bearer":
-						tokenStr = parts[1]
-					case "apikey":
-						tokenStr = parts[1]
-						isAPIKey = true
-					}
-				}
-			}
-		}
-		if tokenStr == "" {
-			if v := c.GetHeader("X-API-Key"); v != "" {
-				tokenStr = v
-				isAPIKey = true
-			}
-		}
-
-		// No credentials at all — allow the request through as anonymous.
-		if tokenStr == "" {
-			c.Next()
+		if !EnforceOptionalAuthn(c, tm, apiKeyAuthenticator) {
 			return
-		}
-
-		if isAPIKey {
-			if apiKeyAuthenticator != nil {
-				key, err := apiKeyAuthenticator.Authenticate(c.Request.Context(), tokenStr)
-				if err == nil {
-					syntheticClaims := &domainauth.Claims{
-						RegisteredClaims: jwt.RegisteredClaims{
-							Subject: key.UserID.String(),
-						},
-						Kind: "access",
-					}
-					c.Set(claimsKey, syntheticClaims)
-					c.Set(authMethodKey, "apikey")
-					ctx := context.WithValue(c.Request.Context(), actorContextKey{}, key.UserID)
-					c.Request = c.Request.WithContext(ctx)
-				}
-			}
-			c.Next()
-			return
-		}
-
-		claims, err := tm.Verify(tokenStr)
-		if err != nil || claims.Kind != "access" {
-			// Invalid token provided — reject rather than silently downgrade.
-			presenter.Error(c, apierr.New(apierr.CodeTokenInvalid, "invalid or expired token"))
-			return
-		}
-
-		c.Set(claimsKey, claims)
-		if actorID, parseErr := uuid.Parse(claims.Subject); parseErr == nil {
-			ctx := context.WithValue(c.Request.Context(), actorContextKey{}, actorID)
-			c.Request = c.Request.WithContext(ctx)
 		}
 		c.Next()
 	}
+}
+
+// EnforceAuthn validates credentials and sets auth context without advancing the Gin handler chain.
+func EnforceAuthn(c *gin.Context, tm *jwttoken.Manager, apiKeyAuth ...APIKeyAuthenticator) bool {
+	var apiKeyAuthenticator APIKeyAuthenticator
+	if len(apiKeyAuth) > 0 {
+		apiKeyAuthenticator = apiKeyAuth[0]
+	}
+	return applyAuthn(c, tm, apiKeyAuthenticator, false)
+}
+
+// EnforceOptionalAuthn validates optional credentials and sets auth context without advancing the Gin handler chain.
+func EnforceOptionalAuthn(c *gin.Context, tm *jwttoken.Manager, apiKeyAuth ...APIKeyAuthenticator) bool {
+	var apiKeyAuthenticator APIKeyAuthenticator
+	if len(apiKeyAuth) > 0 {
+		apiKeyAuthenticator = apiKeyAuth[0]
+	}
+	return applyAuthn(c, tm, apiKeyAuthenticator, true)
+}
+
+func applyAuthn(c *gin.Context, tm *jwttoken.Manager, apiKeyAuthenticator APIKeyAuthenticator, optional bool) bool {
+	tokenStr := ""
+	isAPIKey := false
+
+	if cookie, err := c.Cookie("access_token"); err == nil && cookie != "" {
+		tokenStr = cookie
+	}
+	if tokenStr == "" {
+		header := c.GetHeader("Authorization")
+		if header != "" {
+			parts := strings.SplitN(header, " ", 2)
+			if len(parts) == 2 {
+				switch strings.ToLower(parts[0]) {
+				case "bearer":
+					tokenStr = parts[1]
+				case "apikey":
+					tokenStr = parts[1]
+					isAPIKey = true
+				}
+			}
+		}
+	}
+	if tokenStr == "" {
+		if v := c.GetHeader("X-API-Key"); v != "" {
+			tokenStr = v
+			isAPIKey = true
+		}
+	}
+
+	if tokenStr == "" {
+		if optional {
+			return true
+		}
+		presenter.Error(c, apierr.New(apierr.CodeMissingToken, "missing authentication"))
+		return false
+	}
+
+	if isAPIKey {
+		if optional {
+			if apiKeyAuthenticator != nil {
+				key, err := apiKeyAuthenticator.Authenticate(c.Request.Context(), tokenStr)
+				if err == nil {
+					setAPIKeyAuthContext(c, key.UserID)
+				}
+			}
+			return true
+		}
+		if apiKeyAuthenticator == nil {
+			presenter.Error(c, apierr.New(apierr.CodeUnauthenticated, "API key authentication not configured"))
+			return false
+		}
+		key, err := apiKeyAuthenticator.Authenticate(c.Request.Context(), tokenStr)
+		if err != nil {
+			switch {
+			case errors.Is(err, apikeydom.ErrRevoked):
+				presenter.Error(c, apierr.New(apierr.CodeAPIKeyRevoked, "API key has been revoked"))
+			case errors.Is(err, apikeydom.ErrExpired):
+				presenter.Error(c, apierr.New(apierr.CodeAPIKeyExpired, "API key has expired"))
+			default:
+				presenter.Error(c, apierr.New(apierr.CodeTokenInvalid, "invalid or expired API key"))
+			}
+			return false
+		}
+		setAPIKeyAuthContext(c, key.UserID)
+		return true
+	}
+
+	claims, err := tm.Verify(tokenStr)
+	if err != nil {
+		presenter.Error(c, apierr.New(apierr.CodeTokenInvalid, "invalid or expired token"))
+		return false
+	}
+	if claims.Kind != "access" {
+		presenter.Error(c, apierr.New(apierr.CodeTokenInvalid, "expected access token"))
+		return false
+	}
+
+	c.Set(claimsKey, claims)
+	if actorID, parseErr := uuid.Parse(claims.Subject); parseErr == nil {
+		ctx := context.WithValue(c.Request.Context(), actorContextKey{}, actorID)
+		c.Request = c.Request.WithContext(ctx)
+	}
+
+	return true
+}
+
+func setAPIKeyAuthContext(c *gin.Context, userID uuid.UUID) {
+	syntheticClaims := &domainauth.Claims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Subject: userID.String(),
+		},
+		Kind: "access",
+	}
+	c.Set(claimsKey, syntheticClaims)
+	c.Set(authMethodKey, "apikey")
+	ctx := context.WithValue(c.Request.Context(), actorContextKey{}, userID)
+	c.Request = c.Request.WithContext(ctx)
 }
 
 // ClaimsFrom retrieves the authenticated claims from the Gin context.
@@ -269,10 +232,18 @@ func IsAPIKeyAuth(c *gin.Context) bool {
 // via a leaked API key.
 func RequireJWTAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if IsAPIKeyAuth(c) {
-			presenter.Error(c, apierr.New(apierr.CodeForbidden, "this endpoint requires session authentication and does not accept API key credentials"))
+		if !EnforceJWTAuth(c) {
 			return
 		}
 		c.Next()
 	}
+}
+
+// EnforceJWTAuth rejects API key-authenticated requests without advancing the Gin handler chain.
+func EnforceJWTAuth(c *gin.Context) bool {
+	if IsAPIKeyAuth(c) {
+		presenter.Error(c, apierr.New(apierr.CodeForbidden, "this endpoint requires session authentication and does not accept API key credentials"))
+		return false
+	}
+	return true
 }

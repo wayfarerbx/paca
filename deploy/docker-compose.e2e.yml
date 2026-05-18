@@ -61,8 +61,9 @@ services:
       STORAGE_ACCESS_KEY_ID: e2e-minio-access-key
       STORAGE_SECRET_ACCESS_KEY: e2e-minio-secret-key
       STORAGE_USE_SSL: "false"
-      # GitHub integration — fixed E2E test key (32-byte AES-256, hex-encoded).
-      GITHUB_ENCRYPTION_KEY: "3b4a93a4f2ffa732a5f7cf44b9a37050e49f5f9c3f105c3995432b9dd49e28ac"
+      # Encryption key for sensitive values (plugin tokens/secrets).
+      ENCRYPTION_KEY: "3b4a93a4f2ffa732a5f7cf44b9a37050e49f5f9c3f105c3995432b9dd49e28ac"
+      # Public base URL used by plugins to generate callback/webhook URLs.
       PUBLIC_URL: http://localhost
       # Plugin subsystem — load WASM binaries + migrations from the local plugin store.
       PLUGINS_WASM_DIR: /plugins

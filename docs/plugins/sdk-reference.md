@@ -33,7 +33,7 @@ The main SDK object passed to every plugin component via its context prop.
 
 ```ts
 interface PluginSDK {
-  /** HTTP client scoped to /api/v1/plugins/{pluginId}/projects/{projectId}/ */
+  /** HTTP client scoped to /api/v1/plugins/{pluginId}/ */
   api: PluginApiClient;
 
   /** UI utilities */
@@ -60,7 +60,8 @@ class PluginApiClient {
   getProject(): Promise<ProjectSummary>
   listMembers(): Promise<ProjectMember[]>
 
-  // Plugin route helpers (prefixed with /plugins/{pluginId}/projects/{projectId}/)
+  // Plugin route helpers (path is relative to /plugins/{pluginId}/)
+  // For project-scoped routes, include projects/{projectId}/ in the path.
   pluginGet<T>(pluginId: string, path: string): Promise<T>
   pluginPost<T>(pluginId: string, path: string, body: unknown): Promise<T>
   pluginPatch<T>(pluginId: string, path: string, body: unknown): Promise<T>

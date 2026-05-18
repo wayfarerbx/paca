@@ -12,7 +12,9 @@ import (
 	"github.com/Paca-AI/api/internal/apierr"
 	plugindom "github.com/Paca-AI/api/internal/domain/plugin"
 	projectdom "github.com/Paca-AI/api/internal/domain/project"
+	"github.com/Paca-AI/api/internal/platform/authz"
 	pluginrt "github.com/Paca-AI/api/internal/platform/plugin"
+	jwttoken "github.com/Paca-AI/api/internal/platform/token"
 	"github.com/Paca-AI/api/internal/transport/http/dto"
 	"github.com/Paca-AI/api/internal/transport/http/middleware"
 	"github.com/Paca-AI/api/internal/transport/http/presenter"
@@ -25,6 +27,9 @@ type PluginHandler struct {
 	svc             plugindom.Service
 	runtime         *pluginrt.Runtime
 	memberRepo      projectdom.MemberRepository
+	tokenManager    *jwttoken.Manager
+	apiKeyAuth      middleware.APIKeyAuthenticator
+	authorizer      *authz.Authorizer
 	marketplace     *pluginrt.MarketplaceClient
 	installer       *pluginrt.Installer
 	migrationRunner *pluginrt.MigrationRunner
@@ -33,6 +38,19 @@ type PluginHandler struct {
 // NewPluginHandler creates a PluginHandler.
 func NewPluginHandler(svc plugindom.Service, runtime *pluginrt.Runtime, memberRepo projectdom.MemberRepository) *PluginHandler {
 	return &PluginHandler{svc: svc, runtime: runtime, memberRepo: memberRepo}
+}
+
+// WithRouteAuth wires authentication/authorization dependencies used for
+// per-route plugin middleware policy enforcement.
+func (h *PluginHandler) WithRouteAuth(
+	tm *jwttoken.Manager,
+	apiKeyAuth middleware.APIKeyAuthenticator,
+	authorizer *authz.Authorizer,
+) *PluginHandler {
+	h.tokenManager = tm
+	h.apiKeyAuth = apiKeyAuth
+	h.authorizer = authorizer
+	return h
 }
 
 // WithMarketplace wires marketplace dependencies onto the existing handler.
@@ -444,7 +462,7 @@ func (h *PluginHandler) UpdateExtensionSetting(c *gin.Context) {
 // -------------------------------------------------------------------------
 
 // ProxyRequest handles any request under
-// /api/v1/plugins/:pluginId/projects/:projectId/* and dispatches it to the
+// /api/v1/plugins/:pluginId/* and dispatches it to the
 // matching plugin's HandleRequest WASM export.
 func (h *PluginHandler) ProxyRequest(c *gin.Context) {
 	if h.runtime == nil {
@@ -472,6 +490,23 @@ func (h *PluginHandler) ProxyRequest(c *gin.Context) {
 		return
 	}
 
+	// The full sub-path after /plugins/:pluginId/ is captured by the wildcard param.
+	// Plugins may embed /projects/:projectId/ within this path at their own discretion.
+	subPath := c.Param("path")
+	if subPath == "" {
+		subPath = "/"
+	}
+
+	route, pathParams := matchPluginRoute(found.Manifest.Backend.Routes, c.Request.Method, subPath)
+	if !h.applyPluginRouteMiddlewares(c, route, pathParams) {
+		return
+	}
+
+	// Determine whether the route requires project-member resolution and which
+	// path-param holds the project UUID (configurable via manifest; defaults to
+	// "projectId" when not specified).
+	resolveProjectMember, projectParamName := projectMemberParam(route)
+
 	// Build caller identity from JWT claims.
 	claims := middleware.ClaimsFrom(c)
 	callerID := ""
@@ -481,27 +516,35 @@ func (h *PluginHandler) ProxyRequest(c *gin.Context) {
 		callerRole = claims.Role
 		userIDStr = claims.Subject
 
-		if h.memberRepo == nil {
-			presenter.Error(c, apierr.New(apierr.CodeInternalError, "plugin member resolver not available"))
-			return
+		// Resolve project member only when the route's manifest explicitly declares
+		// project-scoped permission enforcement.  Plugin routes that don't carry a
+		// requirePermissions(scope=project) middleware won't incur a DB lookup, and
+		// plugins that choose a non-standard path structure are not forced to embed
+		// :projectId at any particular position.
+		if resolveProjectMember {
+			if projectIDStr := pathParams[projectParamName]; projectIDStr != "" {
+				if h.memberRepo == nil {
+					presenter.Error(c, apierr.New(apierr.CodeInternalError, "plugin member resolver not available"))
+					return
+				}
+				projectID, err := uuid.Parse(projectIDStr)
+				if err != nil {
+					presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid projectId in path"))
+					return
+				}
+				userID, err := uuid.Parse(claims.Subject)
+				if err != nil {
+					presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid subject claim"))
+					return
+				}
+				member, err := h.memberRepo.FindMemberByUserProject(c.Request.Context(), userID, projectID)
+				if err != nil {
+					presenter.Error(c, err)
+					return
+				}
+				callerID = member.ID.String()
+			}
 		}
-
-		projectID, err := uuid.Parse(c.Param("projectId"))
-		if err != nil {
-			presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid projectId"))
-			return
-		}
-		userID, err := uuid.Parse(claims.Subject)
-		if err != nil {
-			presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid subject claim"))
-			return
-		}
-		member, err := h.memberRepo.FindMemberByUserProject(c.Request.Context(), userID, projectID)
-		if err != nil {
-			presenter.Error(c, err)
-			return
-		}
-		callerID = member.ID.String()
 	}
 
 	// Read request body.
@@ -519,20 +562,10 @@ func (h *PluginHandler) ProxyRequest(c *gin.Context) {
 		}
 	}
 
-	// The sub-path after /projects/:projectId/ is available as the wildcard param.
-	subPath := c.Param("path")
-	if subPath == "" {
-		subPath = "/"
-	}
-	projectScopedPath := "/projects/" + c.Param("projectId")
-	if subPath != "/" {
-		projectScopedPath += subPath
-	}
-
 	req := &pluginrt.HTTPRequest{
 		Method:     c.Request.Method,
-		Path:       projectScopedPath,
-		ProjectID:  c.Param("projectId"),
+		Path:       subPath,
+		ProjectID:  pathParams[projectParamName],
 		CallerID:   callerID,
 		UserID:     userIDStr,
 		CallerRole: callerRole,
@@ -591,6 +624,251 @@ func (h *PluginHandler) ProxyRequest(c *gin.Context) {
 	}
 
 	c.Data(statusCode, contentType, pluginResp.Body)
+}
+
+func (h *PluginHandler) applyPluginRouteMiddlewares(c *gin.Context, route *plugindom.PluginRoute, pathParams map[string]string) bool {
+	for _, mw := range h.routeMiddlewares(route) {
+		name := strings.ToLower(strings.TrimSpace(mw.Name))
+		switch name {
+		case "authn":
+			if h.tokenManager == nil {
+				presenter.Error(c, apierr.New(apierr.CodeInternalError, "plugin route auth middleware is not configured"))
+				return false
+			}
+			if !middleware.EnforceAuthn(c, h.tokenManager, h.apiKeyAuth) {
+				return false
+			}
+		case "optionalauthn":
+			if h.tokenManager == nil {
+				presenter.Error(c, apierr.New(apierr.CodeInternalError, "plugin route auth middleware is not configured"))
+				return false
+			}
+			if !middleware.EnforceOptionalAuthn(c, h.tokenManager, h.apiKeyAuth) {
+				return false
+			}
+		case "requirefreshpassword":
+			if !middleware.EnforceFreshPassword(c) {
+				return false
+			}
+		case "requirejwtauth":
+			if !middleware.EnforceJWTAuth(c) {
+				return false
+			}
+		case "requirepermissions":
+			if h.authorizer == nil {
+				presenter.Error(c, apierr.New(apierr.CodeInternalError, "plugin route authorization middleware is not configured"))
+				return false
+			}
+			if len(mw.Permissions) == 0 {
+				presenter.Error(c, apierr.New(apierr.CodeInternalError, "plugin route requirePermissions requires at least one permission"))
+				return false
+			}
+			scopeResolver := middleware.GlobalScope()
+			scope := strings.ToLower(strings.TrimSpace(mw.Scope))
+			switch scope {
+			case "", "global":
+				// keep global scope
+			case "project":
+				projectParam := strings.TrimSpace(mw.ProjectParam)
+				if projectParam == "" {
+					projectParam = "projectId"
+				}
+				pParam := projectParam
+				scopeResolver = func(_ *gin.Context) (*uuid.UUID, error) {
+					v := pathParams[pParam]
+					if v == "" {
+						return nil, nil
+					}
+					id, err := uuid.Parse(v)
+					if err != nil {
+						return nil, err
+					}
+					return &id, nil
+				}
+			default:
+				presenter.Error(c, apierr.New(apierr.CodeInternalError, "plugin route requirePermissions has invalid scope"))
+				return false
+			}
+
+			perms := make([]authz.Permission, 0, len(mw.Permissions))
+			for _, p := range mw.Permissions {
+				perms = append(perms, authz.Permission(p))
+			}
+			if !middleware.EnforcePermissions(c, h.authorizer, scopeResolver, perms...) {
+				return false
+			}
+		default:
+			presenter.Error(c, apierr.New(apierr.CodeInternalError, "plugin route uses unsupported middleware: "+mw.Name))
+			return false
+		}
+	}
+
+	return true
+}
+
+func (h *PluginHandler) routeMiddlewares(route *plugindom.PluginRoute) []plugindom.PluginRouteMiddleware {
+	if route != nil {
+		// Distinguish omitted (nil) vs explicit empty list:
+		// nil -> apply default policy, [] -> no middlewares.
+		if route.Middlewares != nil {
+			return route.Middlewares
+		}
+		if route.Public {
+			return nil
+		}
+	}
+
+	// Default policy for plugin routes: optional authn + fresh-password check.
+	// Project-scoped permission checks must be declared explicitly in the
+	// plugin route's middlewares list.
+	return []plugindom.PluginRouteMiddleware{
+		{Name: "optionalAuthn"},
+		{Name: "requireFreshPassword"},
+	}
+}
+
+func matchPluginRoute(routes []plugindom.PluginRoute, method, path string) (*plugindom.PluginRoute, map[string]string) {
+	method = strings.ToUpper(strings.TrimSpace(method))
+	var matched *plugindom.PluginRoute
+	var matchedParams map[string]string
+	var matchedScore routePatternScore
+	for i := range routes {
+		r := &routes[i]
+		if strings.ToUpper(strings.TrimSpace(r.Method)) != method {
+			continue
+		}
+		if params, ok := matchPathPattern(r.Path, path); ok {
+			score := scoreRoutePattern(r.Path)
+			// Prefer more specific patterns (fewer wildcards, then more static segments).
+			// Ties keep manifest order for deterministic fallback behavior.
+			if matched == nil || score.moreSpecificThan(matchedScore) {
+				matched = r
+				matchedScore = score
+				matchedParams = params
+			}
+		}
+	}
+	if matchedParams == nil {
+		matchedParams = make(map[string]string)
+	}
+	return matched, matchedParams
+}
+
+type routePatternScore struct {
+	staticSegments   int
+	paramSegments    int
+	wildcardSegments int
+}
+
+// scoreRoutePattern computes path-pattern specificity by counting static,
+// param, and wildcard segments.
+func scoreRoutePattern(pattern string) routePatternScore {
+	var score routePatternScore
+	for _, segment := range splitPathSegments(pattern) {
+		switch {
+		case strings.HasPrefix(segment, "*"):
+			score.wildcardSegments++
+		case strings.HasPrefix(segment, ":"):
+			score.paramSegments++
+		default:
+			score.staticSegments++
+		}
+	}
+	return score
+}
+
+// moreSpecificThan orders routes by specificity:
+// fewer wildcards, then more static segments, then fewer param segments.
+func (score routePatternScore) moreSpecificThan(other routePatternScore) bool {
+	if score.wildcardSegments != other.wildcardSegments {
+		return score.wildcardSegments < other.wildcardSegments
+	}
+	if score.staticSegments != other.staticSegments {
+		return score.staticSegments > other.staticSegments
+	}
+	if score.paramSegments != other.paramSegments {
+		return score.paramSegments < other.paramSegments
+	}
+	return false
+}
+
+func matchPathPattern(pattern, path string) (map[string]string, bool) {
+	patternSegments := splitPathSegments(pattern)
+	pathSegments := splitPathSegments(path)
+	params := make(map[string]string)
+	pathIdx := 0
+	for i := range patternSegments {
+		patternSegment := patternSegments[i]
+
+		if strings.HasPrefix(patternSegment, "*") {
+			name := strings.TrimPrefix(patternSegment, "*")
+			// Catch-all wildcards are only supported as the last path segment.
+			if name == "" || i != len(patternSegments)-1 {
+				// Empty wildcard names are invalid ("/items/*" has no param key).
+				return nil, false
+			}
+			if pathIdx >= len(pathSegments) {
+				return nil, false
+			}
+			params[name] = strings.Join(pathSegments[pathIdx:], "/")
+			return params, true
+		}
+
+		if pathIdx >= len(pathSegments) {
+			return nil, false
+		}
+		pathSegment := pathSegments[pathIdx]
+
+		if strings.HasPrefix(patternSegment, ":") {
+			name := strings.TrimPrefix(patternSegment, ":")
+			if name == "" {
+				return nil, false
+			}
+			params[name] = pathSegment
+			pathIdx++
+			continue
+		}
+
+		if patternSegment != pathSegment {
+			return nil, false
+		}
+		pathIdx++
+	}
+
+	if pathIdx != len(pathSegments) {
+		return nil, false
+	}
+
+	return params, true
+}
+
+// projectMemberParam returns whether the route manifest requires project-member
+// resolution and, if so, which path-param name holds the project UUID.
+// The param name is taken from the first requirePermissions(scope=project)
+// middleware's ProjectParam field, defaulting to "projectId" when not set.
+func projectMemberParam(route *plugindom.PluginRoute) (bool, string) {
+	if route == nil {
+		return false, ""
+	}
+	for _, mw := range route.Middlewares {
+		if strings.ToLower(strings.TrimSpace(mw.Name)) == "requirepermissions" &&
+			strings.ToLower(strings.TrimSpace(mw.Scope)) == "project" {
+			param := strings.TrimSpace(mw.ProjectParam)
+			if param == "" {
+				param = "projectId"
+			}
+			return true, param
+		}
+	}
+	return false, ""
+}
+
+func splitPathSegments(path string) []string {
+	trimmed := strings.Trim(path, "/")
+	if trimmed == "" {
+		return nil
+	}
+	return strings.Split(trimmed, "/")
 }
 
 // -------------------------------------------------------------------------

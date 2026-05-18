@@ -1,18 +1,13 @@
 import type {
-	CreateBranchInput,
-	CreateBranchResult,
 	CreateCommentInput,
-	LinkPRInput,
 	PacaConfig,
-	PullRequest,
 	SuccessEnvelope,
 	TaskActivity,
-	TaskBranch,
 	UpdateCommentInput,
 } from "../types/index.js";
 
 /**
- * Extended API client for Task Activities, Comments, and GitHub.
+ * Extended API client for task activities and comments.
  */
 export class PacaAPITaskExtendedClient {
 	private config: PacaConfig;
@@ -134,66 +129,4 @@ export class PacaAPITaskExtendedClient {
 		);
 	}
 
-	// ==================== Task GitHub ====================
-
-	async listTaskPRs(projectId: string, taskId: string): Promise<PullRequest[]> {
-		const response = await this.get(
-			`/api/v1/projects/${projectId}/tasks/${taskId}/github/pull-requests`,
-		);
-		if (Array.isArray(response)) {
-			return response;
-		}
-		return (
-			response.items ||
-			response.pullRequests ||
-			response.prs ||
-			response.data ||
-			[]
-		);
-	}
-
-	async linkPRToTask(
-		projectId: string,
-		taskId: string,
-		input: LinkPRInput,
-	): Promise<PullRequest> {
-		return this.post(
-			`/api/v1/projects/${projectId}/tasks/${taskId}/github/pull-requests`,
-			input,
-		);
-	}
-
-	async unlinkPRFromTask(
-		projectId: string,
-		taskId: string,
-		prId: string,
-	): Promise<void> {
-		await this.delete(
-			`/api/v1/projects/${projectId}/tasks/${taskId}/github/pull-requests/${prId}`,
-		);
-	}
-
-	async createBranch(
-		projectId: string,
-		taskId: string,
-		input: CreateBranchInput,
-	): Promise<CreateBranchResult> {
-		return this.post(
-			`/api/v1/projects/${projectId}/tasks/${taskId}/github/branches`,
-			input,
-		);
-	}
-
-	async listTaskBranches(
-		projectId: string,
-		taskId: string,
-	): Promise<TaskBranch[]> {
-		const response = await this.get(
-			`/api/v1/projects/${projectId}/tasks/${taskId}/github/branches`,
-		);
-		if (Array.isArray(response)) {
-			return response;
-		}
-		return response.items || response.branches || response.data || [];
-	}
 }

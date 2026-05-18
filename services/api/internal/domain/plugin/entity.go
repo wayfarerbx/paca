@@ -56,10 +56,18 @@ type MCPManifest struct {
 // BackendManifest describes the backend (WASM) side of the plugin.
 type BackendManifest struct {
 	// Routes is the list of HTTP routes the plugin registers.
-	// Each route is mounted at /api/v1/plugins/{pluginId}/projects/:projectId/{path}.
+	// Each route is mounted at /api/v1/plugins/{pluginId}/{path}.
+	// Project-scoped routes should include /projects/:projectId in the path.
 	Routes []PluginRoute `json:"routes,omitempty"`
 	// EventSubscriptions lists the event topics the plugin subscribes to.
 	EventSubscriptions []string `json:"eventSubscriptions,omitempty"`
+	// AllowedOutboundDomains is the list of hostnames the plugin is permitted to
+	// contact via paca.fetch. Matching is exact, case-insensitive hostname match
+	// only (no wildcard support). Requests to unlisted domains are rejected.
+	AllowedOutboundDomains []string `json:"allowedOutboundDomains,omitempty"`
+	// AllowedConfigKeys is the list of host config keys the plugin may read via
+	// paca.config_get. Keys not listed here are not exposed to the plugin.
+	AllowedConfigKeys []string `json:"allowedConfigKeys,omitempty"`
 }
 
 // FrontendManifest describes the frontend (Module Federation) side of the plugin.
@@ -73,7 +81,30 @@ type FrontendManifest struct {
 // PluginRoute defines a single HTTP route exposed by the plugin backend.
 type PluginRoute struct {
 	Method string `json:"method"` // GET | POST | PATCH | PUT | DELETE
-	Path   string `json:"path"`   // relative path, e.g. "/items" or "/items/:id"
+	Path   string `json:"path"`   // relative path, e.g. "/items", "/items/:id", or "/items/*rest"
+	// Public allows anonymous access for this route (no auth middleware).
+	// Kept for backward compatibility; equivalent to an empty middleware chain.
+	Public bool `json:"public,omitempty"`
+	// Middlewares defines host-enforced middleware to apply in order for this
+	// route. If omitted (null), the host applies its default policy. An explicit
+	// empty array disables all middleware for the route.
+	Middlewares []PluginRouteMiddleware `json:"middlewares,omitempty"`
+}
+
+// PluginRouteMiddleware describes one middleware stage to enforce before the
+// plugin handler is invoked.
+type PluginRouteMiddleware struct {
+	// Name is the middleware identifier. Supported values:
+	// authn, optionalAuthn, requireFreshPassword, requireJWTAuth,
+	// requirePermissions.
+	Name string `json:"name"`
+	// Scope is used by requirePermissions: global | project.
+	Scope string `json:"scope,omitempty"`
+	// ProjectParam is the route param name for project scope resolution.
+	// Defaults to "projectId".
+	ProjectParam string `json:"projectParam,omitempty"`
+	// Permissions is used by requirePermissions, e.g. ["projects.read"].
+	Permissions []string `json:"permissions,omitempty"`
 }
 
 // ExtensionPointRegistration describes a frontend component registered into an

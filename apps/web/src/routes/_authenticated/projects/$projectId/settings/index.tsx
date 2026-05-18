@@ -9,11 +9,9 @@ import {
 	Tag,
 } from "lucide-react";
 import { useState } from "react";
-import { GitHubIcon } from "@/components/icons/github-icon";
 import { CustomFieldsSettings } from "@/components/projects/settings/CustomFieldsSettings";
 import { DangerZone } from "@/components/projects/settings/DangerZone";
 import { GeneralSettings } from "@/components/projects/settings/GeneralSettings";
-import { GitHubSettings } from "@/components/projects/settings/GitHubSettings";
 import { RolesSettings } from "@/components/projects/settings/RolesSettings";
 import { TaskStatusesSettings } from "@/components/projects/settings/TaskStatusesSettings";
 import { TaskTypesSettings } from "@/components/projects/settings/TaskTypesSettings";
@@ -56,7 +54,6 @@ const NAV_ITEMS = [
 	{ id: "task-statuses", label: "Task Statuses", icon: LayoutList },
 	{ id: "task-types", label: "Task Types", icon: Tag },
 	{ id: "custom-fields", label: "Custom Fields", icon: Plus },
-	{ id: "github", label: "GitHub", icon: GitHubIcon },
 	{ id: "danger", label: "Danger Zone", icon: AlertTriangle },
 ] as const;
 
@@ -117,7 +114,6 @@ function SettingsPage() {
 		| "task-statuses"
 		| "task-types"
 		| "custom-fields"
-		| "github"
 		| "danger"
 		| string
 	>("general");
@@ -258,9 +254,6 @@ function SettingsPage() {
 								projectId={projectId}
 								canWrite={canManageTasks}
 							/>
-						)}
-						{activeSection === "github" && (
-							<GitHubSettings projectId={projectId} canEdit={canEditProject} />
 						)}
 						{activeSection === "danger" && canDelete && (
 							<DangerZone projectId={projectId} />

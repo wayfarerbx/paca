@@ -33,7 +33,6 @@ type Deps struct {
 	Document             *handler.DocumentHandler
 	DocFile              *handler.DocFileHandler
 	Notification         *handler.NotificationHandler
-	GitHub               *handler.GitHubHandler
 	APIKey               *handler.APIKeyHandler
 	Plugin               *handler.PluginHandler
 	Log                  *slog.Logger
@@ -478,39 +477,6 @@ func New(deps Deps) *gin.Engine {
 						deps.Attachment.DeleteTaskAttachment,
 					)
 				}
-
-				// GitHub — pull requests linked to a task and branch creation
-				if deps.GitHub != nil {
-					githubTask := tasks.Group("/:taskId/github")
-					{
-						githubTask.GET("/pull-requests",
-							httpmw.RequirePublicProjectOrPermissions(deps.ProjectVisibilitySvc, deps.Authorizer,
-								httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
-								httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionTasksRead}},
-							),
-							deps.GitHub.ListTaskPRs,
-						)
-						githubTask.POST("/pull-requests",
-							httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
-							deps.GitHub.LinkPRToTask,
-						)
-						githubTask.DELETE("/pull-requests/:prId",
-							httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
-							deps.GitHub.UnlinkPRFromTask,
-						)
-						githubTask.POST("/branches",
-							httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite),
-							deps.GitHub.CreateBranch,
-						)
-						githubTask.GET("/branches",
-							httpmw.RequirePublicProjectOrPermissions(deps.ProjectVisibilitySvc, deps.Authorizer,
-								httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
-								httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionTasksRead}},
-							),
-							deps.GitHub.ListTaskBranches,
-						)
-					}
-				}
 			}
 
 			// Custom field definitions — project-level schema
@@ -672,43 +638,22 @@ func New(deps Deps) *gin.Engine {
 				}
 			}
 
-			// GitHub integration — project-level PAT and repository linking
-			if deps.GitHub != nil {
-				githubIntegration := project.Group("/github")
-				githubIntegration.Use(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionProjectsWrite))
-				{
-					githubIntegration.GET("", deps.GitHub.GetIntegration)
-					githubIntegration.PUT("/token", deps.GitHub.SetToken)
-					githubIntegration.DELETE("/token", deps.GitHub.DeleteToken)
-					githubIntegration.GET("/repositories", deps.GitHub.ListRepositories)
-					githubIntegration.GET("/linked-repositories", deps.GitHub.ListLinkedRepositories)
-					githubIntegration.POST("/linked-repositories", deps.GitHub.LinkRepository)
-					githubIntegration.DELETE("/linked-repositories/:repoId", deps.GitHub.UnlinkRepository)
-				}
-			}
-		}
-
-		// GitHub webhook — public endpoint; signature verification is done in the handler.
-		if deps.GitHub != nil {
-			v1.POST("/github/webhook", deps.GitHub.ReceiveWebhook)
 		}
 
 		// Plugin routes — management (admin), extension settings (admin), and proxy (per-plugin).
 		if deps.Plugin != nil {
 			// Public listing: any authenticated user can see installed plugins, anonymous users can also access.
-			pluginGroup := v1.Group("/plugins")
-			pluginGroup.Use(httpmw.OptionalAuthn(deps.TokenManager, deps.APIKeyAuth))
-			pluginGroup.Use(httpmw.RequireFreshPassword())
-			{
-				pluginGroup.GET("", deps.Plugin.ListPlugins)
+			pluginList := v1.Group("/plugins")
+			pluginList.Use(httpmw.OptionalAuthn(deps.TokenManager, deps.APIKeyAuth))
+			pluginList.Use(httpmw.RequireFreshPassword())
+			pluginList.GET("", deps.Plugin.ListPlugins)
 
-				// Plugin proxy routes — forward requests to plugin WASM handlers.
-				// :path is a wildcard that captures the remainder of the URL after the prefix.
-				pluginGroup.Any("/:pluginId/projects/:projectId/*path",
-					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionProjectsRead),
-					deps.Plugin.ProxyRequest,
-				)
-			}
+			// Plugin proxy routes — forward requests to plugin WASM handlers.
+			// The full sub-path (including any /projects/:projectId/ segment) is
+			// captured by the wildcard and matched against the plugin's own route
+			// manifest. Route-level authn/authz is enforced by the plugin proxy
+			// handler based on the per-route middleware declarations in the manifest.
+			v1.Any("/plugins/:pluginId/*path", deps.Plugin.ProxyRequest)
 
 			// Admin plugin management — requires global users.write permission
 			// (no dedicated plugin permission exists yet).
