@@ -8,7 +8,13 @@ Interactive diagram: [https://dbdiagram.io/d/Paca-69c212ae78c6c4bc7a4fc190](http
 
 | File | Purpose |
 |---|---|
-| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects, project roles/members, task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views`, `view_task_positions`, `custom_field_definitions`, `tasks`, `task_attachments`, `task_activities`, `doc_folders` (hierarchical folders with `parent_id` self-reference, `position`, `created_by`), `documents` (BlockNote `content` JSONB, `folder_id`, `position`, soft-delete via `deleted_at`, `created_by`/`updated_by` referencing `project_members`), `doc_snapshots` (point-in-time content copies for diff/history, `snapshot_number` auto-incremented per document via a trigger), `doc_activities` (audit log + comments), `notifications` (task-assignment and @mention notifications with `recipient_user_id`, `actor_member_id`, `type`, `read_at`), `github_integrations` (per-project encrypted GitHub PAT), `github_repositories` (linked repo + webhook metadata), `github_pull_requests` (cached PR data synced from GitHub), `github_task_pr_links` (task↔PR join table), and seed data. Note: `task_checklists`, `task_checklist_items`, and `bdd_scenarios` tables were originally here but have been migrated to the `com.paca.checklist` and `com.paca.bdd` plugins respectively. |
+| `000001_init.sql` | Full consolidated schema: `global_roles`, `users`, projects (with `task_id_prefix` for human-readable task IDs), project roles/members, task configuration (`task_types`, `task_statuses`), `sprints`, `sprint_views` (with `view_context` field), `view_task_positions`, `custom_field_definitions`, `task_counters` (tracks per-project sequential task numbers), `tasks` (with `story_points`), `files` (central file-metadata registry), `task_attachments` (now links to `files` table), `task_activities`, `doc_folders` (hierarchical folders with `parent_id` self-reference, `position`, `created_by`), `documents` (BlockNote `content` JSONB, `folder_id`, `position`, soft-delete via `deleted_at`, `created_by`/`updated_by` referencing `project_members`), `doc_snapshots` (point-in-time content copies for diff/history, `snapshot_number` auto-incremented per document via a trigger), `doc_activities` (audit log + comments), `notifications` (task-assignment and @mention notifications with `recipient_user_id`, `actor_member_id`, `type`, `read_at`), `api_keys` (user API keys for programmatic authentication), `plugins` (core plugin registry), `plugin_extension_settings` (system-wide plugin extension point configuration), and seed data. Note: `task_checklists` and `task_checklist_items` tables were originally here but have been migrated to the `com.paca.checklist` plugin via migration 000005. |
+| `000002_add_story_points.sql` | Adds `story_points` INTEGER column to the tasks table (nullable, >= 0). |
+| `000003_add_project_is_public.sql` | Adds `is_public` BOOLEAN flag to projects table for anonymous read access. |
+| `000004_add_plugins.sql` | Adds `plugins` and `plugin_extension_settings` tables for the plugin system. |
+| `000005_migrate_checklists_to_plugin.sql` | Removes legacy `task_checklists` and `task_checklist_items` tables from public schema (migrated to com.paca.checklist plugin). |
+| `000006_add_plugin_view_type.sql` | Extends sprint_views.view_type CHECK constraint to allow 'plugin' as a valid view type. |
+| `000007_remove_github_tables.sql` | Removes GitHub integration tables (`github_integrations`, `github_repositories`, `github_pull_requests`, `github_task_pr_links`, `github_task_branches`) as they have been migrated to plugins. |
 
 ## Schema (DBML)
 
@@ -37,25 +43,27 @@ Table global_roles {
 // --- PROJECT & TEAM MANAGEMENT ---
 Table projects {
   id uuid [primary key]
-  name varchar
-  description text
-  settings jsonb
-  created_by uuid
+  name varchar [not null]
+  description text [not null, default: '']
+  task_id_prefix varchar [not null, default: '', note: 'Short uppercase alphanumeric tag prepended to task_number to form human-readable task ID, e.g. "PACA" → "PACA-1"']
+  settings jsonb [not null, default: '{}']
+  is_public boolean [not null, default: false, note: 'Allows anonymous read access when true']
+  created_by uuid [ref: > users.id]
   created_at timestamp
 }
 
 Table project_roles {
   id uuid [primary key]
-  project_id uuid
+  project_id uuid [ref: > projects.id]
   role_name varchar
   permissions jsonb
 }
 
 Table project_members {
   id uuid [primary key]
-  project_id uuid
-  user_id uuid
-  project_role_id uuid
+  project_id uuid [ref: > projects.id]
+  user_id uuid [ref: > users.id]
+  project_role_id uuid [ref: > project_roles.id]
   created_at timestamp [not null]
   deleted_at timestamp [null, note: 'Soft-delete timestamp. Non-null rows are excluded from active-member queries. Re-adding a removed member restores the existing row (sets deleted_at = NULL) rather than inserting a new one.']
 
@@ -67,7 +75,7 @@ Table project_members {
 // --- TASK CONFIGURATION ---
 Table task_types {
   id uuid [primary key]
-  project_id uuid
+  project_id uuid [ref: > projects.id]
   name varchar
   icon varchar
   color varchar
@@ -78,28 +86,36 @@ Table task_types {
 
 Table task_statuses {
   id uuid [primary key]
-  project_id uuid
+  project_id uuid [ref: > projects.id]
   name varchar
   color varchar
   position integer
-  category varchar // backlog, refinement, ready, todo, inprogress, done
+  category varchar [note: 'backlog | refinement | ready | todo | inprogress | done']
+  is_default boolean [not null, default: false, note: 'True for the single default status seeded at project creation. Only one status per project should have is_default = true.']
+}
+
+// --- TASK COUNTERS ---
+Table task_counters {
+  project_id uuid [primary key, ref: > projects.id, note: 'Tracks the per-project sequential task number so that every task within a project gets a human-readable, monotonically increasing identifier.']
+  last_value bigint [not null, default: 0, note: 'The last task number assigned to a task in this project']
 }
 
 // --- TASKS ---
 Table tasks {
   id uuid [primary key]
-  project_id uuid
+  project_id uuid [ref: > projects.id]
   task_number bigint [not null, default: 0, note: 'Project-scoped sequential ID (1, 2, 3, …) assigned at creation and never reused. Unique per project via uq_tasks_project_task_number constraint.']
-  task_type_id uuid
-  status_id uuid
-  sprint_id uuid
-  parent_task_id uuid [null]
-  title varchar
+  task_type_id uuid [ref: > task_types.id]
+  status_id uuid [ref: > task_statuses.id]
+  sprint_id uuid [ref: > sprints.id]
+  parent_task_id uuid [null, ref: > tasks.id]
+  title varchar [not null]
   description jsonb [null, note: 'BlockNote rich-text document stored as a JSON array of block objects. null means no description. Each block object follows the BlockNote schema: { id, type, props, content, children }.']
   importance integer [not null, default: 0, note: 'unsigned; higher = more important']
-  assignee_id uuid
-  reporter_id uuid
-  custom_fields jsonb
+  story_points integer [null, note: 'Story point estimate; must be >= 0 if set']
+  assignee_id uuid [ref: > project_members.id]
+  reporter_id uuid [ref: > project_members.id]
+  custom_fields jsonb [not null, default: '{}']
   start_date date [null]
   due_date date [null]
   tags jsonb [not null, default: '[]']
@@ -127,7 +143,7 @@ Table custom_field_definitions {
 // --- SPRINTS & VIEWS ---
 Table sprints {
   id uuid [primary key]
-  project_id uuid
+  project_id uuid [ref: > projects.id]
   name varchar
   start_date date
   end_date date
@@ -137,12 +153,12 @@ Table sprints {
 
 Table sprint_views {
   id uuid [primary key]
-  sprint_id uuid [null, note: 'null for project-level views (backlog, timeline); set for sprint views']
+  sprint_id uuid [null, ref: > sprints.id, note: 'null for project-level views (backlog, timeline); set for sprint views']
   project_id uuid [not null, ref: > projects.id]
-  name varchar
-  view_type varchar [not null, note: 'Layout: table | board | roadmap']
+  name varchar [not null]
+  view_type varchar [not null, note: 'Layout: table | board | roadmap | plugin']
   view_context varchar [not null, note: 'Interaction discriminator: sprint | backlog | timeline. sprint rows always have sprint_id set; backlog and timeline rows have sprint_id = null.']
-  position integer [not null, default: 0, note: 'Zero-based tab order within the interaction; lower = further left in the tab bar. Updated on drag-to-reorder.']
+  position double [not null, default: 0, note: 'Zero-based tab order within the interaction; lower = further left in the tab bar. Updated on drag-to-reorder.']
   config jsonb [note: '''
     View display settings.  All keys are optional; unset keys fall back to
     per-project or system defaults.
@@ -166,6 +182,7 @@ Table sprint_views {
                                any numeric custom field key.
     slice_by    string|null    Additional filter dimension applied to the
                                visible task set.  null = no slice.
+    For plugin views: plugin_id, plugin_component are stored here.
   ''']
   created_at timestamp
   updated_at timestamp
@@ -173,9 +190,9 @@ Table sprint_views {
 
 Table view_task_positions {
   id uuid [primary key]
-  view_id uuid
-  task_id uuid
-  position integer [not null, note: 'Zero-based index within its group_key; lower = higher in list']
+  view_id uuid [ref: > sprint_views.id]
+  task_id uuid [ref: > tasks.id]
+  position double [not null, default: 0, note: 'Zero-based index within its group_key; lower = higher in list']
   group_key varchar [null, note: 'Value of the column_by field for this task (e.g. status name, assignee id) or swimlane key.  null = ungrouped.']
 
   indexes {
@@ -184,15 +201,41 @@ Table view_task_positions {
 }
 
 // --- FEATURES & UTILITIES ---
-// Note: bdd_scenarios table is owned by the com.paca.bdd plugin.
 // Note: task_checklists and task_checklist_items are owned by the com.paca.checklist plugin.
 
 Table time_logs {
   id uuid [primary key]
-  task_id uuid
-  member_id uuid
+  task_id uuid [ref: > tasks.id]
+  member_id uuid [ref: > project_members.id]
   duration_minutes integer
   logged_date date
+}
+
+// --- FILES ---
+Table files {
+  id uuid [primary key]
+  storage_key text [unique, not null, note: 'Key in the object-store (S3-compatible)']
+  bucket text [not null, note: 'S3 bucket name']
+  file_name text [not null]
+  content_type text [not null, default: 'application/octet-stream']
+  file_size bigint [not null, default: 0]
+  upload_status text [not null, default: 'pending', note: 'pending | uploaded | failed']
+  multipart_upload_id text [null, note: 'Non-null only while a multipart upload is in progress']
+  uploaded_by uuid [ref: > users.id]
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table task_attachments {
+  id uuid [primary key]
+  task_id uuid [not null, ref: > tasks.id]
+  file_id uuid [not null, ref: > files.id]
+  created_by uuid [ref: > users.id]
+  created_at timestamp [not null]
+
+  indexes {
+    (task_id, file_id) [unique]
+  }
 }
 
 // --- DOCUMENTATION ---
@@ -244,20 +287,9 @@ Table doc_activities {
 
 Table dashboards {
   id uuid [primary key]
-  project_id uuid
+  project_id uuid [ref: > projects.id]
   name varchar
   layout jsonb
-}
-
-Table task_attachments {
-  id uuid [primary key]
-  task_id uuid
-  file_name text [not null]
-  file_size bigint [not null]
-  mime_type text [not null]
-  storage_url text [not null]
-  uploaded_by uuid [null]
-  created_at timestamp
 }
 
 Table task_activities {
@@ -269,6 +301,29 @@ Table task_activities {
   created_at timestamp
   updated_at timestamp
   deleted_at timestamp [null, note: 'Soft-delete for comments']
+}
+
+// --- PLUGINS ---
+Table plugins {
+  id uuid [primary key]
+  name text [unique, not null, note: 'reverse-DNS id, e.g. "com.paca.checklist"']
+  version text [not null, default: '0.0.0', note: 'semver, e.g. "1.0.0"']
+  manifest jsonb [not null, default: '{}', note: 'Full plugin.json contents (routes, extension points, event subscriptions, etc.)']
+  enabled boolean [not null, default: true]
+  installed_at timestamp
+  updated_at timestamp
+}
+
+Table plugin_extension_settings {
+  id uuid [primary key]
+  plugin_id uuid [not null, ref: > plugins.id]
+  extension_point text [not null, note: 'Extension point identifier, e.g. "task.detail.section"']
+  settings jsonb [not null, default: '{}', note: 'System-wide ordering and visibility settings: {order, hidden}']
+  updated_at timestamp
+
+  indexes {
+    (plugin_id, extension_point) [unique]
+  }
 }
 
 // --- NOTIFICATIONS ---
@@ -283,130 +338,16 @@ Table notifications {
   created_at        timestamp
 }
 
-// --- GITHUB INTEGRATION ---
-Table github_integrations {
-  id               uuid [primary key]
-  project_id       uuid [not null, unique, ref: > projects.id]
-  access_token_enc text [not null, note: 'AES-256-GCM encrypted GitHub PAT (base64)']
-  created_at       timestamp
-  updated_at       timestamp
+// --- NOTIFICATIONS ---
+Table api_keys {
+  id uuid [primary key]
+  user_id uuid [not null, ref: > users.id]
+  name text [not null]
+  key_prefix text [not null, note: 'First 8 hex characters of the raw key, for display only']
+  key_hash text [not null, unique, note: 'SHA-256 hex digest of the raw key used for lookup/validation']
+  last_used_at timestamp [null]
+  expires_at timestamp [null]
+  created_at timestamp
+  revoked_at timestamp [null]
 }
-
-Table github_repositories {
-  id                 uuid [primary key]
-  project_id         uuid [not null, ref: > projects.id]
-  integration_id     uuid [not null, ref: > github_integrations.id]
-  owner              text [not null]
-  repo_name          text [not null]
-  full_name          text [not null, note: '"owner/repo"']
-  webhook_id         bigint [null, note: 'GitHub webhook ID; NULL until webhook is registered']
-  webhook_secret_enc text [null, note: 'AES-256-GCM encrypted HMAC secret for webhook signature verification']
-  default_branch     text [not null, default: 'main']
-  created_at         timestamp
-  updated_at         timestamp
-
-  indexes {
-    (project_id, full_name) [unique]
-  }
-}
-
-Table github_pull_requests {
-  id           uuid [primary key]
-  project_id   uuid [not null, ref: > projects.id]
-  repo_id      uuid [not null, ref: > github_repositories.id]
-  pr_number    integer [not null]
-  github_pr_id bigint [not null]
-  title        text [not null, default: '']
-  state        text [not null, default: 'open', note: 'open | closed | merged']
-  html_url     text [not null, default: '']
-  head_branch  text [not null, default: '']
-  base_branch  text [not null, default: '']
-  author       text [not null, default: '']
-  merged_at    timestamp [null]
-  created_at   timestamp
-  updated_at   timestamp
-
-  indexes {
-    (repo_id, pr_number) [unique]
-  }
-}
-
-Table github_task_pr_links {
-  id              uuid [primary key]
-  task_id         uuid [not null, ref: > tasks.id]
-  pull_request_id uuid [not null, ref: > github_pull_requests.id]
-  created_at      timestamp
-
-  indexes {
-    (task_id, pull_request_id) [unique]
-  }
-}
-
-Table github_task_branches {
-  id          uuid [primary key]
-  task_id     uuid [not null, ref: > tasks.id]
-  repo_id     uuid [not null, ref: > github_repositories.id]
-  branch_name text [not null]
-  created_at  timestamp
-
-  indexes {
-    (task_id, repo_id, branch_name) [unique]
-  }
-}
-
-// --- RELATIONSHIPS ---
-Ref: projects.id < project_members.project_id
-Ref: users.id < project_members.user_id
-Ref: project_roles.id < project_members.project_role_id
-Ref: projects.id < project_roles.project_id
-
-Ref: projects.id < task_types.project_id
-Ref: projects.id < task_statuses.project_id
-Ref: task_types.id < tasks.task_type_id
-Ref: task_statuses.id < tasks.status_id
-
-Ref: projects.id < tasks.project_id
-Ref: projects.id < sprints.project_id
-Ref: sprints.id < tasks.sprint_id
-Ref: tasks.id < tasks.parent_task_id
-Ref: tasks.id < time_logs.task_id
-Ref: tasks.id < task_activities.task_id
-Ref: projects.id < documents.project_id
-Ref: projects.id < dashboards.project_id
-Ref: projects.id < doc_folders.project_id
-Ref: doc_folders.id < doc_folders.parent_id
-Ref: doc_folders.id < documents.folder_id
-Ref: documents.id < doc_snapshots.document_id
-Ref: documents.id < doc_activities.document_id
-Ref: project_members.id < doc_folders.created_by
-Ref: project_members.id < documents.created_by
-Ref: project_members.id < documents.updated_by
-Ref: project_members.id < doc_snapshots.created_by
-Ref: project_members.id < doc_activities.actor_id
-
-Ref: users.id < projects.created_by
-Ref: project_members.id < time_logs.member_id
-Ref: project_members.id < task_activities.member_id
-Ref: project_members.id < tasks.assignee_id
-Ref: project_members.id < tasks.reporter_id
-Ref: tasks.id < task_attachments.task_id
-Ref: project_members.id < task_attachments.uploaded_by
-Ref: sprints.id < sprint_views.sprint_id
-Ref: sprint_views.id < view_task_positions.view_id
-Ref: tasks.id < view_task_positions.task_id
-
-Ref: users.id < notifications.recipient_user_id
-Ref: project_members.id < notifications.actor_member_id
-Ref: tasks.id < notifications.task_id
-Ref: projects.id < notifications.project_id
-
-Ref: projects.id < github_integrations.project_id
-Ref: projects.id < github_repositories.project_id
-Ref: github_integrations.id < github_repositories.integration_id
-Ref: projects.id < github_pull_requests.project_id
-Ref: github_repositories.id < github_pull_requests.repo_id
-Ref: tasks.id < github_task_pr_links.task_id
-Ref: github_pull_requests.id < github_task_pr_links.pull_request_id
-Ref: tasks.id < github_task_branches.task_id
-Ref: github_repositories.id < github_task_branches.repo_id
 ```
