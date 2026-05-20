@@ -1,0 +1,75 @@
+package agentdom
+
+import (
+	"context"
+
+	"github.com/google/uuid"
+)
+
+// Repository is the storage contract for agent aggregates.
+type Repository interface {
+	AgentRepository
+	MCPServerRepository
+	SkillRepository
+	ConversationRepository
+	ChatSessionRepository
+}
+
+// AgentRepository defines storage operations for agents.
+type AgentRepository interface {
+	ListAgents(ctx context.Context, projectID uuid.UUID) ([]*Agent, error)
+	FindAgentByID(ctx context.Context, id uuid.UUID) (*Agent, error)
+	FindAgentByHandle(ctx context.Context, projectID uuid.UUID, handle string) (*Agent, error)
+	CreateAgent(ctx context.Context, a *Agent) error
+	UpdateAgent(ctx context.Context, a *Agent) error
+	SoftDeleteAgent(ctx context.Context, id uuid.UUID) error
+	// SetMemberID sets the project_members.id for an agent after it has been added.
+	SetAgentMemberID(ctx context.Context, agentID, memberID uuid.UUID) error
+}
+
+// MCPServerRepository defines storage for agent MCP server configurations.
+type MCPServerRepository interface {
+	ListMCPServers(ctx context.Context, agentID uuid.UUID) ([]*AgentMCPServer, error)
+	FindMCPServerByID(ctx context.Context, id uuid.UUID) (*AgentMCPServer, error)
+	CreateMCPServer(ctx context.Context, s *AgentMCPServer) error
+	UpdateMCPServer(ctx context.Context, s *AgentMCPServer) error
+	DeleteMCPServer(ctx context.Context, id uuid.UUID) error
+}
+
+// SkillRepository defines storage for agent skills.
+type SkillRepository interface {
+	ListSkills(ctx context.Context, agentID uuid.UUID) ([]*AgentSkill, error)
+	FindSkillByID(ctx context.Context, id uuid.UUID) (*AgentSkill, error)
+	CreateSkill(ctx context.Context, s *AgentSkill) error
+	UpdateSkill(ctx context.Context, s *AgentSkill) error
+	DeleteSkill(ctx context.Context, id uuid.UUID) error
+}
+
+// ConversationRepository defines storage for agent conversations.
+type ConversationRepository interface {
+	ListConversations(ctx context.Context, in ListConversationsFilter) ([]*AgentConversation, int64, error)
+	FindConversationByID(ctx context.Context, id uuid.UUID) (*AgentConversation, error)
+	CreateConversation(ctx context.Context, c *AgentConversation) error
+	UpdateConversationStatus(ctx context.Context, id uuid.UUID, status string) error
+	UpdateConversation(ctx context.Context, c *AgentConversation) error
+	ListConversationEvents(ctx context.Context, conversationID uuid.UUID, offset, limit int) ([]*AgentConversationEvent, int64, error)
+	CreateConversationEvent(ctx context.Context, e *AgentConversationEvent) error
+}
+
+// ChatSessionRepository defines storage for agent chat sessions.
+type ChatSessionRepository interface {
+	ListChatSessions(ctx context.Context, agentID, memberID uuid.UUID) ([]*AgentChatSession, error)
+	FindChatSessionByID(ctx context.Context, id uuid.UUID) (*AgentChatSession, error)
+	CreateChatSession(ctx context.Context, s *AgentChatSession) error
+	UpdateChatSession(ctx context.Context, s *AgentChatSession) error
+}
+
+// ListConversationsFilter carries optional filters for listing conversations.
+type ListConversationsFilter struct {
+	AgentID   *uuid.UUID
+	ProjectID *uuid.UUID
+	TaskID    *uuid.UUID
+	Status    *string
+	Limit     int
+	Offset    int
+}

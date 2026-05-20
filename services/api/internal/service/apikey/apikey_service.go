@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
 	"strings"
@@ -23,12 +24,25 @@ const (
 
 // Service is the concrete implementation of apikeydom.Service.
 type Service struct {
-	repo apikeydom.Repository
+	repo           apikeydom.Repository
+	agentKeyHash   [32]byte  // SHA-256 of the configured static agent API key
+	agentKeySet    bool      // true when an agent API key has been configured
+	agentBotUserID uuid.UUID // user identity returned for the static agent key
 }
 
 // New returns a configured API key Service.
 func New(repo apikeydom.Repository) *Service {
 	return &Service{repo: repo}
+}
+
+// WithAgentKey configures a static pre-shared key for the AI agent service.
+// When rawKey is presented to Authenticate it is validated in constant time
+// without a database lookup, and the request is authenticated as agentUserID.
+func (s *Service) WithAgentKey(rawKey string, agentUserID uuid.UUID) *Service {
+	s.agentKeyHash = sha256.Sum256([]byte(rawKey))
+	s.agentBotUserID = agentUserID
+	s.agentKeySet = true
+	return s
 }
 
 // List returns all non-revoked API keys for the given user.
@@ -86,9 +100,21 @@ func (s *Service) Revoke(ctx context.Context, userID, keyID uuid.UUID) error {
 }
 
 // Authenticate validates a raw API key and returns the matching record.
-// It also performs a best-effort update of last_used_at. Any update error is
+// If a static agent API key has been configured via WithAgentKey, it is
+// checked first in constant time without a database lookup.
+// For all other keys a SHA-256 hash lookup is performed against the database.
+// A best-effort update of last_used_at is performed; any update error is
 // ignored so authentication does not fail due to last_used_at persistence.
 func (s *Service) Authenticate(ctx context.Context, rawKey string) (*apikeydom.APIKey, error) {
+	// Check static agent key first — constant-time comparison to prevent
+	// timing attacks.
+	if s.agentKeySet {
+		h := sha256.Sum256([]byte(rawKey))
+		if subtle.ConstantTimeCompare(h[:], s.agentKeyHash[:]) == 1 {
+			return &apikeydom.APIKey{UserID: s.agentBotUserID}, nil
+		}
+	}
+
 	hash := sha256.Sum256([]byte(rawKey))
 	keyHash := hex.EncodeToString(hash[:])
 

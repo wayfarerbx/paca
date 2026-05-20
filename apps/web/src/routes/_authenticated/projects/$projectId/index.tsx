@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
+	Bot,
 	BookOpen,
 	FileText,
 	LayoutDashboard,
@@ -53,6 +54,12 @@ const PROJECT_PAGES = [
 		icon: FileText,
 		label: "Docs",
 		description: "Project documentation",
+	},
+	{
+		to: "/projects/$projectId/agents",
+		icon: Bot,
+		label: "Agents",
+		description: "AI agents & conversations",
 	},
 	{
 		to: "/projects/$projectId/team",

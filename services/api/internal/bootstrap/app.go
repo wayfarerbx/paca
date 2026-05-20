@@ -24,6 +24,7 @@ import (
 	jwttoken "github.com/Paca-AI/api/internal/platform/token"
 	pgRepo "github.com/Paca-AI/api/internal/repository/postgres"
 	redisRepo "github.com/Paca-AI/api/internal/repository/redis"
+	agentsvc "github.com/Paca-AI/api/internal/service/agent"
 	apikeysvc "github.com/Paca-AI/api/internal/service/apikey"
 	attachmentsvc "github.com/Paca-AI/api/internal/service/attachment"
 	authsvc "github.com/Paca-AI/api/internal/service/auth"
@@ -44,6 +45,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
+
+// agentBotUserID is the fixed UUID of the built-in agent bot user seeded on
+// startup.  The AI agent service authenticates as this user when it presents
+// the AGENT_API_KEY configured in the SecurityConfig.
+var agentBotUserID = uuid.MustParse("00000000-0000-0000-0000-000000000002")
 
 // App holds the HTTP server and any resources that need graceful shutdown.
 type App struct {
@@ -120,6 +126,9 @@ func New(cfg *config.Config) (*App, error) {
 	if err := seedAdmin(context.Background(), userRepo, globalRoleRepo, cfg.Admin, log); err != nil {
 		return nil, fmt.Errorf("bootstrap: %w", err)
 	}
+	if err := seedAgentBotUser(context.Background(), userRepo, globalRoleRepo, log); err != nil {
+		return nil, fmt.Errorf("bootstrap: %w", err)
+	}
 
 	// --- Services -----------------------------------------------------------
 	authService := authsvc.New(userRepo, tokenManager, refreshStore, cfg.JWT.RefreshTTL, cfg.JWT.RefreshSessionTTL)
@@ -130,7 +139,9 @@ func New(cfg *config.Config) (*App, error) {
 	sprintService := sprintsvc.NewCachedSprintService(sprintsvc.New(sprintRepo, taskRepo), cacheStore, cfg.Cache.SprintTTL, log)
 	viewService := sprintsvc.NewCachedViewService(sprintsvc.NewViewService(viewRepo), cacheStore, cfg.Cache.SprintTTL, log)
 	notificationService := notificationsvc.New(notificationRepo, projectRepo, publisher)
-	notificationConsumer := worker.NewNotificationConsumer(redisClient, notificationService, log)
+	agentRepo := pgRepo.NewAgentRepository(db)
+	agentService := agentsvc.New(agentRepo, projectRepo, publisher)
+	notificationConsumer := worker.NewNotificationConsumer(redisClient, notificationService, log, projectRepo, agentService)
 	activityService := tasksvc.NewActivityService(activityRepo, projectRepo, publisher).
 		WithNotificationService(notificationService)
 	activityConsumer := worker.NewActivityConsumer(redisClient, activityRepo, projectRepo, log)
@@ -162,6 +173,11 @@ func New(cfg *config.Config) (*App, error) {
 	// --- API Key management -------------------------------------------------
 	apiKeyRepo := pgRepo.NewAPIKeyRepository(db)
 	apiKeyService := apikeysvc.New(apiKeyRepo)
+	// Configure the static agent API key so the AI agent service can
+	// authenticate without a database-stored key entry.
+	if cfg.Security.AgentAPIKey != "" {
+		apiKeyService.WithAgentKey(cfg.Security.AgentAPIKey, agentBotUserID)
+	}
 
 	// --- Plugin infrastructure ----------------------------------------------
 	// Get the underlying *sql.DB for plugin-scoped operations (migration runner
@@ -223,6 +239,9 @@ func New(cfg *config.Config) (*App, error) {
 		WithRouteAuth(tokenManager, apiKeyService, authorizer).
 		WithMarketplace(marketplaceClient, pluginInstaller, pluginMigrationRunner)
 
+	agentHandler := handler.NewAgentHandler(agentService, cfg.AIAgentURL)
+	convHandler := handler.NewConversationHandler(agentService)
+
 	// --- Handlers -----------------------------------------------------------
 	cookieCfg := handler.CookieConfig{
 		Secure:            cfg.Server.CookieSecure,
@@ -251,6 +270,8 @@ func New(cfg *config.Config) (*App, error) {
 		Notification: handler.NewNotificationHandler(notificationService),
 		APIKey:       handler.NewAPIKeyHandler(apiKeyService),
 		Plugin:       pluginHandler,
+		Agent:        agentHandler,
+		Conversation: convHandler,
 		Log:          log,
 	}
 
@@ -353,6 +374,47 @@ func seedAdmin(ctx context.Context, repo userdom.Repository, globalRoleRepo *pgR
 	}
 
 	log.Info("admin account created", "username", cfg.Username)
+	return nil
+}
+
+// seedAgentBotUser ensures the built-in agent bot user exists in the database.
+// This user has the SUPER_ADMIN global role and is used as the identity for
+// requests authenticated via AGENT_API_KEY.  The bot can never log in with a
+// password because its password_hash is set to an invalid value.
+func seedAgentBotUser(ctx context.Context, repo userdom.Repository, globalRoleRepo *pgRepo.GlobalRoleRepository, log *slog.Logger) error {
+	_, err := repo.FindByUsernameIncludingDeleted(ctx, "_paca_agent_bot")
+	if err == nil {
+		// Already exists — nothing to do.
+		return nil
+	}
+	if !errors.Is(err, userdom.ErrNotFound) {
+		return fmt.Errorf("seed agent bot: lookup: %w", err)
+	}
+
+	superAdminRole, err := globalRoleRepo.FindByName(ctx, "SUPER_ADMIN")
+	if err != nil {
+		return fmt.Errorf("seed agent bot: find SUPER_ADMIN role: %w", err)
+	}
+
+	now := time.Now()
+	bot := &userdom.User{
+		ID:           agentBotUserID,
+		Username:     "_paca_agent_bot",
+		PasswordHash: "!", // intentionally invalid — bot cannot log in with a password
+		FullName:     "Paca Agent Bot",
+		RoleID:       superAdminRole.ID,
+		Role:         superAdminRole.Name,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+	if err := repo.Create(ctx, bot); err != nil {
+		return fmt.Errorf("seed agent bot: create: %w", err)
+	}
+	if err := globalRoleRepo.ReplaceUserRoles(ctx, bot.ID, []uuid.UUID{superAdminRole.ID}); err != nil {
+		return fmt.Errorf("seed agent bot: assign SUPER_ADMIN: %w", err)
+	}
+
+	log.Info("agent bot user created")
 	return nil
 }
 

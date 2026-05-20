@@ -222,6 +222,31 @@ const (
 	CodePluginAlreadyUpToDate Code = "PLUGIN_ALREADY_UP_TO_DATE"
 	// CodePluginDowngradeNotAllowed indicates the marketplace version is older than the installed version.
 	CodePluginDowngradeNotAllowed Code = "PLUGIN_DOWNGRADE_NOT_ALLOWED"
+
+	// --- Agent errors -------------------------------------------------------
+
+	// CodeAgentNotFound indicates the requested agent does not exist.
+	CodeAgentNotFound Code = "AGENT_NOT_FOUND"
+	// CodeAgentHandleTaken indicates the handle is already in use.
+	CodeAgentHandleTaken Code = "AGENT_HANDLE_TAKEN"
+	// CodeAgentHandleInvalid indicates the handle is empty or malformed.
+	CodeAgentHandleInvalid Code = "AGENT_HANDLE_INVALID"
+	// CodeAgentNameInvalid indicates the agent name is empty or invalid.
+	CodeAgentNameInvalid Code = "AGENT_NAME_INVALID"
+	// CodeAgentTypeNotFound indicates the requested agent type does not exist.
+	CodeAgentTypeNotFound Code = "AGENT_TYPE_NOT_FOUND"
+	// CodeAgentMCPServerNotFound indicates the requested MCP server does not exist.
+	CodeAgentMCPServerNotFound Code = "AGENT_MCP_SERVER_NOT_FOUND"
+	// CodeAgentSkillNotFound indicates the requested skill does not exist.
+	CodeAgentSkillNotFound Code = "AGENT_SKILL_NOT_FOUND"
+	// CodeAgentConversationNotFound indicates the requested conversation does not exist.
+	CodeAgentConversationNotFound Code = "AGENT_CONVERSATION_NOT_FOUND"
+	// CodeAgentConversationNotRunning indicates the conversation is not in a runnable state.
+	CodeAgentConversationNotRunning Code = "AGENT_CONVERSATION_NOT_RUNNING"
+	// CodeAgentConversationAlreadyStopped indicates the conversation is already stopped/finished.
+	CodeAgentConversationAlreadyStopped Code = "AGENT_CONVERSATION_ALREADY_STOPPED"
+	// CodeAgentChatSessionNotFound indicates the requested chat session does not exist.
+	CodeAgentChatSessionNotFound Code = "AGENT_CHAT_SESSION_NOT_FOUND"
 )
 
 // Error carries a machine-readable Code alongside a human-readable Message.

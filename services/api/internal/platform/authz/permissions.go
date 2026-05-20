@@ -42,4 +42,8 @@ const (
 	PermissionDocsRead  Permission = "docs.read"
 	PermissionDocsWrite Permission = "docs.write"
 	PermissionDocsAll   Permission = "docs.*"
+
+	PermissionAgentsRead  Permission = "agents.read"
+	PermissionAgentsWrite Permission = "agents.write"
+	PermissionAgentsAll   Permission = "agents.*"
 )

@@ -1,4 +1,5 @@
 import {
+	Bot,
 	BookOpen,
 	Layers,
 	ListTodo,
@@ -100,6 +101,19 @@ export const PROJECT_KNOWN_PERMISSIONS: KnownPermission[] = [
 		description: "Create, update, and delete documents and folders",
 		domain: "docs",
 	},
+	// agents
+	{
+		key: "agents.read",
+		label: "View Agents",
+		description: "Browse AI agents and view their configuration",
+		domain: "agents",
+	},
+	{
+		key: "agents.write",
+		label: "Manage Agents",
+		description: "Create, configure, and delete AI agents",
+		domain: "agents",
+	},
 ];
 
 export interface PermissionGroup {
@@ -115,4 +129,5 @@ export const PROJECT_PERMISSION_GROUPS: PermissionGroup[] = [
 	{ domain: "tasks", label: "Tasks", Icon: ListTodo },
 	{ domain: "sprints", label: "Sprints", Icon: Layers },
 	{ domain: "docs", label: "Documents", Icon: BookOpen },
+	{ domain: "agents", label: "AI Agents", Icon: Bot },
 ];

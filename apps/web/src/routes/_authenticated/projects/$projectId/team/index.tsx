@@ -491,6 +491,7 @@ function MemberRow({
 }) {
 	const display = member.full_name || member.username;
 	const isBot =
+		member.member_type === "agent" ||
 		member.username.startsWith("bot-") ||
 		member.role_name.toLowerCase().includes("agent");
 

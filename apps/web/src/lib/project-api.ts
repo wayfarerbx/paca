@@ -31,6 +31,10 @@ export interface ProjectMember {
 	username: string;
 	full_name: string;
 	role_name: string;
+	member_type?: string; // "human" | "agent"
+	agent_id?: string;
+	agent_name?: string;
+	agent_handle?: string;
 }
 
 export interface ProjectRole {

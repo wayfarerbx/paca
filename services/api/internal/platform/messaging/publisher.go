@@ -76,5 +76,24 @@ func (p *Publisher) Append(ctx context.Context, stream, eventType string, payloa
 	return nil
 }
 
+// AppendFlat appends a message to a Valkey Stream writing the provided fields
+// directly as top-level stream entry fields (i.e. not JSON-encoded under a
+// "payload" key). Use this when the consumer (e.g. services/ai-agent) reads
+// the individual fields without further deserialization.
+func (p *Publisher) AppendFlat(ctx context.Context, stream string, fields map[string]any) error {
+	if p == nil || p.client == nil {
+		return errors.New("messaging: publisher not initialized")
+	}
+
+	if err := p.client.XAdd(ctx, &redis.XAddArgs{
+		Stream: stream,
+		Values: fields,
+	}).Err(); err != nil {
+		return fmt.Errorf("messaging: append flat to %q: %w", stream, err)
+	}
+
+	return nil
+}
+
 // Close is a no-op; the Valkey client lifecycle is managed by the owner.
 func (p *Publisher) Close() {}

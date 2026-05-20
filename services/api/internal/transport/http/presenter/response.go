@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/Paca-AI/api/internal/apierr"
+	agentdom "github.com/Paca-AI/api/internal/domain/agent"
 	apikeydom "github.com/Paca-AI/api/internal/domain/apikey"
 	attachmentdom "github.com/Paca-AI/api/internal/domain/attachment"
 	domainauth "github.com/Paca-AI/api/internal/domain/auth"
@@ -243,6 +244,27 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusNotFound, apierr.CodePluginNotFound
 	case errors.Is(err, pluginom.ErrNameTaken):
 		return http.StatusConflict, apierr.CodePluginNameTaken
+	// --- Agent errors -------------------------------------------------------
+	case errors.Is(err, agentdom.ErrAgentNotFound):
+		return http.StatusNotFound, apierr.CodeAgentNotFound
+	case errors.Is(err, agentdom.ErrAgentHandleTaken):
+		return http.StatusConflict, apierr.CodeAgentHandleTaken
+	case errors.Is(err, agentdom.ErrAgentHandleInvalid):
+		return http.StatusBadRequest, apierr.CodeAgentHandleInvalid
+	case errors.Is(err, agentdom.ErrAgentNameInvalid):
+		return http.StatusBadRequest, apierr.CodeAgentNameInvalid
+	case errors.Is(err, agentdom.ErrMCPServerNotFound):
+		return http.StatusNotFound, apierr.CodeAgentMCPServerNotFound
+	case errors.Is(err, agentdom.ErrSkillNotFound):
+		return http.StatusNotFound, apierr.CodeAgentSkillNotFound
+	case errors.Is(err, agentdom.ErrConversationNotFound):
+		return http.StatusNotFound, apierr.CodeAgentConversationNotFound
+	case errors.Is(err, agentdom.ErrConversationNotRunning):
+		return http.StatusConflict, apierr.CodeAgentConversationNotRunning
+	case errors.Is(err, agentdom.ErrConversationAlreadyStopped):
+		return http.StatusConflict, apierr.CodeAgentConversationAlreadyStopped
+	case errors.Is(err, agentdom.ErrChatSessionNotFound):
+		return http.StatusNotFound, apierr.CodeAgentChatSessionNotFound
 	default:
 		return http.StatusInternalServerError, apierr.CodeInternalError
 	}
@@ -380,6 +402,18 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodePluginAlreadyUpToDate,
 		apierr.CodePluginDowngradeNotAllowed:
 		return http.StatusConflict
+	case apierr.CodeAgentNotFound,
+		apierr.CodeAgentMCPServerNotFound,
+		apierr.CodeAgentSkillNotFound,
+		apierr.CodeAgentConversationNotFound,
+		apierr.CodeAgentChatSessionNotFound:
+		return http.StatusNotFound
+	case apierr.CodeAgentHandleTaken,
+		apierr.CodeAgentConversationNotRunning,
+		apierr.CodeAgentConversationAlreadyStopped:
+		return http.StatusConflict
+	case apierr.CodeAgentHandleInvalid, apierr.CodeAgentNameInvalid:
+		return http.StatusBadRequest
 	case apierr.CodeBadRequest:
 		return http.StatusBadRequest
 	case apierr.CodePasswordChangeRequired:

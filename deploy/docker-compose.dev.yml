@@ -78,6 +78,10 @@ services:
       STORAGE_USE_SSL: "false"
       # Encryption key for sensitive values (plugin tokens/secrets).
       ENCRYPTION_KEY: "3b4a93a4f2ffa732a5f7cf44b9a37050e49f5f9c3f105c3995432b9dd49e28ac"
+      # Pre-shared key for the AI agent service to authenticate with the API
+      # without a database-stored API key.  Must match PACA_API_KEY in the
+      # ai-agent service.
+      AGENT_API_KEY: dev-agent-api-key-change-in-production
       # Public base URL used by plugins to generate callback/webhook URLs.
       PUBLIC_URL: http://localhost
       # Plugin subsystem — load WASM binaries + migrations from the local plugin store.
@@ -185,6 +189,39 @@ services:
       timeout: 5s
       retries: 10
 
+  ai-agent:
+    build:
+      context: ../services/ai-agent
+      dockerfile: Dockerfile.dev
+    environment:
+      VALKEY_URL: redis://valkey:6379/0
+      DATABASE_URL: postgres://paca:paca@postgres:5432/paca
+      INTERNAL_API_KEY: dev-internal-key-change-in-production
+      API_BASE_URL: http://api:8080
+      # API key for the built-in Paca MCP server.  Must match AGENT_API_KEY in
+      # the api service so the AI agent can authenticate via the MCP.
+      PACA_API_KEY: dev-agent-api-key-change-in-production
+      DOCKER_SOCKET: /var/run/docker.sock
+      AGENT_SERVER_IMAGE: ghcr.io/openhands/agent-server:latest-python
+      CONVERSATION_PERSISTENCE_ROOT: /data/conversations
+      PORT_POOL_START: "10000"
+      PORT_POOL_SIZE: "100"
+      WORKER_CONCURRENCY: "5"
+      LOG_LEVEL: INFO
+    volumes:
+      - ../services/ai-agent:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ai_agent_conversations:/data/conversations
+    ports:
+      - "8082:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+      api:
+        condition: service_started
+
 volumes:
   postgres_data:
   valkey_data:
@@ -193,3 +230,4 @@ volumes:
   bun_cache:
   minio_data:
   realtime_node_modules:
+  ai_agent_conversations:

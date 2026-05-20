@@ -8,6 +8,7 @@ import {
 import {
 	ArrowLeft,
 	BookOpen,
+	Bot,
 	ChevronDown,
 	ChevronRight,
 	File,
@@ -842,6 +843,7 @@ function NavItem({
 // ── Project Nav ───────────────────────────────────────────────────────────────
 const PROJECT_NAV_ITEMS = [
 	{ segment: "", icon: LayoutDashboard, label: "Dashboard" },
+	{ segment: "agents", icon: Bot, label: "Agents" },
 	{ segment: "team", icon: Users, label: "Team" },
 	{ segment: "settings", icon: Settings, label: "Settings" },
 ] as const;
@@ -867,7 +869,7 @@ function ProjectNav() {
 	);
 }
 
-const ANON_HIDDEN_SEGMENTS = new Set(["team", "settings"]);
+const ANON_HIDDEN_SEGMENTS = new Set(["agents", "team", "settings"]);
 
 function ProjectNavItems({
 	projectId,

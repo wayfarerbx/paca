@@ -5,16 +5,17 @@ import "time"
 
 // Config holds all runtime configuration for the service.
 type Config struct {
-	Server   ServerConfig
-	Database DatabaseConfig
-	Redis    RedisConfig
-	Cache    CacheConfig
-	JWT      JWTConfig
-	Admin    AdminConfig
-	Storage  StorageConfig
-	Security SecurityConfig
-	Plugins  PluginsConfig
-	Env      string // development | production
+	Server     ServerConfig
+	Database   DatabaseConfig
+	Redis      RedisConfig
+	Cache      CacheConfig
+	JWT        JWTConfig
+	Admin      AdminConfig
+	Storage    StorageConfig
+	Security   SecurityConfig
+	Plugins    PluginsConfig
+	AIAgentURL string // base URL of the ai-agent service, e.g. http://ai-agent:8080
+	Env        string // development | production
 }
 
 // ServerConfig holds HTTP server settings.
@@ -136,4 +137,11 @@ type SecurityConfig struct {
 	// EncryptionKey is a 32-byte AES-256 key (hex-encoded) used to encrypt
 	// sensitive data at rest.
 	EncryptionKey string
+
+	// AgentAPIKey is a pre-shared secret that the AI agent service uses to
+	// authenticate against the Paca API.  When set, the API accepts this key
+	// via the X-API-Key header and authenticates the request as the built-in
+	// agent bot user — no database lookup is required.
+	// Configure via the AGENT_API_KEY environment variable.
+	AgentAPIKey string
 }

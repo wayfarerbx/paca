@@ -69,4 +69,36 @@ const (
 	// notification is created.  The payload includes recipient_user_id so the
 	// realtime service can route the event to the correct user room.
 	TopicNotificationCreated = "notification.created"
+
+	// --- Agent trigger events -----------------------------------------------
+	// These are appended to StreamAgentTriggers and consumed by services/ai-agent.
+	TopicAgentTaskAssigned   = "agent.task_assigned"
+	TopicAgentCommentMention = "agent.comment_mention"
+	TopicAgentChatMessage    = "agent.chat_message"
+	TopicAgentPause          = "agent.pause"
+	TopicAgentResume         = "agent.resume"
+	TopicAgentStop           = "agent.stop"
+
+	// --- Agent event topics (emitted by ai-agent, consumed by realtime) ------
+	TopicAgentConversationStarted  = "agent.conversation.started"
+	TopicAgentConversationFinished = "agent.conversation.finished"
+	TopicAgentConversationFailed   = "agent.conversation.failed"
+	TopicAgentConversationPaused   = "agent.conversation.paused"
+	TopicAgentConversationResumed  = "agent.conversation.resumed"
+	TopicAgentConversationStopped  = "agent.conversation.stopped"
+	TopicAgentThinkingEvent        = "agent.thinking"
+	TopicAgentActionEvent          = "agent.action"
+	TopicAgentObservationEvent     = "agent.observation"
+	TopicAgentMessageEvent         = "agent.message"
+)
+
+// Streams for AI Agent pipeline.
+const (
+	// StreamAgentTriggers is the Valkey Stream key that services/api publishes
+	// trigger events to. services/ai-agent consumes with consumer group "ai-agent-workers".
+	StreamAgentTriggers = "paca:agent:triggers"
+
+	// StreamAgentEvents is the Valkey Stream key that services/ai-agent publishes
+	// conversation events to. services/realtime consumes and fans out to Socket.IO.
+	StreamAgentEvents = "paca:agent:events"
 )

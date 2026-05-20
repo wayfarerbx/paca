@@ -46,6 +46,12 @@ function projectPermissionBadgeClass(key: string): string {
 	if (domain === "sprints") {
 		return "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-700/30";
 	}
+	if (domain === "docs") {
+		return "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-700/30";
+	}
+	if (domain === "agents") {
+		return "bg-pink-50 text-pink-700 border-pink-200 dark:bg-pink-900/20 dark:text-pink-400 dark:border-pink-700/30";
+	}
 	return "bg-muted text-muted-foreground border-border";
 }
 

@@ -161,6 +161,9 @@ func Load() (*Config, error) {
 			// representing 32 bytes (AES-256).
 			// Backward compatibility: fall back to legacy GITHUB_ENCRYPTION_KEY.
 			EncryptionKey: env("ENCRYPTION_KEY", env("GITHUB_ENCRYPTION_KEY", "")),
+			// AGENT_API_KEY is optional; when set the API accepts it as a
+			// static service key for the AI agent without a DB lookup.
+			AgentAPIKey: env("AGENT_API_KEY", ""),
 		},
 		Plugins: PluginsConfig{
 			// PLUGINS_STORE controls where WASM binaries are loaded from.
@@ -174,6 +177,7 @@ func Load() (*Config, error) {
 			MarketplaceCatalogURL: env("PLUGINS_MARKETPLACE_CATALOG_URL", "https://raw.githubusercontent.com/Paca-AI/paca-plugins/master/catalog/plugins.json"),
 			MarketplaceTimeout:    marketplaceTimeout,
 		},
+		AIAgentURL: env("AI_AGENT_URL", "http://ai-agent:8080"),
 	}, nil
 }
 

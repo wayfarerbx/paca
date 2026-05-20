@@ -34,3 +34,6 @@ playwright
 
 # Local plugin development artifacts
 plugins/local
+
+# Python artifacts
+__pycache__/

@@ -35,6 +35,8 @@ type Deps struct {
 	Notification         *handler.NotificationHandler
 	APIKey               *handler.APIKeyHandler
 	Plugin               *handler.PluginHandler
+	Agent                *handler.AgentHandler
+	Conversation         *handler.ConversationHandler
 	Log                  *slog.Logger
 }
 
@@ -166,6 +168,17 @@ func New(deps Deps) *gin.Engine {
 				httpmw.RequirePermissions(deps.Authorizer, httpmw.GlobalScope(), authz.PermissionProjectsCreate),
 				deps.Project.CreateProject,
 			)
+		}
+
+		// LLM models — returns verified provider/model list from the ai-agent service.
+		// Accessible to any authenticated user; no project scope required.
+		if deps.Agent != nil {
+			agentsGlobal := v1.Group("/agents")
+			agentsGlobal.Use(httpmw.Authn(deps.TokenManager, deps.APIKeyAuth))
+			agentsGlobal.Use(httpmw.RequireFreshPassword())
+			{
+				agentsGlobal.GET("/llm-models", deps.Agent.GetLLMModels)
+			}
 		}
 
 		// Single-project routes — use optional auth so anonymous users can access
@@ -638,6 +651,117 @@ func New(deps Deps) *gin.Engine {
 				}
 			}
 
+		}
+
+		// Agent routes — AI agent management and conversations
+		if deps.Agent != nil {
+			agents := project.Group("/agents")
+			{
+				agents.GET("",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsRead),
+					deps.Agent.ListAgents,
+				)
+				agents.POST("",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsWrite),
+					deps.Agent.CreateAgent,
+				)
+				agents.GET("/:agentId",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsRead),
+					deps.Agent.GetAgent,
+				)
+				agents.PATCH("/:agentId",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsWrite),
+					deps.Agent.UpdateAgent,
+				)
+				agents.DELETE("/:agentId",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsWrite),
+					deps.Agent.DeleteAgent,
+				)
+
+				// MCP servers
+				agents.GET("/:agentId/mcp-servers",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsRead),
+					deps.Agent.ListMCPServers,
+				)
+				agents.POST("/:agentId/mcp-servers",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsWrite),
+					deps.Agent.AddMCPServer,
+				)
+				agents.PATCH("/:agentId/mcp-servers/:serverId",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsWrite),
+					deps.Agent.UpdateMCPServer,
+				)
+				agents.DELETE("/:agentId/mcp-servers/:serverId",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsWrite),
+					deps.Agent.DeleteMCPServer,
+				)
+
+				// Skills
+				agents.GET("/:agentId/skills",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsRead),
+					deps.Agent.ListSkills,
+				)
+				agents.POST("/:agentId/skills",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsWrite),
+					deps.Agent.AddSkill,
+				)
+				agents.PATCH("/:agentId/skills/:skillId",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsWrite),
+					deps.Agent.UpdateSkill,
+				)
+				agents.DELETE("/:agentId/skills/:skillId",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsWrite),
+					deps.Agent.DeleteSkill,
+				)
+
+				// Chat sessions
+				agents.GET("/:agentId/chat-sessions",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsRead),
+					deps.Agent.ListChatSessions,
+				)
+				agents.POST("/:agentId/chat-sessions",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsRead),
+					deps.Agent.StartChatSession,
+				)
+				agents.POST("/:agentId/chat-sessions/:sessionId/messages",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsRead),
+					deps.Agent.SendChatMessage,
+				)
+			}
+		}
+
+		if deps.Conversation != nil {
+			conversations := project.Group("/conversations")
+			{
+				conversations.GET("",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsRead),
+					deps.Conversation.ListConversations,
+				)
+				conversations.GET("/:conversationId",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsRead),
+					deps.Conversation.GetConversation,
+				)
+				conversations.GET("/:conversationId/events",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsRead),
+					deps.Conversation.ListConversationEvents,
+				)
+				conversations.POST("/:conversationId/pause",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsWrite),
+					deps.Conversation.PauseConversation,
+				)
+				conversations.POST("/:conversationId/resume",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsWrite),
+					deps.Conversation.ResumeConversation,
+				)
+				conversations.POST("/:conversationId/stop",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsWrite),
+					deps.Conversation.StopConversation,
+				)
+				conversations.POST("/:conversationId/messages",
+					httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsRead),
+					deps.Conversation.SendConversationMessage,
+				)
+			}
 		}
 
 		// Plugin routes — management (admin), extension settings (admin), and proxy (per-plugin).
