@@ -17,6 +17,7 @@ import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { useThemeMode } from "@/hooks/use-theme-mode";
 import { getDocFileDownloadURL, uploadDocFile } from "@/lib/doc-api";
 import { useMentionData } from "@/lib/mention-api";
+import { cleanBlocks } from "@/lib/utils";
 
 /** Custom URI scheme used to store doc file references in the block content. */
 const DOC_FILE_SCHEME = "docfile://";
@@ -52,6 +53,7 @@ export const DocEditor = forwardRef<DocEditorHandle, DocEditorProps>(
 		const initializedRef = useRef(false);
 		const localSaveRef = useRef(false);
 		const readyRef = useRef(false);
+		const dirtyRef = useRef(false);
 
 		// Keep projectId / docId in refs so stable editor callbacks always
 		// reference the latest prop values without recreating the editor.
@@ -87,11 +89,15 @@ export const DocEditor = forwardRef<DocEditorHandle, DocEditorProps>(
 		// Populate / re-populate editor from server content
 		useEffect(() => {
 			const normalized = content ?? null;
-			const normalizedStr = normalized ? JSON.stringify(normalized) : null;
+			const cleanedNormalized = cleanBlocks(normalized);
+			const normalizedStr = cleanedNormalized
+				? JSON.stringify(cleanedNormalized)
+				: null;
 
 			if (initializedRef.current && localSaveRef.current) {
 				localSaveRef.current = false;
 				lastSavedRef.current = normalizedStr;
+				dirtyRef.current = false;
 				return;
 			}
 
@@ -99,6 +105,8 @@ export const DocEditor = forwardRef<DocEditorHandle, DocEditorProps>(
 				return;
 			initializedRef.current = true;
 			lastSavedRef.current = normalizedStr;
+			readyRef.current = false;
+			dirtyRef.current = false;
 
 			let blocks: Parameters<typeof editor.replaceBlocks>[1] | undefined;
 			if (normalized && Array.isArray(normalized) && normalized.length > 0) {
@@ -111,7 +119,7 @@ export const DocEditor = forwardRef<DocEditorHandle, DocEditorProps>(
 		}, [content, editor]);
 
 		const save = useCallback(() => {
-			if (!editable) return;
+			if (!editable || !dirtyRef.current) return;
 			const blocks = editor.document;
 			const isEmpty =
 				blocks.length === 1 &&
@@ -120,12 +128,17 @@ export const DocEditor = forwardRef<DocEditorHandle, DocEditorProps>(
 				blocks[0].content.length === 0;
 
 			const value: unknown[] | null = isEmpty ? null : (blocks as unknown[]);
-			const valueStr = value ? JSON.stringify(value) : null;
+			const cleanedValue = cleanBlocks(value);
+			const valueStr = cleanedValue ? JSON.stringify(cleanedValue) : null;
 			if (valueStr !== lastSavedRef.current) {
 				lastSavedRef.current = valueStr;
 				localSaveRef.current = true;
+				dirtyRef.current = false;
 				onDirtyChange?.(false);
-				onSave?.(value);
+				onSave?.(cleanedValue);
+			} else {
+				dirtyRef.current = false;
+				onDirtyChange?.(false);
 			}
 		}, [editable, editor, onSave, onDirtyChange]);
 
@@ -135,6 +148,7 @@ export const DocEditor = forwardRef<DocEditorHandle, DocEditorProps>(
 
 		const handleChange = useCallback(() => {
 			if (!editable || !readyRef.current) return;
+			dirtyRef.current = true;
 			onDirtyChange?.(true);
 			debouncedSave();
 		}, [editable, debouncedSave, onDirtyChange]);
