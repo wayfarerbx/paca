@@ -201,7 +201,8 @@ export class PacaAPIClient {
 		if (input.parent_task_id !== undefined)
 			body.parent_task_id = input.parent_task_id;
 		if (input.importance !== undefined) body.importance = input.importance;
-		if (input.story_points !== undefined) body.story_points = input.story_points;
+		if (input.story_points !== undefined)
+			body.story_points = input.story_points;
 		if (input.tags) body.tags = input.tags;
 		if (input.start_date !== undefined) body.start_date = input.start_date;
 		if (input.due_date !== undefined) body.due_date = input.due_date;
@@ -231,7 +232,8 @@ export class PacaAPIClient {
 		if (input.parent_task_id !== undefined)
 			body.parent_task_id = input.parent_task_id;
 		if (input.importance !== undefined) body.importance = input.importance;
-		if (input.story_points !== undefined) body.story_points = input.story_points;
+		if (input.story_points !== undefined)
+			body.story_points = input.story_points;
 		if (input.tags !== undefined) body.tags = input.tags;
 		if (input.start_date !== undefined) body.start_date = input.start_date;
 		if (input.due_date !== undefined) body.due_date = input.due_date;

@@ -34,14 +34,6 @@ type AdminConfig struct {
 // DatabaseConfig holds the primary database connection settings.
 type DatabaseConfig struct {
 	DSN string
-
-	// Driver selects the database backend: "postgres" (default) or "dsql"
-	// (Amazon Aurora DSQL with IAM authentication).
-	Driver string
-
-	// AWSRegion is the AWS region used when Driver is "dsql".
-	// It must match the region where the Aurora DSQL cluster is deployed.
-	AWSRegion string
 }
 
 // RedisConfig holds Redis connection settings.

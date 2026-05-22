@@ -5,6 +5,7 @@ import type {
 	TaskActivity,
 	UpdateCommentInput,
 } from "../types/index.js";
+import { markdownToBlocknote } from "../utils/index.js";
 
 /**
  * Extended API client for task activities and comments.
@@ -101,9 +102,17 @@ export class PacaAPITaskExtendedClient {
 		taskId: string,
 		input: CreateCommentInput,
 	): Promise<TaskActivity> {
+		const contentBlocks = input.content
+			? markdownToBlocknote(input.content)
+			: null;
+
+		const body: any = {
+			content: contentBlocks,
+		};
+
 		return this.post(
 			`/api/v1/projects/${projectId}/tasks/${taskId}/activities/comments`,
-			input,
+			body,
 		);
 	}
 
@@ -113,9 +122,17 @@ export class PacaAPITaskExtendedClient {
 		commentId: string,
 		input: UpdateCommentInput,
 	): Promise<TaskActivity> {
+		const contentBlocks = input.content
+			? markdownToBlocknote(input.content)
+			: null;
+
+		const body: any = {
+			content: contentBlocks,
+		};
+
 		return this.patch(
 			`/api/v1/projects/${projectId}/tasks/${taskId}/activities/comments/${commentId}`,
-			input,
+			body,
 		);
 	}
 
@@ -129,4 +146,39 @@ export class PacaAPITaskExtendedClient {
 		);
 	}
 
+	async listSubtasks(projectId: string, parentTaskId: string): Promise<any[]> {
+		const response = await this.get(
+			`/api/v1/projects/${projectId}/tasks?parent_task_id=${parentTaskId}`,
+		);
+		if (Array.isArray(response)) {
+			return response;
+		}
+		return response.items || response.tasks || response.data || [];
+	}
+
+	async listTaskStatuses(projectId: string): Promise<any[]> {
+		const response = await this.get(
+			`/api/v1/projects/${projectId}/task-statuses`,
+		);
+		if (Array.isArray(response)) {
+			return response;
+		}
+		return response.items || response.statuses || response.data || [];
+	}
+
+	async listTaskTypes(projectId: string): Promise<any[]> {
+		const response = await this.get(`/api/v1/projects/${projectId}/task-types`);
+		if (Array.isArray(response)) {
+			return response;
+		}
+		return response.items || response.types || response.data || [];
+	}
+
+	async listProjectMembers(projectId: string): Promise<any[]> {
+		const response = await this.get(`/api/v1/projects/${projectId}/members`);
+		if (Array.isArray(response)) {
+			return response;
+		}
+		return response.items || response.members || response.data || [];
+	}
 }

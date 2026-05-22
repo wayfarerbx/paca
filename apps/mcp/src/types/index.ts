@@ -584,11 +584,11 @@ export interface TaskComment {
 }
 
 export interface CreateCommentInput {
-	text: string;
+	content: string;
 }
 
 export interface UpdateCommentInput {
-	text: string;
+	content: string;
 }
 
 // ==================== GitHub Integration ====================

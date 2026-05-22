@@ -470,9 +470,7 @@ function assertPluginMCPEntry(
 	value: unknown,
 ): asserts value is PluginMCPEntry {
 	if (!value || typeof value !== "object") {
-		throw new Error(
-			`Plugin "${pluginId}": default export is not an object`,
-		);
+		throw new Error(`Plugin "${pluginId}": default export is not an object`);
 	}
 	const entry = value as Record<string, unknown>;
 	if (!Array.isArray(entry.tools)) {

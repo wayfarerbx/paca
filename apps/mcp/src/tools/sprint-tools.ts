@@ -51,7 +51,8 @@ export function getSprintTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 				},
 				required: ["projectId"],
@@ -65,11 +66,13 @@ export function getSprintTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					sprintId: {
 						type: "string",
-						description: "The technical UUID of the sprint (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_sprints to get the sprint ID.",
+						description:
+							"The technical UUID of the sprint (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_sprints to get the sprint ID.",
 					},
 				},
 				required: ["projectId", "sprintId"],
@@ -83,7 +86,8 @@ export function getSprintTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					name: {
 						type: "string",
@@ -109,11 +113,13 @@ export function getSprintTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					sprintId: {
 						type: "string",
-						description: "The technical UUID of the sprint (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_sprints to get the sprint ID.",
+						description:
+							"The technical UUID of the sprint (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_sprints to get the sprint ID.",
 					},
 					name: {
 						type: "string",
@@ -139,11 +145,13 @@ export function getSprintTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					sprintId: {
 						type: "string",
-						description: "The technical UUID of the sprint (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_sprints to get the sprint ID.",
+						description:
+							"The technical UUID of the sprint (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_sprints to get the sprint ID.",
 					},
 				},
 				required: ["projectId", "sprintId"],
@@ -157,11 +165,13 @@ export function getSprintTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					sprintId: {
 						type: "string",
-						description: "The technical UUID of the sprint (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_sprints to get the sprint ID.",
+						description:
+							"The technical UUID of the sprint (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_sprints to get the sprint ID.",
 					},
 				},
 				required: ["projectId", "sprintId"],

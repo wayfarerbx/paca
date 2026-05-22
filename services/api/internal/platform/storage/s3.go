@@ -240,13 +240,6 @@ func (c *S3Client) EnsureBucket(ctx context.Context, bucket string) error {
 
 	input := &s3.CreateBucketInput{Bucket: aws.String(bucket)}
 
-	// AWS S3 requires a LocationConstraint for all regions except us-east-1.
-	if c.cfg.Region != "" && c.cfg.Region != "us-east-1" && c.cfg.Endpoint == "" {
-		input.CreateBucketConfiguration = &s3types.CreateBucketConfiguration{
-			LocationConstraint: s3types.BucketLocationConstraint(c.cfg.Region),
-		}
-	}
-
 	if _, err := c.s3.CreateBucket(ctx, input); err != nil {
 		return fmt.Errorf("storage: create bucket %q: %w", bucket, err)
 	}

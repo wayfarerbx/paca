@@ -44,7 +44,8 @@ export function getProjectTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 				},
 				required: ["projectId"],
@@ -76,7 +77,8 @@ export function getProjectTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					name: {
 						type: "string",
@@ -98,7 +100,8 @@ export function getProjectTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 				},
 				required: ["projectId"],

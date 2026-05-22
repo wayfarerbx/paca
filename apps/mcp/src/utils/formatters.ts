@@ -1,4 +1,15 @@
-import type { Document, Project, Sprint, Task } from "../types/index.js";
+import type {
+	Attachment,
+	CustomFieldDefinition,
+	Document,
+	Project,
+	ProjectMember,
+	Sprint,
+	Task,
+	TaskActivity,
+	TaskStatus,
+	TaskType,
+} from "../types/index.js";
 import { blocknoteToMarkdown } from "./converters.js";
 
 /**
@@ -28,6 +39,191 @@ Updated: ${task.updated_at}
 
 Description:
 ${description}`;
+}
+
+/**
+ * Formats a comprehensive task detail view with all related information.
+ * @param task - The task object
+ * @param project - The project object
+ * @param status - The task status object (if available)
+ * @param taskType - The task type object (if available)
+ * @param sprint - The sprint object (if available)
+ * @param assignee - The assignee member object (if available)
+ * @param reporter - The reporter member object (if available)
+ * @param parentTask - The parent task object (if available)
+ * @param subtasks - Array of subtasks (if available)
+ * @param attachments - Array of attachments (if available)
+ * @param activities - Array of activities (if available)
+ * @param customFields - Array of custom field definitions (if available)
+ * @returns Comprehensive formatted task detail string
+ */
+export function formatTaskDetail(
+	task: Task,
+	project?: Project,
+	status?: TaskStatus,
+	taskType?: TaskType,
+	sprint?: Sprint,
+	assignee?: ProjectMember,
+	reporter?: ProjectMember,
+	parentTask?: Task,
+	subtasks?: Task[],
+	attachments?: Attachment[],
+	activities?: TaskActivity[],
+	customFields?: CustomFieldDefinition[],
+): string {
+	const description = task.description
+		? blocknoteToMarkdown(task.description)
+		: "No description";
+
+	const taskIdPrefix = project?.task_id_prefix || "";
+
+	const sections: string[] = [];
+
+	sections.push(
+		`# Task ${taskIdPrefix ? `${taskIdPrefix}-` : ""}${task.task_number}: ${task.title}`,
+	);
+
+	sections.push(`**ID:** ${task.id}`);
+
+	if (status || task.status_id) {
+		sections.push(
+			`**Status:** ${status ? status.name : task.status_id || "None"}${status?.color ? ` (Color: ${status.color})` : ""}`,
+		);
+	}
+
+	if (taskType || task.task_type_id) {
+		sections.push(
+			`**Type:** ${taskType ? taskType.name : task.task_type_id || "None"}${taskType?.icon ? ` (Icon: ${taskType.icon})` : ""}${taskType?.color ? ` (Color: ${taskType.color})` : ""}`,
+		);
+	}
+
+	if (sprint || task.sprint_id) {
+		sections.push(
+			`**Sprint:** ${sprint ? sprint.name : task.sprint_id || "None"}`,
+		);
+	}
+
+	if (assignee || task.assignee_id) {
+		sections.push(
+			`**Assignee:** ${assignee ? `${assignee.full_name || assignee.username} (@${assignee.username})` : task.assignee_id || "Unassigned"}`,
+		);
+	}
+
+	if (reporter || task.reporter_id) {
+		sections.push(
+			`**Reporter:** ${reporter ? `${reporter.full_name || reporter.username} (@${reporter.username})` : task.reporter_id || "None"}`,
+		);
+	}
+
+	if (parentTask || task.parent_task_id) {
+		sections.push(
+			`**Parent Task:** ${parentTask ? `${parentTask.title} (#${parentTask.task_number})` : task.parent_task_id || "None"}`,
+		);
+	}
+
+	sections.push(`**Importance:** ${task.importance}`);
+	sections.push(`**Story Points:** ${task.story_points ?? "None"}`);
+
+	if (task.tags && task.tags.length > 0) {
+		sections.push(`**Tags:** ${task.tags.join(", ")}`);
+	} else {
+		sections.push(`**Tags:** None`);
+	}
+
+	if (task.start_date) {
+		sections.push(`**Start Date:** ${task.start_date}`);
+	}
+
+	if (task.due_date) {
+		sections.push(`**Due Date:** ${task.due_date}`);
+	}
+
+	sections.push(`**Created:** ${task.created_at}`);
+	sections.push(`**Updated:** ${task.updated_at}`);
+
+	sections.push("");
+
+	if (customFields && customFields.length > 0) {
+		sections.push("## Custom Fields");
+		for (const field of customFields) {
+			const value = task.custom_fields?.[field.field_key];
+			sections.push(
+				`- **${field.display_name}** (${field.field_type}): ${formatCustomFieldValue(value, field.field_type)}`,
+			);
+		}
+		sections.push("");
+	}
+
+	sections.push("## Description");
+	sections.push(description);
+
+	if (subtasks && subtasks.length > 0) {
+		sections.push("");
+		sections.push("## Subtasks");
+		subtasks.forEach((subtask, index) => {
+			sections.push(
+				`${index + 1}. **${subtask.title}** (#${subtask.task_number}) - Status ID: ${subtask.status_id || "None"}, Type ID: ${subtask.task_type_id || "None"}, Assignee ID: ${subtask.assignee_id || "Unassigned"}`,
+			);
+		});
+	}
+
+	if (attachments && attachments.length > 0) {
+		sections.push("");
+		sections.push("## Attachments");
+		attachments.forEach((attachment) => {
+			sections.push(
+				`- **${attachment.file.file_name}** (${formatFileSize(attachment.file.file_size)}) - Uploaded: ${attachment.created_at}`,
+			);
+		});
+	}
+
+	if (activities && activities.length > 0) {
+		sections.push("");
+		sections.push("## Activities");
+		activities.forEach((activity) => {
+			sections.push(
+				`- **${activity.activity_type}** by ${activity.actor_name} (@${activity.actor_username}) - ${activity.created_at}`,
+			);
+			if (activity.activity_type === "comment" && activity.content) {
+				const commentContent = blocknoteToMarkdown(activity.content as any);
+				if (commentContent && commentContent.trim() !== "") {
+					const indentedCommentContent = commentContent
+						.split("\n")
+						.map((line, index) => (index === 0 ? `  - ${line}` : `    ${line}`))
+						.join("\n");
+					sections.push(indentedCommentContent);
+				}
+			}
+		});
+	}
+
+	return sections.join("\n");
+}
+
+function formatCustomFieldValue(value: unknown, fieldType: string): string {
+	if (value === null || value === undefined) {
+		return "None";
+	}
+
+	switch (fieldType) {
+		case "boolean":
+			return String(value);
+		case "multi_select":
+			if (Array.isArray(value)) {
+				return value.join(", ");
+			}
+			return String(value);
+		default:
+			return String(value);
+	}
+}
+
+function formatFileSize(bytes: number): string {
+	if (bytes === 0) return "0 Bytes";
+	const k = 1024;
+	const sizes = ["Bytes", "KB", "MB", "GB"];
+	const i = Math.floor(Math.log(bytes) / Math.log(k));
+	return `${Math.round((bytes / k ** i) * 100) / 100} ${sizes[i]}`;
 }
 
 /**

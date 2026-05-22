@@ -14,6 +14,7 @@ import {
 	uploadAttachment,
 } from "@/lib/attachment-api";
 import { useMentionData } from "@/lib/mention-api";
+import { cleanBlocks } from "@/lib/utils";
 
 type UpdateFn = (payload: { description?: unknown[] | null }) => void;
 
@@ -45,6 +46,8 @@ export function DescriptionSection({
 	const initializedRef = useRef(false);
 	// Whether there are unsaved changes pending a blur-save.
 	const pendingRef = useRef(false);
+	// Whether the editor has finished initial content population.
+	const readyRef = useRef(false);
 
 	// Keep projectId / taskId in refs so the stable editor callbacks always
 	// reference the latest prop values without recreating the editor.
@@ -90,22 +93,29 @@ export function DescriptionSection({
 	// externally (initial load or server refetch that differs from what we saved).
 	useEffect(() => {
 		const normalized = description ?? null;
+		const cleanedNormalized = cleanBlocks(normalized);
 		// Stringify for stable comparison (array identity changes on every response)
-		const normalizedStr = normalized ? JSON.stringify(normalized) : null;
+		const normalizedStr = cleanedNormalized
+			? JSON.stringify(cleanedNormalized)
+			: null;
 		if (initializedRef.current && normalizedStr === lastSavedRef.current)
 			return;
 		initializedRef.current = true;
 		lastSavedRef.current = normalizedStr;
+		readyRef.current = false;
 
 		let blocks: Parameters<typeof editor.replaceBlocks>[1] | undefined;
 		if (normalized && Array.isArray(normalized) && normalized.length > 0) {
 			blocks = normalized as Parameters<typeof editor.replaceBlocks>[1];
 		}
 		editor.replaceBlocks(editor.document, blocks ?? []);
+		queueMicrotask(() => {
+			readyRef.current = true;
+		});
 	}, [description, editor]);
 
 	const handleChange = useCallback(() => {
-		if (!canEdit) return;
+		if (!canEdit || !readyRef.current) return;
 		// Track dirty state so blur can save without re-reading document
 		pendingRef.current = true;
 	}, [canEdit]);
@@ -122,10 +132,11 @@ export function DescriptionSection({
 			blocks[0].content.length === 0;
 
 		const value: unknown[] | null = isEmpty ? null : (blocks as unknown[]);
-		const valueStr = value ? JSON.stringify(value) : null;
+		const cleanedValue = cleanBlocks(value);
+		const valueStr = cleanedValue ? JSON.stringify(cleanedValue) : null;
 		if (valueStr !== lastSavedRef.current) {
 			lastSavedRef.current = valueStr;
-			onUpdate?.({ description: value });
+			onUpdate?.({ description: cleanedValue });
 		}
 	}, [canEdit, editor, onUpdate]);
 

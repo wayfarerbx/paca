@@ -98,9 +98,6 @@ services:
     image: paca-web:e2e
     build:
       context: ../apps/web
-      args:
-        # The browser always accesses the gateway on localhost:80.
-        VITE_API_BASE_URL: http://localhost
     restart: unless-stopped
     depends_on:
       api:

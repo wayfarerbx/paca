@@ -65,7 +65,8 @@ export function getProjectMemberTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 				},
 				required: ["projectId"],
@@ -79,15 +80,18 @@ export function getProjectMemberTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					userId: {
 						type: "string",
-						description: "The technical UUID of the user to add (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_members to see existing member user IDs.",
+						description:
+							"The technical UUID of the user to add (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_members to see existing member user IDs.",
 					},
 					roleId: {
 						type: "string",
-						description: "The technical UUID of the role to assign (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_roles to get the role ID.",
+						description:
+							"The technical UUID of the role to assign (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_roles to get the role ID.",
 					},
 				},
 				required: ["projectId", "userId", "roleId"],
@@ -101,7 +105,8 @@ export function getProjectMemberTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 				},
 				required: ["projectId"],
@@ -115,15 +120,18 @@ export function getProjectMemberTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					userId: {
 						type: "string",
-						description: "The technical UUID of the user (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_members to get user IDs.",
+						description:
+							"The technical UUID of the user (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_members to get user IDs.",
 					},
 					roleId: {
 						type: "string",
-						description: "The technical UUID of the new role (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_roles to get the role ID.",
+						description:
+							"The technical UUID of the new role (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_roles to get the role ID.",
 					},
 				},
 				required: ["projectId", "userId", "roleId"],
@@ -137,11 +145,13 @@ export function getProjectMemberTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					userId: {
 						type: "string",
-						description: "The technical UUID of the user to remove (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_members to get user IDs.",
+						description:
+							"The technical UUID of the user to remove (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_members to get user IDs.",
 					},
 				},
 				required: ["projectId", "userId"],
@@ -163,7 +173,8 @@ export function getProjectRoleTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 				},
 				required: ["projectId"],
@@ -177,7 +188,8 @@ export function getProjectRoleTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					name: {
 						type: "string",
@@ -204,11 +216,13 @@ export function getProjectRoleTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					roleId: {
 						type: "string",
-						description: "The technical UUID of the role (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_roles to get the role ID.",
+						description:
+							"The technical UUID of the role (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_roles to get the role ID.",
 					},
 					name: {
 						type: "string",
@@ -235,11 +249,13 @@ export function getProjectRoleTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					roleId: {
 						type: "string",
-						description: "The technical UUID of the role (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_roles to get the role ID.",
+						description:
+							"The technical UUID of the role (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_roles to get the role ID.",
 					},
 				},
 				required: ["projectId", "roleId"],

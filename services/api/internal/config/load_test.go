@@ -55,8 +55,6 @@ func TestLoad_Success(t *testing.T) {
 	t.Setenv("JWT_REFRESH_TTL", "48h")
 	t.Setenv("JWT_REFRESH_SESSION_TTL", "12h")
 	t.Setenv("DATABASE_URL", "postgres://test")
-	t.Setenv("DATABASE_DRIVER", "postgres")
-	t.Setenv("DATABASE_AWS_REGION", "")
 	t.Setenv("REDIS_URL", "redis://localhost:6379/0")
 	t.Setenv("ADMIN_USERNAME", "admin")
 	t.Setenv("ADMIN_PASSWORD", "password")
@@ -85,16 +83,11 @@ func TestLoad_Success(t *testing.T) {
 	if cfg.JWT.RefreshSessionTTL != 12*time.Hour {
 		t.Fatalf("unexpected RefreshSessionTTL: %v", cfg.JWT.RefreshSessionTTL)
 	}
-	if cfg.Database.Driver != "postgres" {
-		t.Fatalf("expected driver postgres, got %q", cfg.Database.Driver)
-	}
 }
 
 func TestLoad_MissingRequired(t *testing.T) {
 	t.Setenv("JWT_SECRET", "")
 	t.Setenv("DATABASE_URL", "")
-	t.Setenv("DATABASE_DRIVER", "postgres")
-	t.Setenv("DATABASE_AWS_REGION", "")
 	t.Setenv("REDIS_URL", "")
 	t.Setenv("ADMIN_USERNAME", "")
 	t.Setenv("ADMIN_PASSWORD", "")
@@ -114,8 +107,6 @@ func TestLoad_MissingRequired(t *testing.T) {
 func TestLoad_InvalidBoolOrDuration(t *testing.T) {
 	t.Setenv("JWT_SECRET", "secret")
 	t.Setenv("DATABASE_URL", "postgres://test")
-	t.Setenv("DATABASE_DRIVER", "postgres")
-	t.Setenv("DATABASE_AWS_REGION", "")
 	t.Setenv("REDIS_URL", "redis://localhost:6379/0")
 	t.Setenv("ADMIN_USERNAME", "admin")
 	t.Setenv("ADMIN_PASSWORD", "password")
@@ -144,68 +135,9 @@ func setLoadDefaults(t *testing.T) {
 	t.Setenv("JWT_REFRESH_TTL", "168h")
 	t.Setenv("JWT_REFRESH_SESSION_TTL", "24h")
 	t.Setenv("DATABASE_URL", "postgres://test")
-	t.Setenv("DATABASE_DRIVER", "postgres")
-	t.Setenv("DATABASE_AWS_REGION", "")
 	t.Setenv("REDIS_URL", "redis://localhost:6379/0")
 	t.Setenv("ADMIN_USERNAME", "admin")
 	t.Setenv("ADMIN_PASSWORD", "password")
 	t.Setenv("STORAGE_ACCESS_KEY_ID", "access-key")
 	t.Setenv("STORAGE_SECRET_ACCESS_KEY", "secret-key")
-}
-
-func TestLoad_DatabaseDriverDefault(t *testing.T) {
-	setLoadDefaults(t)
-	t.Setenv("DATABASE_DRIVER", "")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if cfg.Database.Driver != "postgres" {
-		t.Fatalf("expected default driver postgres, got %q", cfg.Database.Driver)
-	}
-}
-
-func TestLoad_DatabaseDriverDSQL(t *testing.T) {
-	setLoadDefaults(t)
-	t.Setenv("DATABASE_DRIVER", "dsql")
-	t.Setenv("DATABASE_AWS_REGION", "us-east-1")
-
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if cfg.Database.Driver != "dsql" {
-		t.Fatalf("expected driver dsql, got %q", cfg.Database.Driver)
-	}
-	if cfg.Database.AWSRegion != "us-east-1" {
-		t.Fatalf("expected AWSRegion us-east-1, got %q", cfg.Database.AWSRegion)
-	}
-}
-
-func TestLoad_DatabaseDriverInvalid(t *testing.T) {
-	setLoadDefaults(t)
-	t.Setenv("DATABASE_DRIVER", "dsq1") // typo
-
-	_, err := Load()
-	if err == nil {
-		t.Fatal("expected error for invalid DATABASE_DRIVER")
-	}
-	if !strings.Contains(err.Error(), "DATABASE_DRIVER") {
-		t.Fatalf("expected error to mention DATABASE_DRIVER, got %q", err.Error())
-	}
-}
-
-func TestLoad_DatabaseDriverDSQLMissingRegion(t *testing.T) {
-	setLoadDefaults(t)
-	t.Setenv("DATABASE_DRIVER", "dsql")
-	t.Setenv("DATABASE_AWS_REGION", "")
-
-	_, err := Load()
-	if err == nil {
-		t.Fatal("expected error when DATABASE_DRIVER=dsql and DATABASE_AWS_REGION is empty")
-	}
-	if !strings.Contains(err.Error(), "DATABASE_AWS_REGION") {
-		t.Fatalf("expected error to mention DATABASE_AWS_REGION, got %q", err.Error())
-	}
 }

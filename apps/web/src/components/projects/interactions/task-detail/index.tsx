@@ -20,7 +20,7 @@ import {
 	isSubtaskType,
 	projectQueryOptions,
 } from "@/lib/project-api";
-import { cn } from "@/lib/utils";
+import { cleanBlocks, cn } from "@/lib/utils";
 import { getTaskTypeIconComponent } from "../../task-types/task-type-icons";
 import { getPriority } from "../priority";
 import { TaskActivityPane as ActivityPane } from "./activity-pane";
@@ -147,7 +147,53 @@ export function TaskDetailModal({
 	const updateMutation = useMutation({
 		mutationFn: (payload: Parameters<typeof updateTask>[2]) => {
 			if (!projectId || !task) throw new Error("missing context");
-			return updateTask(projectId, task.id, payload);
+
+			// Filter out fields that haven't actually changed
+			const filtered: typeof payload = {};
+			for (const key of Object.keys(payload) as Array<keyof typeof payload>) {
+				const newValue = payload[key];
+				const oldValue = task[key as keyof typeof task];
+
+				if (key === "tags") {
+					const a = newValue as string[] | undefined;
+					const b = oldValue as string[] | undefined;
+					const aStr = a ? [...a].sort().join(",") : "";
+					const bStr = b ? [...b].sort().join(",") : "";
+					if (aStr !== bStr) {
+						filtered.tags = a;
+					}
+				} else if (key === "custom_fields") {
+					const a = newValue as Record<string, unknown> | undefined;
+					const b = oldValue as Record<string, unknown> | undefined;
+					if (JSON.stringify(a) !== JSON.stringify(b)) {
+						filtered.custom_fields = a;
+					}
+				} else if (key === "description") {
+					const normalizedNewValue = newValue ?? null;
+					const aClean = JSON.stringify(
+						cleanBlocks(normalizedNewValue as unknown[] | null),
+					);
+					const bClean = JSON.stringify(
+						cleanBlocks(oldValue as unknown[] | null),
+					);
+					if (
+						aClean !== bClean &&
+						(newValue === null || Array.isArray(newValue))
+					) {
+						filtered.description = newValue;
+					}
+				} else {
+					if (newValue !== oldValue) {
+						(filtered as Record<string, unknown>)[key] = newValue;
+					}
+				}
+			}
+
+			if (Object.keys(filtered).length === 0) {
+				return Promise.resolve(task);
+			}
+
+			return updateTask(projectId, task.id, filtered);
 		},
 		onSuccess: (updated) => {
 			if (!projectId) return;

@@ -50,7 +50,8 @@ export function getDocTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 				},
 				required: ["projectId"],
@@ -64,7 +65,8 @@ export function getDocTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					name: {
 						type: "string",
@@ -86,11 +88,13 @@ export function getDocTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					folderId: {
 						type: "string",
-						description: "The technical UUID of the folder (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_doc_folders to get the folder ID.",
+						description:
+							"The technical UUID of the folder (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_doc_folders to get the folder ID.",
 					},
 					name: {
 						type: "string",
@@ -116,11 +120,13 @@ export function getDocTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					folderId: {
 						type: "string",
-						description: "The technical UUID of the folder (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_doc_folders to get the folder ID.",
+						description:
+							"The technical UUID of the folder (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_doc_folders to get the folder ID.",
 					},
 				},
 				required: ["projectId", "folderId"],
@@ -134,11 +140,13 @@ export function getDocTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					docId: {
 						type: "string",
-						description: "The technical UUID of the document (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_documents to get the document ID.",
+						description:
+							"The technical UUID of the document (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_documents to get the document ID.",
 					},
 				},
 				required: ["projectId", "docId"],
@@ -152,15 +160,18 @@ export function getDocTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					docId: {
 						type: "string",
-						description: "The technical UUID of the document (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_documents to get the document ID.",
+						description:
+							"The technical UUID of the document (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_documents to get the document ID.",
 					},
 					snapshotId: {
 						type: "string",
-						description: "The technical UUID of the snapshot (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_doc_snapshots to get the snapshot ID.",
+						description:
+							"The technical UUID of the snapshot (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_doc_snapshots to get the snapshot ID.",
 					},
 				},
 				required: ["projectId", "docId", "snapshotId"],

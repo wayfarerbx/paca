@@ -31,6 +31,21 @@
 #   docker compose \
 #     --env-file deploy/.env.production \
 #     -f deploy/docker-compose.prod.yml up -d --scale minio=0
+#
+# ── Database ────────────────────────────────────────────────────────────────
+# PostgreSQL runs by default (self-hosted).
+#
+# Self-hosted with PostgreSQL (default):
+#   # Set POSTGRES_PASSWORD or use the default
+#   docker compose \
+#     --env-file deploy/.env.production \
+#     -f deploy/docker-compose.prod.yml up -d
+#
+# With managed/external PostgreSQL (postgres container suppressed):
+#   # Set DATABASE_URL to your managed PostgreSQL connection string in .env.production
+#   docker compose \
+#     --env-file deploy/.env.production \
+#     -f deploy/docker-compose.prod.yml up -d --scale postgres=0
 
 name: paca-prod
 
@@ -41,7 +56,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-paca}
       POSTGRES_USER: ${POSTGRES_USER:-paca}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ../services/api/migrations:/docker-entrypoint-initdb.d:ro
@@ -72,9 +87,6 @@ services:
       ENV: ${ENVIRONMENT:-production}
       PORT: 8080
       DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-paca}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-paca}?sslmode=disable}
-      # Aurora DSQL — set DATABASE_DRIVER=dsql and DATABASE_AWS_REGION to enable IAM auth.
-      DATABASE_DRIVER: ${DATABASE_DRIVER:-postgres}
-      DATABASE_AWS_REGION: ${DATABASE_AWS_REGION:-}
       REDIS_URL: ${REDIS_URL:-redis://valkey:6379/0}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
       JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
@@ -93,8 +105,8 @@ services:
       STORAGE_PUBLIC_URL: ${STORAGE_PUBLIC_URL:-http://localhost/storage}
       STORAGE_REGION: ${STORAGE_REGION:-us-east-1}
       STORAGE_BUCKET: ${STORAGE_BUCKET:-paca}
-      STORAGE_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY_ID:?set STORAGE_ACCESS_KEY_ID}
-      STORAGE_SECRET_ACCESS_KEY: ${STORAGE_SECRET_ACCESS_KEY:?set STORAGE_SECRET_ACCESS_KEY}
+      STORAGE_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY_ID:-minioadmin}
+      STORAGE_SECRET_ACCESS_KEY: ${STORAGE_SECRET_ACCESS_KEY:-minioadmin}
       STORAGE_USE_SSL: ${STORAGE_USE_SSL:-false}
       # Encryption key for sensitive values (plugin tokens/secrets).
       # Must be a 64-char lowercase hex string (32 bytes).
@@ -108,6 +120,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+        required: false  # skipped when --scale postgres=0 (managed PostgreSQL mode)
       valkey:
         condition: service_healthy
       minio:
@@ -138,10 +151,6 @@ services:
     image: ${PACA_WEB_IMAGE:-pacaai/paca-web:latest}
     build:
       context: ../apps/web
-      args:
-        # VITE_API_BASE_URL is baked into the static bundle at build time.
-        # Set PUBLIC_URL to your public domain (e.g. https://paca.example.com).
-        VITE_API_BASE_URL: ${PUBLIC_URL:-http://localhost}
     restart: unless-stopped
     depends_on:
       - api
@@ -190,8 +199,8 @@ services:
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY_ID:?set STORAGE_ACCESS_KEY_ID}
-      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_ACCESS_KEY:?set STORAGE_SECRET_ACCESS_KEY}
+      MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY_ID:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_ACCESS_KEY:-minioadmin}
     volumes:
       - minio_data:/data
     healthcheck:

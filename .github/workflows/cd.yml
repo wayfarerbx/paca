@@ -132,11 +132,9 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────────────
   # Web app image
   # ─────────────────────────────────────────────────────────────────────────────
-  # The Vite bundle bakes VITE_API_BASE_URL at compile time.
-  # The pre-built image uses an empty string so all API calls are relative to
-  # the current origin — nginx proxies /api/* to the backend automatically.
-  # Self-hosters who need a custom absolute URL can rebuild with:
-  #   PACA_WEB_IMAGE=my-registry/paca-web:tag and --build in docker compose.
+  # The pre-built image uses relative URLs that work with nginx /api proxy
+  # out of the box, since the API client now derives the base URL from
+  # window.location.origin at runtime.
   web-image:
     name: Build and push Web image
     runs-on: ubuntu-latest
@@ -182,9 +180,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # Empty string → relative URLs; works with nginx /api proxy out of the box.
-          build-args: |
-            VITE_API_BASE_URL=
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

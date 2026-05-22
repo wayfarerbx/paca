@@ -1,8 +1,6 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import type {
-	PacaAPIViewsClient,
-} from "../api/index.js";
+import type { PacaAPIViewsClient } from "../api/index.js";
 import { formatList } from "../utils/index.js";
 
 const ListTaskAttachmentsSchema = z.object({
@@ -35,11 +33,13 @@ export function getAttachmentTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
+						description:
+							"The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 				},
 				required: ["projectId", "taskId"],
@@ -53,15 +53,18 @@ export function getAttachmentTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
+						description:
+							"The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 					attachmentId: {
 						type: "string",
-						description: "The technical UUID of the attachment (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_task_attachments to get the attachment ID.",
+						description:
+							"The technical UUID of the attachment (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_task_attachments to get the attachment ID.",
 					},
 				},
 				required: ["projectId", "taskId", "attachmentId"],
@@ -75,15 +78,18 @@ export function getAttachmentTools(): Tool[] {
 				properties: {
 					projectId: {
 						type: "string",
-						description: "The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
+						description:
+							"The technical UUID of the project (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_projects to get the project ID. Do NOT use the project name.",
 					},
 					taskId: {
 						type: "string",
-						description: "The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
+						description:
+							"The technical UUID of the task (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_tasks to get the task ID.",
 					},
 					attachmentId: {
 						type: "string",
-						description: "The technical UUID of the attachment (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_task_attachments to get the attachment ID.",
+						description:
+							"The technical UUID of the attachment (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_task_attachments to get the attachment ID.",
 					},
 				},
 				required: ["projectId", "taskId", "attachmentId"],

@@ -10,10 +10,7 @@ import {
 	getAttachmentTools,
 	handleAttachmentTool,
 } from "./attachment-tools.js";
-import {
-	getDocTools,
-	handleDocTool,
-} from "./doc-github-tools.js";
+import { getDocTools, handleDocTool } from "./doc-github-tools.js";
 import { getDocumentTools, handleDocumentTool } from "./document-tools.js";
 import {
 	getProjectMemberTools,
@@ -96,7 +93,13 @@ export async function handleToolCall(
 			name === "update_task" ||
 			name === "delete_task"
 		) {
-			return handleTaskTool(name, args, clients.apiClient);
+			return handleTaskTool(
+				name,
+				args,
+				clients.apiClient,
+				clients.taskExtendedClient,
+				clients.viewsClient,
+			);
 		}
 
 		// Sprint tools
@@ -179,11 +182,7 @@ export async function handleToolCall(
 			name === "get_attachment_download_url" ||
 			name === "delete_task_attachment"
 		) {
-			return handleAttachmentTool(
-				name,
-				args,
-				clients.viewsClient,
-			);
+			return handleAttachmentTool(name, args, clients.viewsClient);
 		}
 
 		// Document tools
