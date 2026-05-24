@@ -43,7 +43,7 @@ type mockProjectSvc struct {
 	createRole              func(ctx context.Context, projectID uuid.UUID, in projectdom.CreateRoleInput) (*projectdom.ProjectRole, error)
 	updateRole              func(ctx context.Context, projectID, roleID uuid.UUID, in projectdom.UpdateRoleInput) (*projectdom.ProjectRole, error)
 	deleteRole              func(ctx context.Context, projectID, roleID uuid.UUID) error
-	getMyProjectPermissions func(ctx context.Context, projectID, userID uuid.UUID) (map[string]any, error)
+	getMyProjectPermissions func(ctx context.Context, projectID, userID uuid.UUID, agentID *uuid.UUID) (map[string]any, error)
 }
 
 func (m *mockProjectSvc) List(ctx context.Context, page, pageSize int) ([]*projectdom.Project, int64, error) {
@@ -151,12 +151,15 @@ func (m *mockProjectSvc) DeleteRole(ctx context.Context, projectID, roleID uuid.
 	return nil
 }
 
-func (m *mockProjectSvc) GetMyProjectPermissions(ctx context.Context, projectID, userID uuid.UUID) (map[string]any, error) {
+func (m *mockProjectSvc) GetMyProjectPermissions(ctx context.Context, projectID, userID uuid.UUID, agentID *uuid.UUID) (map[string]any, error) {
 	if m.getMyProjectPermissions != nil {
-		return m.getMyProjectPermissions(ctx, projectID, userID)
+		return m.getMyProjectPermissions(ctx, projectID, userID, agentID)
 	}
-	return map[string]any{}, nil
+	return nil, nil
 }
+
+func (m *mockProjectSvc) AddAgentMember(_ context.Context, _, _, _, _ uuid.UUID) error { return nil }
+func (m *mockProjectSvc) RemoveAgentMember(_ context.Context, _, _ uuid.UUID) error    { return nil }
 
 // compile-time interface check
 var _ projectdom.Service = (*mockProjectSvc)(nil)

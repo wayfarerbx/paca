@@ -3,6 +3,7 @@ package agentsvc
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -12,11 +13,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// projectMemberWriter is the minimal interface this service needs to insert
-// an agent as a project member and remove it on deletion.
+// projectMemberWriter is the minimal interface this service needs to bust the
+// member list cache after an agent is added or removed.
 type projectMemberWriter interface {
-	AddAgentMember(ctx context.Context, memberID, projectID, agentID, roleID uuid.UUID) error
-	RemoveAgentMember(ctx context.Context, projectID, agentID uuid.UUID) error
+	InvalidateMembersCache(ctx context.Context, projectID uuid.UUID) error
 }
 
 // Service is the concrete AI Agent service.
@@ -35,10 +35,12 @@ func New(repo agentdom.Repository, projRepo projectMemberWriter, publisher *mess
 // Agents
 // -------------------------------------------------------------------------
 
+// ListAgents returns all agents in the given project.
 func (s *Service) ListAgents(ctx context.Context, projectID uuid.UUID) ([]*agentdom.Agent, error) {
 	return s.repo.ListAgents(ctx, projectID)
 }
 
+// GetAgent returns a single agent after verifying project ownership.
 func (s *Service) GetAgent(ctx context.Context, projectID, agentID uuid.UUID) (*agentdom.Agent, error) {
 	a, err := s.repo.FindAgentByID(ctx, agentID)
 	if err != nil {
@@ -50,6 +52,7 @@ func (s *Service) GetAgent(ctx context.Context, projectID, agentID uuid.UUID) (*
 	return a, nil
 }
 
+// CreateAgent validates input, creates the agent, and sets up project membership.
 func (s *Service) CreateAgent(ctx context.Context, projectID uuid.UUID, in agentdom.CreateAgentInput) (*agentdom.Agent, error) {
 	handle := strings.TrimSpace(in.Handle)
 	if handle == "" {
@@ -91,22 +94,20 @@ func (s *Service) CreateAgent(ctx context.Context, projectID uuid.UUID, in agent
 		a.TimeoutMinutes = 30
 	}
 
-	if err := s.repo.CreateAgent(ctx, a); err != nil {
-		return nil, err
-	}
-
-	// Add the agent as a project member
+	// Atomically create the agent and its project membership in one transaction.
 	memberID := uuid.New()
-	if err := s.projRepo.AddAgentMember(ctx, memberID, projectID, a.ID, in.ProjectRoleID); err != nil {
-		// Non-fatal: agent was created, membership might already exist
-		_ = err
-	} else {
-		a.MemberID = &memberID
+	if err := s.repo.CreateAgentWithMembership(ctx, a, memberID, projectID, in.ProjectRoleID); err != nil {
+		return nil, fmt.Errorf("create agent with membership: %w", err)
 	}
+	a.MemberID = &memberID
+
+	// Best-effort cache invalidation so the new member appears immediately.
+	_ = s.projRepo.InvalidateMembersCache(ctx, projectID)
 
 	return a, nil
 }
 
+// UpdateAgent patches mutable fields of an existing agent.
 func (s *Service) UpdateAgent(ctx context.Context, projectID, agentID uuid.UUID, in agentdom.UpdateAgentInput) (*agentdom.Agent, error) {
 	a, err := s.GetAgent(ctx, projectID, agentID)
 	if err != nil {
@@ -160,16 +161,18 @@ func (s *Service) UpdateAgent(ctx context.Context, projectID, agentID uuid.UUID,
 	return a, nil
 }
 
+// DeleteAgent soft-deletes an agent and its membership.
 func (s *Service) DeleteAgent(ctx context.Context, projectID, agentID uuid.UUID) error {
 	a, err := s.GetAgent(ctx, projectID, agentID)
 	if err != nil {
 		return err
 	}
-	if err := s.repo.SoftDeleteAgent(ctx, a.ID); err != nil {
+	// Atomically soft-delete the agent and its project membership in one transaction.
+	if err := s.repo.SoftDeleteAgentWithMembership(ctx, projectID, a.ID); err != nil {
 		return err
 	}
-	// Remove from project_members
-	_ = s.projRepo.RemoveAgentMember(ctx, projectID, agentID)
+	// Best-effort cache invalidation so the deleted member disappears immediately.
+	_ = s.projRepo.InvalidateMembersCache(ctx, projectID)
 	return nil
 }
 
@@ -177,10 +180,12 @@ func (s *Service) DeleteAgent(ctx context.Context, projectID, agentID uuid.UUID)
 // MCP Servers
 // -------------------------------------------------------------------------
 
+// ListMCPServers returns all MCP servers for the given agent.
 func (s *Service) ListMCPServers(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentMCPServer, error) {
 	return s.repo.ListMCPServers(ctx, agentID)
 }
 
+// AddMCPServer creates a new MCP server for the given agent.
 func (s *Service) AddMCPServer(ctx context.Context, agentID uuid.UUID, in agentdom.AddMCPServerInput) (*agentdom.AgentMCPServer, error) {
 	now := time.Now()
 	srv := &agentdom.AgentMCPServer{
@@ -208,6 +213,7 @@ func (s *Service) AddMCPServer(ctx context.Context, agentID uuid.UUID, in agentd
 	return srv, nil
 }
 
+// UpdateMCPServer patches mutable fields of an existing MCP server.
 func (s *Service) UpdateMCPServer(ctx context.Context, agentID, serverID uuid.UUID, in agentdom.UpdateMCPServerInput) (*agentdom.AgentMCPServer, error) {
 	srv, err := s.repo.FindMCPServerByID(ctx, serverID)
 	if err != nil {
@@ -238,6 +244,7 @@ func (s *Service) UpdateMCPServer(ctx context.Context, agentID, serverID uuid.UU
 	return srv, nil
 }
 
+// DeleteMCPServer removes an MCP server after verifying ownership.
 func (s *Service) DeleteMCPServer(ctx context.Context, agentID, serverID uuid.UUID) error {
 	srv, err := s.repo.FindMCPServerByID(ctx, serverID)
 	if err != nil {
@@ -253,10 +260,12 @@ func (s *Service) DeleteMCPServer(ctx context.Context, agentID, serverID uuid.UU
 // Skills
 // -------------------------------------------------------------------------
 
+// ListSkills returns all skills for the given agent.
 func (s *Service) ListSkills(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentSkill, error) {
 	return s.repo.ListSkills(ctx, agentID)
 }
 
+// AddSkill creates a new skill for the given agent.
 func (s *Service) AddSkill(ctx context.Context, agentID uuid.UUID, in agentdom.AddSkillInput) (*agentdom.AgentSkill, error) {
 	now := time.Now()
 	skill := &agentdom.AgentSkill{
@@ -280,6 +289,7 @@ func (s *Service) AddSkill(ctx context.Context, agentID uuid.UUID, in agentdom.A
 	return skill, nil
 }
 
+// UpdateSkill patches mutable fields of an existing skill.
 func (s *Service) UpdateSkill(ctx context.Context, agentID, skillID uuid.UUID, in agentdom.UpdateSkillInput) (*agentdom.AgentSkill, error) {
 	skill, err := s.repo.FindSkillByID(ctx, skillID)
 	if err != nil {
@@ -304,6 +314,7 @@ func (s *Service) UpdateSkill(ctx context.Context, agentID, skillID uuid.UUID, i
 	return skill, nil
 }
 
+// DeleteSkill removes a skill after verifying ownership.
 func (s *Service) DeleteSkill(ctx context.Context, agentID, skillID uuid.UUID) error {
 	skill, err := s.repo.FindSkillByID(ctx, skillID)
 	if err != nil {
@@ -319,10 +330,12 @@ func (s *Service) DeleteSkill(ctx context.Context, agentID, skillID uuid.UUID) e
 // Conversations
 // -------------------------------------------------------------------------
 
+// ListConversations returns a paginated list of conversations matching the filter.
 func (s *Service) ListConversations(ctx context.Context, in agentdom.ListConversationsFilter) ([]*agentdom.AgentConversation, int64, error) {
 	return s.repo.ListConversations(ctx, in)
 }
 
+// GetConversation returns a single conversation after verifying project ownership.
 func (s *Service) GetConversation(ctx context.Context, projectID, conversationID uuid.UUID) (*agentdom.AgentConversation, error) {
 	c, err := s.repo.FindConversationByID(ctx, conversationID)
 	if err != nil {
@@ -334,10 +347,12 @@ func (s *Service) GetConversation(ctx context.Context, projectID, conversationID
 	return c, nil
 }
 
+// ListConversationEvents returns a paginated list of events for a conversation.
 func (s *Service) ListConversationEvents(ctx context.Context, conversationID uuid.UUID, offset, limit int) ([]*agentdom.AgentConversationEvent, int64, error) {
 	return s.repo.ListConversationEvents(ctx, conversationID, offset, limit)
 }
 
+// PauseConversation pauses a running conversation.
 func (s *Service) PauseConversation(ctx context.Context, projectID, conversationID uuid.UUID) error {
 	c, err := s.GetConversation(ctx, projectID, conversationID)
 	if err != nil {
@@ -355,6 +370,7 @@ func (s *Service) PauseConversation(ctx context.Context, projectID, conversation
 	})
 }
 
+// ResumeConversation resumes a paused conversation.
 func (s *Service) ResumeConversation(ctx context.Context, projectID, conversationID uuid.UUID) error {
 	c, err := s.GetConversation(ctx, projectID, conversationID)
 	if err != nil {
@@ -372,6 +388,7 @@ func (s *Service) ResumeConversation(ctx context.Context, projectID, conversatio
 	})
 }
 
+// StopConversation stops a conversation that is not already finished.
 func (s *Service) StopConversation(ctx context.Context, projectID, conversationID uuid.UUID) error {
 	c, err := s.GetConversation(ctx, projectID, conversationID)
 	if err != nil {
@@ -389,6 +406,7 @@ func (s *Service) StopConversation(ctx context.Context, projectID, conversationI
 	})
 }
 
+// SendConversationMessage publishes a chat message to an active conversation.
 func (s *Service) SendConversationMessage(ctx context.Context, projectID, conversationID uuid.UUID, message string, memberID uuid.UUID) error {
 	c, err := s.GetConversation(ctx, projectID, conversationID)
 	if err != nil {
@@ -409,10 +427,12 @@ func (s *Service) SendConversationMessage(ctx context.Context, projectID, conver
 // Chat Sessions
 // -------------------------------------------------------------------------
 
-func (s *Service) ListChatSessions(ctx context.Context, projectID, agentID, memberID uuid.UUID) ([]*agentdom.AgentChatSession, error) {
+// ListChatSessions returns all chat sessions for the given agent and member.
+func (s *Service) ListChatSessions(ctx context.Context, _, agentID, memberID uuid.UUID) ([]*agentdom.AgentChatSession, error) {
 	return s.repo.ListChatSessions(ctx, agentID, memberID)
 }
 
+// StartChatSession creates a new chat session and publishes the initial message trigger.
 func (s *Service) StartChatSession(ctx context.Context, projectID, agentID, memberID uuid.UUID, message string) (*agentdom.AgentChatSession, *agentdom.AgentConversation, error) {
 	now := time.Now()
 
@@ -444,6 +464,7 @@ func (s *Service) StartChatSession(ctx context.Context, projectID, agentID, memb
 	return session, conv, nil
 }
 
+// SendChatMessage sends a message to an existing chat session and publishes the trigger.
 func (s *Service) SendChatMessage(ctx context.Context, projectID, sessionID, memberID uuid.UUID, message string) (*agentdom.AgentConversation, error) {
 	session, err := s.repo.FindChatSessionByID(ctx, sessionID)
 	if err != nil {
@@ -473,6 +494,7 @@ func (s *Service) SendChatMessage(ctx context.Context, projectID, sessionID, mem
 	return conv, nil
 }
 
+// ListChatMessages returns conversation events for a chat session.
 func (s *Service) ListChatMessages(ctx context.Context, sessionID uuid.UUID, offset, limit int) ([]*agentdom.AgentConversationEvent, int64, error) {
 	// TODO: We'd need to aggregate events from all conversations in this session.
 	// For now, return events from the most recent conversation with this session_id.

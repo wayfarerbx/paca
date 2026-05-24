@@ -400,6 +400,26 @@ func (r *ProjectRepository) FindMember(ctx context.Context, projectID, userID uu
 	return toMemberEntity(&row), nil
 }
 
+// FindMemberByAgent returns a single active member record for the given project + agent combo.
+func (r *ProjectRepository) FindMemberByAgent(ctx context.Context, projectID, agentID uuid.UUID) (*projectdom.ProjectMember, error) {
+	var row projectMemberReadRow
+	result := r.db.WithContext(ctx).
+		Table("project_members pm").
+		Select(projectMemberCols).
+		Joins("LEFT JOIN users u ON u.id = pm.user_id AND u.deleted_at IS NULL").
+		Joins("JOIN project_roles pr ON pr.id = pm.project_role_id").
+		Joins("LEFT JOIN agents a ON a.id = pm.agent_id AND a.deleted_at IS NULL").
+		Where("pm.project_id = ? AND pm.agent_id = ? AND pm.member_type = 'agent' AND pm.deleted_at IS NULL", projectID.String(), agentID.String()).
+		Scan(&row)
+	if result.Error != nil {
+		return nil, fmt.Errorf("project repo: find member by agent: %w", result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return nil, projectdom.ErrMemberNotFound
+	}
+	return toMemberEntity(&row), nil
+}
+
 // FindMemberByUserProject returns the active member record for a (user_id, project_id)
 // pair. It is used by the activity consumer to resolve a user UUID to a member UUID.
 func (r *ProjectRepository) FindMemberByUserProject(ctx context.Context, userID, projectID uuid.UUID) (*projectdom.ProjectMember, error) {

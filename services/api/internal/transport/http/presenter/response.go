@@ -403,6 +403,7 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodePluginDowngradeNotAllowed:
 		return http.StatusConflict
 	case apierr.CodeAgentNotFound,
+		apierr.CodeAgentTypeNotFound,
 		apierr.CodeAgentMCPServerNotFound,
 		apierr.CodeAgentSkillNotFound,
 		apierr.CodeAgentConversationNotFound,

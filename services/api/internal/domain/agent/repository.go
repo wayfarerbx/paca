@@ -25,6 +25,12 @@ type AgentRepository interface {
 	SoftDeleteAgent(ctx context.Context, id uuid.UUID) error
 	// SetMemberID sets the project_members.id for an agent after it has been added.
 	SetAgentMemberID(ctx context.Context, agentID, memberID uuid.UUID) error
+	// CreateAgentWithMembership atomically inserts the agent and its
+	// project_members row within a single database transaction.
+	CreateAgentWithMembership(ctx context.Context, a *Agent, memberID, projectID, roleID uuid.UUID) error
+	// SoftDeleteAgentWithMembership atomically soft-deletes both the agent and
+	// its project_members row within a single database transaction.
+	SoftDeleteAgentWithMembership(ctx context.Context, projectID, agentID uuid.UUID) error
 }
 
 // MCPServerRepository defines storage for agent MCP server configurations.

@@ -135,3 +135,13 @@ func (s *Service) Authenticate(ctx context.Context, rawKey string) (*apikeydom.A
 
 	return key, nil
 }
+
+// IsAgentKey checks if the provided raw key is the static agent API key.
+// This is used to validate that X-Agent-ID header can only be used with the agent API key.
+func (s *Service) IsAgentKey(_ context.Context, rawKey string) bool {
+	if !s.agentKeySet {
+		return false
+	}
+	h := sha256.Sum256([]byte(rawKey))
+	return subtle.ConstantTimeCompare(h[:], s.agentKeyHash[:]) == 1
+}

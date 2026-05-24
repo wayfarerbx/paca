@@ -1,0 +1,1030 @@
+package agentsvc
+
+import (
+	"context"
+	"testing"
+
+	agentdom "github.com/Paca-AI/api/internal/domain/agent"
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+)
+
+type mockAgentRepo struct {
+	findAgentByID       func(ctx context.Context, id uuid.UUID) (*agentdom.Agent, error)
+	findAgentByHandle   func(ctx context.Context, projectID uuid.UUID, handle string) (*agentdom.Agent, error)
+	listAgents          func(ctx context.Context, projectID uuid.UUID) ([]*agentdom.Agent, error)
+	createAgent         func(ctx context.Context, agent *agentdom.Agent) error
+	createAgentWithMembership func(ctx context.Context, agent *agentdom.Agent, memberID, projectID, projectRoleID uuid.UUID) error
+	updateAgent         func(ctx context.Context, agent *agentdom.Agent) error
+	softDeleteAgent     func(ctx context.Context, id uuid.UUID) error
+	softDeleteAgentWithMembership func(ctx context.Context, projectID, agentID uuid.UUID) error
+	setAgentMemberID    func(ctx context.Context, agentID, memberID uuid.UUID) error
+	listMCPServers      func(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentMCPServer, error)
+	findMCPServerByID   func(ctx context.Context, id uuid.UUID) (*agentdom.AgentMCPServer, error)
+	createMCPServer     func(ctx context.Context, server *agentdom.AgentMCPServer) error
+	updateMCPServer     func(ctx context.Context, server *agentdom.AgentMCPServer) error
+	deleteMCPServer     func(ctx context.Context, id uuid.UUID) error
+	listSkills          func(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentSkill, error)
+	findSkillByID       func(ctx context.Context, id uuid.UUID) (*agentdom.AgentSkill, error)
+	createSkill         func(ctx context.Context, skill *agentdom.AgentSkill) error
+	updateSkill         func(ctx context.Context, skill *agentdom.AgentSkill) error
+	deleteSkill         func(ctx context.Context, id uuid.UUID) error
+	listConversations   func(ctx context.Context, filter agentdom.ListConversationsFilter) ([]*agentdom.AgentConversation, int64, error)
+	findConversationByID func(ctx context.Context, id uuid.UUID) (*agentdom.AgentConversation, error)
+	createConversation  func(ctx context.Context, conv *agentdom.AgentConversation) error
+	updateConversationStatus func(ctx context.Context, id uuid.UUID, status string) error
+	updateConversation func(ctx context.Context, conv *agentdom.AgentConversation) error
+	listConversationEvents func(ctx context.Context, conversationID uuid.UUID, offset, limit int) ([]*agentdom.AgentConversationEvent, int64, error)
+	createConversationEvent func(ctx context.Context, event *agentdom.AgentConversationEvent) error
+	listChatSessions    func(ctx context.Context, agentID, memberID uuid.UUID) ([]*agentdom.AgentChatSession, error)
+	findChatSessionByID func(ctx context.Context, id uuid.UUID) (*agentdom.AgentChatSession, error)
+	createChatSession   func(ctx context.Context, session *agentdom.AgentChatSession) error
+	updateChatSession   func(ctx context.Context, session *agentdom.AgentChatSession) error
+}
+
+func (m *mockAgentRepo) ListAgents(ctx context.Context, projectID uuid.UUID) ([]*agentdom.Agent, error) {
+	if m.listAgents != nil {
+		return m.listAgents(ctx, projectID)
+	}
+	return nil, nil
+}
+
+func (m *mockAgentRepo) FindAgentByID(ctx context.Context, id uuid.UUID) (*agentdom.Agent, error) {
+	if m.findAgentByID != nil {
+		return m.findAgentByID(ctx, id)
+	}
+	return nil, agentdom.ErrAgentNotFound
+}
+
+func (m *mockAgentRepo) FindAgentByHandle(ctx context.Context, projectID uuid.UUID, handle string) (*agentdom.Agent, error) {
+	if m.findAgentByHandle != nil {
+		return m.findAgentByHandle(ctx, projectID, handle)
+	}
+	return nil, nil
+}
+
+func (m *mockAgentRepo) CreateAgent(ctx context.Context, agent *agentdom.Agent) error {
+	if m.createAgent != nil {
+		return m.createAgent(ctx, agent)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) CreateAgentWithMembership(ctx context.Context, agent *agentdom.Agent, memberID, projectID, projectRoleID uuid.UUID) error {
+	if m.createAgentWithMembership != nil {
+		return m.createAgentWithMembership(ctx, agent, memberID, projectID, projectRoleID)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) UpdateAgent(ctx context.Context, agent *agentdom.Agent) error {
+	if m.updateAgent != nil {
+		return m.updateAgent(ctx, agent)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) SoftDeleteAgent(ctx context.Context, id uuid.UUID) error {
+	if m.softDeleteAgent != nil {
+		return m.softDeleteAgent(ctx, id)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) SoftDeleteAgentWithMembership(ctx context.Context, projectID, agentID uuid.UUID) error {
+	if m.softDeleteAgentWithMembership != nil {
+		return m.softDeleteAgentWithMembership(ctx, projectID, agentID)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) SetAgentMemberID(ctx context.Context, agentID, memberID uuid.UUID) error {
+	if m.setAgentMemberID != nil {
+		return m.setAgentMemberID(ctx, agentID, memberID)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) ListMCPServers(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentMCPServer, error) {
+	if m.listMCPServers != nil {
+		return m.listMCPServers(ctx, agentID)
+	}
+	return nil, nil
+}
+
+func (m *mockAgentRepo) FindMCPServerByID(ctx context.Context, id uuid.UUID) (*agentdom.AgentMCPServer, error) {
+	if m.findMCPServerByID != nil {
+		return m.findMCPServerByID(ctx, id)
+	}
+	return nil, agentdom.ErrMCPServerNotFound
+}
+
+func (m *mockAgentRepo) CreateMCPServer(ctx context.Context, server *agentdom.AgentMCPServer) error {
+	if m.createMCPServer != nil {
+		return m.createMCPServer(ctx, server)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) UpdateMCPServer(ctx context.Context, server *agentdom.AgentMCPServer) error {
+	if m.updateMCPServer != nil {
+		return m.updateMCPServer(ctx, server)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) DeleteMCPServer(ctx context.Context, id uuid.UUID) error {
+	if m.deleteMCPServer != nil {
+		return m.deleteMCPServer(ctx, id)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) ListSkills(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentSkill, error) {
+	if m.listSkills != nil {
+		return m.listSkills(ctx, agentID)
+	}
+	return nil, nil
+}
+
+func (m *mockAgentRepo) FindSkillByID(ctx context.Context, id uuid.UUID) (*agentdom.AgentSkill, error) {
+	if m.findSkillByID != nil {
+		return m.findSkillByID(ctx, id)
+	}
+	return nil, agentdom.ErrSkillNotFound
+}
+
+func (m *mockAgentRepo) CreateSkill(ctx context.Context, skill *agentdom.AgentSkill) error {
+	if m.createSkill != nil {
+		return m.createSkill(ctx, skill)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) UpdateSkill(ctx context.Context, skill *agentdom.AgentSkill) error {
+	if m.updateSkill != nil {
+		return m.updateSkill(ctx, skill)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) DeleteSkill(ctx context.Context, id uuid.UUID) error {
+	if m.deleteSkill != nil {
+		return m.deleteSkill(ctx, id)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) ListConversations(ctx context.Context, filter agentdom.ListConversationsFilter) ([]*agentdom.AgentConversation, int64, error) {
+	if m.listConversations != nil {
+		return m.listConversations(ctx, filter)
+	}
+	return nil, 0, nil
+}
+
+func (m *mockAgentRepo) FindConversationByID(ctx context.Context, id uuid.UUID) (*agentdom.AgentConversation, error) {
+	if m.findConversationByID != nil {
+		return m.findConversationByID(ctx, id)
+	}
+	return nil, agentdom.ErrConversationNotFound
+}
+
+func (m *mockAgentRepo) CreateConversation(ctx context.Context, conv *agentdom.AgentConversation) error {
+	if m.createConversation != nil {
+		return m.createConversation(ctx, conv)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) UpdateConversationStatus(ctx context.Context, id uuid.UUID, status string) error {
+	if m.updateConversationStatus != nil {
+		return m.updateConversationStatus(ctx, id, status)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) UpdateConversation(ctx context.Context, conv *agentdom.AgentConversation) error {
+	if m.updateConversation != nil {
+		return m.updateConversation(ctx, conv)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) ListConversationEvents(ctx context.Context, conversationID uuid.UUID, offset, limit int) ([]*agentdom.AgentConversationEvent, int64, error) {
+	if m.listConversationEvents != nil {
+		return m.listConversationEvents(ctx, conversationID, offset, limit)
+	}
+	return nil, 0, nil
+}
+
+func (m *mockAgentRepo) CreateConversationEvent(ctx context.Context, event *agentdom.AgentConversationEvent) error {
+	if m.createConversationEvent != nil {
+		return m.createConversationEvent(ctx, event)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) ListChatSessions(ctx context.Context, agentID, memberID uuid.UUID) ([]*agentdom.AgentChatSession, error) {
+	if m.listChatSessions != nil {
+		return m.listChatSessions(ctx, agentID, memberID)
+	}
+	return nil, nil
+}
+
+func (m *mockAgentRepo) FindChatSessionByID(ctx context.Context, id uuid.UUID) (*agentdom.AgentChatSession, error) {
+	if m.findChatSessionByID != nil {
+		return m.findChatSessionByID(ctx, id)
+	}
+	return nil, agentdom.ErrChatSessionNotFound
+}
+
+func (m *mockAgentRepo) CreateChatSession(ctx context.Context, session *agentdom.AgentChatSession) error {
+	if m.createChatSession != nil {
+		return m.createChatSession(ctx, session)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) UpdateChatSession(ctx context.Context, session *agentdom.AgentChatSession) error {
+	if m.updateChatSession != nil {
+		return m.updateChatSession(ctx, session)
+	}
+	return nil
+}
+
+var _ agentdom.Repository = (*mockAgentRepo)(nil)
+
+type mockProjectRepo struct {
+	invalidateMembersCacheCalled bool
+}
+
+func (m *mockProjectRepo) InvalidateMembersCache(ctx context.Context, projectID uuid.UUID) error {
+	m.invalidateMembersCacheCalled = true
+	return nil
+}
+
+var _ projectMemberWriter = (*mockProjectRepo)(nil)
+
+func TestGetAgent_Success(t *testing.T) {
+	projectID := uuid.New()
+	agentID := uuid.New()
+	agent := &agentdom.Agent{
+		ID:        agentID,
+		ProjectID: projectID,
+		Name:      "Test Agent",
+		Handle:    "test-agent",
+	}
+
+	repo := &mockAgentRepo{
+		findAgentByID: func(ctx context.Context, id uuid.UUID) (*agentdom.Agent, error) {
+			return agent, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	result, err := svc.GetAgent(context.Background(), projectID, agentID)
+
+	assert.NoError(t, err)
+	assert.Equal(t, agentID, result.ID)
+	assert.Equal(t, projectID, result.ProjectID)
+}
+
+func TestGetAgent_WrongProject(t *testing.T) {
+	projectID := uuid.New()
+	wrongProjectID := uuid.New()
+	agentID := uuid.New()
+	agent := &agentdom.Agent{
+		ID:        agentID,
+		ProjectID: wrongProjectID,
+		Name:      "Test Agent",
+		Handle:    "test-agent",
+	}
+
+	repo := &mockAgentRepo{
+		findAgentByID: func(ctx context.Context, id uuid.UUID) (*agentdom.Agent, error) {
+			return agent, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	_, err := svc.GetAgent(context.Background(), projectID, agentID)
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, agentdom.ErrAgentNotFound)
+}
+
+func TestListAgents_Success(t *testing.T) {
+	projectID := uuid.New()
+	agent1 := &agentdom.Agent{
+		ID:        uuid.New(),
+		ProjectID: projectID,
+		Name:      "Agent 1",
+		Handle:    "agent-1",
+	}
+	agent2 := &agentdom.Agent{
+		ID:        uuid.New(),
+		ProjectID: projectID,
+		Name:      "Agent 2",
+		Handle:    "agent-2",
+	}
+
+	repo := &mockAgentRepo{
+		listAgents: func(ctx context.Context, pid uuid.UUID) ([]*agentdom.Agent, error) {
+			if pid != projectID {
+				t.Fatalf("expected projectID %v, got %v", projectID, pid)
+			}
+			return []*agentdom.Agent{agent1, agent2}, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	result, err := svc.ListAgents(context.Background(), projectID)
+
+	assert.NoError(t, err)
+	assert.Len(t, result, 2)
+}
+
+func TestCreateAgent_Success(t *testing.T) {
+	projectID := uuid.New()
+	projectRoleID := uuid.New()
+	userID := uuid.New()
+
+	repo := &mockAgentRepo{
+		findAgentByHandle: func(ctx context.Context, pid uuid.UUID, handle string) (*agentdom.Agent, error) {
+			return nil, agentdom.ErrAgentNotFound
+		},
+		createAgentWithMembership: func(ctx context.Context, agent *agentdom.Agent, memberID, pid, roleID uuid.UUID) error {
+			if pid != projectID || roleID != projectRoleID {
+				t.Fatalf("unexpected projectID or roleID")
+			}
+			return nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	result, err := svc.CreateAgent(context.Background(), projectID, agentdom.CreateAgentInput{
+		Name:            "New Agent",
+		Handle:          "new-agent",
+		LLMProvider:     "openai",
+		LLMModel:        "gpt-4",
+		LLMAPIKey:       "sk-test",
+		ProjectRoleID:   projectRoleID,
+		CreatedBy:       &userID,
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, "New Agent", result.Name)
+	assert.Equal(t, "new-agent", result.Handle)
+	assert.Equal(t, "openai", result.LLMProvider)
+	assert.Equal(t, "gpt-4", result.LLMModel)
+	assert.True(t, projRepo.invalidateMembersCacheCalled)
+}
+
+func TestCreateAgent_EmptyHandle(t *testing.T) {
+	projectID := uuid.New()
+	projectRoleID := uuid.New()
+
+	repo := &mockAgentRepo{}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	_, err := svc.CreateAgent(context.Background(), projectID, agentdom.CreateAgentInput{
+		Name:          "New Agent",
+		Handle:        "",
+		ProjectRoleID: projectRoleID,
+	})
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, agentdom.ErrAgentHandleInvalid)
+}
+
+func TestCreateAgent_EmptyName(t *testing.T) {
+	projectID := uuid.New()
+	projectRoleID := uuid.New()
+
+	repo := &mockAgentRepo{}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	_, err := svc.CreateAgent(context.Background(), projectID, agentdom.CreateAgentInput{
+		Name:          "",
+		Handle:        "new-agent",
+		ProjectRoleID: projectRoleID,
+	})
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, agentdom.ErrAgentNameInvalid)
+}
+
+func TestCreateAgent_HandleTaken(t *testing.T) {
+	projectID := uuid.New()
+	projectRoleID := uuid.New()
+	existingAgent := &agentdom.Agent{
+		ID:        uuid.New(),
+		ProjectID: projectID,
+		Handle:    "new-agent",
+	}
+
+	repo := &mockAgentRepo{
+		findAgentByHandle: func(ctx context.Context, pid uuid.UUID, handle string) (*agentdom.Agent, error) {
+			return existingAgent, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	_, err := svc.CreateAgent(context.Background(), projectID, agentdom.CreateAgentInput{
+		Name:          "New Agent",
+		Handle:        "new-agent",
+		ProjectRoleID: projectRoleID,
+	})
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, agentdom.ErrAgentHandleTaken)
+}
+
+func TestUpdateAgent_Success(t *testing.T) {
+	projectID := uuid.New()
+	agentID := uuid.New()
+	agent := &agentdom.Agent{
+		ID:        agentID,
+		ProjectID: projectID,
+		Name:      "Old Name",
+		Handle:    "old-handle",
+		LLMModel:  "gpt-3.5",
+	}
+
+	repo := &mockAgentRepo{
+		findAgentByID: func(ctx context.Context, id uuid.UUID) (*agentdom.Agent, error) {
+			return agent, nil
+		},
+		findAgentByHandle: func(ctx context.Context, pid uuid.UUID, handle string) (*agentdom.Agent, error) {
+			return nil, agentdom.ErrAgentNotFound
+		},
+		updateAgent: func(ctx context.Context, a *agentdom.Agent) error {
+			if a.ID != agentID {
+				t.Fatalf("unexpected agent ID")
+			}
+			return nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	newName := "New Name"
+	newHandle := "new-handle"
+	newModel := "gpt-4"
+
+	result, err := svc.UpdateAgent(context.Background(), projectID, agentID, agentdom.UpdateAgentInput{
+		Name:      &newName,
+		Handle:    &newHandle,
+		LLMModel:  &newModel,
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, newName, result.Name)
+	assert.Equal(t, newHandle, result.Handle)
+	assert.Equal(t, newModel, result.LLMModel)
+}
+
+func TestUpdateAgent_HandleTaken(t *testing.T) {
+	projectID := uuid.New()
+	agentID := uuid.New()
+	agent := &agentdom.Agent{
+		ID:        agentID,
+		ProjectID: projectID,
+		Name:      "Test Agent",
+		Handle:    "current-handle",
+	}
+
+	existingAgent := &agentdom.Agent{
+		ID:        uuid.New(),
+		ProjectID: projectID,
+		Handle:    "new-handle",
+	}
+
+	repo := &mockAgentRepo{
+		findAgentByID: func(ctx context.Context, id uuid.UUID) (*agentdom.Agent, error) {
+			return agent, nil
+		},
+		findAgentByHandle: func(ctx context.Context, pid uuid.UUID, handle string) (*agentdom.Agent, error) {
+			return existingAgent, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	newHandle := "new-handle"
+
+	_, err := svc.UpdateAgent(context.Background(), projectID, agentID, agentdom.UpdateAgentInput{
+		Handle: &newHandle,
+	})
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, agentdom.ErrAgentHandleTaken)
+}
+
+func TestDeleteAgent_Success(t *testing.T) {
+	projectID := uuid.New()
+	agentID := uuid.New()
+	agent := &agentdom.Agent{
+		ID:        agentID,
+		ProjectID: projectID,
+		Name:      "Test Agent",
+	}
+
+	repo := &mockAgentRepo{
+		findAgentByID: func(ctx context.Context, id uuid.UUID) (*agentdom.Agent, error) {
+			return agent, nil
+		},
+		softDeleteAgentWithMembership: func(ctx context.Context, pid, aid uuid.UUID) error {
+			if pid != projectID || aid != agentID {
+				t.Fatalf("unexpected projectID or agentID")
+			}
+			return nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	err := svc.DeleteAgent(context.Background(), projectID, agentID)
+
+	assert.NoError(t, err)
+	assert.True(t, projRepo.invalidateMembersCacheCalled)
+}
+
+func TestListMCPServers_Success(t *testing.T) {
+	agentID := uuid.New()
+	servers := []*agentdom.AgentMCPServer{
+		{ID: uuid.New(), AgentID: agentID, ServerName: "Server 1"},
+		{ID: uuid.New(), AgentID: agentID, ServerName: "Server 2"},
+	}
+
+	repo := &mockAgentRepo{
+		listMCPServers: func(ctx context.Context, aid uuid.UUID) ([]*agentdom.AgentMCPServer, error) {
+			if aid != agentID {
+				t.Fatalf("expected agentID %v, got %v", agentID, aid)
+			}
+			return servers, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	result, err := svc.ListMCPServers(context.Background(), agentID)
+
+	assert.NoError(t, err)
+	assert.Len(t, result, 2)
+}
+
+func TestAddMCPServer_Success(t *testing.T) {
+	agentID := uuid.New()
+	command := "python"
+	url := "http://localhost:8080"
+
+	repo := &mockAgentRepo{
+		createMCPServer: func(ctx context.Context, server *agentdom.AgentMCPServer) error {
+			if server.AgentID != agentID {
+				t.Fatalf("unexpected agentID")
+			}
+			return nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	result, err := svc.AddMCPServer(context.Background(), agentID, agentdom.AddMCPServerInput{
+		ServerName: "Test Server",
+		Transport:  "stdio",
+		Command:    &command,
+		Args:       []string{"-m", "server"},
+		URL:        &url,
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, "Test Server", result.ServerName)
+	assert.Equal(t, "stdio", result.Transport)
+}
+
+func TestListSkills_Success(t *testing.T) {
+	agentID := uuid.New()
+	skills := []*agentdom.AgentSkill{
+		{ID: uuid.New(), AgentID: agentID, SkillName: "Skill 1"},
+		{ID: uuid.New(), AgentID: agentID, SkillName: "Skill 2"},
+	}
+
+	repo := &mockAgentRepo{
+		listSkills: func(ctx context.Context, aid uuid.UUID) ([]*agentdom.AgentSkill, error) {
+			if aid != agentID {
+				t.Fatalf("expected agentID %v, got %v", agentID, aid)
+			}
+			return skills, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	result, err := svc.ListSkills(context.Background(), agentID)
+
+	assert.NoError(t, err)
+	assert.Len(t, result, 2)
+}
+
+func TestAddSkill_Success(t *testing.T) {
+	agentID := uuid.New()
+
+	repo := &mockAgentRepo{
+		createSkill: func(ctx context.Context, skill *agentdom.AgentSkill) error {
+			if skill.AgentID != agentID {
+				t.Fatalf("unexpected agentID")
+			}
+			return nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	result, err := svc.AddSkill(context.Background(), agentID, agentdom.AddSkillInput{
+		SkillName:    "Test Skill",
+		SkillSource:  "file",
+		SkillContent: "skill content",
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, "Test Skill", result.SkillName)
+}
+
+func TestGetConversation_Success(t *testing.T) {
+	projectID := uuid.New()
+	conversationID := uuid.New()
+	conversation := &agentdom.AgentConversation{
+		ID:        conversationID,
+		ProjectID: projectID,
+		Status:    "running",
+	}
+
+	repo := &mockAgentRepo{
+		findConversationByID: func(ctx context.Context, id uuid.UUID) (*agentdom.AgentConversation, error) {
+			return conversation, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	result, err := svc.GetConversation(context.Background(), projectID, conversationID)
+
+	assert.NoError(t, err)
+	assert.Equal(t, conversationID, result.ID)
+	assert.Equal(t, projectID, result.ProjectID)
+}
+
+func TestGetConversation_WrongProject(t *testing.T) {
+	projectID := uuid.New()
+	wrongProjectID := uuid.New()
+	conversationID := uuid.New()
+	conversation := &agentdom.AgentConversation{
+		ID:        conversationID,
+		ProjectID: wrongProjectID,
+		Status:    "running",
+	}
+
+	repo := &mockAgentRepo{
+		findConversationByID: func(ctx context.Context, id uuid.UUID) (*agentdom.AgentConversation, error) {
+			return conversation, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	_, err := svc.GetConversation(context.Background(), projectID, conversationID)
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, agentdom.ErrConversationNotFound)
+}
+
+func TestPauseConversation_Success(t *testing.T) {
+	projectID := uuid.New()
+	conversationID := uuid.New()
+	conversation := &agentdom.AgentConversation{
+		ID:        conversationID,
+		ProjectID: projectID,
+		Status:    "running",
+	}
+
+	repo := &mockAgentRepo{
+		findConversationByID: func(ctx context.Context, id uuid.UUID) (*agentdom.AgentConversation, error) {
+			return conversation, nil
+		},
+		updateConversationStatus: func(ctx context.Context, id uuid.UUID, status string) error {
+			if id != conversationID || status != "paused" {
+				t.Fatalf("unexpected conversation ID or status")
+			}
+			return nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	err := svc.PauseConversation(context.Background(), projectID, conversationID)
+
+	assert.NoError(t, err)
+}
+
+func TestPauseConversation_NotRunning(t *testing.T) {
+	projectID := uuid.New()
+	conversationID := uuid.New()
+	conversation := &agentdom.AgentConversation{
+		ID:        conversationID,
+		ProjectID: projectID,
+		Status:    "paused",
+	}
+
+	repo := &mockAgentRepo{
+		findConversationByID: func(ctx context.Context, id uuid.UUID) (*agentdom.AgentConversation, error) {
+			return conversation, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	err := svc.PauseConversation(context.Background(), projectID, conversationID)
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, agentdom.ErrConversationNotRunning)
+}
+
+func TestSendConversationMessage_Success(t *testing.T) {
+	projectID := uuid.New()
+	conversationID := uuid.New()
+	conversation := &agentdom.AgentConversation{
+		ID:        conversationID,
+		ProjectID: projectID,
+		Status:    "running",
+	}
+
+	repo := &mockAgentRepo{
+		findConversationByID: func(ctx context.Context, id uuid.UUID) (*agentdom.AgentConversation, error) {
+			return conversation, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	err := svc.SendConversationMessage(context.Background(), projectID, conversationID, "test message", uuid.New())
+
+	assert.NoError(t, err)
+}
+
+func TestSendConversationMessage_NotRunning(t *testing.T) {
+	projectID := uuid.New()
+	conversationID := uuid.New()
+	conversation := &agentdom.AgentConversation{
+		ID:        conversationID,
+		ProjectID: projectID,
+		Status:    "finished",
+	}
+
+	repo := &mockAgentRepo{
+		findConversationByID: func(ctx context.Context, id uuid.UUID) (*agentdom.AgentConversation, error) {
+			return conversation, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	err := svc.SendConversationMessage(context.Background(), projectID, conversationID, "test message", uuid.New())
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, agentdom.ErrConversationNotRunning)
+}
+
+func TestListChatSessions_Success(t *testing.T) {
+	agentID := uuid.New()
+	memberID := uuid.New()
+	sessions := []*agentdom.AgentChatSession{
+		{ID: uuid.New(), AgentID: agentID, MemberID: memberID},
+		{ID: uuid.New(), AgentID: agentID, MemberID: memberID},
+	}
+
+	repo := &mockAgentRepo{
+		listChatSessions: func(ctx context.Context, aid, mid uuid.UUID) ([]*agentdom.AgentChatSession, error) {
+			if aid != agentID || mid != memberID {
+				t.Fatalf("unexpected agentID or memberID")
+			}
+			return sessions, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	result, err := svc.ListChatSessions(context.Background(), uuid.Nil, agentID, memberID)
+
+	assert.NoError(t, err)
+	assert.Len(t, result, 2)
+}
+
+func TestStartChatSession_Success(t *testing.T) {
+	projectID := uuid.New()
+	agentID := uuid.New()
+	memberID := uuid.New()
+
+	repo := &mockAgentRepo{
+		createChatSession: func(ctx context.Context, session *agentdom.AgentChatSession) error {
+			if session.AgentID != agentID || session.ProjectID != projectID || session.MemberID != memberID {
+				t.Fatalf("unexpected session fields")
+			}
+			return nil
+		},
+		createConversation: func(ctx context.Context, conv *agentdom.AgentConversation) error {
+			if conv.AgentID != agentID || conv.ProjectID != projectID || conv.TriggeredByMemberID != memberID {
+				t.Fatalf("unexpected conversation fields")
+			}
+			return nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	resultSession, resultConv, err := svc.StartChatSession(context.Background(), projectID, agentID, memberID, "Hello")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, resultSession)
+	assert.NotNil(t, resultConv)
+	assert.Equal(t, agentID, resultSession.AgentID)
+	assert.Equal(t, projectID, resultSession.ProjectID)
+}
+
+func TestSendChatMessage_Success(t *testing.T) {
+	projectID := uuid.New()
+	agentID := uuid.New()
+	memberID := uuid.New()
+	sessionID := uuid.New()
+	session := &agentdom.AgentChatSession{
+		ID:        sessionID,
+		AgentID:   agentID,
+		ProjectID: projectID,
+	}
+
+	repo := &mockAgentRepo{
+		findChatSessionByID: func(ctx context.Context, id uuid.UUID) (*agentdom.AgentChatSession, error) {
+			return session, nil
+		},
+		createConversation: func(ctx context.Context, conv *agentdom.AgentConversation) error {
+			if conv.AgentID != agentID || conv.ProjectID != projectID || conv.TriggeredByMemberID != memberID {
+				t.Fatalf("unexpected conversation fields")
+			}
+			return nil
+		},
+		updateChatSession: func(ctx context.Context, session *agentdom.AgentChatSession) error {
+			return nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	resultConv, err := svc.SendChatMessage(context.Background(), projectID, sessionID, memberID, "Hello")
+
+	assert.NoError(t, err)
+	assert.NotNil(t, resultConv)
+	assert.Equal(t, agentID, resultConv.AgentID)
+}
+
+func TestSendChatMessage_WrongProject(t *testing.T) {
+	projectID := uuid.New()
+	wrongProjectID := uuid.New()
+	agentID := uuid.New()
+	memberID := uuid.New()
+	sessionID := uuid.New()
+	session := &agentdom.AgentChatSession{
+		ID:        sessionID,
+		AgentID:   agentID,
+		ProjectID: wrongProjectID,
+	}
+
+	repo := &mockAgentRepo{
+		findChatSessionByID: func(ctx context.Context, id uuid.UUID) (*agentdom.AgentChatSession, error) {
+			return session, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	_, err := svc.SendChatMessage(context.Background(), projectID, sessionID, memberID, "Hello")
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, agentdom.ErrChatSessionNotFound)
+}
+
+func TestDeleteMCPServer_Success(t *testing.T) {
+	agentID := uuid.New()
+	serverID := uuid.New()
+	server := &agentdom.AgentMCPServer{
+		ID:      serverID,
+		AgentID: agentID,
+	}
+
+	repo := &mockAgentRepo{
+		findMCPServerByID: func(ctx context.Context, id uuid.UUID) (*agentdom.AgentMCPServer, error) {
+			return server, nil
+		},
+		deleteMCPServer: func(ctx context.Context, id uuid.UUID) error {
+			if id != serverID {
+				t.Fatalf("unexpected server ID")
+			}
+			return nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	err := svc.DeleteMCPServer(context.Background(), agentID, serverID)
+
+	assert.NoError(t, err)
+}
+
+func TestUpdateSkill_Success(t *testing.T) {
+	agentID := uuid.New()
+	skillID := uuid.New()
+	skill := &agentdom.AgentSkill{
+		ID:           skillID,
+		AgentID:      agentID,
+		SkillName:    "Old Skill",
+		SkillContent: "old content",
+	}
+
+	repo := &mockAgentRepo{
+		findSkillByID: func(ctx context.Context, id uuid.UUID) (*agentdom.AgentSkill, error) {
+			return skill, nil
+		},
+		updateSkill: func(ctx context.Context, s *agentdom.AgentSkill) error {
+			if s.ID != skillID || s.AgentID != agentID {
+				t.Fatalf("unexpected skill ID or agent ID")
+			}
+			return nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	newContent := "new content"
+
+	result, err := svc.UpdateSkill(context.Background(), agentID, skillID, agentdom.UpdateSkillInput{
+		SkillContent: &newContent,
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, newContent, result.SkillContent)
+}
+
+func TestTriggerTaskAssigned_Success(t *testing.T) {
+	projectID := uuid.New()
+	agentID := uuid.New()
+	taskID := uuid.New()
+	memberID := uuid.New()
+
+	repo := &mockAgentRepo{
+		createConversation: func(ctx context.Context, conv *agentdom.AgentConversation) error {
+			if conv.AgentID != agentID || conv.ProjectID != projectID || conv.TriggeredByMemberID != memberID {
+				t.Fatalf("unexpected conversation fields")
+			}
+			return nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	result, err := svc.TriggerTaskAssigned(context.Background(), projectID, agentID, taskID, memberID)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "task_assigned", result.TriggerType)
+}
+
+func TestTriggerCommentMention_Success(t *testing.T) {
+	projectID := uuid.New()
+	agentID := uuid.New()
+	taskID := uuid.New()
+	commentID := uuid.New()
+	memberID := uuid.New()
+
+	repo := &mockAgentRepo{
+		createConversation: func(ctx context.Context, conv *agentdom.AgentConversation) error {
+			if conv.AgentID != agentID || conv.ProjectID != projectID || conv.TriggeredByMemberID != memberID {
+				t.Fatalf("unexpected conversation fields")
+			}
+			return nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	svc := New(repo, projRepo, nil)
+
+	result, err := svc.TriggerCommentMention(context.Background(), projectID, agentID, taskID, commentID, memberID)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "comment_mention", result.TriggerType)
+}

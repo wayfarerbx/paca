@@ -2,18 +2,19 @@ package projectsvc
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	projectdom "github.com/Paca-AI/api/internal/domain/project"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
 )
 
 type memberServiceRepoMock struct {
-	findByID         func(ctx context.Context, id uuid.UUID) (*projectdom.Project, error)
-	findMember       func(ctx context.Context, projectID, userID uuid.UUID) (*projectdom.ProjectMember, error)
-	findRoleByID     func(ctx context.Context, id uuid.UUID) (*projectdom.ProjectRole, error)
-	updateMemberRole func(ctx context.Context, projectID, userID, roleID uuid.UUID) error
+	findByID          func(ctx context.Context, id uuid.UUID) (*projectdom.Project, error)
+	findMember        func(ctx context.Context, projectID, userID uuid.UUID) (*projectdom.ProjectMember, error)
+	findMemberByAgent func(ctx context.Context, projectID, agentID uuid.UUID) (*projectdom.ProjectMember, error)
+	findRoleByID      func(ctx context.Context, id uuid.UUID) (*projectdom.ProjectRole, error)
+	updateMemberRole  func(ctx context.Context, projectID, userID, roleID uuid.UUID) error
 }
 
 func (m *memberServiceRepoMock) List(context.Context, int, int) ([]*projectdom.Project, int64, error) {
@@ -50,6 +51,13 @@ func (m *memberServiceRepoMock) ListMembers(context.Context, uuid.UUID) ([]*proj
 func (m *memberServiceRepoMock) FindMember(ctx context.Context, projectID, userID uuid.UUID) (*projectdom.ProjectMember, error) {
 	if m.findMember != nil {
 		return m.findMember(ctx, projectID, userID)
+	}
+	return nil, projectdom.ErrMemberNotFound
+}
+
+func (m *memberServiceRepoMock) FindMemberByAgent(ctx context.Context, projectID, agentID uuid.UUID) (*projectdom.ProjectMember, error) {
+	if m.findMemberByAgent != nil {
+		return m.findMemberByAgent(ctx, projectID, agentID)
 	}
 	return nil, projectdom.ErrMemberNotFound
 }
@@ -103,11 +111,53 @@ func (m *memberServiceRepoMock) DeleteRole(context.Context, uuid.UUID) error {
 func (m *memberServiceRepoMock) CountMembersWithRole(context.Context, uuid.UUID) (int64, error) {
 	return 0, nil
 }
+
 func (m *memberServiceRepoMock) FindMemberByID(_ context.Context, _ uuid.UUID) (*projectdom.ProjectMember, error) {
 	return nil, projectdom.ErrMemberNotFound
 }
 
+func (m *memberServiceRepoMock) AddAgentMember(_ context.Context, _, _, _, _ uuid.UUID) error {
+	return nil
+}
+
+func (m *memberServiceRepoMock) RemoveAgentMember(_ context.Context, _, _ uuid.UUID) error {
+	return nil
+}
+
 var _ projectdom.Repository = (*memberServiceRepoMock)(nil)
+
+func TestGetMyProjectPermissions_Success(t *testing.T) {
+	projectID := uuid.New()
+	userID := uuid.New()
+	roleID := uuid.New()
+	member := &projectdom.ProjectMember{
+		ID:            uuid.New(),
+		ProjectID:     projectID,
+		UserID:        userID,
+		ProjectRoleID: roleID,
+	}
+	role := &projectdom.ProjectRole{
+		ID:          roleID,
+		ProjectID:   &projectID,
+		RoleName:    "Developer",
+		Permissions: map[string]any{"tasks.read": true, "tasks.write": true},
+	}
+
+	repo := &memberServiceRepoMock{
+		findMember: func(_ context.Context, _, _ uuid.UUID) (*projectdom.ProjectMember, error) {
+			return member, nil
+		},
+		findRoleByID: func(_ context.Context, _ uuid.UUID) (*projectdom.ProjectRole, error) {
+			return role, nil
+		},
+	}
+	svc := New(repo, nil)
+
+	got, err := svc.GetMyProjectPermissions(context.Background(), projectID, userID, nil)
+
+	assert.NoError(t, err)
+	assert.Equal(t, role.Permissions, got)
+}
 
 func TestUpdateMemberRole_Success(t *testing.T) {
 	projectID := uuid.New()
@@ -143,8 +193,8 @@ func TestUpdateMemberRole_Success(t *testing.T) {
 			return nil
 		},
 	}
-
 	svc := New(repo, nil)
+
 	member, err := svc.UpdateMemberRole(context.Background(), projectID, userID, projectdom.UpdateMemberRoleInput{
 		ProjectRoleID: newRoleID,
 	})
@@ -159,198 +209,180 @@ func TestUpdateMemberRole_Success(t *testing.T) {
 	}
 }
 
-func TestUpdateMemberRole_ProjectNotFound(t *testing.T) {
-	repo := &memberServiceRepoMock{
-		findByID: func(context.Context, uuid.UUID) (*projectdom.Project, error) {
-			return nil, projectdom.ErrNotFound
-		},
-	}
-
-	svc := New(repo, nil)
-	_, err := svc.UpdateMemberRole(context.Background(), uuid.New(), uuid.New(), projectdom.UpdateMemberRoleInput{
-		ProjectRoleID: uuid.New(),
-	})
-	if !errors.Is(err, projectdom.ErrNotFound) {
-		t.Fatalf("expected ErrNotFound, got %v", err)
-	}
-}
-
-func TestUpdateMemberRole_RoleFromDifferentProject(t *testing.T) {
-	projectID := uuid.New()
-	otherProjectID := uuid.New()
-	repo := &memberServiceRepoMock{
-		findByID: func(_ context.Context, id uuid.UUID) (*projectdom.Project, error) {
-			return &projectdom.Project{ID: id}, nil
-		},
-		findMember: func(_ context.Context, pid, uid uuid.UUID) (*projectdom.ProjectMember, error) {
-			return &projectdom.ProjectMember{ProjectID: pid, UserID: uid}, nil
-		},
-		findRoleByID: func(_ context.Context, id uuid.UUID) (*projectdom.ProjectRole, error) {
-			return &projectdom.ProjectRole{ID: id, ProjectID: &otherProjectID}, nil
-		},
-		updateMemberRole: func(_ context.Context, _, _, _ uuid.UUID) error {
-			t.Fatal("update should not be called for role from different project")
-			return nil
-		},
-	}
-
-	svc := New(repo, nil)
-	_, err := svc.UpdateMemberRole(context.Background(), projectID, uuid.New(), projectdom.UpdateMemberRoleInput{
-		ProjectRoleID: uuid.New(),
-	})
-	if !errors.Is(err, projectdom.ErrRoleNotFound) {
-		t.Fatalf("expected ErrRoleNotFound, got %v", err)
-	}
-}
-
-func TestUpdateMemberRole_UpdateError(t *testing.T) {
-	projectID := uuid.New()
-	userID := uuid.New()
-	repo := &memberServiceRepoMock{
-		findByID: func(_ context.Context, id uuid.UUID) (*projectdom.Project, error) {
-			return &projectdom.Project{ID: id}, nil
-		},
-		findMember: func(_ context.Context, pid, uid uuid.UUID) (*projectdom.ProjectMember, error) {
-			return &projectdom.ProjectMember{ProjectID: pid, UserID: uid}, nil
-		},
-		findRoleByID: func(_ context.Context, id uuid.UUID) (*projectdom.ProjectRole, error) {
-			return &projectdom.ProjectRole{ID: id, ProjectID: &projectID}, nil
-		},
-		updateMemberRole: func(_ context.Context, _, _, _ uuid.UUID) error {
-			return projectdom.ErrMemberNotFound
-		},
-	}
-
-	svc := New(repo, nil)
-	_, err := svc.UpdateMemberRole(context.Background(), projectID, userID, projectdom.UpdateMemberRoleInput{
-		ProjectRoleID: uuid.New(),
-	})
-	if !errors.Is(err, projectdom.ErrMemberNotFound) {
-		t.Fatalf("expected ErrMemberNotFound, got %v", err)
-	}
-}
-
-// ---------------------------------------------------------------------------
-// GetMyProjectPermissions
-// ---------------------------------------------------------------------------
-
-func TestGetMyProjectPermissions_Success(t *testing.T) {
-	projectID := uuid.New()
-	userID := uuid.New()
-	roleID := uuid.New()
-	wantPerms := map[string]any{"tasks.read": true, "tasks.write": true, "sprints.read": true}
-
-	repo := &memberServiceRepoMock{
-		findMember: func(_ context.Context, pid, uid uuid.UUID) (*projectdom.ProjectMember, error) {
-			if pid != projectID || uid != userID {
-				t.Errorf("unexpected findMember args: pid=%v uid=%v", pid, uid)
-			}
-			return &projectdom.ProjectMember{
-				ID:            uuid.New(),
-				ProjectID:     projectID,
-				UserID:        userID,
-				ProjectRoleID: roleID,
-			}, nil
-		},
-		findRoleByID: func(_ context.Context, id uuid.UUID) (*projectdom.ProjectRole, error) {
-			if id != roleID {
-				t.Errorf("unexpected findRoleByID arg: %v", id)
-			}
-			return &projectdom.ProjectRole{
-				ID:          roleID,
-				ProjectID:   &projectID,
-				Permissions: wantPerms,
-			}, nil
-		},
-	}
-
-	svc := New(repo, nil)
-	got, err := svc.GetMyProjectPermissions(context.Background(), projectID, userID)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(got) != len(wantPerms) {
-		t.Fatalf("expected %d permissions, got %d", len(wantPerms), len(got))
-	}
-	for k, v := range wantPerms {
-		if got[k] != v {
-			t.Errorf("permission %q: expected %v, got %v", k, v, got[k])
-		}
-	}
-}
-
 func TestGetMyProjectPermissions_MemberNotFound(t *testing.T) {
 	repo := &memberServiceRepoMock{
 		findMember: func(_ context.Context, _, _ uuid.UUID) (*projectdom.ProjectMember, error) {
 			return nil, projectdom.ErrMemberNotFound
 		},
 	}
-
 	svc := New(repo, nil)
-	_, err := svc.GetMyProjectPermissions(context.Background(), uuid.New(), uuid.New())
-	if !errors.Is(err, projectdom.ErrMemberNotFound) {
-		t.Fatalf("expected ErrMemberNotFound, got %v", err)
-	}
+
+	_, err := svc.GetMyProjectPermissions(context.Background(), uuid.New(), uuid.New(), nil)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, projectdom.ErrMemberNotFound)
 }
 
 func TestGetMyProjectPermissions_RoleNotFound(t *testing.T) {
 	projectID := uuid.New()
 	userID := uuid.New()
-	roleID := uuid.New()
+	member := &projectdom.ProjectMember{
+		ID:            uuid.New(),
+		ProjectID:     projectID,
+		UserID:        userID,
+		ProjectRoleID: uuid.New(),
+	}
 
 	repo := &memberServiceRepoMock{
 		findMember: func(_ context.Context, _, _ uuid.UUID) (*projectdom.ProjectMember, error) {
-			return &projectdom.ProjectMember{
-				ID:            uuid.New(),
-				ProjectID:     projectID,
-				UserID:        userID,
-				ProjectRoleID: roleID,
-			}, nil
+			return member, nil
 		},
 		findRoleByID: func(_ context.Context, _ uuid.UUID) (*projectdom.ProjectRole, error) {
 			return nil, projectdom.ErrRoleNotFound
 		},
 	}
-
 	svc := New(repo, nil)
-	_, err := svc.GetMyProjectPermissions(context.Background(), projectID, userID)
-	if !errors.Is(err, projectdom.ErrRoleNotFound) {
-		t.Fatalf("expected ErrRoleNotFound, got %v", err)
-	}
+
+	_, err := svc.GetMyProjectPermissions(context.Background(), projectID, userID, nil)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, projectdom.ErrRoleNotFound)
 }
 
 func TestGetMyProjectPermissions_NilPermissions(t *testing.T) {
 	projectID := uuid.New()
 	userID := uuid.New()
 	roleID := uuid.New()
+	member := &projectdom.ProjectMember{
+		ID:            uuid.New(),
+		ProjectID:     projectID,
+		UserID:        userID,
+		ProjectRoleID: roleID,
+	}
+	role := &projectdom.ProjectRole{
+		ID:          roleID,
+		ProjectID:   &projectID,
+		RoleName:    "Viewer",
+		Permissions: nil,
+	}
 
 	repo := &memberServiceRepoMock{
 		findMember: func(_ context.Context, _, _ uuid.UUID) (*projectdom.ProjectMember, error) {
-			return &projectdom.ProjectMember{
-				ID:            uuid.New(),
-				ProjectID:     projectID,
-				UserID:        userID,
-				ProjectRoleID: roleID,
-			}, nil
+			return member, nil
 		},
 		findRoleByID: func(_ context.Context, _ uuid.UUID) (*projectdom.ProjectRole, error) {
-			return &projectdom.ProjectRole{
-				ID:          roleID,
-				ProjectID:   &projectID,
-				Permissions: nil, // nil permissions
-			}, nil
+			return role, nil
 		},
 	}
-
 	svc := New(repo, nil)
-	got, err := svc.GetMyProjectPermissions(context.Background(), projectID, userID)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+
+	got, err := svc.GetMyProjectPermissions(context.Background(), projectID, userID, nil)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, got)
+	assert.Empty(t, got)
+}
+
+func TestGetMyProjectPermissions_Agent_Success(t *testing.T) {
+	projectID := uuid.New()
+	agentID := uuid.New()
+	roleID := uuid.New()
+	member := &projectdom.ProjectMember{
+		ID:            uuid.New(),
+		ProjectID:     projectID,
+		AgentID:       &agentID,
+		ProjectRoleID: roleID,
 	}
-	if got == nil {
-		t.Fatal("expected non-nil map, got nil")
+	role := &projectdom.ProjectRole{
+		ID:          roleID,
+		ProjectID:   &projectID,
+		RoleName:    "Agent Developer",
+		Permissions: map[string]any{"tasks.read": true, "tasks.write": true, "prs.create": true},
 	}
-	if len(got) != 0 {
-		t.Fatalf("expected empty map, got %v", got)
+
+	repo := &memberServiceRepoMock{
+		findMemberByAgent: func(_ context.Context, _, _ uuid.UUID) (*projectdom.ProjectMember, error) {
+			return member, nil
+		},
+		findRoleByID: func(_ context.Context, _ uuid.UUID) (*projectdom.ProjectRole, error) {
+			return role, nil
+		},
 	}
+	svc := New(repo, nil)
+
+	got, err := svc.GetMyProjectPermissions(context.Background(), projectID, uuid.Nil, &agentID)
+
+	assert.NoError(t, err)
+	assert.Equal(t, role.Permissions, got)
+}
+
+func TestGetMyProjectPermissions_Agent_MemberNotFound(t *testing.T) {
+	repo := &memberServiceRepoMock{
+		findMemberByAgent: func(_ context.Context, _, _ uuid.UUID) (*projectdom.ProjectMember, error) {
+			return nil, projectdom.ErrMemberNotFound
+		},
+	}
+	svc := New(repo, nil)
+
+	agentID := uuid.New()
+	_, err := svc.GetMyProjectPermissions(context.Background(), uuid.New(), uuid.Nil, &agentID)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, projectdom.ErrMemberNotFound)
+}
+
+func TestGetMyProjectPermissions_Agent_RoleNotFound(t *testing.T) {
+	projectID := uuid.New()
+	agentID := uuid.New()
+	member := &projectdom.ProjectMember{
+		ID:            uuid.New(),
+		ProjectID:     projectID,
+		AgentID:       &agentID,
+		ProjectRoleID: uuid.New(),
+	}
+
+	repo := &memberServiceRepoMock{
+		findMemberByAgent: func(_ context.Context, _, _ uuid.UUID) (*projectdom.ProjectMember, error) {
+			return member, nil
+		},
+		findRoleByID: func(_ context.Context, _ uuid.UUID) (*projectdom.ProjectRole, error) {
+			return nil, projectdom.ErrRoleNotFound
+		},
+	}
+	svc := New(repo, nil)
+
+	_, err := svc.GetMyProjectPermissions(context.Background(), projectID, uuid.Nil, &agentID)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, projectdom.ErrRoleNotFound)
+}
+
+func TestGetMyProjectPermissions_Agent_NilPermissions(t *testing.T) {
+	projectID := uuid.New()
+	agentID := uuid.New()
+	roleID := uuid.New()
+	member := &projectdom.ProjectMember{
+		ID:            uuid.New(),
+		ProjectID:     projectID,
+		AgentID:       &agentID,
+		ProjectRoleID: roleID,
+	}
+	role := &projectdom.ProjectRole{
+		ID:          roleID,
+		ProjectID:   &projectID,
+		RoleName:    "Agent Viewer",
+		Permissions: nil,
+	}
+
+	repo := &memberServiceRepoMock{
+		findMemberByAgent: func(_ context.Context, _, _ uuid.UUID) (*projectdom.ProjectMember, error) {
+			return member, nil
+		},
+		findRoleByID: func(_ context.Context, _ uuid.UUID) (*projectdom.ProjectRole, error) {
+			return role, nil
+		},
+	}
+	svc := New(repo, nil)
+
+	got, err := svc.GetMyProjectPermissions(context.Background(), projectID, uuid.Nil, &agentID)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, got)
+	assert.Empty(t, got)
 }

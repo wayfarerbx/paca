@@ -94,6 +94,9 @@ func (r *fakeProjectRepo) ListMembers(_ context.Context, _ uuid.UUID) ([]*projec
 func (r *fakeProjectRepo) FindMember(_ context.Context, _ uuid.UUID, _ uuid.UUID) (*projectdom.ProjectMember, error) {
 	return nil, projectdom.ErrMemberNotFound
 }
+func (r *fakeProjectRepo) FindMemberByAgent(_ context.Context, _ uuid.UUID, _ uuid.UUID) (*projectdom.ProjectMember, error) {
+	return nil, projectdom.ErrMemberNotFound
+}
 func (r *fakeProjectRepo) AddMember(_ context.Context, m *projectdom.ProjectMember) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -110,6 +113,8 @@ func (r *fakeProjectRepo) FindMemberByUserProject(_ context.Context, _, _ uuid.U
 func (r *fakeProjectRepo) FindMemberByID(_ context.Context, _ uuid.UUID) (*projectdom.ProjectMember, error) {
 	return nil, projectdom.ErrMemberNotFound
 }
+func (r *fakeProjectRepo) AddAgentMember(_ context.Context, _, _, _, _ uuid.UUID) error { return nil }
+func (r *fakeProjectRepo) RemoveAgentMember(_ context.Context, _, _ uuid.UUID) error    { return nil }
 
 var _ projectdom.Repository = (*fakeProjectRepo)(nil)
 

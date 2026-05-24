@@ -95,8 +95,17 @@ func (s *Service) RemoveMember(ctx context.Context, projectID, userID uuid.UUID)
 
 // GetMyProjectPermissions returns the effective permission map of the calling
 // user's project role. Returns ErrMemberNotFound when the user is not a member.
-func (s *Service) GetMyProjectPermissions(ctx context.Context, projectID, userID uuid.UUID) (map[string]any, error) {
-	member, err := s.repo.FindMember(ctx, projectID, userID)
+// If agentID is provided, looks up the agent's permissions instead.
+func (s *Service) GetMyProjectPermissions(ctx context.Context, projectID, userID uuid.UUID, agentID *uuid.UUID) (map[string]any, error) {
+	var member *projectdom.ProjectMember
+	var err error
+
+	if agentID != nil {
+		member, err = s.repo.FindMemberByAgent(ctx, projectID, *agentID)
+	} else {
+		member, err = s.repo.FindMember(ctx, projectID, userID)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -109,4 +118,14 @@ func (s *Service) GetMyProjectPermissions(ctx context.Context, projectID, userID
 		perms = map[string]any{}
 	}
 	return perms, nil
+}
+
+// AddAgentMember inserts an agent as a project member with the given role.
+func (s *Service) AddAgentMember(ctx context.Context, memberID, projectID, agentID, roleID uuid.UUID) error {
+	return s.repo.AddAgentMember(ctx, memberID, projectID, agentID, roleID)
+}
+
+// RemoveAgentMember soft-deletes the agent's membership record.
+func (s *Service) RemoveAgentMember(ctx context.Context, projectID, agentID uuid.UUID) error {
+	return s.repo.RemoveAgentMember(ctx, projectID, agentID)
 }

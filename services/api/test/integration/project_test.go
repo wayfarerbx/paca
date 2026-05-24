@@ -299,6 +299,18 @@ func (r *fakeProjectRepo) FindMember(_ context.Context, projectID, userID uuid.U
 	return cloneMember(m), nil
 }
 
+func (r *fakeProjectRepo) FindMemberByAgent(_ context.Context, projectID, agentID uuid.UUID) (*projectdom.ProjectMember, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	for _, m := range r.members {
+		if m.ProjectID == projectID && m.AgentID != nil && *m.AgentID == agentID {
+			return cloneMember(m), nil
+		}
+	}
+	return nil, projectdom.ErrMemberNotFound
+}
+
 func (r *fakeProjectRepo) FindMemberByUserProject(_ context.Context, userID, projectID uuid.UUID) (*projectdom.ProjectMember, error) {
 	return r.FindMember(context.Background(), projectID, userID)
 }
@@ -350,6 +362,9 @@ func (r *fakeProjectRepo) UpdateMemberRole(_ context.Context, projectID, userID,
 	r.members[k] = cloneMember(m)
 	return nil
 }
+
+func (r *fakeProjectRepo) AddAgentMember(_ context.Context, _, _, _, _ uuid.UUID) error { return nil }
+func (r *fakeProjectRepo) RemoveAgentMember(_ context.Context, _, _ uuid.UUID) error    { return nil }
 
 type projectPermStore struct {
 	globalPerms  []authz.Permission

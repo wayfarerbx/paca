@@ -123,7 +123,15 @@ func (h *ProjectHandler) GetMyProjectPermissions(c *gin.Context) {
 		return
 	}
 
-	perms, err := h.svc.GetMyProjectPermissions(c.Request.Context(), projectID, userID)
+	// Check if request is from an agent and use agent ID if available
+	var agentID *uuid.UUID
+	if claims.AgentID != nil {
+		if parsedAgentID, parseErr := uuid.Parse(*claims.AgentID); parseErr == nil {
+			agentID = &parsedAgentID
+		}
+	}
+
+	perms, err := h.svc.GetMyProjectPermissions(c.Request.Context(), projectID, userID, agentID)
 	if err != nil {
 		presenter.Error(c, err)
 		return

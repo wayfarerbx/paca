@@ -138,7 +138,7 @@ func New(cfg *config.Config) (*App, error) {
 	viewService := sprintsvc.NewCachedViewService(sprintsvc.NewViewService(viewRepo), cacheStore, cfg.Cache.SprintTTL, log)
 	notificationService := notificationsvc.New(notificationRepo, projectRepo, publisher)
 	agentRepo := pgRepo.NewAgentRepository(db)
-	agentService := agentsvc.New(agentRepo, projectRepo, publisher)
+	agentService := agentsvc.New(agentRepo, projectService, publisher)
 	notificationConsumer := worker.NewNotificationConsumer(redisClient, notificationService, log, projectRepo, agentService)
 	activityService := tasksvc.NewActivityService(activityRepo, projectRepo, publisher).
 		WithNotificationService(notificationService)

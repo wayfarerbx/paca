@@ -479,12 +479,17 @@ func (h *AgentHandler) GetLLMModels(c *gin.Context) {
 		return
 	}
 
-	resp, err := h.httpClient.Get(h.aiAgentURL + "/llm/models")
+	req, err := http.NewRequestWithContext(c.Request.Context(), http.MethodGet, h.aiAgentURL+"/llm/models", nil)
+	if err != nil {
+		presenter.Error(c, apierr.New(apierr.CodeInternalError, "failed to create request"))
+		return
+	}
+	resp, err := h.httpClient.Do(req)
 	if err != nil {
 		presenter.Error(c, apierr.New(apierr.CodeInternalError, "failed to reach ai-agent service"))
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

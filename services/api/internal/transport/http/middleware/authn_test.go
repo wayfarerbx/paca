@@ -17,12 +17,17 @@ import (
 
 // stubAPIKeyAuth is a minimal APIKeyAuthenticator for unit tests.
 type stubAPIKeyAuth struct {
-	key *apikeydom.APIKey
-	err error
+	key        *apikeydom.APIKey
+	err        error
+	isAgentKey bool
 }
 
 func (s *stubAPIKeyAuth) Authenticate(_ context.Context, _ string) (*apikeydom.APIKey, error) {
 	return s.key, s.err
+}
+
+func (s *stubAPIKeyAuth) IsAgentKey(_ context.Context, _ string) bool {
+	return s.isAgentKey
 }
 
 func newTestTokenManager() *jwttoken.Manager {
@@ -308,5 +313,190 @@ func TestRequireJWTAuth_AllowsJWT(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d (%s)", w.Code, w.Body.String())
+	}
+}
+
+func TestAuthn_APIKey_WithValidAgentID(t *testing.T) {
+	userID := uuid.New()
+	agentID := uuid.New()
+	stub := &stubAPIKeyAuth{key: &apikeydom.APIKey{ID: uuid.New(), UserID: userID}, isAgentKey: true}
+
+	r := gin.New()
+	r.GET("/protected", Authn(newTestTokenManager(), stub), func(c *gin.Context) {
+		if !IsAPIKeyAuth(c) {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "expected API key auth"})
+			return
+		}
+
+		retrievedAgentID, ok := AgentIDFromGinContext(c)
+		if !ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "agent ID not found in context"})
+			return
+		}
+
+		if retrievedAgentID != agentID {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "agent ID mismatch"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/protected", nil)
+	req.Header.Set("X-API-Key", "test-api-key")
+	req.Header.Set("X-Agent-ID", agentID.String())
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d (%s)", w.Code, w.Body.String())
+	}
+}
+
+func TestAuthn_APIKey_UserKeyCannotFakeAgentID(t *testing.T) {
+	userID := uuid.New()
+	agentID := uuid.New()
+	stub := &stubAPIKeyAuth{key: &apikeydom.APIKey{ID: uuid.New(), UserID: userID}, isAgentKey: false}
+
+	r := gin.New()
+	r.GET("/protected", Authn(newTestTokenManager(), stub), func(c *gin.Context) {
+		if !IsAPIKeyAuth(c) {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "expected API key auth"})
+			return
+		}
+
+		retrievedAgentID, ok := AgentIDFromGinContext(c)
+		if ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "agent ID should not be set for user API key"})
+			return
+		}
+
+		if retrievedAgentID != uuid.Nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "agent ID should be Nil"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/protected", nil)
+	req.Header.Set("X-API-Key", "test-api-key")
+	req.Header.Set("X-Agent-ID", agentID.String())
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d (%s)", w.Code, w.Body.String())
+	}
+}
+
+func TestAuthn_APIKey_WithInvalidAgentID(t *testing.T) {
+	userID := uuid.New()
+	stub := &stubAPIKeyAuth{key: &apikeydom.APIKey{ID: uuid.New(), UserID: userID}, isAgentKey: true}
+
+	r := gin.New()
+	r.GET("/protected", Authn(newTestTokenManager(), stub), func(c *gin.Context) {
+		if !IsAPIKeyAuth(c) {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "expected API key auth"})
+			return
+		}
+
+		retrievedAgentID, ok := AgentIDFromGinContext(c)
+		if ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "agent ID should not be found with invalid UUID"})
+			return
+		}
+
+		if retrievedAgentID != uuid.Nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "agent ID should be Nil"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/protected", nil)
+	req.Header.Set("X-API-Key", "test-api-key")
+	req.Header.Set("X-Agent-ID", "not-a-valid-uuid")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d (%s)", w.Code, w.Body.String())
+	}
+}
+
+func TestAuthn_APIKey_WithoutAgentID(t *testing.T) {
+	userID := uuid.New()
+	stub := &stubAPIKeyAuth{key: &apikeydom.APIKey{ID: uuid.New(), UserID: userID}, isAgentKey: true}
+
+	r := gin.New()
+	r.GET("/protected", Authn(newTestTokenManager(), stub), func(c *gin.Context) {
+		if !IsAPIKeyAuth(c) {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "expected API key auth"})
+			return
+		}
+
+		retrievedAgentID, ok := AgentIDFromGinContext(c)
+		if ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "agent ID should not be found when header is absent"})
+			return
+		}
+
+		if retrievedAgentID != uuid.Nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "agent ID should be Nil"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+	})
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/protected", nil)
+	req.Header.Set("X-API-Key", "test-api-key")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d (%s)", w.Code, w.Body.String())
+	}
+}
+
+func TestAgentIDFromContext(t *testing.T) {
+	ctx := context.Background()
+
+	agentID, ok := AgentIDFromContext(ctx)
+	if ok || agentID != uuid.Nil {
+		t.Fatalf("expected no agent ID in empty context")
+	}
+
+	testAgentID := uuid.New()
+	ctx = WithAgentID(ctx, testAgentID)
+
+	retrievedAgentID, ok := AgentIDFromContext(ctx)
+	if !ok {
+		t.Fatalf("expected agent ID to be found")
+	}
+	if retrievedAgentID != testAgentID {
+		t.Fatalf("expected agent ID %v, got %v", testAgentID, retrievedAgentID)
+	}
+}
+
+func TestActorIDFromContext(t *testing.T) {
+	ctx := context.Background()
+
+	actorID, ok := ActorIDFromContext(ctx)
+	if ok || actorID != uuid.Nil {
+		t.Fatalf("expected no actor ID in empty context")
+	}
+
+	testActorID := uuid.New()
+	ctx = WithActorID(ctx, testActorID)
+
+	retrievedActorID, ok := ActorIDFromContext(ctx)
+	if !ok {
+		t.Fatalf("expected actor ID to be found")
+	}
+	if retrievedActorID != testActorID {
+		t.Fatalf("expected actor ID %v, got %v", testActorID, retrievedActorID)
 	}
 }

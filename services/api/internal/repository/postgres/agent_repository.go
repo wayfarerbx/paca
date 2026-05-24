@@ -166,6 +166,7 @@ func NewAgentRepository(db *gorm.DB) *AgentRepository {
 // Agents
 // -------------------------------------------------------------------------
 
+// ListAgents returns all agents belonging to the given project.
 func (r *AgentRepository) ListAgents(ctx context.Context, projectID uuid.UUID) ([]*agentdom.Agent, error) {
 	rows, err := r.db.WithContext(ctx).
 		Raw(`SELECT a.*,
@@ -177,7 +178,7 @@ func (r *AgentRepository) ListAgents(ctx context.Context, projectID uuid.UUID) (
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var result []*agentdom.Agent
 	for rows.Next() {
@@ -190,6 +191,7 @@ func (r *AgentRepository) ListAgents(ctx context.Context, projectID uuid.UUID) (
 	return result, nil
 }
 
+// FindAgentByID returns a single agent with its MCP servers and skills.
 func (r *AgentRepository) FindAgentByID(ctx context.Context, id uuid.UUID) (*agentdom.Agent, error) {
 	var row agentReadRow
 	err := r.db.WithContext(ctx).
@@ -220,6 +222,7 @@ func (r *AgentRepository) FindAgentByID(ctx context.Context, id uuid.UUID) (*age
 	return agent, nil
 }
 
+// FindAgentByHandle returns an agent by its unique handle within a project.
 func (r *AgentRepository) FindAgentByHandle(ctx context.Context, projectID uuid.UUID, handle string) (*agentdom.Agent, error) {
 	var row agentReadRow
 	err := r.db.WithContext(ctx).
@@ -239,11 +242,13 @@ func (r *AgentRepository) FindAgentByHandle(ctx context.Context, projectID uuid.
 	return agentFromReadRow(row), nil
 }
 
+// CreateAgent inserts a new agent record.
 func (r *AgentRepository) CreateAgent(ctx context.Context, a *agentdom.Agent) error {
 	rec := agentToRecord(a)
 	return r.db.WithContext(ctx).Create(&rec).Error
 }
 
+// UpdateAgent patches the mutable fields of an existing agent.
 func (r *AgentRepository) UpdateAgent(ctx context.Context, a *agentdom.Agent) error {
 	updates := map[string]any{
 		"name":            a.Name,
@@ -267,6 +272,7 @@ func (r *AgentRepository) UpdateAgent(ctx context.Context, a *agentdom.Agent) er
 		Updates(updates).Error
 }
 
+// SoftDeleteAgent sets deleted_at on the agent row.
 func (r *AgentRepository) SoftDeleteAgent(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).
 		Model(&agentRecord{}).
@@ -274,15 +280,49 @@ func (r *AgentRepository) SoftDeleteAgent(ctx context.Context, id uuid.UUID) err
 		Update("deleted_at", time.Now()).Error
 }
 
+// SetAgentMemberID is a no-op; membership is derived from project_members JOIN.
 func (r *AgentRepository) SetAgentMemberID(_ context.Context, _, _ uuid.UUID) error {
 	// Member ID is derived from the project_members table by JOIN; no separate column needed.
 	return nil
+}
+
+// CreateAgentWithMembership atomically inserts the agent and its project_members
+// row within a single database transaction.
+func (r *AgentRepository) CreateAgentWithMembership(ctx context.Context, a *agentdom.Agent, memberID, projectID, roleID uuid.UUID) error {
+	return WithTx(ctx, r.db, func(tx *gorm.DB) error {
+		if err := tx.Create(agentToRecord(a)).Error; err != nil {
+			return err
+		}
+		return tx.Exec(`
+			INSERT INTO project_members (id, project_id, agent_id, project_role_id, member_type, user_id, created_at, deleted_at)
+			VALUES (?, ?, ?, ?, 'agent', NULL, NOW(), NULL)`,
+			memberID.String(), projectID.String(), a.ID.String(), roleID.String(),
+		).Error
+	})
+}
+
+// SoftDeleteAgentWithMembership atomically soft-deletes both the agent and its
+// project_members row within a single database transaction.
+func (r *AgentRepository) SoftDeleteAgentWithMembership(ctx context.Context, projectID, agentID uuid.UUID) error {
+	now := time.Now()
+	return WithTx(ctx, r.db, func(tx *gorm.DB) error {
+		if err := tx.Model(&agentRecord{}).
+			Where("id = ?", agentID.String()).
+			Update("deleted_at", now).Error; err != nil {
+			return err
+		}
+		// Soft-delete the membership row; 0 rows affected is fine for orphaned agents.
+		return tx.Model(&projectMemberRecord{}).
+			Where("project_id = ? AND agent_id = ? AND member_type = 'agent'", projectID.String(), agentID.String()).
+			Update("deleted_at", now).Error
+	})
 }
 
 // -------------------------------------------------------------------------
 // MCP Servers
 // -------------------------------------------------------------------------
 
+// ListMCPServers returns all MCP server records for the given agent.
 func (r *AgentRepository) ListMCPServers(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentMCPServer, error) {
 	var recs []agentMCPServerRecord
 	if err := r.db.WithContext(ctx).Where("agent_id = ?", agentID.String()).Find(&recs).Error; err != nil {
@@ -299,6 +339,7 @@ func (r *AgentRepository) ListMCPServers(ctx context.Context, agentID uuid.UUID)
 	return result, nil
 }
 
+// FindMCPServerByID returns a single MCP server by its primary key.
 func (r *AgentRepository) FindMCPServerByID(ctx context.Context, id uuid.UUID) (*agentdom.AgentMCPServer, error) {
 	var rec agentMCPServerRecord
 	if err := r.db.WithContext(ctx).First(&rec, "id = ?", id.String()).Error; err != nil {
@@ -310,6 +351,7 @@ func (r *AgentRepository) FindMCPServerByID(ctx context.Context, id uuid.UUID) (
 	return mcpServerFromRecord(rec)
 }
 
+// CreateMCPServer inserts a new MCP server record.
 func (r *AgentRepository) CreateMCPServer(ctx context.Context, s *agentdom.AgentMCPServer) error {
 	rec, err := mcpServerToRecord(s)
 	if err != nil {
@@ -318,6 +360,7 @@ func (r *AgentRepository) CreateMCPServer(ctx context.Context, s *agentdom.Agent
 	return r.db.WithContext(ctx).Create(&rec).Error
 }
 
+// UpdateMCPServer saves the full MCP server record.
 func (r *AgentRepository) UpdateMCPServer(ctx context.Context, s *agentdom.AgentMCPServer) error {
 	rec, err := mcpServerToRecord(s)
 	if err != nil {
@@ -326,6 +369,7 @@ func (r *AgentRepository) UpdateMCPServer(ctx context.Context, s *agentdom.Agent
 	return r.db.WithContext(ctx).Save(&rec).Error
 }
 
+// DeleteMCPServer permanently removes an MCP server record.
 func (r *AgentRepository) DeleteMCPServer(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Delete(&agentMCPServerRecord{}, "id = ?", id.String()).Error
 }
@@ -334,6 +378,7 @@ func (r *AgentRepository) DeleteMCPServer(ctx context.Context, id uuid.UUID) err
 // Skills
 // -------------------------------------------------------------------------
 
+// ListSkills returns all skill records for the given agent.
 func (r *AgentRepository) ListSkills(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentSkill, error) {
 	var recs []agentSkillRecord
 	if err := r.db.WithContext(ctx).Where("agent_id = ?", agentID.String()).Find(&recs).Error; err != nil {
@@ -350,6 +395,7 @@ func (r *AgentRepository) ListSkills(ctx context.Context, agentID uuid.UUID) ([]
 	return result, nil
 }
 
+// FindSkillByID returns a single skill by its primary key.
 func (r *AgentRepository) FindSkillByID(ctx context.Context, id uuid.UUID) (*agentdom.AgentSkill, error) {
 	var rec agentSkillRecord
 	if err := r.db.WithContext(ctx).First(&rec, "id = ?", id.String()).Error; err != nil {
@@ -361,6 +407,7 @@ func (r *AgentRepository) FindSkillByID(ctx context.Context, id uuid.UUID) (*age
 	return skillFromRecord(rec)
 }
 
+// CreateSkill inserts a new skill record.
 func (r *AgentRepository) CreateSkill(ctx context.Context, s *agentdom.AgentSkill) error {
 	rec, err := skillToRecord(s)
 	if err != nil {
@@ -369,6 +416,7 @@ func (r *AgentRepository) CreateSkill(ctx context.Context, s *agentdom.AgentSkil
 	return r.db.WithContext(ctx).Create(&rec).Error
 }
 
+// UpdateSkill saves the full skill record.
 func (r *AgentRepository) UpdateSkill(ctx context.Context, s *agentdom.AgentSkill) error {
 	rec, err := skillToRecord(s)
 	if err != nil {
@@ -377,6 +425,7 @@ func (r *AgentRepository) UpdateSkill(ctx context.Context, s *agentdom.AgentSkil
 	return r.db.WithContext(ctx).Save(&rec).Error
 }
 
+// DeleteSkill permanently removes a skill record.
 func (r *AgentRepository) DeleteSkill(ctx context.Context, id uuid.UUID) error {
 	return r.db.WithContext(ctx).Delete(&agentSkillRecord{}, "id = ?", id.String()).Error
 }
@@ -385,6 +434,7 @@ func (r *AgentRepository) DeleteSkill(ctx context.Context, id uuid.UUID) error {
 // Conversations
 // -------------------------------------------------------------------------
 
+// ListConversations returns a paginated list of conversations matching the filter.
 func (r *AgentRepository) ListConversations(ctx context.Context, in agentdom.ListConversationsFilter) ([]*agentdom.AgentConversation, int64, error) {
 	q := r.db.WithContext(ctx).Model(&agentConversationRecord{})
 	if in.AgentID != nil {
@@ -417,6 +467,7 @@ func (r *AgentRepository) ListConversations(ctx context.Context, in agentdom.Lis
 	return result, total, nil
 }
 
+// FindConversationByID returns a single conversation by its primary key.
 func (r *AgentRepository) FindConversationByID(ctx context.Context, id uuid.UUID) (*agentdom.AgentConversation, error) {
 	var rec agentConversationRecord
 	if err := r.db.WithContext(ctx).First(&rec, "id = ?", id.String()).Error; err != nil {
@@ -428,11 +479,13 @@ func (r *AgentRepository) FindConversationByID(ctx context.Context, id uuid.UUID
 	return conversationFromRecord(rec), nil
 }
 
+// CreateConversation inserts a new conversation record.
 func (r *AgentRepository) CreateConversation(ctx context.Context, c *agentdom.AgentConversation) error {
 	rec := conversationToRecord(c)
 	return r.db.WithContext(ctx).Create(&rec).Error
 }
 
+// UpdateConversationStatus sets the status field of a conversation.
 func (r *AgentRepository) UpdateConversationStatus(ctx context.Context, id uuid.UUID, status string) error {
 	return r.db.WithContext(ctx).
 		Model(&agentConversationRecord{}).
@@ -440,11 +493,13 @@ func (r *AgentRepository) UpdateConversationStatus(ctx context.Context, id uuid.
 		Updates(map[string]any{"status": status, "updated_at": time.Now()}).Error
 }
 
+// UpdateConversation saves the full conversation record.
 func (r *AgentRepository) UpdateConversation(ctx context.Context, c *agentdom.AgentConversation) error {
 	rec := conversationToRecord(c)
 	return r.db.WithContext(ctx).Save(&rec).Error
 }
 
+// ListConversationEvents returns a paginated list of events for a conversation.
 func (r *AgentRepository) ListConversationEvents(ctx context.Context, conversationID uuid.UUID, offset, limit int) ([]*agentdom.AgentConversationEvent, int64, error) {
 	var total int64
 	if err := r.db.WithContext(ctx).Model(&agentConversationEventRecord{}).
@@ -473,6 +528,7 @@ func (r *AgentRepository) ListConversationEvents(ctx context.Context, conversati
 	return result, total, nil
 }
 
+// CreateConversationEvent inserts a new conversation event record.
 func (r *AgentRepository) CreateConversationEvent(ctx context.Context, e *agentdom.AgentConversationEvent) error {
 	rec, err := conversationEventToRecord(e)
 	if err != nil {
@@ -485,6 +541,7 @@ func (r *AgentRepository) CreateConversationEvent(ctx context.Context, e *agentd
 // Chat Sessions
 // -------------------------------------------------------------------------
 
+// ListChatSessions returns all chat sessions for the given agent and member.
 func (r *AgentRepository) ListChatSessions(ctx context.Context, agentID, memberID uuid.UUID) ([]*agentdom.AgentChatSession, error) {
 	var recs []agentChatSessionRecord
 	if err := r.db.WithContext(ctx).
@@ -500,6 +557,7 @@ func (r *AgentRepository) ListChatSessions(ctx context.Context, agentID, memberI
 	return result, nil
 }
 
+// FindChatSessionByID returns a single chat session by its primary key.
 func (r *AgentRepository) FindChatSessionByID(ctx context.Context, id uuid.UUID) (*agentdom.AgentChatSession, error) {
 	var rec agentChatSessionRecord
 	if err := r.db.WithContext(ctx).First(&rec, "id = ?", id.String()).Error; err != nil {
@@ -511,11 +569,13 @@ func (r *AgentRepository) FindChatSessionByID(ctx context.Context, id uuid.UUID)
 	return chatSessionFromRecord(rec), nil
 }
 
+// CreateChatSession inserts a new chat session record.
 func (r *AgentRepository) CreateChatSession(ctx context.Context, s *agentdom.AgentChatSession) error {
 	rec := chatSessionToRecord(s)
 	return r.db.WithContext(ctx).Create(&rec).Error
 }
 
+// UpdateChatSession saves the full chat session record.
 func (r *AgentRepository) UpdateChatSession(ctx context.Context, s *agentdom.AgentChatSession) error {
 	rec := chatSessionToRecord(s)
 	return r.db.WithContext(ctx).Save(&rec).Error

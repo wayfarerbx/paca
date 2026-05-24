@@ -24,10 +24,21 @@ const authMethodKey = "auth_method"
 // UUID in the Go request context.
 type actorContextKey struct{}
 
+// agentContextKey is the unexported key used to store the agent ID when
+// authenticating with an agent API key.
+type agentContextKey struct{}
+
 // APIKeyAuthenticator validates a raw API key string and returns the key record.
 // It is satisfied by apikeysvc.Service.
 type APIKeyAuthenticator interface {
 	Authenticate(ctx context.Context, rawKey string) (*apikeydom.APIKey, error)
+}
+
+// AgentAPIKeyAuthenticator extends APIKeyAuthenticator with the ability to check
+// if a key is the static agent API key.
+type AgentAPIKeyAuthenticator interface {
+	APIKeyAuthenticator
+	IsAgentKey(ctx context.Context, rawKey string) bool
 }
 
 // Authn validates the access JWT and stores the parsed claims in the Gin
@@ -126,7 +137,17 @@ func applyAuthn(c *gin.Context, tm *jwttoken.Manager, apiKeyAuthenticator APIKey
 			if apiKeyAuthenticator != nil {
 				key, err := apiKeyAuthenticator.Authenticate(c.Request.Context(), tokenStr)
 				if err == nil {
-					setAPIKeyAuthContext(c, key.UserID)
+					var agentID uuid.UUID
+					// Only read X-Agent-ID header when using the agent API key
+					if agentKeyAuth, ok := apiKeyAuthenticator.(AgentAPIKeyAuthenticator); ok && agentKeyAuth.IsAgentKey(c.Request.Context(), tokenStr) {
+						agentIDHeader := c.GetHeader("X-Agent-ID")
+						if agentIDHeader != "" {
+							if parsedID, parseErr := uuid.Parse(agentIDHeader); parseErr == nil {
+								agentID = parsedID
+							}
+						}
+					}
+					setAPIKeyAuthContext(c, key.UserID, agentID)
 				}
 			}
 			return true
@@ -147,7 +168,19 @@ func applyAuthn(c *gin.Context, tm *jwttoken.Manager, apiKeyAuthenticator APIKey
 			}
 			return false
 		}
-		setAPIKeyAuthContext(c, key.UserID)
+
+		var agentID uuid.UUID
+		// Only read X-Agent-ID header when using the agent API key
+		if agentKeyAuth, ok := apiKeyAuthenticator.(AgentAPIKeyAuthenticator); ok && agentKeyAuth.IsAgentKey(c.Request.Context(), tokenStr) {
+			agentIDHeader := c.GetHeader("X-Agent-ID")
+			if agentIDHeader != "" {
+				if parsedID, parseErr := uuid.Parse(agentIDHeader); parseErr == nil {
+					agentID = parsedID
+				}
+			}
+		}
+
+		setAPIKeyAuthContext(c, key.UserID, agentID)
 		return true
 	}
 
@@ -170,16 +203,23 @@ func applyAuthn(c *gin.Context, tm *jwttoken.Manager, apiKeyAuthenticator APIKey
 	return true
 }
 
-func setAPIKeyAuthContext(c *gin.Context, userID uuid.UUID) {
+func setAPIKeyAuthContext(c *gin.Context, userID uuid.UUID, agentID uuid.UUID) {
 	syntheticClaims := &domainauth.Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject: userID.String(),
 		},
 		Kind: "access",
 	}
+	if agentID != uuid.Nil {
+		agentIDStr := agentID.String()
+		syntheticClaims.AgentID = &agentIDStr
+	}
 	c.Set(claimsKey, syntheticClaims)
 	c.Set(authMethodKey, "apikey")
 	ctx := context.WithValue(c.Request.Context(), actorContextKey{}, userID)
+	if agentID != uuid.Nil {
+		ctx = context.WithValue(ctx, agentContextKey{}, agentID)
+	}
 	c.Request = c.Request.WithContext(ctx)
 }
 
@@ -210,10 +250,28 @@ func ActorIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 	return id, ok
 }
 
+// AgentIDFromContext extracts the agent ID from a Go context.Context when
+// authenticated via an agent API key with X-Agent-ID header.
+// Returns (uuid.Nil, false) when no agent ID is set.
+func AgentIDFromContext(ctx context.Context) (uuid.UUID, bool) {
+	v := ctx.Value(agentContextKey{})
+	if v == nil {
+		return uuid.Nil, false
+	}
+	id, ok := v.(uuid.UUID)
+	return id, ok
+}
+
 // WithActorID returns a new context that carries actorID.
 // Use in tests to simulate an authenticated caller.
 func WithActorID(ctx context.Context, actorID uuid.UUID) context.Context {
 	return context.WithValue(ctx, actorContextKey{}, actorID)
+}
+
+// WithAgentID returns a new context that carries agentID.
+// Use in tests to simulate an agent-authenticated caller.
+func WithAgentID(ctx context.Context, agentID uuid.UUID) context.Context {
+	return context.WithValue(ctx, agentContextKey{}, agentID)
 }
 
 // IsAPIKeyAuth reports whether the current request was authenticated via an API
@@ -224,6 +282,13 @@ func IsAPIKeyAuth(c *gin.Context) bool {
 		return false
 	}
 	return v == "apikey"
+}
+
+// AgentIDFromGinContext extracts the agent ID from the Gin context when
+// authenticated via an agent API key with X-Agent-ID header.
+// Returns (uuid.Nil, false) when no agent ID is set.
+func AgentIDFromGinContext(c *gin.Context) (uuid.UUID, bool) {
+	return AgentIDFromContext(c.Request.Context())
 }
 
 // RequireJWTAuth rejects requests that were authenticated via an API key.

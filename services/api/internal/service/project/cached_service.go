@@ -198,9 +198,38 @@ func (c *CachedService) RemoveMember(ctx context.Context, projectID, userID uuid
 	return nil
 }
 
+// AddAgentMember delegates to the underlying service and invalidates the members cache.
+func (c *CachedService) AddAgentMember(ctx context.Context, memberID, projectID, agentID, roleID uuid.UUID) error {
+	if err := c.svc.AddAgentMember(ctx, memberID, projectID, agentID, roleID); err != nil {
+		return err
+	}
+	if err := c.st.Delete(ctx, membersKey(projectID)); err != nil {
+		c.log.WarnContext(ctx, "cache: AddAgentMember delete", "err", err)
+	}
+	return nil
+}
+
+// RemoveAgentMember delegates to the underlying service and invalidates the members cache.
+func (c *CachedService) RemoveAgentMember(ctx context.Context, projectID, agentID uuid.UUID) error {
+	if err := c.svc.RemoveAgentMember(ctx, projectID, agentID); err != nil {
+		return err
+	}
+	if err := c.st.Delete(ctx, membersKey(projectID)); err != nil {
+		c.log.WarnContext(ctx, "cache: RemoveAgentMember delete", "err", err)
+	}
+	return nil
+}
+
+// InvalidateMembersCache removes the cached member list for projectID.
+// It is called after transactional agent mutations to ensure the next read
+// fetches fresh data from the database.
+func (c *CachedService) InvalidateMembersCache(ctx context.Context, projectID uuid.UUID) error {
+	return c.st.Delete(ctx, membersKey(projectID))
+}
+
 // GetMyProjectPermissions delegates directly to the underlying service (not cached).
-func (c *CachedService) GetMyProjectPermissions(ctx context.Context, projectID, userID uuid.UUID) (map[string]any, error) {
-	return c.svc.GetMyProjectPermissions(ctx, projectID, userID)
+func (c *CachedService) GetMyProjectPermissions(ctx context.Context, projectID, userID uuid.UUID, agentID *uuid.UUID) (map[string]any, error) {
+	return c.svc.GetMyProjectPermissions(ctx, projectID, userID, agentID)
 }
 
 // --- Roles -------------------------------------------------------------------

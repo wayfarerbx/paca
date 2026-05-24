@@ -45,22 +45,22 @@ const (
 // ---------------------------------------------------------------------------
 
 type stubProjectSvc struct {
-	list              func(ctx context.Context, page, pageSize int) ([]*projectdom.Project, int64, error)
-	listAccessible    func(ctx context.Context, userID uuid.UUID, page, pageSize int) ([]*projectdom.Project, int64, error)
-	getByID           func(ctx context.Context, id uuid.UUID) (*projectdom.Project, error)
-	isProjectPublic   func(ctx context.Context, id uuid.UUID) (bool, error)
-	create            func(ctx context.Context, in projectdom.CreateProjectInput) (*projectdom.Project, error)
-	update            func(ctx context.Context, id uuid.UUID, in projectdom.UpdateProjectInput) (*projectdom.Project, error)
-	delete            func(ctx context.Context, id uuid.UUID) error
-	listMembers       func(ctx context.Context, projectID uuid.UUID) ([]*projectdom.ProjectMember, error)
-	addMember         func(ctx context.Context, projectID uuid.UUID, in projectdom.AddMemberInput) (*projectdom.ProjectMember, error)
-	updateMemberRole  func(ctx context.Context, projectID, userID uuid.UUID, in projectdom.UpdateMemberRoleInput) (*projectdom.ProjectMember, error)
-	removeMember      func(ctx context.Context, projectID, userID uuid.UUID) error
-	getMyProjectPerms func(ctx context.Context, projectID, userID uuid.UUID) (map[string]any, error)
-	listRoles         func(ctx context.Context, projectID uuid.UUID) ([]*projectdom.ProjectRole, error)
-	createRole        func(ctx context.Context, projectID uuid.UUID, in projectdom.CreateRoleInput) (*projectdom.ProjectRole, error)
-	updateRole        func(ctx context.Context, projectID, roleID uuid.UUID, in projectdom.UpdateRoleInput) (*projectdom.ProjectRole, error)
-	deleteRole        func(ctx context.Context, projectID, roleID uuid.UUID) error
+	list                    func(ctx context.Context, page, pageSize int) ([]*projectdom.Project, int64, error)
+	listAccessible          func(ctx context.Context, userID uuid.UUID, page, pageSize int) ([]*projectdom.Project, int64, error)
+	getByID                 func(ctx context.Context, id uuid.UUID) (*projectdom.Project, error)
+	isProjectPublic         func(ctx context.Context, id uuid.UUID) (bool, error)
+	create                  func(ctx context.Context, in projectdom.CreateProjectInput) (*projectdom.Project, error)
+	update                  func(ctx context.Context, id uuid.UUID, in projectdom.UpdateProjectInput) (*projectdom.Project, error)
+	delete                  func(ctx context.Context, id uuid.UUID) error
+	listMembers             func(ctx context.Context, projectID uuid.UUID) ([]*projectdom.ProjectMember, error)
+	addMember               func(ctx context.Context, projectID uuid.UUID, in projectdom.AddMemberInput) (*projectdom.ProjectMember, error)
+	updateMemberRole        func(ctx context.Context, projectID, userID uuid.UUID, in projectdom.UpdateMemberRoleInput) (*projectdom.ProjectMember, error)
+	removeMember            func(ctx context.Context, projectID, userID uuid.UUID) error
+	getMyProjectPermissions func(ctx context.Context, projectID, userID uuid.UUID, agentID *uuid.UUID) (map[string]any, error)
+	listRoles               func(ctx context.Context, projectID uuid.UUID) ([]*projectdom.ProjectRole, error)
+	createRole              func(ctx context.Context, projectID uuid.UUID, in projectdom.CreateRoleInput) (*projectdom.ProjectRole, error)
+	updateRole              func(ctx context.Context, projectID, roleID uuid.UUID, in projectdom.UpdateRoleInput) (*projectdom.ProjectRole, error)
+	deleteRole              func(ctx context.Context, projectID, roleID uuid.UUID) error
 
 	getByIDCalls     int
 	listMembersCalls int
@@ -146,11 +146,11 @@ func (s *stubProjectSvc) RemoveMember(ctx context.Context, projectID, userID uui
 	return nil
 }
 
-func (s *stubProjectSvc) GetMyProjectPermissions(ctx context.Context, projectID, userID uuid.UUID) (map[string]any, error) {
-	if s.getMyProjectPerms != nil {
-		return s.getMyProjectPerms(ctx, projectID, userID)
+func (s *stubProjectSvc) GetMyProjectPermissions(ctx context.Context, projectID, userID uuid.UUID, agentID *uuid.UUID) (map[string]any, error) {
+	if s.getMyProjectPermissions != nil {
+		return s.getMyProjectPermissions(ctx, projectID, userID, agentID)
 	}
-	return map[string]any{}, nil
+	return nil, nil
 }
 
 func (s *stubProjectSvc) ListRoles(ctx context.Context, projectID uuid.UUID) ([]*projectdom.ProjectRole, error) {
@@ -181,6 +181,9 @@ func (s *stubProjectSvc) DeleteRole(ctx context.Context, projectID, roleID uuid.
 	}
 	return nil
 }
+
+func (s *stubProjectSvc) AddAgentMember(_ context.Context, _, _, _, _ uuid.UUID) error { return nil }
+func (s *stubProjectSvc) RemoveAgentMember(_ context.Context, _, _ uuid.UUID) error    { return nil }
 
 // ---------------------------------------------------------------------------
 // GetByID
