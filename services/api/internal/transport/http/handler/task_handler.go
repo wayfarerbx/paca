@@ -481,11 +481,17 @@ func (h *TaskHandler) CreateTask(c *gin.Context) {
 
 	// Record creation activity (best-effort).
 	if actorID, ok := middleware.ActorIDFromContext(c.Request.Context()); ok {
+		agentID, _ := middleware.AgentIDFromContext(c.Request.Context())
+		var agentIDPtr *uuid.UUID
+		if agentID != uuid.Nil {
+			agentIDPtr = &agentID
+		}
 		content, _ := json.Marshal(map[string]any{"title": t.Title})
 		_ = h.activitySvc.RecordActivity(c.Request.Context(), taskdom.RecordActivityInput{
 			TaskID:       t.ID,
 			ProjectID:    projectID,
 			ActorID:      &actorID,
+			ActorAgentID: agentIDPtr,
 			ActivityType: taskdom.ActivityTypeTaskCreated,
 			Content:      content,
 		})
@@ -549,6 +555,11 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 
 	// Record update activity (best-effort).
 	if actorID, ok := middleware.ActorIDFromContext(c.Request.Context()); ok && oldTask != nil {
+		agentID, _ := middleware.AgentIDFromContext(c.Request.Context())
+		var agentIDPtr *uuid.UUID
+		if agentID != uuid.Nil {
+			agentIDPtr = &agentID
+		}
 		changes := h.taskChangedFields(c.Request.Context(), oldTask, req)
 		if len(changes) > 0 {
 			content, _ := json.Marshal(map[string]any{"changes": changes})
@@ -556,6 +567,7 @@ func (h *TaskHandler) UpdateTask(c *gin.Context) {
 				TaskID:       taskID,
 				ProjectID:    projectID,
 				ActorID:      &actorID,
+				ActorAgentID: agentIDPtr,
 				ActivityType: taskdom.ActivityTypeTaskUpdated,
 				Content:      content,
 			})
@@ -755,10 +767,16 @@ func (h *TaskHandler) DeleteTask(c *gin.Context) {
 
 	// Record deletion activity (best-effort).
 	if actorID, ok := middleware.ActorIDFromContext(c.Request.Context()); ok {
+		agentID, _ := middleware.AgentIDFromContext(c.Request.Context())
+		var agentIDPtr *uuid.UUID
+		if agentID != uuid.Nil {
+			agentIDPtr = &agentID
+		}
 		_ = h.activitySvc.RecordActivity(c.Request.Context(), taskdom.RecordActivityInput{
 			TaskID:       taskID,
 			ProjectID:    projectID,
 			ActorID:      &actorID,
+			ActorAgentID: agentIDPtr,
 			ActivityType: taskdom.ActivityTypeTaskDeleted,
 			Content:      json.RawMessage(`{}`),
 		})
@@ -1134,10 +1152,17 @@ func (h *TaskHandler) AddComment(c *gin.Context) {
 		return
 	}
 
+	agentID, _ := middleware.AgentIDFromContext(c.Request.Context())
+	var agentIDPtr *uuid.UUID
+	if agentID != uuid.Nil {
+		agentIDPtr = &agentID
+	}
+
 	a, err := h.activitySvc.AddComment(c.Request.Context(), taskdom.AddCommentInput{
 		TaskID:    taskID,
 		ProjectID: projectID,
 		ActorID:   actorID,
+		AgentID:   agentIDPtr,
 		Content:   req.Content,
 	})
 	if err != nil {
@@ -1172,7 +1197,13 @@ func (h *TaskHandler) UpdateComment(c *gin.Context) {
 		return
 	}
 
-	a, err := h.activitySvc.UpdateComment(c.Request.Context(), commentID, projectID, actorID, req.Content)
+	agentID, _ := middleware.AgentIDFromContext(c.Request.Context())
+	var agentIDPtr *uuid.UUID
+	if agentID != uuid.Nil {
+		agentIDPtr = &agentID
+	}
+
+	a, err := h.activitySvc.UpdateComment(c.Request.Context(), commentID, projectID, actorID, agentIDPtr, req.Content)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -1200,7 +1231,13 @@ func (h *TaskHandler) DeleteComment(c *gin.Context) {
 		return
 	}
 
-	if err := h.activitySvc.DeleteComment(c.Request.Context(), commentID, projectID, actorID); err != nil {
+	agentID, _ := middleware.AgentIDFromContext(c.Request.Context())
+	var agentIDPtr *uuid.UUID
+	if agentID != uuid.Nil {
+		agentIDPtr = &agentID
+	}
+
+	if err := h.activitySvc.DeleteComment(c.Request.Context(), commentID, projectID, actorID, agentIDPtr); err != nil {
 		presenter.Error(c, err)
 		return
 	}

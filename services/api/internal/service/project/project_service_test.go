@@ -97,6 +97,9 @@ func (r *fakeProjectRepo) FindMember(_ context.Context, _ uuid.UUID, _ uuid.UUID
 func (r *fakeProjectRepo) FindMemberByAgent(_ context.Context, _ uuid.UUID, _ uuid.UUID) (*projectdom.ProjectMember, error) {
 	return nil, projectdom.ErrMemberNotFound
 }
+func (r *fakeProjectRepo) FindMemberByActor(_ context.Context, _, _ uuid.UUID, _ *uuid.UUID) (*projectdom.ProjectMember, error) {
+	return nil, projectdom.ErrMemberNotFound
+}
 func (r *fakeProjectRepo) AddMember(_ context.Context, m *projectdom.ProjectMember) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

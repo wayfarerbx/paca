@@ -175,18 +175,31 @@ func (c *ActivityConsumer) handle(msg redis.XMessage) {
 		return
 	}
 
-	// Resolve actor user UUID → project_members.id so that task_activities.actor_id
+	// Resolve actor → project_members.id so that task_activities.actor_id
 	// correctly references the project_members table.
-	if a.ActorID != nil && p.ProjectID != "" {
+	// FindMemberByActor picks agent lookup or user lookup based on agentID.
+	if p.ProjectID != "" {
 		projectID, pErr := uuid.Parse(p.ProjectID)
 		if pErr == nil {
-			member, mErr := c.memberRepo.FindMemberByUserProject(ctx, *a.ActorID, projectID)
-			if mErr == nil {
-				a.ActorID = &member.ID
-			} else {
-				// Member may have been removed; store nil rather than a stale user UUID.
-				c.log.Warn("activity consumer: could not resolve member for actor", "user_id", a.ActorID, "project_id", projectID, "err", mErr)
-				a.ActorID = nil
+			var actorID uuid.UUID
+			if a.ActorID != nil {
+				actorID = *a.ActorID
+			}
+			var agentID *uuid.UUID
+			if p.ActorAgentID != nil && *p.ActorAgentID != "" {
+				if id, aErr := uuid.Parse(*p.ActorAgentID); aErr == nil {
+					agentID = &id
+				}
+			}
+			if agentID != nil || a.ActorID != nil {
+				member, mErr := c.memberRepo.FindMemberByActor(ctx, projectID, actorID, agentID)
+				if mErr == nil {
+					a.ActorID = &member.ID
+				} else {
+					// Member may have been removed; store nil rather than a stale UUID.
+					c.log.Warn("activity consumer: could not resolve member for actor", "actor_id", a.ActorID, "agent_id", p.ActorAgentID, "project_id", projectID, "err", mErr)
+					a.ActorID = nil
+				}
 			}
 		}
 	}
@@ -214,6 +227,7 @@ type activityStreamPayload struct {
 	TaskID       string  `json:"task_id"`
 	ProjectID    string  `json:"project_id"`
 	ActorID      *string `json:"actor_id"`
+	ActorAgentID *string `json:"actor_agent_id"`
 	ActivityType string  `json:"activity_type"`
 	Content      string  `json:"content"`
 	CreatedAt    string  `json:"created_at"`

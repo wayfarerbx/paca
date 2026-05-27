@@ -61,7 +61,7 @@ def _build_skills(db_skills: list[AgentSkillRow]) -> list[Skill]:
     return result
 
 
-def _build_mcp_config(db_servers: list[AgentMCPServerRow]) -> dict:
+def _build_mcp_config(db_servers: list[AgentMCPServerRow], agent_id: str) -> dict:
     servers: dict = {}
 
     # User-configured MCP servers from DB
@@ -89,6 +89,7 @@ def _build_mcp_config(db_servers: list[AgentMCPServerRow]) -> dict:
             "env": {
                 "PACA_API_KEY": settings.paca_api_key,
                 "PACA_API_URL": settings.api_base_url,
+                "PACA_AGENT_ID": agent_id,
             },
         }
 
@@ -193,7 +194,7 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
         llm = LLM(**llm_kwargs)
 
         skills = _build_skills(agent_config.skills)
-        mcp_config = _build_mcp_config(agent_config.mcp_servers)
+        mcp_config = _build_mcp_config(agent_config.mcp_servers, agent_config.agent_id)
 
         agent_context = AgentContext(
             skills=skills,

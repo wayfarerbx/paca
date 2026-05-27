@@ -1,6 +1,8 @@
 export interface PacaConfig {
 	apiKey: string;
 	baseURL: string;
+	/** Agent UUID forwarded as X-Agent-ID on every API request. */
+	agentId?: string;
 }
 
 export interface SuccessEnvelope<T> {
@@ -177,7 +179,7 @@ export interface DocumentListResult {
 
 export interface CreateDocumentInput {
 	project_id: string;
-	title?: string;
+	title: string;
 	folder_id?: string | null;
 	content?: string;
 	position?: number;

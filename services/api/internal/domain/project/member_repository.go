@@ -16,6 +16,11 @@ type MemberRepository interface {
 	// FindMemberByUserProject returns the active member record for a user in a
 	// project.  Used by background workers to resolve a user UUID to a member UUID.
 	FindMemberByUserProject(ctx context.Context, userID, projectID uuid.UUID) (*ProjectMember, error)
+	// FindMemberByActor resolves an actor to a project member.
+	// When agentID is non-nil the agent's member record is returned;
+	// otherwise the user's member record (via userID + projectID) is returned.
+	// This is the single canonical lookup used by activity services and workers.
+	FindMemberByActor(ctx context.Context, projectID, actorID uuid.UUID, agentID *uuid.UUID) (*ProjectMember, error)
 	// FindMemberByID returns the active member record for the given
 	// project_members.id.  Used to resolve an assignee member ID to a user ID.
 	FindMemberByID(ctx context.Context, memberID uuid.UUID) (*ProjectMember, error)

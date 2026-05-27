@@ -15,10 +15,10 @@ import (
 	"github.com/google/uuid"
 )
 
-// memberLookup is the minimal interface ActivitySvc needs to resolve a user
-// UUID to a project member UUID.
+// memberLookup is the minimal interface ActivitySvc needs to resolve an actor
+// to a project member UUID.
 type memberLookup interface {
-	FindMemberByUserProject(ctx context.Context, userID, projectID uuid.UUID) (*projectdom.ProjectMember, error)
+	FindMemberByActor(ctx context.Context, projectID, actorID uuid.UUID, agentID *uuid.UUID) (*projectdom.ProjectMember, error)
 }
 
 // ActivitySvc implements docdom.ActivityService (which includes
@@ -67,7 +67,7 @@ func (s *ActivitySvc) RecordActivity(ctx context.Context, in docdom.RecordActivi
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
-	s.publishToActivityStream(ctx, a, in.ProjectID)
+	s.publishToActivityStream(ctx, a, in.ProjectID, in.ActorAgentID)
 	return nil
 }
 
@@ -86,7 +86,7 @@ func (s *ActivitySvc) AddComment(ctx context.Context, in docdom.AddCommentInput)
 	if s.memberRepo == nil {
 		return nil, projectdom.ErrMemberNotFound
 	}
-	member, err := s.memberRepo.FindMemberByUserProject(ctx, in.ActorID, in.ProjectID)
+	member, err := s.memberRepo.FindMemberByActor(ctx, in.ProjectID, in.ActorID, in.AgentID)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (s *ActivitySvc) AddComment(ctx context.Context, in docdom.AddCommentInput)
 }
 
 // UpdateComment edits the content of an existing comment.
-func (s *ActivitySvc) UpdateComment(ctx context.Context, id uuid.UUID, projectID uuid.UUID, actorID uuid.UUID, content json.RawMessage) (*docdom.Activity, error) {
+func (s *ActivitySvc) UpdateComment(ctx context.Context, id uuid.UUID, projectID uuid.UUID, actorID uuid.UUID, agentID *uuid.UUID, content json.RawMessage) (*docdom.Activity, error) {
 	a, err := s.repo.FindActivityByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func (s *ActivitySvc) UpdateComment(ctx context.Context, id uuid.UUID, projectID
 	if s.memberRepo == nil {
 		return nil, projectdom.ErrMemberNotFound
 	}
-	member, err := s.memberRepo.FindMemberByUserProject(ctx, actorID, projectID)
+	member, err := s.memberRepo.FindMemberByActor(ctx, projectID, actorID, agentID)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func (s *ActivitySvc) UpdateComment(ctx context.Context, id uuid.UUID, projectID
 }
 
 // DeleteComment soft-deletes a comment.
-func (s *ActivitySvc) DeleteComment(ctx context.Context, id uuid.UUID, projectID uuid.UUID, actorID uuid.UUID) error {
+func (s *ActivitySvc) DeleteComment(ctx context.Context, id uuid.UUID, projectID uuid.UUID, actorID uuid.UUID, agentID *uuid.UUID) error {
 	a, err := s.repo.FindActivityByID(ctx, id)
 	if err != nil {
 		return err
@@ -162,7 +162,7 @@ func (s *ActivitySvc) DeleteComment(ctx context.Context, id uuid.UUID, projectID
 	if s.memberRepo == nil {
 		return projectdom.ErrMemberNotFound
 	}
-	member, err := s.memberRepo.FindMemberByUserProject(ctx, actorID, projectID)
+	member, err := s.memberRepo.FindMemberByActor(ctx, projectID, actorID, agentID)
 	if err != nil {
 		return err
 	}
@@ -204,13 +204,18 @@ func activityPayload(a *docdom.Activity, projectID uuid.UUID) map[string]any {
 
 // publishToActivityStream appends the activity to the dedicated doc-activity
 // Valkey stream and also broadcasts a real-time pub/sub notification.
+// agentID, when non-nil, is embedded so the consumer can resolve the actor as
+// an agent member instead of a user member.
 // Errors are intentionally swallowed — a messaging failure must not block
 // the primary HTTP response.
-func (s *ActivitySvc) publishToActivityStream(ctx context.Context, a *docdom.Activity, projectID uuid.UUID) {
+func (s *ActivitySvc) publishToActivityStream(ctx context.Context, a *docdom.Activity, projectID uuid.UUID, agentID *uuid.UUID) {
 	if s.publisher == nil {
 		return
 	}
 	payload := activityPayload(a, projectID)
+	if agentID != nil {
+		payload["actor_agent_id"] = agentID.String()
+	}
 	_ = s.publisher.Append(ctx, events.StreamDocActivities, string(a.ActivityType), payload)
 	_ = s.publisher.Publish(ctx, events.ChannelRealtime, map[string]any{
 		"type":    string(a.ActivityType),

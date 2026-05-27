@@ -304,11 +304,12 @@ func TestAgentAPIKey_UpdateComment_Success(t *testing.T) {
 	}
 
 	agentUserID := uuid.MustParse(testAgentBotUserID)
+	_ = agentUserID // referenced only to confirm the bot user exists
 	commentContent := json.RawMessage(`[{"type":"paragraph","content":[{"type":"text","text":"Original comment"}]}]`)
 	activityRepo.activities[commentID] = &taskdom.Activity{
 		ID:           commentID,
 		TaskID:       taskID,
-		ActorID:      &agentUserID,
+		ActorID:      &agentID, // fakeActivityMemberRepo.FindMemberByActor returns {ID: agentID} for agent requests
 		ActivityType: taskdom.ActivityTypeComment,
 		Content:      commentContent,
 		CreatedAt:    time.Now(),

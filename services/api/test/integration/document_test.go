@@ -281,14 +281,17 @@ func (r *fakeDocRepoIT) DeleteActivity(_ context.Context, id uuid.UUID) error {
 }
 
 // ---------------------------------------------------------------------------
-// Doc member lookup stub — maps any user/project combo to a ProjectMember with
-// the same UUID as the user, so comment operations pass resolution.
+// Doc member lookup stub — resolves any actor to a ProjectMember whose ID
+// is the agent ID (when present) or the user UUID.
 // ---------------------------------------------------------------------------
 
 type fakeDocMemberLookup struct{}
 
-func (f *fakeDocMemberLookup) FindMemberByUserProject(_ context.Context, userID, _ uuid.UUID) (*projectdom.ProjectMember, error) {
-	return &projectdom.ProjectMember{ID: userID}, nil
+func (f *fakeDocMemberLookup) FindMemberByActor(_ context.Context, _, actorID uuid.UUID, agentID *uuid.UUID) (*projectdom.ProjectMember, error) {
+	if agentID != nil {
+		return &projectdom.ProjectMember{ID: *agentID}, nil
+	}
+	return &projectdom.ProjectMember{ID: actorID}, nil
 }
 
 // ---------------------------------------------------------------------------

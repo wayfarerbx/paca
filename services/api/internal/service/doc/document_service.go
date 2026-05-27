@@ -276,7 +276,7 @@ func (s *Service) resolveMember(ctx context.Context, userID *uuid.UUID, projectI
 	if s.memberRepo == nil || userID == nil {
 		return nil
 	}
-	member, err := s.memberRepo.FindMemberByUserProject(ctx, *userID, projectID)
+	member, err := s.memberRepo.FindMemberByActor(ctx, projectID, *userID, nil)
 	if err != nil {
 		return nil
 	}

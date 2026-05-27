@@ -418,9 +418,10 @@ func (r *DocumentRepository) DeleteRecentSnapshotsExcept(_ context.Context, docu
 
 func (r *DocumentRepository) activityQuery() *gorm.DB {
 	return r.db.Table("doc_activities da").
-		Select("da.*, u.full_name AS actor_full_name, u.username AS actor_username").
+		Select("da.*, COALESCE(u.full_name, ag.name) AS actor_full_name, COALESCE(u.username, ag.handle) AS actor_username").
 		Joins("LEFT JOIN project_members pm ON pm.id = da.actor_id").
-		Joins("LEFT JOIN users u ON u.id = pm.user_id")
+		Joins("LEFT JOIN users u ON u.id = pm.user_id").
+		Joins("LEFT JOIN agents ag ON ag.id = pm.agent_id")
 }
 
 // ListActivities returns non-deleted activities for a document, oldest first.

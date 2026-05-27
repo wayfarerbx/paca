@@ -426,6 +426,18 @@ func (r *ProjectRepository) FindMemberByUserProject(ctx context.Context, userID,
 	return r.FindMember(ctx, projectID, userID)
 }
 
+// FindMemberByActor resolves an actor to a project member.
+// When agentID is non-nil the agent's member record is returned via
+// FindMemberByAgent; otherwise the user's member record is returned via
+// FindMemberByUserProject. This is the single canonical actor-resolution method
+// used by activity services and stream consumers.
+func (r *ProjectRepository) FindMemberByActor(ctx context.Context, projectID, actorID uuid.UUID, agentID *uuid.UUID) (*projectdom.ProjectMember, error) {
+	if agentID != nil {
+		return r.FindMemberByAgent(ctx, projectID, *agentID)
+	}
+	return r.FindMemberByUserProject(ctx, actorID, projectID)
+}
+
 // FindMemberByID returns the active member record for the given project_members.id.
 // Used by the notification service to resolve an assignee member ID to a user ID.
 func (r *ProjectRepository) FindMemberByID(ctx context.Context, memberID uuid.UUID) (*projectdom.ProjectMember, error) {

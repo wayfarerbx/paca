@@ -311,6 +311,13 @@ func (r *fakeProjectRepo) FindMemberByAgent(_ context.Context, projectID, agentI
 	return nil, projectdom.ErrMemberNotFound
 }
 
+func (r *fakeProjectRepo) FindMemberByActor(_ context.Context, projectID, actorID uuid.UUID, agentID *uuid.UUID) (*projectdom.ProjectMember, error) {
+	if agentID != nil {
+		return r.FindMemberByAgent(context.Background(), projectID, *agentID)
+	}
+	return r.FindMemberByUserProject(context.Background(), actorID, projectID)
+}
+
 func (r *fakeProjectRepo) FindMemberByUserProject(_ context.Context, userID, projectID uuid.UUID) (*projectdom.ProjectMember, error) {
 	return r.FindMember(context.Background(), projectID, userID)
 }

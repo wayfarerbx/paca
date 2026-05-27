@@ -274,7 +274,7 @@ func (f *fakeActivitySvc) AddComment(_ context.Context, in taskdom.AddCommentInp
 	return a, nil
 }
 
-func (f *fakeActivitySvc) UpdateComment(_ context.Context, id uuid.UUID, _ uuid.UUID, actorID uuid.UUID, content json.RawMessage) (*taskdom.Activity, error) {
+func (f *fakeActivitySvc) UpdateComment(_ context.Context, id uuid.UUID, _ uuid.UUID, actorID uuid.UUID, _ *uuid.UUID, content json.RawMessage) (*taskdom.Activity, error) {
 	if fakeIsContentEmpty(content) || !fakeIsContentTypeValid(content) {
 		return nil, taskdom.ErrCommentContentInvalid
 	}
@@ -296,7 +296,7 @@ func (f *fakeActivitySvc) UpdateComment(_ context.Context, id uuid.UUID, _ uuid.
 	return &cp, nil
 }
 
-func (f *fakeActivitySvc) DeleteComment(_ context.Context, id uuid.UUID, _ uuid.UUID, actorID uuid.UUID) error {
+func (f *fakeActivitySvc) DeleteComment(_ context.Context, id uuid.UUID, _ uuid.UUID, actorID uuid.UUID, _ *uuid.UUID) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	a, ok := f.activities[id]

@@ -62,6 +62,19 @@ func (m *memberServiceRepoMock) FindMemberByAgent(ctx context.Context, projectID
 	return nil, projectdom.ErrMemberNotFound
 }
 
+func (m *memberServiceRepoMock) FindMemberByActor(_ context.Context, projectID, actorID uuid.UUID, agentID *uuid.UUID) (*projectdom.ProjectMember, error) {
+	if agentID != nil {
+		if m.findMemberByAgent != nil {
+			return m.findMemberByAgent(context.Background(), projectID, *agentID)
+		}
+		return nil, projectdom.ErrMemberNotFound
+	}
+	if m.findMember != nil {
+		return m.findMember(context.Background(), projectID, actorID)
+	}
+	return nil, projectdom.ErrMemberNotFound
+}
+
 func (m *memberServiceRepoMock) FindMemberByUserProject(_ context.Context, _, _ uuid.UUID) (*projectdom.ProjectMember, error) {
 	return nil, projectdom.ErrMemberNotFound
 }

@@ -73,12 +73,14 @@ func activityFromRecord(r taskActivityRecord) *taskdom.Activity {
 
 // --- CRUD -------------------------------------------------------------------
 
-// listQuery returns a base query that LEFT JOINs project_members → users for actor name resolution.
+// listQuery returns a base query that LEFT JOINs project_members → users (for human actors)
+// and project_members → agents (for agent actors) for actor name resolution.
 func (r *TaskActivityRepository) listQuery() *gorm.DB {
 	return r.db.Table("task_activities ta").
-		Select("ta.*, u.full_name AS actor_full_name, u.username AS actor_username").
+		Select("ta.*, COALESCE(u.full_name, ag.name) AS actor_full_name, COALESCE(u.username, ag.handle) AS actor_username").
 		Joins("LEFT JOIN project_members pm ON pm.id = ta.actor_id").
-		Joins("LEFT JOIN users u ON u.id = pm.user_id")
+		Joins("LEFT JOIN users u ON u.id = pm.user_id").
+		Joins("LEFT JOIN agents ag ON ag.id = pm.agent_id")
 }
 
 // ListActivities returns all non-deleted activities for a task, oldest first.

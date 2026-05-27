@@ -515,14 +515,17 @@ func (r *fakeTaskActivityRepo) DeleteActivity(_ context.Context, id uuid.UUID) e
 	return nil
 }
 
-// fakeActivityMemberRepo is a minimal memberLookup stub that returns a
-// synthetic ProjectMember using the user UUID as the member UUID.  This lets
-// comment operations in integration tests pass actor-resolution without a real
-// project_members store.
+// fakeActivityMemberRepo is a minimal memberLookup stub that resolves any
+// actor to a synthetic ProjectMember using the agent ID (when present) or the
+// user UUID as the member UUID. This lets comment operations in integration
+// tests pass actor-resolution without a real project_members store.
 type fakeActivityMemberRepo struct{}
 
-func (r *fakeActivityMemberRepo) FindMemberByUserProject(_ context.Context, userID, _ uuid.UUID) (*projectdom.ProjectMember, error) {
-	return &projectdom.ProjectMember{ID: userID}, nil
+func (r *fakeActivityMemberRepo) FindMemberByActor(_ context.Context, _, actorID uuid.UUID, agentID *uuid.UUID) (*projectdom.ProjectMember, error) {
+	if agentID != nil {
+		return &projectdom.ProjectMember{ID: *agentID}, nil
+	}
+	return &projectdom.ProjectMember{ID: actorID}, nil
 }
 
 // ---------------------------------------------------------------------------

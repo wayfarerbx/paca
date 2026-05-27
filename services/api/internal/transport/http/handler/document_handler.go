@@ -202,8 +202,12 @@ func (h *DocumentHandler) CreateDocument(c *gin.Context) {
 	}
 
 	var createdBy *uuid.UUID
+	var createdByAgent *uuid.UUID
 	if actorID, ok := middleware.ActorIDFromContext(c.Request.Context()); ok {
 		createdBy = &actorID
+	}
+	if agentID, _ := middleware.AgentIDFromContext(c.Request.Context()); agentID != uuid.Nil {
+		createdByAgent = &agentID
 	}
 
 	d, err := h.svc.CreateDocument(c.Request.Context(), docdom.CreateDocumentInput{
@@ -225,6 +229,7 @@ func (h *DocumentHandler) CreateDocument(c *gin.Context) {
 			DocumentID:   d.ID,
 			ProjectID:    projectID,
 			ActorID:      createdBy,
+			ActorAgentID: createdByAgent,
 			ActivityType: docdom.ActivityTypeDocCreated,
 			Content:      content,
 		})
@@ -247,8 +252,12 @@ func (h *DocumentHandler) UpdateDocument(c *gin.Context) {
 	}
 
 	var updatedBy *uuid.UUID
+	var updatedByAgent *uuid.UUID
 	if actorID, ok := middleware.ActorIDFromContext(c.Request.Context()); ok {
 		updatedBy = &actorID
+	}
+	if agentID, _ := middleware.AgentIDFromContext(c.Request.Context()); agentID != uuid.Nil {
+		updatedByAgent = &agentID
 	}
 
 	// Capture old state for activity recording.
@@ -275,6 +284,7 @@ func (h *DocumentHandler) UpdateDocument(c *gin.Context) {
 				DocumentID:   docID,
 				ProjectID:    oldDoc.ProjectID,
 				ActorID:      updatedBy,
+				ActorAgentID: updatedByAgent,
 				ActivityType: docdom.ActivityTypeDocUpdated,
 				Content:      content,
 			})
@@ -304,10 +314,16 @@ func (h *DocumentHandler) DeleteDocument(c *gin.Context) {
 
 	// Record deletion activity (best-effort).
 	if actorID, ok := middleware.ActorIDFromContext(c.Request.Context()); ok {
+		agentID, _ := middleware.AgentIDFromContext(c.Request.Context())
+		var agentIDPtr *uuid.UUID
+		if agentID != uuid.Nil {
+			agentIDPtr = &agentID
+		}
 		_ = h.activitySvc.RecordActivity(c.Request.Context(), docdom.RecordActivityInput{
 			DocumentID:   docID,
 			ProjectID:    projectID,
 			ActorID:      &actorID,
+			ActorAgentID: agentIDPtr,
 			ActivityType: docdom.ActivityTypeDocDeleted,
 		})
 	}
@@ -400,10 +416,17 @@ func (h *DocumentHandler) AddComment(c *gin.Context) {
 		return
 	}
 
+	agentID, _ := middleware.AgentIDFromContext(c.Request.Context())
+	var agentIDPtr *uuid.UUID
+	if agentID != uuid.Nil {
+		agentIDPtr = &agentID
+	}
+
 	a, err := h.activitySvc.AddComment(c.Request.Context(), docdom.AddCommentInput{
 		DocumentID: docID,
 		ProjectID:  projectID,
 		ActorID:    actorID,
+		AgentID:    agentIDPtr,
 		Content:    req.Content,
 	})
 	if err != nil {
@@ -437,7 +460,13 @@ func (h *DocumentHandler) UpdateComment(c *gin.Context) {
 		return
 	}
 
-	a, err := h.activitySvc.UpdateComment(c.Request.Context(), commentID, projectID, actorID, req.Content)
+	agentID, _ := middleware.AgentIDFromContext(c.Request.Context())
+	var agentIDPtr *uuid.UUID
+	if agentID != uuid.Nil {
+		agentIDPtr = &agentID
+	}
+
+	a, err := h.activitySvc.UpdateComment(c.Request.Context(), commentID, projectID, actorID, agentIDPtr, req.Content)
 	if err != nil {
 		presenter.Error(c, err)
 		return
@@ -464,7 +493,13 @@ func (h *DocumentHandler) DeleteComment(c *gin.Context) {
 		return
 	}
 
-	if err := h.activitySvc.DeleteComment(c.Request.Context(), commentID, projectID, actorID); err != nil {
+	agentID, _ := middleware.AgentIDFromContext(c.Request.Context())
+	var agentIDPtr *uuid.UUID
+	if agentID != uuid.Nil {
+		agentIDPtr = &agentID
+	}
+
+	if err := h.activitySvc.DeleteComment(c.Request.Context(), commentID, projectID, actorID, agentIDPtr); err != nil {
 		presenter.Error(c, err)
 		return
 	}
