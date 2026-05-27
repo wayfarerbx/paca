@@ -2,18 +2,26 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
 	Bot,
+	ChevronLeft,
 	ChevronRight,
+	Code2,
+	Cpu,
+	Eye,
+	EyeOff,
+	FlaskConical,
 	GitBranch,
 	Loader2,
+	Lock,
 	MessageSquare,
 	MoreHorizontal,
 	Plus,
+	Search,
 	Settings,
 	Sparkles,
 	Trash2,
 	Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { type ComponentType, useState } from "react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +62,7 @@ import {
 	llmModelsQueryOptions,
 } from "@/lib/agent-api";
 import { projectRolesQueryOptions } from "@/lib/project-api";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute(
 	"/_authenticated/projects/$projectId/agents/",
@@ -69,6 +78,13 @@ export const Route = createFileRoute(
 
 // ── Create Agent Dialog ───────────────────────────────────────────────────────
 
+const PRESET_ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
+	"software-engineer": Code2,
+	"code-reviewer": Search,
+	"qa-engineer": FlaskConical,
+	custom: Settings,
+};
+
 function CreateAgentDialog({
 	projectId,
 	open,
@@ -82,6 +98,7 @@ function CreateAgentDialog({
 	const { data: roles = [] } = useQuery(projectRolesQueryOptions(projectId));
 	const { data: llmModels = {} } = useQuery(llmModelsQueryOptions);
 
+	const [step, setStep] = useState<1 | 2>(1);
 	const [name, setName] = useState("");
 	const [handle, setHandle] = useState("");
 	const [presetId, setPresetId] = useState("");
@@ -91,9 +108,26 @@ function CreateAgentDialog({
 	const [llmApiKey, setLlmApiKey] = useState("");
 	const [llmBaseUrl, setLlmBaseUrl] = useState("");
 	const [systemPrompt, setSystemPrompt] = useState("");
+	const [showApiKey, setShowApiKey] = useState(false);
 
-	const onPresetChange = (id: string | null) => {
-		if (!id) return;
+	const reset = () => {
+		setStep(1);
+		setName("");
+		setHandle("");
+		setPresetId("");
+		setRoleId("");
+		setLlmApiKey("");
+		setLlmBaseUrl("");
+		setSystemPrompt("");
+		setShowApiKey(false);
+	};
+
+	const handleClose = (v: boolean) => {
+		if (!v) reset();
+		onOpenChange(v);
+	};
+
+	const onPresetChange = (id: string) => {
 		setPresetId(id);
 		const preset = AGENT_PRESETS.find((p) => p.id === id);
 		if (preset) {
@@ -122,18 +156,10 @@ function CreateAgentDialog({
 			qc.invalidateQueries({
 				queryKey: ["projects", projectId, "agents"],
 			});
-			onOpenChange(false);
-			setName("");
-			setHandle("");
-			setPresetId("");
-			setRoleId("");
-			setLlmApiKey("");
-			setLlmBaseUrl("");
-			setSystemPrompt("");
+			handleClose(false);
 		},
 	});
 
-	// Auto-derive handle from name
 	const onNameChange = (v: string) => {
 		setName(v);
 		setHandle(
@@ -144,211 +170,370 @@ function CreateAgentDialog({
 		);
 	};
 
-	const canSubmit =
-		name.trim() &&
-		handle.trim() &&
-		roleId &&
-		llmApiKey.trim() &&
-		!createMutation.isPending;
+	const step1Valid = !!(name.trim() && handle.trim() && roleId);
+	const canSubmit = !!(step1Valid && llmApiKey.trim() && !createMutation.isPending);
 
 	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-				<DialogHeader>
-					<DialogTitle className="flex items-center gap-2">
-						<Bot className="size-5 text-primary" />
-						Create AI Agent
-					</DialogTitle>
-					<DialogDescription>
-						Add an AI agent to your project. The agent will join as a project
-						member.
-					</DialogDescription>
-				</DialogHeader>
-
-				<div className="space-y-4 py-2">
-					{/* Name */}
-					<div className="space-y-1.5">
-						<Label>Name</Label>
-						<Input
-							placeholder="Dev Bot"
-							value={name}
-							onChange={(e) => onNameChange(e.target.value)}
-						/>
-					</div>
-
-					{/* Handle */}
-					<div className="space-y-1.5">
-						<Label>Handle</Label>
-						<div className="flex items-center gap-1.5">
-							<span className="text-muted-foreground text-sm">@</span>
-							<Input
-								placeholder="dev-bot"
-								value={handle}
-								onChange={(e) => setHandle(e.target.value)}
-							/>
+		<Dialog open={open} onOpenChange={handleClose}>
+			<DialogContent className="sm:max-w-2xl p-0 gap-0 overflow-hidden">
+				{/* Gradient header */}
+				<div className="relative overflow-hidden border-b border-border/50">
+					<div
+						className="pointer-events-none absolute inset-0 opacity-[0.35]"
+						style={{
+							backgroundImage:
+								"radial-gradient(circle, color-mix(in oklch, var(--color-primary) 14%, transparent) 1px, transparent 1px)",
+							backgroundSize: "16px 16px",
+						}}
+					/>
+					<div className="relative flex items-center justify-between px-6 pt-5 pb-4">
+						<div className="flex items-center gap-3">
+							<div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 shadow-sm">
+								<Bot className="size-5 text-primary" />
+							</div>
+							<div>
+								<DialogTitle className="text-sm font-semibold">
+									Create AI Agent
+								</DialogTitle>
+								<DialogDescription className="text-xs text-muted-foreground mt-0.5">
+									{step === 1
+										? "Set up your agent's identity and role"
+										: "Configure the AI model powering your agent"}
+								</DialogDescription>
+							</div>
+						</div>
+						{/* Step pill */}
+						<div className="flex items-center gap-1 rounded-full border border-border/60 bg-muted/50 px-2.5 py-1">
+							<div className="flex items-center gap-1">
+								<span
+									className={cn(
+										"size-1.5 rounded-full transition-colors duration-200",
+										step >= 1 ? "bg-primary" : "bg-muted-foreground/30",
+									)}
+								/>
+								<span
+									className={cn(
+										"size-1.5 rounded-full transition-colors duration-200",
+										step >= 2 ? "bg-primary" : "bg-muted-foreground/30",
+									)}
+								/>
+							</div>
+							<span className="text-[10px] text-muted-foreground font-medium ml-1">
+								{step} / 2
+							</span>
 						</div>
 					</div>
+				</div>
 
-					{/* Preset (optional) */}
-					<div className="space-y-1.5">
-						<Label>
-							Preset{" "}
-							<span className="text-muted-foreground font-normal">
-								(optional)
-							</span>
-						</Label>
-						<Select value={presetId} onValueChange={onPresetChange}>
-							<SelectTrigger>
-								<SelectValue placeholder="Start from a preset…" />
-							</SelectTrigger>
-							<SelectContent>
-								{AGENT_PRESETS.map((p) => (
-									<SelectItem key={p.id} value={p.id}>
-										{p.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-						{presetId && (
-							<p className="text-xs text-muted-foreground">
-								{AGENT_PRESETS.find((p) => p.id === presetId)?.description}
-							</p>
-						)}
-					</div>
+				{/* ── Step 1: Identity ─────────────────────────────────────────── */}
+				{step === 1 && (
+					<div className="overflow-y-auto max-h-[62vh] px-6 py-5 space-y-5">
+						{/* Preset grid */}
+						<div className="space-y-2">
+							<Label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+								Start from a preset
+							</Label>
+							<div className="grid grid-cols-2 gap-2">
+								{AGENT_PRESETS.map((preset) => {
+									const Icon = PRESET_ICON_MAP[preset.id] ?? Bot;
+									const isSelected = presetId === preset.id;
+									return (
+										<button
+											key={preset.id}
+											type="button"
+											onClick={() => onPresetChange(preset.id)}
+											className={cn(
+												"flex items-start gap-2.5 rounded-lg border p-3 text-left transition-all",
+												isSelected
+													? "border-primary/40 bg-primary/5 ring-1 ring-primary/20 shadow-sm"
+													: "border-border/60 hover:border-border hover:bg-muted/30",
+											)}
+										>
+											<div
+												className={cn(
+													"flex size-7 shrink-0 items-center justify-center rounded-md transition-colors",
+													isSelected
+														? "bg-primary/15 text-primary"
+														: "bg-muted text-muted-foreground",
+												)}
+											>
+												<Icon className="size-3.5" />
+											</div>
+											<div className="min-w-0">
+												<p className="text-xs font-semibold leading-tight">
+													{preset.label}
+												</p>
+												<p className="mt-0.5 line-clamp-2 text-[10px] leading-tight text-muted-foreground">
+													{preset.description}
+												</p>
+											</div>
+										</button>
+									);
+								})}
+							</div>
+						</div>
 
-					{/* Project Role */}
-					<div className="space-y-1.5">
-						<Label>Project Role</Label>
-						<Select value={roleId} onValueChange={(v) => v && setRoleId(v)}>
-							<SelectTrigger>
-								<SelectValue placeholder="Select role…" />
+						{/* Name + Handle */}
+						<div className="space-y-3">
+							<div className="space-y-1.5">
+								<Label htmlFor="agent-name">
+									Name <span className="text-destructive">*</span>
+								</Label>
+								<Input
+									id="agent-name"
+									placeholder="Dev Bot"
+									value={name}
+									onChange={(e) => onNameChange(e.target.value)}
+									autoFocus
+								/>
+							</div>
+							<div className="space-y-1.5">
+								<Label htmlFor="agent-handle">
+									Handle <span className="text-destructive">*</span>
+								</Label>
+								<div className="relative">
+									<span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground select-none">
+										@
+									</span>
+									<Input
+										id="agent-handle"
+										placeholder="dev-bot"
+										value={handle}
+										onChange={(e) => setHandle(e.target.value)}
+										className="pl-7"
+									/>
+								</div>
+								<p className="text-[10px] text-muted-foreground">
+									Auto-derived from name. Used for @mentions in comments.
+								</p>
+							</div>
+						</div>
+
+						{/* Project Role */}
+						<div className="space-y-1.5">
+							<Label>
+								Project Role <span className="text-destructive">*</span>
+							</Label>
+							<Select
+								value={roleId}
+								onValueChange={(v) => v && setRoleId(v)}
+							>
+								<SelectTrigger>
+								<SelectValue placeholder="Select a project role…">
+									{roles.find((r) => r.id === roleId)?.role_name}
+								</SelectValue>
 							</SelectTrigger>
 							<SelectContent>
 								{roles.map((r) => (
 									<SelectItem key={r.id} value={r.id}>
-										{r.role_name}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
+											{r.role_name}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+							<p className="text-[10px] text-muted-foreground">
+								Controls what the agent can read and modify in this project.
+							</p>
+						</div>
 					</div>
+				)}
 
-					{/* LLM Provider */}
-					<div className="grid grid-cols-2 gap-3">
+				{/* ── Step 2: AI Configuration ─────────────────────────────────── */}
+				{step === 2 && (
+					<div className="overflow-y-auto max-h-[62vh] px-6 py-5 space-y-5">
+						{/* Provider + Model card */}
+						<div className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3">
+							<div className="flex items-center gap-1.5">
+								<Cpu className="size-3.5 text-muted-foreground" />
+								<span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+									Model
+								</span>
+							</div>
+							<div className="grid grid-cols-2 gap-3">
+								<div className="space-y-1.5">
+									<Label>Provider</Label>
+									<Select
+										value={llmProvider}
+										onValueChange={(v) => {
+											if (!v) return;
+											setLlmProvider(v);
+											setLlmModel(llmModels[v]?.[0] ?? "");
+										}}
+									>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											{providers.map((p) => (
+												<SelectItem key={p} value={p}>
+													{p}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+								<div className="space-y-1.5">
+									<Label>Model</Label>
+									<Select
+										value={llmModel}
+										onValueChange={(v) => v && setLlmModel(v)}
+									>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											{availableModels.map((m) => (
+												<SelectItem key={m} value={m}>
+													{m}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+							</div>
+						</div>
+
+						{/* API Key */}
 						<div className="space-y-1.5">
-							<Label>LLM Provider</Label>
-							<Select
-								value={llmProvider}
-								onValueChange={(v) => {								if (!v) return;									setLlmProvider(v);
-									setLlmModel(llmModels[v]?.[0] ?? "");
-								}}
+							<Label htmlFor="agent-api-key">
+								<span className="flex items-center gap-1.5">
+									<Lock className="size-3 text-muted-foreground" />
+									API Key <span className="text-destructive">*</span>
+								</span>
+							</Label>
+							<div className="relative">
+								<Input
+									id="agent-api-key"
+									type={showApiKey ? "text" : "password"}
+									placeholder={
+										llmProvider === "anthropic" ? "sk-ant-…" : "sk-…"
+									}
+									value={llmApiKey}
+									onChange={(e) => setLlmApiKey(e.target.value)}
+									className="pr-9"
+								/>
+								<button
+									type="button"
+									onClick={() => setShowApiKey((s) => !s)}
+									className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
+									aria-label={showApiKey ? "Hide API key" : "Show API key"}
+								>
+									{showApiKey ? (
+										<EyeOff className="size-4" />
+									) : (
+										<Eye className="size-4" />
+									)}
+								</button>
+							</div>
+							<p className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+								<span className="size-1.5 shrink-0 rounded-full bg-emerald-500 inline-block" />
+								Stored encrypted — never exposed in API responses.
+							</p>
+						</div>
+
+						{/* Base URL (optional) */}
+						<div className="space-y-1.5">
+							<Label htmlFor="agent-base-url">
+								Base URL{" "}
+								<span className="text-muted-foreground font-normal text-xs">
+									(optional)
+								</span>
+							</Label>
+							<Input
+								id="agent-base-url"
+								placeholder="https://api.openai.com/v1"
+								value={llmBaseUrl}
+								onChange={(e) => setLlmBaseUrl(e.target.value)}
+							/>
+							<p className="text-[10px] text-muted-foreground">
+								Leave blank to use the provider's default endpoint.
+							</p>
+						</div>
+
+						{/* System Prompt */}
+						<div className="space-y-1.5">
+							<div className="flex items-center justify-between">
+								<Label htmlFor="agent-system-prompt">
+									System Prompt{" "}
+									<span className="text-muted-foreground font-normal text-xs">
+										(optional)
+									</span>
+								</Label>
+								{systemPrompt.length > 0 && (
+									<span className="text-[10px] text-muted-foreground">
+										{systemPrompt.length} chars
+									</span>
+								)}
+							</div>
+							<Textarea
+								id="agent-system-prompt"
+								placeholder="You are a senior software engineer…"
+								value={systemPrompt}
+								onChange={(e) => setSystemPrompt(e.target.value)}
+								rows={4}
+								className="resize-none text-sm"
+							/>
+						</div>
+
+						{createMutation.isError && (
+							<p className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2">
+								Failed to create agent. Please try again.
+							</p>
+						)}
+					</div>
+				)}
+					{/* Footer */}
+				<div className="border-t border-border/50 bg-muted/20 px-6 py-4 flex items-center justify-between">
+					{step === 1 ? (
+						<>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => handleClose(false)}
+								className="text-muted-foreground"
 							>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{providers.map((p) => (
-										<SelectItem key={p} value={p}>
-											{p}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-						<div className="space-y-1.5">
-							<Label>Model</Label>
-							<Select value={llmModel} onValueChange={(v) => v && setLlmModel(v)}>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{availableModels.map((m) => (
-										<SelectItem key={m} value={m}>
-											{m}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-					</div>
-
-					{/* API Key */}
-					<div className="space-y-1.5">
-						<Label>API Key</Label>
-						<Input
-							type="password"
-							placeholder="sk-ant-…"
-							value={llmApiKey}
-							onChange={(e) => setLlmApiKey(e.target.value)}
-						/>
-						<p className="text-xs text-muted-foreground">
-							Stored encrypted. Never exposed in responses.
-						</p>
-					</div>
-
-					{/* Base URL (optional) */}
-					<div className="space-y-1.5">
-						<Label>
-							Base URL{" "}
-							<span className="text-muted-foreground font-normal">
-								(optional)
-							</span>
-						</Label>
-						<Input
-							placeholder="https://api.openai.com/v1"
-							value={llmBaseUrl}
-							onChange={(e) => setLlmBaseUrl(e.target.value)}
-						/>
-					</div>
-
-					{/* System Prompt */}
-					<div className="space-y-1.5">
-						<Label>
-							System Prompt{" "}
-							<span className="text-muted-foreground font-normal">
-								(optional)
-							</span>
-						</Label>
-						<Textarea
-							placeholder="You are a senior software engineer…"
-							value={systemPrompt}
-							onChange={(e) => setSystemPrompt(e.target.value)}
-							rows={3}
-						/>
-					</div>
-
-					{createMutation.isError && (
-						<p className="text-sm text-destructive">
-							Failed to create agent. Please try again.
-						</p>
+								Cancel
+							</Button>
+							<Button
+								size="sm"
+								onClick={() => setStep(2)}
+								disabled={!step1Valid}
+							>
+								Continue
+								<ChevronRight className="size-4 ml-1" />
+							</Button>
+						</>
+					) : (
+						<>
+							<Button
+								variant="ghost"
+								size="sm"
+								onClick={() => setStep(1)}
+								className="text-muted-foreground"
+							>
+								<ChevronLeft className="size-4 mr-1" />
+								Back
+							</Button>
+							<Button
+								size="sm"
+								onClick={() => createMutation.mutate()}
+								disabled={!canSubmit}
+							>
+								{createMutation.isPending ? (
+									<>
+										<Loader2 className="size-4 mr-1.5 animate-spin" />
+										Creating…
+									</>
+								) : (
+									<>
+										<Sparkles className="size-4 mr-1.5" />
+										Create Agent
+									</>
+								)}
+							</Button>
+						</>
 					)}
 				</div>
-
-				<DialogFooter>
-					<Button
-						variant="outline"
-						onClick={() => onOpenChange(false)}
-						disabled={createMutation.isPending}
-					>
-						Cancel
-					</Button>
-					<Button
-						onClick={() => createMutation.mutate()}
-						disabled={!canSubmit}
-					>
-						{createMutation.isPending ? (
-							<>
-								<Loader2 className="size-4 mr-2 animate-spin" />
-								Creating…
-							</>
-						) : (
-							<>
-								<Bot className="size-4 mr-2" />
-								Create Agent
-							</>
-						)}
-					</Button>
-				</DialogFooter>
 			</DialogContent>
 		</Dialog>
 	);
