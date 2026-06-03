@@ -89,19 +89,21 @@ func (h *AgentHandler) CreateAgent(c *gin.Context) {
 	callerID, _ := uuid.Parse(claims.Subject)
 
 	a, err := h.svc.CreateAgent(c.Request.Context(), projectID, agentdom.CreateAgentInput{
-		Name:           req.Name,
-		Handle:         req.Handle,
-		LLMProvider:    req.LLMProvider,
-		LLMModel:       req.LLMModel,
-		LLMAPIKey:      req.LLMAPIKey,
-		LLMBaseURL:     req.LLMBaseURL,
-		SystemPrompt:   req.SystemPrompt,
-		CanCloneRepos:  req.CanCloneRepos,
-		CanCreatePRs:   req.CanCreatePRs,
-		MaxIterations:  req.MaxIterations,
-		TimeoutMinutes: req.TimeoutMinutes,
-		ProjectRoleID:  req.ProjectRoleID,
-		CreatedBy:      &callerID,
+		Name:              req.Name,
+		Handle:            req.Handle,
+		LLMProvider:       req.LLMProvider,
+		LLMModel:          req.LLMModel,
+		LLMAPIKey:         req.LLMAPIKey,
+		LLMBaseURL:        req.LLMBaseURL,
+		SystemPrompt:      req.SystemPrompt,
+		CanCloneRepos:     req.CanCloneRepos,
+		CanCreatePRs:      req.CanCreatePRs,
+		MaxIterations:     req.MaxIterations,
+		TimeoutMinutes:    req.TimeoutMinutes,
+		GitCommitterName:  req.GitCommitterName,
+		GitCommitterEmail: req.GitCommitterEmail,
+		ProjectRoleID:     req.ProjectRoleID,
+		CreatedBy:         &callerID,
 	})
 	if err != nil {
 		presenter.Error(c, err)
@@ -128,17 +130,19 @@ func (h *AgentHandler) UpdateAgent(c *gin.Context) {
 		return
 	}
 	a, err := h.svc.UpdateAgent(c.Request.Context(), projectID, agentID, agentdom.UpdateAgentInput{
-		Name:           req.Name,
-		Handle:         req.Handle,
-		LLMProvider:    req.LLMProvider,
-		LLMModel:       req.LLMModel,
-		LLMAPIKey:      req.LLMAPIKey,
-		LLMBaseURL:     req.LLMBaseURL,
-		SystemPrompt:   req.SystemPrompt,
-		CanCloneRepos:  req.CanCloneRepos,
-		CanCreatePRs:   req.CanCreatePRs,
-		MaxIterations:  req.MaxIterations,
-		TimeoutMinutes: req.TimeoutMinutes,
+		Name:              req.Name,
+		Handle:            req.Handle,
+		LLMProvider:       req.LLMProvider,
+		LLMModel:          req.LLMModel,
+		LLMAPIKey:         req.LLMAPIKey,
+		LLMBaseURL:        req.LLMBaseURL,
+		SystemPrompt:      req.SystemPrompt,
+		CanCloneRepos:     req.CanCloneRepos,
+		CanCreatePRs:      req.CanCreatePRs,
+		MaxIterations:     req.MaxIterations,
+		TimeoutMinutes:    req.TimeoutMinutes,
+		GitCommitterName:  req.GitCommitterName,
+		GitCommitterEmail: req.GitCommitterEmail,
 	})
 	if err != nil {
 		presenter.Error(c, err)

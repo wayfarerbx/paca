@@ -126,7 +126,11 @@ def _wait_for_ready(host: str, timeout: float = 120.0) -> None:
 
 
 @contextmanager
-def docker_sandbox(conversation_id: str) -> Iterator[RemoteWorkspace]:
+def docker_sandbox(
+    conversation_id: str,
+    git_committer_name: str = "paca-agent",
+    git_committer_email: str = "280579135+paca-agent@users.noreply.github.com",
+) -> Iterator[RemoteWorkspace]:
     """Spin up an isolated agent-server container and yield a RemoteWorkspace.
 
     Inside Docker (production/dev-compose)
@@ -183,6 +187,11 @@ def docker_sandbox(conversation_id: str) -> Iterator[RemoteWorkspace]:
             "OH_SECRET_KEY": secrets.token_hex(32),
             # Suppress the SDK startup banner from container logs.
             "OPENHANDS_SUPPRESS_BANNER": "1",
+            # Git committer identity — applied to every git command in the container.
+            "GIT_AUTHOR_NAME": git_committer_name,
+            "GIT_AUTHOR_EMAIL": git_committer_email,
+            "GIT_COMMITTER_NAME": git_committer_name,
+            "GIT_COMMITTER_EMAIL": git_committer_email,
         }
         if app_host_path:
             # Add the mounted app directory to Python's module search path so

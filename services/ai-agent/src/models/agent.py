@@ -34,5 +34,7 @@ class AgentConfig:
     llm_base_url: str | None
     max_iterations: int
     can_clone_repos: bool
+    git_committer_name: str = "paca-agent"
+    git_committer_email: str = "280579135+paca-agent@users.noreply.github.com"
     mcp_servers: list[AgentMCPServerRow] = field(default_factory=list)
     skills: list[AgentSkillRow] = field(default_factory=list)

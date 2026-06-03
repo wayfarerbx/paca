@@ -37,7 +37,7 @@ export default defineConfig({
 		},
 	},
 	server: {
-		watch: isDocker ? { usePolling: true } : undefined,
+		watch: isDocker ? { usePolling: true, interval: 2000, binaryInterval: 4000 } : undefined,
 		hmr: isDocker ? { clientPort: 3000 } : undefined,
 		allowedHosts: [
 			"97d1-2001-ee0-4b7b-1210-c5f-19d3-601c-7dc0.ngrok-free.app",

@@ -77,28 +77,36 @@ func (s *Service) CreateAgent(ctx context.Context, projectID uuid.UUID, in agent
 
 	now := time.Now()
 	a := &agentdom.Agent{
-		ID:              uuid.New(),
-		ProjectID:       projectID,
-		Name:            name,
-		Handle:          handle,
-		LLMProvider:     in.LLMProvider,
-		LLMModel:        in.LLMModel,
-		LLMAPIKeySecret: in.LLMAPIKey, // stored directly; encryption handled at transport layer
-		LLMBaseURL:      in.LLMBaseURL,
-		SystemPrompt:    in.SystemPrompt,
-		CanCloneRepos:   in.CanCloneRepos,
-		CanCreatePRs:    in.CanCreatePRs,
-		MaxIterations:   in.MaxIterations,
-		TimeoutMinutes:  in.TimeoutMinutes,
-		CreatedBy:       in.CreatedBy,
-		CreatedAt:       now,
-		UpdatedAt:       now,
+		ID:                uuid.New(),
+		ProjectID:         projectID,
+		Name:              name,
+		Handle:            handle,
+		LLMProvider:       in.LLMProvider,
+		LLMModel:          in.LLMModel,
+		LLMAPIKeySecret:   in.LLMAPIKey, // stored directly; encryption handled at transport layer
+		LLMBaseURL:        in.LLMBaseURL,
+		SystemPrompt:      in.SystemPrompt,
+		CanCloneRepos:     in.CanCloneRepos,
+		CanCreatePRs:      in.CanCreatePRs,
+		MaxIterations:     in.MaxIterations,
+		TimeoutMinutes:    in.TimeoutMinutes,
+		GitCommitterName:  in.GitCommitterName,
+		GitCommitterEmail: in.GitCommitterEmail,
+		CreatedBy:         in.CreatedBy,
+		CreatedAt:         now,
+		UpdatedAt:         now,
 	}
 	if a.MaxIterations == 0 {
 		a.MaxIterations = 50
 	}
 	if a.TimeoutMinutes == 0 {
 		a.TimeoutMinutes = 30
+	}
+	if a.GitCommitterName == "" {
+		a.GitCommitterName = "paca-agent"
+	}
+	if a.GitCommitterEmail == "" {
+		a.GitCommitterEmail = "280579135+paca-agent@users.noreply.github.com"
 	}
 
 	// Atomically create the agent and its project membership in one transaction.
@@ -159,6 +167,12 @@ func (s *Service) UpdateAgent(ctx context.Context, projectID, agentID uuid.UUID,
 	}
 	if in.TimeoutMinutes != nil {
 		a.TimeoutMinutes = *in.TimeoutMinutes
+	}
+	if in.GitCommitterName != nil {
+		a.GitCommitterName = *in.GitCommitterName
+	}
+	if in.GitCommitterEmail != nil {
+		a.GitCommitterEmail = *in.GitCommitterEmail
 	}
 	a.UpdatedAt = time.Now()
 

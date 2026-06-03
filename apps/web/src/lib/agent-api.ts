@@ -91,6 +91,8 @@ export interface Agent {
 	can_create_prs: boolean;
 	max_iterations: number;
 	timeout_minutes: number;
+	git_committer_name: string;
+	git_committer_email: string;
 	member_id?: string | null;
 	mcp_servers?: AgentMCPServer[];
 	skills?: AgentSkill[];
@@ -180,6 +182,8 @@ export async function createAgent(
 		can_create_prs?: boolean;
 		max_iterations?: number;
 		timeout_minutes?: number;
+		git_committer_name?: string;
+		git_committer_email?: string;
 		project_role_id: string;
 	},
 ): Promise<Agent> {
@@ -205,6 +209,8 @@ export async function updateAgent(
 		can_create_prs?: boolean;
 		max_iterations?: number;
 		timeout_minutes?: number;
+		git_committer_name?: string;
+		git_committer_email?: string;
 	},
 ): Promise<Agent> {
 	const { data } = await apiClient.instance.patch<SuccessEnvelope<Agent>>(

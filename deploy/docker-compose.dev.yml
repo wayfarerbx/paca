@@ -118,6 +118,7 @@ services:
     environment:
       NODE_ENV: development
       DOCKER: "true"
+      NODE_OPTIONS: "--max-old-space-size=512"
     volumes:
       - ../apps/web:/workspace
       - web_node_modules:/workspace/node_modules

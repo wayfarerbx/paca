@@ -110,6 +110,8 @@ function OverviewTab({
 	const [canPrs, setCanPrs] = useState(agent.can_create_prs);
 	const [maxIter, setMaxIter] = useState(String(agent.max_iterations));
 	const [timeout, setTimeout] = useState(String(agent.timeout_minutes));
+	const [committerName, setCommitterName] = useState(agent.git_committer_name);
+	const [committerEmail, setCommitterEmail] = useState(agent.git_committer_email);
 
 	const isDirty =
 		name !== agent.name ||
@@ -121,7 +123,9 @@ function OverviewTab({
 		canClone !== agent.can_clone_repos ||
 		canPrs !== agent.can_create_prs ||
 		maxIter !== String(agent.max_iterations) ||
-		timeout !== String(agent.timeout_minutes);
+		timeout !== String(agent.timeout_minutes) ||
+		committerName !== agent.git_committer_name ||
+		committerEmail !== agent.git_committer_email;
 
 	const saveMutation = useMutation({
 		mutationFn: () =>
@@ -136,6 +140,8 @@ function OverviewTab({
 				can_create_prs: canPrs,
 				max_iterations: Number(maxIter) || 30,
 				timeout_minutes: Number(timeout) || 60,
+				git_committer_name: committerName.trim(),
+				git_committer_email: committerEmail.trim(),
 			}),
 		onSuccess: (updated) => {
 			qc.setQueryData(
@@ -308,6 +314,36 @@ function OverviewTab({
 						onChange={(e) => setTimeout(e.target.value)}
 						disabled={!canWrite}
 					/>
+				</div>
+			</div>
+
+			<Separator />
+
+			<div>
+				<p className="text-sm font-medium mb-1">Git committer identity</p>
+				<p className="text-xs text-muted-foreground mb-3">
+					Name and email used for commits made by this agent.
+				</p>
+				<div className="grid grid-cols-2 gap-3">
+					<div className="space-y-1.5">
+						<Label>Committer name</Label>
+						<Input
+							value={committerName}
+							onChange={(e) => setCommitterName(e.target.value)}
+							disabled={!canWrite}
+							placeholder="paca-agent"
+						/>
+					</div>
+					<div className="space-y-1.5">
+						<Label>Committer email</Label>
+						<Input
+							type="email"
+							value={committerEmail}
+							onChange={(e) => setCommitterEmail(e.target.value)}
+							disabled={!canWrite}
+							placeholder="paca-agent@users.noreply.github.com"
+						/>
+					</div>
 				</div>
 			</div>
 

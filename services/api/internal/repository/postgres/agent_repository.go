@@ -16,49 +16,53 @@ import (
 // -------------------------------------------------------------------------
 
 type agentRecord struct {
-	ID              string `gorm:"primarykey;type:uuid"`
-	ProjectID       string `gorm:"type:uuid;not null;column:project_id"`
-	Name            string
-	Handle          string
-	AvatarURL       *string `gorm:"column:avatar_url"`
-	LLMProvider     string  `gorm:"column:llm_provider"`
-	LLMModel        string  `gorm:"column:llm_model"`
-	LLMAPIKeySecret string  `gorm:"column:llm_api_key_secret"`
-	LLMBaseURL      *string `gorm:"column:llm_base_url"`
-	SystemPrompt    string  `gorm:"column:system_prompt"`
-	CanCloneRepos   bool    `gorm:"column:can_clone_repos"`
-	CanCreatePRs    bool    `gorm:"column:can_create_prs"`
-	MaxIterations   int     `gorm:"column:max_iterations"`
-	TimeoutMinutes  int     `gorm:"column:timeout_minutes"`
-	CreatedBy       *string `gorm:"type:uuid;column:created_by"`
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	DeletedAt       gorm.DeletedAt `gorm:"index"`
+	ID                string `gorm:"primarykey;type:uuid"`
+	ProjectID         string `gorm:"type:uuid;not null;column:project_id"`
+	Name              string
+	Handle            string
+	AvatarURL         *string `gorm:"column:avatar_url"`
+	LLMProvider       string  `gorm:"column:llm_provider"`
+	LLMModel          string  `gorm:"column:llm_model"`
+	LLMAPIKeySecret   string  `gorm:"column:llm_api_key_secret"`
+	LLMBaseURL        *string `gorm:"column:llm_base_url"`
+	SystemPrompt      string  `gorm:"column:system_prompt"`
+	CanCloneRepos     bool    `gorm:"column:can_clone_repos"`
+	CanCreatePRs      bool    `gorm:"column:can_create_prs"`
+	MaxIterations     int     `gorm:"column:max_iterations"`
+	TimeoutMinutes    int     `gorm:"column:timeout_minutes"`
+	GitCommitterName  string  `gorm:"column:git_committer_name"`
+	GitCommitterEmail string  `gorm:"column:git_committer_email"`
+	CreatedBy         *string `gorm:"type:uuid;column:created_by"`
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	DeletedAt         gorm.DeletedAt `gorm:"index"`
 }
 
 func (agentRecord) TableName() string { return "agents" }
 
 // agentReadRow is the result of the SELECT query.
 type agentReadRow struct {
-	ID              string
-	ProjectID       string
-	Name            string
-	Handle          string
-	AvatarURL       *string
-	LLMProvider     string
-	LLMModel        string
-	LLMAPIKeySecret string
-	LLMBaseURL      *string
-	SystemPrompt    string
-	CanCloneRepos   bool
-	CanCreatePRs    bool
-	MaxIterations   int
-	TimeoutMinutes  int
-	CreatedBy       *string
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	DeletedAt       gorm.DeletedAt
-	MemberID        *string // populated when joining with project_members
+	ID                string
+	ProjectID         string
+	Name              string
+	Handle            string
+	AvatarURL         *string
+	LLMProvider       string
+	LLMModel          string
+	LLMAPIKeySecret   string
+	LLMBaseURL        *string
+	SystemPrompt      string
+	CanCloneRepos     bool
+	CanCreatePRs      bool
+	MaxIterations     int
+	TimeoutMinutes    int
+	GitCommitterName  string
+	GitCommitterEmail string
+	CreatedBy         *string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	DeletedAt         gorm.DeletedAt
+	MemberID          *string // populated when joining with project_members
 }
 
 type agentMCPServerRecord struct {
@@ -251,18 +255,20 @@ func (r *AgentRepository) CreateAgent(ctx context.Context, a *agentdom.Agent) er
 // UpdateAgent patches the mutable fields of an existing agent.
 func (r *AgentRepository) UpdateAgent(ctx context.Context, a *agentdom.Agent) error {
 	updates := map[string]any{
-		"name":            a.Name,
-		"handle":          a.Handle,
-		"avatar_url":      a.AvatarURL,
-		"llm_provider":    a.LLMProvider,
-		"llm_model":       a.LLMModel,
-		"llm_base_url":    a.LLMBaseURL,
-		"system_prompt":   a.SystemPrompt,
-		"can_clone_repos": a.CanCloneRepos,
-		"can_create_prs":  a.CanCreatePRs,
-		"max_iterations":  a.MaxIterations,
-		"timeout_minutes": a.TimeoutMinutes,
-		"updated_at":      time.Now(),
+		"name":                a.Name,
+		"handle":              a.Handle,
+		"avatar_url":          a.AvatarURL,
+		"llm_provider":        a.LLMProvider,
+		"llm_model":           a.LLMModel,
+		"llm_base_url":        a.LLMBaseURL,
+		"system_prompt":       a.SystemPrompt,
+		"can_clone_repos":     a.CanCloneRepos,
+		"can_create_prs":      a.CanCreatePRs,
+		"max_iterations":      a.MaxIterations,
+		"timeout_minutes":     a.TimeoutMinutes,
+		"git_committer_name":  a.GitCommitterName,
+		"git_committer_email": a.GitCommitterEmail,
+		"updated_at":          time.Now(),
 	}
 	if a.LLMAPIKeySecret != "" {
 		updates["llm_api_key_secret"] = a.LLMAPIKeySecret
@@ -587,22 +593,24 @@ func (r *AgentRepository) UpdateChatSession(ctx context.Context, s *agentdom.Age
 
 func agentFromReadRow(row agentReadRow) *agentdom.Agent {
 	a := &agentdom.Agent{
-		ID:              mustParseUUID(row.ID),
-		ProjectID:       mustParseUUID(row.ProjectID),
-		Name:            row.Name,
-		Handle:          row.Handle,
-		AvatarURL:       row.AvatarURL,
-		LLMProvider:     row.LLMProvider,
-		LLMModel:        row.LLMModel,
-		LLMAPIKeySecret: row.LLMAPIKeySecret,
-		LLMBaseURL:      row.LLMBaseURL,
-		SystemPrompt:    row.SystemPrompt,
-		CanCloneRepos:   row.CanCloneRepos,
-		CanCreatePRs:    row.CanCreatePRs,
-		MaxIterations:   row.MaxIterations,
-		TimeoutMinutes:  row.TimeoutMinutes,
-		CreatedAt:       row.CreatedAt,
-		UpdatedAt:       row.UpdatedAt,
+		ID:                mustParseUUID(row.ID),
+		ProjectID:         mustParseUUID(row.ProjectID),
+		Name:              row.Name,
+		Handle:            row.Handle,
+		AvatarURL:         row.AvatarURL,
+		LLMProvider:       row.LLMProvider,
+		LLMModel:          row.LLMModel,
+		LLMAPIKeySecret:   row.LLMAPIKeySecret,
+		LLMBaseURL:        row.LLMBaseURL,
+		SystemPrompt:      row.SystemPrompt,
+		CanCloneRepos:     row.CanCloneRepos,
+		CanCreatePRs:      row.CanCreatePRs,
+		MaxIterations:     row.MaxIterations,
+		TimeoutMinutes:    row.TimeoutMinutes,
+		GitCommitterName:  row.GitCommitterName,
+		GitCommitterEmail: row.GitCommitterEmail,
+		CreatedAt:         row.CreatedAt,
+		UpdatedAt:         row.UpdatedAt,
 	}
 	if row.CreatedBy != nil {
 		id := mustParseUUID(*row.CreatedBy)
@@ -621,22 +629,24 @@ func agentFromReadRow(row agentReadRow) *agentdom.Agent {
 
 func agentToRecord(a *agentdom.Agent) agentRecord {
 	rec := agentRecord{
-		ID:              a.ID.String(),
-		ProjectID:       a.ProjectID.String(),
-		Name:            a.Name,
-		Handle:          a.Handle,
-		AvatarURL:       a.AvatarURL,
-		LLMProvider:     a.LLMProvider,
-		LLMModel:        a.LLMModel,
-		LLMAPIKeySecret: a.LLMAPIKeySecret,
-		LLMBaseURL:      a.LLMBaseURL,
-		SystemPrompt:    a.SystemPrompt,
-		CanCloneRepos:   a.CanCloneRepos,
-		CanCreatePRs:    a.CanCreatePRs,
-		MaxIterations:   a.MaxIterations,
-		TimeoutMinutes:  a.TimeoutMinutes,
-		CreatedAt:       a.CreatedAt,
-		UpdatedAt:       a.UpdatedAt,
+		ID:                a.ID.String(),
+		ProjectID:         a.ProjectID.String(),
+		Name:              a.Name,
+		Handle:            a.Handle,
+		AvatarURL:         a.AvatarURL,
+		LLMProvider:       a.LLMProvider,
+		LLMModel:          a.LLMModel,
+		LLMAPIKeySecret:   a.LLMAPIKeySecret,
+		LLMBaseURL:        a.LLMBaseURL,
+		SystemPrompt:      a.SystemPrompt,
+		CanCloneRepos:     a.CanCloneRepos,
+		CanCreatePRs:      a.CanCreatePRs,
+		MaxIterations:     a.MaxIterations,
+		TimeoutMinutes:    a.TimeoutMinutes,
+		GitCommitterName:  a.GitCommitterName,
+		GitCommitterEmail: a.GitCommitterEmail,
+		CreatedAt:         a.CreatedAt,
+		UpdatedAt:         a.UpdatedAt,
 	}
 	if a.CreatedBy != nil {
 		s := a.CreatedBy.String()

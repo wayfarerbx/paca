@@ -151,7 +151,11 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
         agent_context = AgentContext(skills=skills, system_message_suffix=system_suffix)
 
         def _run_sync() -> None:
-            with docker_sandbox(trigger.conversation_id) as workspace:
+            with docker_sandbox(
+                trigger.conversation_id,
+                git_committer_name=agent_config.git_committer_name,
+                git_committer_email=agent_config.git_committer_email,
+            ) as workspace:
 
                 agent_kwargs: dict = {"llm": llm, "agent_context": agent_context}
                 if mcp_config.get("mcpServers"):

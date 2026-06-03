@@ -13,78 +13,86 @@ import (
 
 // AgentResponse is the public view of an agent.
 type AgentResponse struct {
-	ID             uuid.UUID                `json:"id"`
-	ProjectID      uuid.UUID                `json:"project_id"`
-	MemberID       *uuid.UUID               `json:"member_id,omitempty"`
-	Name           string                   `json:"name"`
-	Handle         string                   `json:"handle"`
-	AvatarURL      *string                  `json:"avatar_url,omitempty"`
-	LLMProvider    string                   `json:"llm_provider"`
-	LLMModel       string                   `json:"llm_model"`
-	LLMBaseURL     *string                  `json:"llm_base_url,omitempty"`
-	SystemPrompt   string                   `json:"system_prompt"`
-	CanCloneRepos  bool                     `json:"can_clone_repos"`
-	CanCreatePRs   bool                     `json:"can_create_prs"`
-	MaxIterations  int                      `json:"max_iterations"`
-	TimeoutMinutes int                      `json:"timeout_minutes"`
-	CreatedBy      *uuid.UUID               `json:"created_by,omitempty"`
-	CreatedAt      time.Time                `json:"created_at"`
-	UpdatedAt      time.Time                `json:"updated_at"`
-	MCPServers     []AgentMCPServerResponse `json:"mcp_servers,omitempty"`
-	Skills         []AgentSkillResponse     `json:"skills,omitempty"`
+	ID                uuid.UUID                `json:"id"`
+	ProjectID         uuid.UUID                `json:"project_id"`
+	MemberID          *uuid.UUID               `json:"member_id,omitempty"`
+	Name              string                   `json:"name"`
+	Handle            string                   `json:"handle"`
+	AvatarURL         *string                  `json:"avatar_url,omitempty"`
+	LLMProvider       string                   `json:"llm_provider"`
+	LLMModel          string                   `json:"llm_model"`
+	LLMBaseURL        *string                  `json:"llm_base_url,omitempty"`
+	SystemPrompt      string                   `json:"system_prompt"`
+	CanCloneRepos     bool                     `json:"can_clone_repos"`
+	CanCreatePRs      bool                     `json:"can_create_prs"`
+	MaxIterations     int                      `json:"max_iterations"`
+	TimeoutMinutes    int                      `json:"timeout_minutes"`
+	GitCommitterName  string                   `json:"git_committer_name"`
+	GitCommitterEmail string                   `json:"git_committer_email"`
+	CreatedBy         *uuid.UUID               `json:"created_by,omitempty"`
+	CreatedAt         time.Time                `json:"created_at"`
+	UpdatedAt         time.Time                `json:"updated_at"`
+	MCPServers        []AgentMCPServerResponse `json:"mcp_servers,omitempty"`
+	Skills            []AgentSkillResponse     `json:"skills,omitempty"`
 }
 
 // CreateAgentRequest is the body for POST /projects/:projectId/agents.
 type CreateAgentRequest struct {
-	Name           string    `json:"name" binding:"required"`
-	Handle         string    `json:"handle" binding:"required"`
-	LLMProvider    string    `json:"llm_provider" binding:"required"`
-	LLMModel       string    `json:"llm_model" binding:"required"`
-	LLMAPIKey      string    `json:"llm_api_key" binding:"required"`
-	LLMBaseURL     *string   `json:"llm_base_url"`
-	SystemPrompt   string    `json:"system_prompt"`
-	CanCloneRepos  bool      `json:"can_clone_repos"`
-	CanCreatePRs   bool      `json:"can_create_prs"`
-	MaxIterations  int       `json:"max_iterations"`
-	TimeoutMinutes int       `json:"timeout_minutes"`
-	ProjectRoleID  uuid.UUID `json:"project_role_id" binding:"required"`
+	Name              string    `json:"name" binding:"required"`
+	Handle            string    `json:"handle" binding:"required"`
+	LLMProvider       string    `json:"llm_provider" binding:"required"`
+	LLMModel          string    `json:"llm_model" binding:"required"`
+	LLMAPIKey         string    `json:"llm_api_key" binding:"required"`
+	LLMBaseURL        *string   `json:"llm_base_url"`
+	SystemPrompt      string    `json:"system_prompt"`
+	CanCloneRepos     bool      `json:"can_clone_repos"`
+	CanCreatePRs      bool      `json:"can_create_prs"`
+	MaxIterations     int       `json:"max_iterations"`
+	TimeoutMinutes    int       `json:"timeout_minutes"`
+	GitCommitterName  string    `json:"git_committer_name"`
+	GitCommitterEmail string    `json:"git_committer_email"`
+	ProjectRoleID     uuid.UUID `json:"project_role_id" binding:"required"`
 }
 
 // UpdateAgentRequest is the body for PATCH /projects/:projectId/agents/:agentId.
 type UpdateAgentRequest struct {
-	Name           *string `json:"name"`
-	Handle         *string `json:"handle"`
-	LLMProvider    *string `json:"llm_provider"`
-	LLMModel       *string `json:"llm_model"`
-	LLMAPIKey      *string `json:"llm_api_key"`
-	LLMBaseURL     *string `json:"llm_base_url"`
-	SystemPrompt   *string `json:"system_prompt"`
-	CanCloneRepos  *bool   `json:"can_clone_repos"`
-	CanCreatePRs   *bool   `json:"can_create_prs"`
-	MaxIterations  *int    `json:"max_iterations"`
-	TimeoutMinutes *int    `json:"timeout_minutes"`
+	Name              *string `json:"name"`
+	Handle            *string `json:"handle"`
+	LLMProvider       *string `json:"llm_provider"`
+	LLMModel          *string `json:"llm_model"`
+	LLMAPIKey         *string `json:"llm_api_key"`
+	LLMBaseURL        *string `json:"llm_base_url"`
+	SystemPrompt      *string `json:"system_prompt"`
+	CanCloneRepos     *bool   `json:"can_clone_repos"`
+	CanCreatePRs      *bool   `json:"can_create_prs"`
+	MaxIterations     *int    `json:"max_iterations"`
+	TimeoutMinutes    *int    `json:"timeout_minutes"`
+	GitCommitterName  *string `json:"git_committer_name"`
+	GitCommitterEmail *string `json:"git_committer_email"`
 }
 
 // AgentFromEntity maps an Agent entity to AgentResponse.
 func AgentFromEntity(a *agentdom.Agent) AgentResponse {
 	resp := AgentResponse{
-		ID:             a.ID,
-		ProjectID:      a.ProjectID,
-		MemberID:       a.MemberID,
-		Name:           a.Name,
-		Handle:         a.Handle,
-		AvatarURL:      a.AvatarURL,
-		LLMProvider:    a.LLMProvider,
-		LLMModel:       a.LLMModel,
-		LLMBaseURL:     a.LLMBaseURL,
-		SystemPrompt:   a.SystemPrompt,
-		CanCloneRepos:  a.CanCloneRepos,
-		CanCreatePRs:   a.CanCreatePRs,
-		MaxIterations:  a.MaxIterations,
-		TimeoutMinutes: a.TimeoutMinutes,
-		CreatedBy:      a.CreatedBy,
-		CreatedAt:      a.CreatedAt,
-		UpdatedAt:      a.UpdatedAt,
+		ID:                a.ID,
+		ProjectID:         a.ProjectID,
+		MemberID:          a.MemberID,
+		Name:              a.Name,
+		Handle:            a.Handle,
+		AvatarURL:         a.AvatarURL,
+		LLMProvider:       a.LLMProvider,
+		LLMModel:          a.LLMModel,
+		LLMBaseURL:        a.LLMBaseURL,
+		SystemPrompt:      a.SystemPrompt,
+		CanCloneRepos:     a.CanCloneRepos,
+		CanCreatePRs:      a.CanCreatePRs,
+		MaxIterations:     a.MaxIterations,
+		TimeoutMinutes:    a.TimeoutMinutes,
+		GitCommitterName:  a.GitCommitterName,
+		GitCommitterEmail: a.GitCommitterEmail,
+		CreatedBy:         a.CreatedBy,
+		CreatedAt:         a.CreatedAt,
+		UpdatedAt:         a.UpdatedAt,
 	}
 	if len(a.MCPServers) > 0 {
 		resp.MCPServers = make([]AgentMCPServerResponse, 0, len(a.MCPServers))
