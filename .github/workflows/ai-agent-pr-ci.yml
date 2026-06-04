@@ -45,6 +45,8 @@ jobs:
           cache-dependency-glob: "services/ai-agent/pyproject.toml"
 
       - name: Install dev dependencies
+        env:
+          VIRTUAL_ENV: ""
         run: |
           uv venv
           uv pip install --group dev -e .
@@ -81,6 +83,8 @@ jobs:
           cache-dependency-glob: "services/ai-agent/pyproject.toml"
 
       - name: Install dev dependencies
+        env:
+          VIRTUAL_ENV: ""
         run: |
           uv venv
           uv pip install --group dev -e .

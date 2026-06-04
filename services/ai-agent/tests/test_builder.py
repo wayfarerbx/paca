@@ -1,0 +1,173 @@
+"""Tests for LLM / skill / MCP configuration builders."""
+
+from unittest.mock import patch
+
+import pytest
+
+from src.agent.builder import build_mcp_config, build_skills
+from src.models.agent import AgentMCPServerRow, AgentSkillRow
+
+
+# ─── Fixtures / helpers ───────────────────────────────────────────────────────
+
+
+def _skill(
+    name: str = "my-skill",
+    content: str = "do it",
+    triggers: list[str] | None = None,
+    enabled: bool = True,
+) -> AgentSkillRow:
+    return AgentSkillRow(
+        skill_name=name,
+        skill_content=content,
+        triggers=triggers or [],
+        is_enabled=enabled,
+    )
+
+
+def _server(
+    name: str = "my-server",
+    transport: str = "stdio",
+    enabled: bool = True,
+    url: str | None = None,
+    command: str = "node",
+    args: list[str] | None = None,
+    env: dict | None = None,
+) -> AgentMCPServerRow:
+    return AgentMCPServerRow(
+        server_name=name,
+        transport=transport,
+        url=url,
+        command=command,
+        args=args or [],
+        env=env or {},
+        is_enabled=enabled,
+    )
+
+
+@pytest.fixture
+def no_paca_key():
+    with patch("src.agent.builder.settings") as m:
+        m.paca_api_key = ""
+        yield m
+
+
+@pytest.fixture
+def with_paca_key():
+    with patch("src.agent.builder.settings") as m:
+        m.paca_api_key = "test-api-key"
+        m.api_base_url = "http://api:8080"
+        m.gateway_base_url = "http://gateway"
+        yield m
+
+
+# ─── build_skills ─────────────────────────────────────────────────────────────
+
+
+def test_enabled_skill_is_included():
+    skills = build_skills([_skill("alpha")])
+    assert len(skills) == 1
+    assert skills[0].name == "alpha"
+
+
+def test_disabled_skill_is_excluded():
+    skills = build_skills([_skill("alpha", enabled=False)])
+    assert skills == []
+
+
+def test_mixed_skills_only_enabled_returned():
+    rows = [_skill("a"), _skill("b", enabled=False), _skill("c")]
+    skills = build_skills(rows)
+    assert [s.name for s in skills] == ["a", "c"]
+
+
+def test_empty_input_returns_empty_list():
+    assert build_skills([]) == []
+
+
+def test_skill_content_preserved():
+    skills = build_skills([_skill(content="be very helpful")])
+    assert skills[0].content == "be very helpful"
+
+
+def test_none_content_becomes_empty_string():
+    row = AgentSkillRow(skill_name="s", skill_content=None, triggers=[], is_enabled=True)
+    skills = build_skills([row])
+    assert skills[0].content == ""
+
+
+def test_skill_with_triggers_has_trigger_object():
+    row = _skill(triggers=["review", "check"])
+    skills = build_skills([row])
+    assert skills[0].trigger is not None
+
+
+def test_skill_without_triggers_has_no_trigger():
+    row = _skill(triggers=[])
+    skills = build_skills([row])
+    assert skills[0].trigger is None
+
+
+# ─── build_mcp_config ─────────────────────────────────────────────────────────
+
+
+def test_stdio_server_fields(no_paca_key):
+    server = _server(command="node", args=["index.js"], env={"KEY": "VAL"})
+    cfg = build_mcp_config([server], "agent-1", "proj-1")
+    entry = cfg["mcpServers"]["my-server"]
+    assert entry["command"] == "node"
+    assert entry["args"] == ["index.js"]
+    assert entry["env"] == {"KEY": "VAL"}
+
+
+def test_http_server_has_url_no_auth(no_paca_key):
+    server = _server(transport="http", url="https://mcp.example.com")
+    cfg = build_mcp_config([server], "a", "p")
+    entry = cfg["mcpServers"]["my-server"]
+    assert entry["url"] == "https://mcp.example.com"
+    assert "auth" not in entry
+
+
+def test_oauth_server_has_auth_field(no_paca_key):
+    server = _server(transport="oauth", url="https://mcp.example.com")
+    cfg = build_mcp_config([server], "a", "p")
+    assert cfg["mcpServers"]["my-server"]["auth"] == "oauth"
+
+
+def test_disabled_server_excluded(no_paca_key):
+    server = _server(enabled=False)
+    cfg = build_mcp_config([server], "a", "p")
+    assert "my-server" not in cfg["mcpServers"]
+
+
+def test_paca_server_injected_when_key_set(with_paca_key):
+    cfg = build_mcp_config([], "agent-99", "proj-42")
+    assert "paca" in cfg["mcpServers"]
+    paca = cfg["mcpServers"]["paca"]
+    assert paca["env"]["PACA_AGENT_ID"] == "agent-99"
+    assert paca["env"]["PACA_PROJECT_ID"] == "proj-42"
+    assert paca["env"]["PACA_API_KEY"] == "test-api-key"
+
+
+def test_paca_server_omitted_when_no_key(no_paca_key):
+    cfg = build_mcp_config([], "a", "p")
+    assert "paca" not in cfg["mcpServers"]
+
+
+def test_user_servers_appear_before_paca(with_paca_key):
+    servers = [_server(name="custom")]
+    cfg = build_mcp_config(servers, "a", "p")
+    keys = list(cfg["mcpServers"])
+    assert keys.index("custom") < keys.index("paca")
+
+
+def test_multiple_servers_all_included(no_paca_key):
+    servers = [_server(name="srv1"), _server(name="srv2")]
+    cfg = build_mcp_config(servers, "a", "p")
+    assert "srv1" in cfg["mcpServers"]
+    assert "srv2" in cfg["mcpServers"]
+
+
+def test_empty_servers_returns_only_mcpservers_key(no_paca_key):
+    cfg = build_mcp_config([], "a", "p")
+    assert cfg == {"mcpServers": {}}
