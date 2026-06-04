@@ -14,6 +14,12 @@ type PermissionStore interface {
 	ListProjectPermissions(ctx context.Context, userID, projectID uuid.UUID) ([]Permission, error)
 }
 
+// AgentPermissionStore extends PermissionStore with agent-specific permission queries.
+type AgentPermissionStore interface {
+	PermissionStore
+	ListAgentProjectPermissions(ctx context.Context, agentID, projectID uuid.UUID) ([]Permission, error)
+}
+
 // AgentRoleResolver resolves an agent's role in a project.
 type AgentRoleResolver interface {
 	GetAgentProjectRoleName(ctx context.Context, agentID, projectID uuid.UUID) (string, error)
@@ -102,13 +108,11 @@ func (a *Authorizer) hasPermissionsForActor(
 			var err error
 
 			if agentID != nil {
-				if agentStore, ok := a.store.(interface {
-					ListAgentProjectPermissions(ctx context.Context, agentID, projectID uuid.UUID) ([]Permission, error)
-				}); ok {
-					projectPerms, err = agentStore.ListAgentProjectPermissions(ctx, *agentID, *projectID)
-				} else {
+				agentStore, ok := a.store.(AgentPermissionStore)
+				if !ok {
 					return false, fmt.Errorf("authz: agent project permissions not supported by store")
 				}
+				projectPerms, err = agentStore.ListAgentProjectPermissions(ctx, *agentID, *projectID)
 			} else {
 				projectPerms, err = a.store.ListProjectPermissions(ctx, userID, *projectID)
 			}

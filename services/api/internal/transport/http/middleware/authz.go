@@ -70,16 +70,11 @@ func EnforcePermissions(c *gin.Context, authorizer *authz.Authorizer, scope Scop
 		return false
 	}
 
-	_, hasAgentID := AgentIDFromGinContext(c)
+	agentID, hasAgentID := AgentIDFromGinContext(c)
 
 	var allowed bool
 	if hasAgentID && projectID != nil {
-		agentUUID, ok := AgentIDFromContext(c.Request.Context())
-		if !ok {
-			presenter.Error(c, apierr.New(apierr.CodeInternalError, "agent ID in context invalid"))
-			return false
-		}
-		allowed, err = authorizer.HasPermissionsForAgent(c.Request.Context(), agentUUID, *projectID, permissions...)
+		allowed, err = authorizer.HasPermissionsForAgent(c.Request.Context(), agentID, *projectID, permissions...)
 	} else {
 		userID, parseErr := uuid.Parse(claims.Subject)
 		if parseErr != nil {
@@ -135,18 +130,11 @@ func RequireAnyPermissions(authorizer *authz.Authorizer, groups ...PermissionGro
 
 		agentID, hasAgentID := AgentIDFromGinContext(c)
 		var userID uuid.UUID
-		var err error
 
-		if hasAgentID {
-			agentUUID, ok := AgentIDFromContext(c.Request.Context())
-			if !ok {
-				presenter.Error(c, apierr.New(apierr.CodeInternalError, "agent ID in context invalid"))
-				return
-			}
-			agentID = agentUUID
-		} else {
-			userID, err = uuid.Parse(claims.Subject)
-			if err != nil {
+		if !hasAgentID {
+			var parseErr error
+			userID, parseErr = uuid.Parse(claims.Subject)
+			if parseErr != nil {
 				presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid subject claim"))
 				return
 			}
@@ -214,18 +202,11 @@ func RequirePublicProjectOrPermissions(checker ProjectVisibilityChecker, authori
 
 		agentID, hasAgentID := AgentIDFromGinContext(c)
 		var userID uuid.UUID
-		var err error
 
-		if hasAgentID {
-			agentUUID, ok := AgentIDFromContext(c.Request.Context())
-			if !ok {
-				presenter.Error(c, apierr.New(apierr.CodeInternalError, "agent ID in context invalid"))
-				return
-			}
-			agentID = agentUUID
-		} else if claims != nil {
-			userID, err = uuid.Parse(claims.Subject)
-			if err != nil {
+		if !hasAgentID && claims != nil {
+			var parseErr error
+			userID, parseErr = uuid.Parse(claims.Subject)
+			if parseErr != nil {
 				presenter.Error(c, apierr.New(apierr.CodeBadRequest, "invalid subject claim"))
 				return
 			}

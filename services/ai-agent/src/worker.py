@@ -19,7 +19,7 @@ from .repositories.agent_repository import load_agent_config
 
 logger = logging.getLogger(__name__)
 
-_running = True
+_shutdown_event: asyncio.Event | None = None
 
 
 async def _handle_control(msg: ControlMessage) -> None:
@@ -54,13 +54,16 @@ async def _process_trigger(msg: TriggerMessage | ControlMessage) -> None:
 
 async def run_worker() -> None:
     """Main worker loop — reads from the trigger stream and dispatches conversations."""
+    global _shutdown_event
+    _shutdown_event = asyncio.Event()
+
     await ensure_consumer_group()
     logger.info("AI-agent worker started (concurrency=%d)", settings.worker_concurrency)
 
     semaphore = asyncio.Semaphore(settings.worker_concurrency)
     tasks: set[asyncio.Task] = set()
 
-    while _running:
+    while not _shutdown_event.is_set():
         messages = await read_triggers(count=settings.worker_concurrency)
         for msg in messages:
             await semaphore.acquire()
@@ -84,5 +87,5 @@ async def run_worker() -> None:
 
 
 def stop_worker() -> None:
-    global _running
-    _running = False
+    if _shutdown_event is not None:
+        _shutdown_event.set()

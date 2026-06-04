@@ -98,7 +98,7 @@ jobs:
     name: Docker build
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [lint]
+    needs: [lint, test]
 
     steps:
       - name: Checkout repository

@@ -39,14 +39,11 @@ def build_llm(agent_config: AgentConfig) -> LLM:
     )
 
     key_val = agent_config.llm_api_key_secret_ref or ""
-    key_preview = (
-        (key_val[:8] + "...") if len(key_val) > 8 else ("<empty>" if not key_val else key_val)
-    )
     logger.info(
-        "LLM config — model=%s base_url=%s api_key_prefix=%s",
+        "LLM config — model=%s base_url=%s api_key_set=%s",
         model_str,
         llm_base_url or "(none)",
-        key_preview,
+        bool(key_val),
     )
 
     llm_kwargs: dict = {

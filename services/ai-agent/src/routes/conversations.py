@@ -19,8 +19,6 @@ logger = logging.getLogger(__name__)
 
 def _require_internal_key(x_internal_token: str = Header(default="")) -> None:
     """Dependency that rejects requests missing the correct internal API token."""
-    if not settings.internal_api_key:
-        return  # key not configured → open (backward-compat, should not happen in prod)
     if not secrets.compare_digest(x_internal_token, settings.internal_api_key):
         raise HTTPException(status_code=401, detail="Unauthorized")
 

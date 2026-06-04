@@ -1,43 +1,8 @@
 -- 000008_add_ai_agents.sql
--- Adds AI Agent support: agent types, agents, skills, MCP servers,
--- conversations, conversation events, chat sessions, and modifications
--- to project_members to support agent members.
+-- Adds AI Agent support: agents, skills, MCP servers, conversations,
+-- conversation events, chat sessions, and modifications to project_members.
 
 BEGIN;
-
--- -------------------------------------------------------------------------
--- AGENT TYPES
--- Reusable templates that pre-fill LLM, skills, and system prompt.
--- Global built-ins have project_id = NULL; project-scoped types have project_id set.
--- -------------------------------------------------------------------------
-
-CREATE TABLE IF NOT EXISTS agent_types (
-    id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    project_id            UUID,
-    name                  TEXT        NOT NULL,
-    description           TEXT        NOT NULL DEFAULT '',
-    slug                  TEXT        NOT NULL,
-    default_llm_provider  TEXT        NOT NULL,
-    default_llm_model     TEXT        NOT NULL,
-    default_system_prompt TEXT        NOT NULL DEFAULT '',
-    is_builtin            BOOLEAN     NOT NULL DEFAULT FALSE,
-    created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT fk_agent_types_project
-        FOREIGN KEY (project_id)
-        REFERENCES projects(id)
-        ON DELETE CASCADE
-);
-
--- Global built-in types: slug unique where project_id IS NULL
-CREATE UNIQUE INDEX IF NOT EXISTS uq_agent_types_global_slug
-    ON agent_types (slug)
-    WHERE project_id IS NULL;
-
--- Project-scoped types: (project_id, slug) unique
-CREATE UNIQUE INDEX IF NOT EXISTS uq_agent_types_project_slug
-    ON agent_types (project_id, slug)
-    WHERE project_id IS NOT NULL;
 
 -- -------------------------------------------------------------------------
 -- AGENTS
@@ -47,7 +12,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_agent_types_project_slug
 CREATE TABLE IF NOT EXISTS agents (
     id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     project_id            UUID        NOT NULL,
-    agent_type_id         UUID        NOT NULL,
     name                  TEXT        NOT NULL,
     handle                TEXT        NOT NULL,
     avatar_url            TEXT,
@@ -60,6 +24,8 @@ CREATE TABLE IF NOT EXISTS agents (
     can_create_prs        BOOLEAN     NOT NULL DEFAULT TRUE,
     max_iterations        INTEGER     NOT NULL DEFAULT 50,
     timeout_minutes       INTEGER     NOT NULL DEFAULT 30,
+    git_committer_name    TEXT        NOT NULL DEFAULT 'paca-agent',
+    git_committer_email   TEXT        NOT NULL DEFAULT '280579135+paca-agent@users.noreply.github.com',
     created_by            UUID,
     created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -68,10 +34,6 @@ CREATE TABLE IF NOT EXISTS agents (
         FOREIGN KEY (project_id)
         REFERENCES projects(id)
         ON DELETE CASCADE,
-    CONSTRAINT fk_agents_type
-        FOREIGN KEY (agent_type_id)
-        REFERENCES agent_types(id)
-        ON DELETE RESTRICT,
     CONSTRAINT fk_agents_created_by
         FOREIGN KEY (created_by)
         REFERENCES users(id)
@@ -89,13 +51,14 @@ CREATE INDEX IF NOT EXISTS idx_agents_deleted_at ON agents (deleted_at) WHERE de
 -- -------------------------------------------------------------------------
 -- AGENT MCP SERVERS
 -- Custom MCP server configurations per agent.
+-- 'oauth' is a modifier on top of sse/http that injects bearer-token auth.
 -- -------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS agent_mcp_servers (
     id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     agent_id    UUID        NOT NULL,
     server_name TEXT        NOT NULL,
-    transport   TEXT        NOT NULL CHECK (transport IN ('stdio', 'sse', 'http')),
+    transport   TEXT        NOT NULL CHECK (transport IN ('stdio', 'sse', 'http', 'oauth')),
     command     TEXT,
     args        JSONB       NOT NULL DEFAULT '[]'::jsonb,
     url         TEXT,
@@ -223,6 +186,8 @@ CREATE INDEX IF NOT EXISTS idx_agent_conversations_chat_session
 -- -------------------------------------------------------------------------
 -- AGENT CONVERSATION EVENTS
 -- Individual events emitted by the OpenHands SDK during a conversation.
+-- No check constraint on event_source — the SDK can emit arbitrary source
+-- values (e.g. 'environment', 'task') beyond the initial agent/user/system set.
 -- -------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS agent_conversation_events (
@@ -230,7 +195,7 @@ CREATE TABLE IF NOT EXISTS agent_conversation_events (
     conversation_id UUID        NOT NULL,
     event_index     INTEGER     NOT NULL,
     event_type      TEXT        NOT NULL,
-    event_source    TEXT        NOT NULL CHECK (event_source IN ('agent', 'user', 'system')),
+    event_source    TEXT        NOT NULL,
     payload         JSONB       NOT NULL DEFAULT '{}'::jsonb,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT fk_agent_conversation_events_conversation
@@ -282,17 +247,5 @@ END $$;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_pm_project_agent
     ON project_members (project_id, agent_id)
     WHERE deleted_at IS NULL AND member_type = 'agent';
-
--- -------------------------------------------------------------------------
--- SEED: built-in agent types
--- -------------------------------------------------------------------------
-
-INSERT INTO agent_types (id, name, description, slug, default_llm_provider, default_llm_model, default_system_prompt, is_builtin, created_at, updated_at)
-VALUES
-    (gen_random_uuid(), 'PO Assistant',      'Product Owner assistant for backlog grooming, acceptance criteria, and prioritization.', 'po-assistant',   'anthropic', 'claude-sonnet-4-5-20250929', '', TRUE, NOW(), NOW()),
-    (gen_random_uuid(), 'Business Analyst',  'Requirements analysis, gap analysis, process modelling, and functional specifications.', 'ba',             'anthropic', 'claude-sonnet-4-5-20250929', '', TRUE, NOW(), NOW()),
-    (gen_random_uuid(), 'Developer',         'Coding, code review, PR creation, and bug fixing.',                                     'developer',      'anthropic', 'claude-sonnet-4-5-20250929', '', TRUE, NOW(), NOW()),
-    (gen_random_uuid(), 'Manual Tester',     'Test case design, exploratory testing documentation, and defect analysis.',             'manual-tester',  'anthropic', 'claude-sonnet-4-5-20250929', '', TRUE, NOW(), NOW())
-ON CONFLICT DO NOTHING;
 
 COMMIT;

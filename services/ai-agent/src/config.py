@@ -1,3 +1,4 @@
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,7 +16,7 @@ class Settings(BaseSettings):
     database_url: str
 
     # Service-to-service
-    internal_api_key: str
+    internal_api_key: str = Field(min_length=1)
     api_base_url: str = "http://api:8080"
     # Gateway base URL — used by the MCP server to resolve plugin MCP bundle URLs.
     # The gateway (nginx) serves /plugins-mcp/, not the API service, so this must
