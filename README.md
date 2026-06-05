@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="#-getting-started">Getting Started</a>
+  <a href="#getting-started">Getting Started</a>
   ·
   <a href="docs/architecture/overview.md">Architecture</a>
   ·
@@ -118,94 +118,6 @@ Plan  →  Act  →  Check  →  Adapt
 - **WASM plugin sandbox** — extend Paca safely; plugins cannot escape their declared permissions
 - **Self-hosted** — runs on a single Docker Compose command; your data never leaves your infrastructure
 - **Lightweight by default** — minimal core, no feature bloat; add only what your team actually needs
-
----
-
-## Demo
-
-> **Watch the 2-minute demo video** — *[link coming soon]*
-
-<details>
-<summary>Demo video script (for contributors / reproducibility)</summary>
-
-### Scene 1 — One-command install (0:00–0:20)
-
-*Screen: blank terminal on a fresh server.*
-
-```bash
-curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/install.sh | bash
-```
-
-The interactive installer prompts for database and storage preferences (bundled PostgreSQL by default), then generates secrets and starts the stack. Browser opens to `http://localhost` — Paca is running.
-
----
-
-### Scene 2 — Creating a project and sprint (0:20–0:45)
-
-*Screen: Paca web UI, Projects page.*
-
-- Click **New Project** → name it "E-commerce Checkout Revamp"
-- Click **New Sprint** → Sprint 1, two-week cycle
-- Navigate to the Backlog
-
-*Voiceover:* "A normal Jira-style project — but notice the team members list. There are humans here, and there are AI agents. They're not separate."
-
----
-
-### Scene 3 — AI agent on the board (0:45–1:20)
-
-*Screen: Scrumban board, Sprint 1 active.*
-
-- Three tasks are in **To Do**: two assigned to humans, one assigned to `@agent-dev-01`
-- The AI agent's task card moves from **To Do** → **In Progress** in real time
-- Click the task card — an activity feed shows the agent posting progress comments
-- The agent marks its subtasks done and transitions the card to **In Review**
-
-*Voiceover:* "The agent picks up its task, works through it, and updates the board — exactly like a human would. The team doesn't manage the agent; the agent is part of the team."
-
----
-
-### Scene 4 — BDD collaboration (1:20–1:45)
-
-*Screen: BDD module, a new Epic.*
-
-- Product Owner opens a complex Epic: "Guest checkout with Stripe"
-- Types a rough description; clicks **Generate BDD Scenarios**
-- AI agent proposes three Gherkin scenarios: happy path, payment failure, session timeout
-- PO edits the failure scenario inline; agent auto-updates the acceptance criteria on linked tasks
-
-*Voiceover:* "Requirements are a team effort. The AI drafts, the human refines, the board stays in sync."
-
----
-
-### Scene 5 — Installing a plugin from the Marketplace (1:45–2:05)
-
-*Screen: Paca web UI → Settings → Plugins → Marketplace.*
-
-- Search for "GitHub Sync" in the marketplace search bar
-- Click the plugin card — a description, permissions, and author info appear
-- Click **Install** — a progress indicator, then a green "Installed" badge
-
-*Screen: task card in the board — a new **GitHub PR** tab is now visible.*
-
-*Voiceover:* "Paca's core is small on purpose. Browse the marketplace, click Install — no terminal, no config files. Plugins add exactly what your team needs, nothing you don't."
-
----
-
-### Scene 6 — Adapt phase retrospective (2:05–2:20)
-
-*Screen: Sprint review dashboard.*
-
-- Velocity chart, burndown, agent vs human task completion side by side
-- One-click **Generate Retrospective** — the AI agent drafts a sprint retrospective doc pre-filled with data
-
-*Voiceover:* "At the end of every sprint, the whole team — human and AI — reflects and improves together."
-
----
-
-*Outro (2:20–2:30):* Paca logo. "Free. Open-source. Self-hosted. Your team, your rules."
-
-</details>
 
 ---
 
