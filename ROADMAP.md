@@ -16,8 +16,6 @@ _Goal: a working, self-hostable core that a small team can actually use._
 - ✅ PostgreSQL + Valkey bundled by default
 - ✅ Nginx gateway with service routing
 - ✅ Environment-based configuration (`.env`)
-- 📋 ARM64 Docker image support
-- 📋 Helm chart for Kubernetes
 
 ### Core Platform
 - ✅ User authentication (JWT)
@@ -30,7 +28,6 @@ _Goal: a working, self-hostable core that a small team can actually use._
 - ✅ Task comments and activity feed
 - ✅ File attachments
 - ✅ Board view customization (swimlanes, grouping)
-- 📋 Keyboard shortcuts and command palette
 
 ### Documentation
 - ✅ Living document editor per project
@@ -54,7 +51,6 @@ _Goal: a working, self-hostable core that a small team can actually use._
 - ✅ Agent task assignment and status updates
 - ✅ OpenHands SDK integration (isolated sandbox containers)
 - ✅ Agent activity feed and progress reporting on task cards
-- 📋 Agent-to-human handoff workflow
 
 ### MCP Server
 - ✅ `@paca-ai/paca-mcp` npm package
@@ -62,13 +58,24 @@ _Goal: a working, self-hostable core that a small team can actually use._
 - ✅ Claude Desktop quick-setup guide
 - ✅ Agent-mode: scoped identity, project-bound context
 - ✅ Plugin tools registered at runtime by installed plugins
-- 📋 OAuth token support (alongside API key)
 
 ---
 
 ## Phase 2 — Beta
 
 _Goal: deliver the features that make Paca meaningfully different from standard project tools._
+
+### Infrastructure & Deployment
+- 📋 ARM64 Docker image support
+- 📋 Helm chart for Kubernetes
+
+### Core Platform
+- 📋 Keyboard shortcuts and command palette
+- 📋 OAuth token support for MCP Server (alongside API key)
+
+### AI Agent Collaboration
+- 📋 In-app chat with agents — send messages directly to an agent on a task, get replies in the activity feed
+- 📋 Agent-to-human handoff workflow (agent flags tasks it cannot complete, notifies assignee with context)
 
 ### Official Plugins
 - 📋 Slack plugin (notifications, task updates posted to channels)
