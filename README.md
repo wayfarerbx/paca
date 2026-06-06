@@ -62,6 +62,10 @@ In Paca, AI agents:
 
 This is not automation. It is **genuine collaboration** — rooted in the Cynefin / Stacey framework's recognition that complex domains require teams, not pipelines.
 
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/ca1313f8-f090-4b97-80e2-2d9da1f1cfe5" autoplay muted loop playsinline width="720"></video>
+</p>
+
 ---
 
 ## Fully Customizable — Configuration and Plugins
@@ -79,6 +83,10 @@ plugins/
 ```
 
 Browse and install community plugins directly from the **Plugin Marketplace** inside the Paca UI — no command line required. Go to **Settings → Plugins → Marketplace**, find a plugin, and click **Install**.
+
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/8e1e0bfa-ca43-4231-9a8a-db8eb7650219" autoplay muted loop playsinline width="720"></video>
+</p>
 
 For local development or custom plugins, you can also install from the filesystem:
 
@@ -132,6 +140,10 @@ curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/install.sh |
 ```
 
 The script walks you through configuration interactively and starts the full stack. Open `http://your-server-ip` when it finishes.
+
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/ea676d77-3c0f-4fbe-82ff-d46612f812c8" autoplay muted loop playsinline width="720"></video>
+</p>
 
 ---
 
