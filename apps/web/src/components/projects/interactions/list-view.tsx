@@ -62,6 +62,10 @@ export interface ListViewProps {
 	) => Promise<void>;
 	onCreateSprint?: () => void;
 	onCollapseChange?: (collapsedColumns: string[]) => void;
+	columnPagination?: Record<
+		string,
+		{ hasMore: boolean; isLoadingMore: boolean; onLoadMore: () => void }
+	>;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -89,6 +93,7 @@ export function ListView({
 	onStartSprint,
 	onCreateSprint,
 	onCollapseChange,
+	columnPagination,
 }: ListViewProps) {
 	const columnBy = viewConfig?.column_by ?? "status";
 	const swimlaneBy = viewConfig?.swimlanes;
@@ -262,6 +267,7 @@ export function ListView({
 										handleGroupCollapseChange(grp.key, isCollapsed)
 								: undefined
 						}
+						groupPagination={columnPagination?.[grp.key]}
 						extraCreateFields={
 							!isStatusGrouping && columnBy === "sprint"
 								? {

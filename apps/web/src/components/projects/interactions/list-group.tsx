@@ -69,6 +69,7 @@ export interface ListGroupProps {
 	extraCreateFields?: TaskFieldUpdate;
 	columnBy?: string;
 	onCollapseChange?: (collapsed: boolean) => void;
+	groupPagination?: { hasMore: boolean; isLoadingMore: boolean; onLoadMore: () => void };
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -102,6 +103,7 @@ export function ListGroup({
 	extraCreateFields,
 	columnBy,
 	onCollapseChange,
+	groupPagination,
 }: ListGroupProps) {
 	const [collapsed, setCollapsed] = useState(defaultCollapsed ?? false);
 	const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -589,6 +591,17 @@ export function ListGroup({
 								onAdd={handleAdd}
 							/>
 						)}
+
+						{groupPagination?.hasMore && (
+							<button
+								type="button"
+								onClick={groupPagination.onLoadMore}
+								disabled={groupPagination.isLoadingMore}
+								className="flex w-full items-center justify-center gap-1.5 border-t border-border/10 py-2 text-[12px] font-medium text-muted-foreground/60 hover:text-primary hover:bg-primary/5 transition-all duration-150 disabled:opacity-50"
+							>
+								{groupPagination.isLoadingMore ? "Loading…" : "View more"}
+							</button>
+						)}
 					</>
 				) : (
 					<>
@@ -608,6 +621,17 @@ export function ListGroup({
 								taskTypes={taskTypes}
 								onAdd={handleAdd}
 							/>
+						)}
+
+						{groupPagination?.hasMore && (
+							<button
+								type="button"
+								onClick={groupPagination.onLoadMore}
+								disabled={groupPagination.isLoadingMore}
+								className="flex w-full items-center justify-center gap-1.5 border-t border-border/10 py-2 text-[12px] font-medium text-muted-foreground/60 hover:text-primary hover:bg-primary/5 transition-all duration-150 disabled:opacity-50"
+							>
+								{groupPagination.isLoadingMore ? "Loading…" : "View more"}
+							</button>
 						)}
 					</>
 				))}
