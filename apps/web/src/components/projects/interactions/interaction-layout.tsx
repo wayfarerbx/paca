@@ -681,6 +681,7 @@ export function InteractionLayout({
 
 	const handleLoadMoreColumn = useCallback(
 		async (colKey: string) => {
+			if (colLoadingMore[colKey]) return;
 			const cursor = colNextCursors[colKey];
 			if (!cursor) return;
 			const colOpts = buildColumnFilter(colKey, columnBy, {
@@ -721,6 +722,7 @@ export function InteractionLayout({
 	}, [colQueriesEnabled, fallbackQuery.data?.next_cursor]);
 
 	const handleLoadMoreGlobal = useCallback(async () => {
+		if (globalLoadingMore) return;
 		if (!globalNextCursor) return;
 		setGlobalLoadingMore(true);
 		try {

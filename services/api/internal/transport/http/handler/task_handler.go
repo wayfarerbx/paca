@@ -424,10 +424,21 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 	var nextCursor *string
 	// In cursor pagination mode the repository returns total=1 to signal "has next page",
 	// total=0 for "no more pages". This is different from offset-mode where total is the full count.
-	if filter.CursorAfter != nil && total == 1 && len(tasks) > 0 {
-		last := tasks[len(tasks)-1]
-		s := encodeTaskCursor(last.CreatedAt, last.ID.String())
-		nextCursor = &s
+	if filter.CursorAfter != nil {
+		// Cursor mode: total=1 signals has next page
+		if total == 1 && len(tasks) > 0 {
+			last := tasks[len(tasks)-1]
+			s := encodeTaskCursor(last.CreatedAt, last.ID.String())
+			nextCursor = &s
+		}
+	} else {
+		// Offset mode: total is real count; check if there are more pages
+		offset := (page - 1) * pageSize
+		if int64(offset+len(tasks)) < total && len(tasks) > 0 {
+			last := tasks[len(tasks)-1]
+			s := encodeTaskCursor(last.CreatedAt, last.ID.String())
+			nextCursor = &s
+		}
 	}
 	presenter.OK(c, gin.H{
 		"items":       resp,
