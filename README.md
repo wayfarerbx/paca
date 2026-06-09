@@ -15,6 +15,10 @@
 <p align="center">
   <a href="#getting-started">Getting Started</a>
   ·
+  <a href="#mcp-server--connect-any-ai-agent-to-paca">MCP Server</a>
+  ·
+  <a href="#claude-code--paca-skill">Claude Code Skill</a>
+  ·
   <a href="docs/architecture/overview.md">Architecture</a>
   ·
   <a href="CONTRIBUTING.md">Contributing</a>
@@ -121,6 +125,7 @@ Plan  →  Act  →  Check  →  Adapt
 - **BDD Collaboration** — Gherkin scenario editor co-authored by POs, BAs, and AI agents
 - **System Design Documents (SDD)** — living architecture docs that keep AI agents contextually grounded
 - **MCP Server** — connect Claude, custom agents, or any MCP-compatible tool directly into Paca's data layer
+- **Claude Code skill** — `/paca` slash command for Claude Code; manage tasks, docs, and sprints in plain English without leaving your editor
 - **Real-time updates** — Socket.IO delivery; everyone sees changes the moment they happen
 - **OpenHands-powered agents** — AI agents run on the [OpenHands](https://github.com/All-Hands-AI/OpenHands) SDK; each agent executes inside its own isolated sandbox container so your host environment is never touched
 - **WASM plugin sandbox** — extend Paca safely; plugins cannot escape their declared permissions
@@ -211,7 +216,7 @@ Paca ships an [MCP (Model Context Protocol)](https://modelcontextprotocol.io) se
 
 The server is published as **`@paca-ai/paca-mcp`** on npm. You run it with `npx`; your MCP client handles the rest.
 
-### Quick Setup — Claude Desktop
+### Claude Desktop
 
 1. Open (or create) the Claude Desktop config file:
    - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -234,19 +239,7 @@ The server is published as **`@paca-ai/paca-mcp`** on npm. You run it with `npx`
 }
 ```
 
-3. Restart Claude Desktop. Claude now has access to all Paca tools and can answer requests like:
-   - *"List all active sprints in project X"*
-   - *"Create a task for implementing OAuth and assign it to sprint 3"*
-   - *"Add a comment to task #42 with my progress update"*
-
-### Environment Variables
-
-| Variable | Required | Default | Description |
-|:--|:--|:--|:--|
-| `PACA_API_KEY` | Yes | — | API key from your Paca instance (Settings → API Keys) |
-| `PACA_API_URL` | No | `http://localhost:8080` | URL of your Paca API |
-| `PACA_PROJECT_ID` | No | — | Scope the agent to a single project |
-| `PACA_AGENT_ID` | No | — | Identity for agent-mode (requires `PACA_PROJECT_ID`) |
+3. Restart Claude Desktop.
 
 ### Other MCP-Compatible Clients
 
@@ -264,16 +257,23 @@ Any client that speaks MCP works. Typical configuration:
 }
 ```
 
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|:--|:--|:--|:--|
+| `PACA_API_KEY` | Yes | — | API key from your Paca instance (Settings → API Keys) |
+| `PACA_API_URL` | No | `http://localhost:8080` | URL of your Paca API |
+
 ### Available Tools
 
-The server exposes tools across these categories:
+The server exposes 81 tools across these categories:
 
 | Category | Tools |
 |:--|:--|
 | Projects | `list_projects`, `get_project`, `create_project`, `update_project`, `delete_project` |
 | Tasks | `list_tasks`, `get_task`, `create_task`, `update_task`, `delete_task`, + more |
 | Sprints | `list_sprints`, `create_sprint`, `update_sprint`, `complete_sprint`, + more |
-| Documents | `list_docs`, `read_doc`, `write_doc`, `delete_doc`, `move_doc` |
+| Documents | `list_documents`, `get_document`, `create_document`, `update_document`, `delete_document` |
 | Members & Roles | `list_project_members`, `add_project_member`, `list_project_roles`, + more |
 | Task Types & Statuses | `list_task_types`, `create_task_type`, `list_task_statuses`, + more |
 | Views & Custom Fields | `list_views`, `create_view`, `list_custom_fields`, `create_custom_field`, + more |
@@ -282,6 +282,48 @@ The server exposes tools across these categories:
 | Plugin tools | Installed plugins can register additional tools at runtime |
 
 For a complete reference and advanced configuration (agent-mode, plugin tools, programmatic usage), see [docs/guides/mcp-server-setup.md](docs/guides/mcp-server-setup.md).
+
+---
+
+## Claude Code — `/paca` skill
+
+If you use [Claude Code](https://claude.ai/code), you can install the `/paca` slash command and manage your entire Paca workspace through natural-language requests inside Claude Code — without leaving your editor and without creating local files for tasks or docs.
+
+### Install
+
+Run this once in your terminal to install the skill globally:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Paca-AI/paca/master/scripts/install-claude-skill.sh | bash
+```
+
+Then connect the Paca MCP server to Claude Code:
+
+```bash
+claude mcp add paca \
+  --env PACA_API_KEY=<your-api-key> \
+  --env PACA_API_URL=<your-paca-url> \
+  -- npx -y @paca-ai/paca-mcp
+```
+
+Run `/paca-setup` inside a Claude Code session for a guided interactive walkthrough instead.
+
+### Usage
+
+Type `/paca` followed by your request in plain English inside a Claude Code session. You can reference tasks by their number, prefixed ID, or URL — anywhere in the message:
+
+| In Claude Code, type... | What happens |
+|:--|:--|
+| `/paca fix the login redirect bug` | Creates a task on the board |
+| `/paca write the API authentication design doc` | Creates a document in Paca Docs |
+| `/paca do this task ABC-123` | Looks up task ABC-123 and acts on it |
+| `/paca please close #42` | Marks task #42 as done |
+| `/paca I finished PAC-99, mark it done` | Updates task PAC-99 status to done |
+| `/paca http://…/tasks/uuid — add comment: blocked` | Adds a comment to the linked task |
+| `/paca what's in the current sprint?` | Shows active sprint and its tasks |
+| `/paca review PR, update staging, write release notes` | Creates three tasks, one per item |
+
+For full setup options (project-scoped config, team setup, CLAUDE.md integration), see [docs/guides/claude-code-skill.md](docs/guides/claude-code-skill.md).
 
 ---
 
@@ -321,6 +363,7 @@ But Paca is built from conviction: human-AI collaboration in a real Scrum team s
 | [docs/guides/getting-started.md](docs/guides/getting-started.md) | Getting started (install, Docker, local dev) |
 | [docs/guides/local-development.md](docs/guides/local-development.md) | Contributor dev environment setup |
 | [docs/guides/mcp-server-setup.md](docs/guides/mcp-server-setup.md) | Connect AI agents via MCP |
+| [docs/guides/claude-code-skill.md](docs/guides/claude-code-skill.md) | `/paca` skill for Claude Code — manage Paca from your editor |
 | [docs/plugins/](docs/plugins/) | Plugin system: backend (WASM) and frontend |
 | [deploy/README.md](deploy/README.md) | Full deployment reference |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
