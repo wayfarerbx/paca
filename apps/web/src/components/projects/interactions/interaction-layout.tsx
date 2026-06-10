@@ -716,6 +716,9 @@ export function InteractionLayout({
 			if (data) updated[col.key] = data.next_cursor ?? null;
 		});
 		setColNextCursors(updated);
+		// Clear load-more extras so stale tasks don't linger after a WS refetch.
+		// A brief flash is expected; colExpandedPageSizes ensures the next refetch
+		// re-fetches the same depth, restoring all visible items from the server.
 		setColExtraTasks({});
 	}, [colDataUpdatedKey, colQueriesEnabled]);
 
@@ -797,8 +800,7 @@ export function InteractionLayout({
 			// Grow the effective page size so the next WS-triggered refetch
 			// returns the same number of items currently visible.
 			setGlobalExpandedPageSize(
-				(globalExpandedPageSize ?? initialGlobalPageSize ?? 20) +
-					result.items.length,
+				(prev) => (prev ?? initialGlobalPageSize ?? 20) + result.items.length,
 			);
 		} finally {
 			setGlobalLoadingMore(false);
@@ -808,7 +810,6 @@ export function InteractionLayout({
 		projectId,
 		fallbackBaseOpts,
 		globalLoadingMore,
-		globalExpandedPageSize,
 		initialGlobalPageSize,
 	]);
 

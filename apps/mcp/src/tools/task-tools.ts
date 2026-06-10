@@ -11,7 +11,7 @@ import { formatList, formatTask, formatTaskDetail } from "../utils/index.js";
 const ListTasksSchema = z.object({
 	projectId: z.string(),
 	cursor: z.string().optional(),
-	pageSize: z.number().int().positive().max(100).optional(),
+	pageSize: z.number().int().positive().max(200).optional(),
 });
 
 const GetTaskSchema = z.object({
@@ -87,7 +87,7 @@ export function getTaskTools(): Tool[] {
 					pageSize: {
 						type: "number",
 						description:
-							"Number of tasks to return per page (1–100, default 20). Use smaller values for faster responses when you only need a few tasks.",
+							"Number of tasks to return per page (1–200, default 20). Use smaller values for faster responses when you only need a few tasks.",
 					},
 				},
 				required: ["projectId"],

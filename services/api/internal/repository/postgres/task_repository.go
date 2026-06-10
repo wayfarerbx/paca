@@ -3,7 +3,6 @@ package postgres
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,27 +12,6 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
-
-// --- Cursor helpers ---------------------------------------------------------
-
-// taskCursor holds the stable ordering fields for cursor-based pagination.
-type taskCursor struct {
-	CreatedAt time.Time `json:"ca"`
-	ID        string    `json:"id"`
-}
-
-func decodeTaskCursor(s string) (*taskCursor, error) {
-	b, err := base64.URLEncoding.DecodeString(s)
-	if err != nil {
-		return nil, fmt.Errorf("decode cursor base64: %w", err)
-	}
-	var c taskCursor
-	if err := json.Unmarshal(b, &c); err != nil {
-		return nil, fmt.Errorf("decode cursor json: %w", err)
-	}
-	c.CreatedAt = c.CreatedAt.UTC()
-	return &c, nil
-}
 
 // --- GORM models ------------------------------------------------------------
 
@@ -373,14 +351,15 @@ func (r *TaskRepository) ListTasks(ctx context.Context, projectID uuid.UUID, fil
 		q = q.Where("assignee_id = ?", filter.AssigneeID.String())
 	}
 
-	if filter.TaskTypeNull {
+	switch {
+	case filter.TaskTypeNull:
 		q = q.Where("task_type_id IS NULL")
-	} else if len(filter.TaskTypeIDs) > 0 {
+	case len(filter.TaskTypeIDs) > 0:
 		q = q.Where("task_type_id IN ?", uuidSliceToStrSlice(filter.TaskTypeIDs))
 	}
 
 	if filter.CursorAfter != nil {
-		cur, err := decodeTaskCursor(*filter.CursorAfter)
+		cur, err := taskdom.DecodeTaskCursor(*filter.CursorAfter)
 		if err != nil {
 			return nil, false, fmt.Errorf("task repo: invalid cursor: %w", err)
 		}

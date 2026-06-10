@@ -2,7 +2,6 @@ package handler
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -428,7 +427,7 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 	var nextCursor *string
 	if hasMore && len(tasks) > 0 {
 		last := tasks[len(tasks)-1]
-		s := encodeTaskCursor(last.CreatedAt, last.ID.String())
+		s := taskdom.EncodeTaskCursor(last.CreatedAt, last.ID.String())
 		nextCursor = &s
 	}
 	presenter.OK(c, gin.H{
@@ -822,17 +821,6 @@ func (h *TaskHandler) DeleteTask(c *gin.Context) {
 
 // --- helpers ----------------------------------------------------------------
 
-// encodeTaskCursor builds an opaque base64 cursor from a task's creation time and ID.
-// The cursor is used by the ListTasks endpoint for keyset-based pagination.
-func encodeTaskCursor(createdAt time.Time, id string) string {
-	type cur struct {
-		CA time.Time `json:"ca"`
-		ID string    `json:"id"`
-	}
-	b, _ := json.Marshal(cur{CA: createdAt.UTC(), ID: id})
-	return base64.URLEncoding.EncodeToString(b)
-}
-
 func parseTaskTypeID(c *gin.Context) (uuid.UUID, error) {
 	id, err := uuid.Parse(c.Param("typeId"))
 	if err != nil {
@@ -1084,7 +1072,7 @@ func (h *TaskHandler) ListBacklogTasks(c *gin.Context) {
 	var nextCursor *string
 	if hasMore && len(tasks) > 0 {
 		last := tasks[len(tasks)-1]
-		s := encodeTaskCursor(last.CreatedAt, last.ID.String())
+		s := taskdom.EncodeTaskCursor(last.CreatedAt, last.ID.String())
 		nextCursor = &s
 	}
 	presenter.OK(c, gin.H{"items": resp, "page_size": pageSize, "next_cursor": nextCursor})
@@ -1163,7 +1151,7 @@ func (h *TaskHandler) ListTimelineTasks(c *gin.Context) {
 	var nextCursor *string
 	if hasMore && len(tasks) > 0 {
 		last := tasks[len(tasks)-1]
-		s := encodeTaskCursor(last.CreatedAt, last.ID.String())
+		s := taskdom.EncodeTaskCursor(last.CreatedAt, last.ID.String())
 		nextCursor = &s
 	}
 	presenter.OK(c, gin.H{"items": resp, "page_size": pageSize, "next_cursor": nextCursor})

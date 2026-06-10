@@ -135,6 +135,8 @@ jobs:
           cache-dependency-path: services/api/go.sum
 
       - name: Run E2E tests
+        # 300s: Postgres + Valkey testcontainer startup + full migration set can
+        # take 60-90s on cold CI runners, leaving ~210s for the actual tests.
         env:
           PACA_E2E: "1"
         run: go test -v -timeout 300s ./test/e2e/...

@@ -203,7 +203,7 @@ func pagingParams(c *gin.Context) (page, pageSize int) {
 	if page < 1 {
 		page = 1
 	}
-	if pageSize < 1 || pageSize > 200 {
+	if pageSize < 1 || pageSize > 100 {
 		pageSize = 20
 	}
 	return page, pageSize
