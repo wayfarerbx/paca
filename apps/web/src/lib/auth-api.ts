@@ -1,4 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
+import axios from "axios";
 
 import { apiClient } from "./api-client";
 import type { SuccessEnvelope } from "./api-error";
@@ -47,13 +48,17 @@ export async function getMe(): Promise<User> {
 
 export async function getMeOptional(): Promise<User | null> {
 	try {
-		const { data } = await apiClient.instance.get<SuccessEnvelope<User>>(
-			"/users/me",
-			{ _skipAuthRefresh: true } as Record<string, unknown>,
-		);
+		const { data } =
+			await apiClient.instance.get<SuccessEnvelope<User>>("/users/me");
 		return data.data;
-	} catch {
-		return null;
+	} catch (err) {
+		// Only treat a definitive 401 as "not authenticated"; re-throw everything
+		// else (network errors, timeouts) so React Query keeps the last good data
+		// instead of overwriting it with null.
+		if (axios.isAxiosError(err) && err.response?.status === 401) {
+			return null;
+		}
+		throw err;
 	}
 }
 
