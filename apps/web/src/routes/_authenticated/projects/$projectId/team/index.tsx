@@ -292,6 +292,10 @@ function AddMemberDialog({
 							onValueChange={(v) => {
 								if (v != null) setSelectedRoleId(v);
 							}}
+							items={roles.map((r) => ({
+								value: r.id,
+								label: r.role_name,
+							}))}
 						>
 							<SelectTrigger className="w-full">
 								<SelectValue placeholder="Select a role…" />
