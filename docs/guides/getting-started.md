@@ -57,6 +57,21 @@ See [local-development.md](local-development.md) for details on the dev stack an
 
 ---
 
+## Upgrading to a new version
+
+Pull the latest images and restart the stack. Run these commands from the directory where your `docker-compose.yml` lives:
+
+```bash
+docker compose pull
+docker compose --env-file .env up -d
+```
+
+Database migrations run automatically on API startup — no manual steps are required.
+
+> **Before upgrading:** check [CHANGELOG.md](../../CHANGELOG.md) for breaking changes or release-specific migration steps.
+
+---
+
 ## Connect an AI Agent via MCP
 
 After Paca is running:

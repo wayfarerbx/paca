@@ -108,6 +108,21 @@ Flags can be combined:
 docker compose --env-file .env up -d --scale postgres=0 --scale minio=0
 ```
 
+### Upgrading to a new version
+
+Pull the latest images and restart the stack:
+
+```bash
+docker compose pull
+docker compose --env-file .env up -d
+```
+
+Database migrations run automatically on API startup — no manual steps are required.
+
+> **Before upgrading:** check the [CHANGELOG](../CHANGELOG.md) for breaking changes or release-specific migration steps.
+
+---
+
 ### Upgrading from an earlier installation
 
 The compose project was renamed from `paca-prod` to `paca` in this release.

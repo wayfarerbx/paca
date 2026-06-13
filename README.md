@@ -211,6 +211,19 @@ Open `http://localhost` — log in with `admin` and the password you set.
 
 ---
 
+### Upgrading to a new version
+
+From the directory where your `docker-compose.yml` lives:
+
+```bash
+docker compose pull
+docker compose --env-file .env up -d
+```
+
+Database migrations run automatically on API startup. Check [CHANGELOG.md](CHANGELOG.md) before upgrading for any release-specific steps.
+
+---
+
 ### Option 3 — Local development
 
 ```bash
