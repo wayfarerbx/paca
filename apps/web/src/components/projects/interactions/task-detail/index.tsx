@@ -378,8 +378,7 @@ export function TaskDetailModal({
 								if (!projectId) return;
 								updateTask(projectId, subtaskId, payload).then(() => {
 									qc.invalidateQueries({
-										queryKey: subtasksQueryOptions(projectId, task.id)
-											.queryKey,
+										queryKey: subtasksQueryOptions(projectId, task.id).queryKey,
 									});
 								});
 							}}
@@ -393,8 +392,7 @@ export function TaskDetailModal({
 									parent_task_id: task.id,
 								}).then(() => {
 									qc.invalidateQueries({
-										queryKey: subtasksQueryOptions(projectId, task.id)
-											.queryKey,
+										queryKey: subtasksQueryOptions(projectId, task.id).queryKey,
 									});
 								});
 							}}

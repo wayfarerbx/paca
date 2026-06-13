@@ -865,18 +865,6 @@ func parseQueryUUIDs(raw string) ([]uuid.UUID, error) {
 	return ids, nil
 }
 
-func parseUUIDStrings(values []string) ([]uuid.UUID, error) {
-	ids := make([]uuid.UUID, 0, len(values))
-	for _, value := range values {
-		id, err := uuid.Parse(strings.TrimSpace(value))
-		if err != nil {
-			return nil, err
-		}
-		ids = append(ids, id)
-	}
-	return ids, nil
-}
-
 // --- Custom Field Definitions -----------------------------------------------
 
 // ListCustomFieldDefinitions handles GET /projects/:projectId/custom-fields.

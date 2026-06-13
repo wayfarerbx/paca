@@ -174,8 +174,8 @@ func TestCreate_SeedsDefaultTaskTypesAndStatuses(t *testing.T) {
 		t.Fatal("Create returned nil project")
 	}
 
-	// Verify 5 default task types are created (Task, Bug, Story + Epic, Subtask system types).
-	const wantTypes = 5
+	// Verify 4 default task types are created (Task, Bug, Story + Epic system type).
+	const wantTypes = 4
 	if got := len(tb.types); got != wantTypes {
 		t.Errorf("expected %d default task types, got %d", wantTypes, got)
 	}
@@ -189,15 +189,15 @@ func TestCreate_SeedsDefaultTaskTypesAndStatuses(t *testing.T) {
 		}
 		typeNames[tt.Name] = true
 	}
-	for _, name := range []string{"Task", "Bug", "Story", "Epic", "Subtask"} {
+	for _, name := range []string{"Task", "Bug", "Story", "Epic"} {
 		if !typeNames[name] {
 			t.Errorf("missing expected default task type %q", name)
 		}
 	}
 
-	// Verify Epic and Subtask are system types.
+	// Verify Epic is the only system type.
 	for _, tt := range tb.types {
-		if tt.Name == "Epic" || tt.Name == "Subtask" {
+		if tt.Name == "Epic" {
 			if !tt.IsSystem {
 				t.Errorf("expected task type %q to have IsSystem=true", tt.Name)
 			}

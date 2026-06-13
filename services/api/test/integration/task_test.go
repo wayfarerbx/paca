@@ -888,7 +888,7 @@ func TestIntegrationTaskTypes_ReservedNameRejected(t *testing.T) {
 	tok := issueTaskToken(t, uuid.NewString())
 	base := fmt.Sprintf("/api/v1/projects/%s/task-types", projectID)
 
-	for _, reserved := range []string{"Epic", "Subtask"} {
+	for _, reserved := range []string{"Epic"} {
 		w := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{"name": reserved}))
 		if w.Code != http.StatusConflict {
 			t.Fatalf("expected 409 for reserved name %q, got %d (%s)", reserved, w.Code, w.Body.String())

@@ -2,15 +2,9 @@ package messaging
 
 import (
 	"context"
-	"io"
-	"log/slog"
 	"strings"
 	"testing"
 )
-
-func loggerForTests() *slog.Logger {
-	return slog.New(slog.NewTextHandler(io.Discard, nil))
-}
 
 func TestPublish_NotInitialized(t *testing.T) {
 	p := &Publisher{}

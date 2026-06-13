@@ -10,18 +10,6 @@ import (
 // Admin helpers
 // ---------------------------------------------------------------------------
 
-// adminLogin logs in with the seeded admin credentials and returns the client
-// whose cookie jar holds valid access/refresh tokens.
-func adminLogin(t *testing.T, env *e2eEnv) *http.Client {
-	t.Helper()
-	seedUser(t, env, "e2e-admin", "adminpass1", "E2E Admin")
-	assignGlobalRolesByName(t, env, "e2e-admin", "ADMIN")
-
-	resp := login(env.ctx, t, env.client, env.base, "e2e-admin", "adminpass1")
-	defer func() { _ = resp.Body.Close() }()
-	return env.client
-}
-
 // adminBearerToken logs in with admin credentials and returns the raw
 // access-token string for use in Authorization headers.
 func adminBearerToken(t *testing.T, env *e2eEnv, username, password string) string {
