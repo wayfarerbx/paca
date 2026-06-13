@@ -524,7 +524,7 @@ SCALE_OPTS=()
 [[ -n "$SCALE_AI_AGENT"  ]] && SCALE_OPTS+=($SCALE_AI_AGENT)
 
 # shellcheck disable=SC2086
-$COMPOSE_CMD --env-file .env up -d "${SCALE_OPTS[@]}" --pull always
+$COMPOSE_CMD --env-file .env up -d ${SCALE_OPTS[@]+"${SCALE_OPTS[@]}"} --pull always
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 
