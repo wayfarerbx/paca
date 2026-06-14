@@ -8,7 +8,7 @@ One command starts the full stack with hot-reload from your local source files:
 docker compose -f deploy/docker-compose.dev.yml up -d
 ```
 
-Open `http://localhost`. All services watch the source tree and reload automatically — no manual rebuild needed.
+Open `http://localhost:3000`. All services watch the source tree and reload automatically — no manual rebuild needed.
 
 To stop:
 ```bash
@@ -26,16 +26,17 @@ docker compose -f deploy/docker-compose.dev.yml down -v
 
 | Service | Technology | Port | Hot-reload |
 |---|---|---|---|
-| `apps/web` | React + TanStack Start + shadcn/ui | 3000 (via nginx on 80) | Vite HMR |
-| `services/api` | Go + Gin | 8080 (via nginx on 80) | [air](https://github.com/air-verse/air) |
+| Gateway (nginx) | nginx:1.27-alpine | **3000** (host) | — |
+| `apps/web` | React + TanStack Start + shadcn/ui | 3000 (internal) | Vite HMR |
+| `services/api` | Go + Gin | 8080 (internal) | [air](https://github.com/air-verse/air) |
 | `services/realtime` | Node.js + Socket.IO | 3001 (internal) | `bun --watch` |
-| `services/ai-agent` | Python + FastAPI + OpenHands SDK | 8082 (external) | source volume |
+| `services/ai-agent` | Python + FastAPI + OpenHands SDK | 8080 (internal) | source volume |
 | PostgreSQL | postgres:16-alpine | 5432 | — |
 | Valkey | valkey/valkey:8-alpine | 6379 | — |
 | MinIO S3 API | minio/minio | 9000 | — |
 | MinIO Console | minio/minio | 9001 | http://localhost:9001 (user: `minioadmin`, pass: `minioadmin`) |
 
-The nginx gateway (port 80) routes `/api/v1/…` to the API, socket traffic to realtime, and `/storage/…` to MinIO. `apps/web` is served at the root.
+The nginx gateway (port 3000) routes `/api/v1/…` to the API, socket traffic to realtime, and `/storage/…` to MinIO. `apps/web` is served at the root.
 
 ---
 

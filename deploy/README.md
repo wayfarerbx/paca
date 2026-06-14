@@ -177,6 +177,8 @@ Start the full local stack in containers (no tunnel, plain localhost):
 docker compose -f deploy/docker-compose.dev.yml up -d
 ```
 
+Open `http://localhost:3000` once all services are healthy.
+
 Start only shared dependencies:
 
 ```bash
@@ -190,10 +192,11 @@ and use Docker Compose only for PostgreSQL and Valkey.
 
 | Service | Port | Notes |
 |---|---|---|
+| Gateway (nginx) | **3000** | Main entry point — `http://localhost:3000` |
 | PostgreSQL | 5432 | Local database for development |
 | Valkey | 6379 | Local cache / event streams |
-| API | 8080 | Containerized Go service |
-| Web | 3000 | Containerized React app |
+| API | 8080 (internal) | Routed via gateway at `/api/` |
+| Web | 3000 (internal) | Routed via gateway at `/` |
 | MinIO S3 API | 9000 | Local object store (S3-compatible) |
 | MinIO Console | 9001 | MinIO web UI (credentials: `minioadmin` / `minioadmin`) |
 

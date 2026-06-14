@@ -51,7 +51,7 @@ git clone https://github.com/Paca-AI/paca.git && cd paca
 docker compose -f deploy/docker-compose.dev.yml up -d
 ```
 
-All services start with hot-reload — the API, web app, and realtime service all watch your local source files and rebuild automatically. Open `http://localhost` when the stack is healthy.
+All services start with hot-reload — the API, web app, and realtime service all watch your local source files and rebuild automatically. Open `http://localhost:3000` when the stack is healthy.
 
 See [local-development.md](local-development.md) for details on the dev stack and running services on the host.
 
