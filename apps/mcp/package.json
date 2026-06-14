@@ -20,7 +20,8 @@
     "inspector": "npx @modelcontextprotocol/inspector build/index.js",
     "lint": "biome lint .",
     "format": "biome format --write .",
-    "check": "biome check --write ."
+    "check": "biome check --write .",
+    "test": "vitest run"
   },
   "dependencies": {
     "@blocknote/core": "^0.48.1",
@@ -35,7 +36,8 @@
     "@biomejs/biome": "^2.4.12",
     "@types/jsdom": "^28.0.1",
     "@types/node": "^25.6.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.8"
   },
   "repository": {
     "type": "git",

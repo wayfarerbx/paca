@@ -507,12 +507,12 @@ export async function handleViewTool(
 		case "create_view": {
 			const { projectId, name, context, viewType, sprintId } =
 				CreateViewSchema.parse(args);
-			const view = await client.createView(projectId, {
-				name,
+			const view = await client.createView(
+				projectId,
+				{ name, view_type: viewType as any },
 				context,
-				view_type: viewType as any,
-				sprint_id: sprintId ?? null,
-			});
+				sprintId ?? null,
+			);
 			return {
 				content: [
 					{
