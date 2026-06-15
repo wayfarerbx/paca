@@ -766,11 +766,11 @@ func TestE2ESprintTasks_WithViewID(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ListBacklogTasks with view_id — view position enrichment
+// Backlog tasks with view_id — view position enrichment
 // ---------------------------------------------------------------------------
 
 // TestE2EBacklog_WithViewID verifies that
-// GET /product-backlog?view_id=<id> returns view_position and view_group_key
+// GET /tasks?sprint_id=null&view_id=<id> returns view_position and view_group_key
 // for backlog tasks that have a recorded position in that view.
 func TestE2EBacklog_WithViewID(t *testing.T) {
 	env := newE2EEnv(t)
