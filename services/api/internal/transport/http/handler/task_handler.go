@@ -18,6 +18,7 @@ import (
 	"github.com/Paca-AI/api/internal/transport/http/presenter"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"golang.org/x/sync/errgroup"
 )
 
 // TaskHandler handles task management endpoints.
@@ -290,6 +291,7 @@ func (h *TaskHandler) SetDefaultTaskStatus(c *gin.Context) {
 // parseTaskSort resolves the sort_by query parameter into a TaskSort.
 // For custom field sort keys the field definition is looked up via the service
 // (ListCustomFieldDefinitions is cached, so this is cheap).
+// Note: the public "created" key maps to the DB column created_at in applyTaskSort.
 func parseTaskSort(ctx context.Context, svc taskdom.Service, projectID uuid.UUID, sortByRaw string) taskdom.TaskSort {
 	sortBy := strings.TrimSpace(sortByRaw)
 	switch sortBy {
@@ -443,31 +445,45 @@ func (h *TaskHandler) ListTasks(c *gin.Context) {
 		}
 	}
 
-	tasks, hasMore, err := h.svc.ListTasks(c.Request.Context(), projectID, filter, pageSize, sort)
-	if err != nil {
-		presenter.Error(c, err)
-		return
-	}
-
 	// Count without cursor so the total reflects all matching tasks, not just the current page.
 	aggFilter := filter
 	aggFilter.CursorAfter = nil
-	totalCount, err := h.svc.CountTasks(c.Request.Context(), projectID, aggFilter)
-	if err != nil {
+	// Optionally sum a numeric field across all matching tasks.
+	// Returns null in the response when sum_field is absent or "count".
+	sumField := strings.TrimSpace(c.Query("sum_field"))
+
+	var (
+		tasks      []*taskdom.Task
+		hasMore    bool
+		totalCount int64
+		fieldSumV  float64
+	)
+	g, gctx := errgroup.WithContext(c.Request.Context())
+	g.Go(func() error {
+		var err error
+		tasks, hasMore, err = h.svc.ListTasks(gctx, projectID, filter, pageSize, sort)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		totalCount, err = h.svc.CountTasks(gctx, projectID, aggFilter)
+		return err
+	})
+	if sumField != "" && sumField != "count" {
+		g.Go(func() error {
+			var err error
+			fieldSumV, err = h.svc.SumTaskField(gctx, projectID, aggFilter, sumField)
+			return err
+		})
+	}
+	if err := g.Wait(); err != nil {
 		presenter.Error(c, err)
 		return
 	}
 
-	// Optionally sum a numeric field across all matching tasks.
-	sumField := strings.TrimSpace(c.Query("sum_field"))
 	var fieldSum *float64
 	if sumField != "" && sumField != "count" {
-		s, err := h.svc.SumTaskField(c.Request.Context(), projectID, aggFilter, sumField)
-		if err != nil {
-			presenter.Error(c, err)
-			return
-		}
-		fieldSum = &s
+		fieldSum = &fieldSumV
 	}
 
 	resp := make([]dto.TaskResponse, 0, len(tasks))
@@ -1104,29 +1120,42 @@ func (h *TaskHandler) ListBacklogTasks(c *gin.Context) {
 		}
 	}
 
-	tasks, hasMore, err := h.svc.ListTasks(c.Request.Context(), projectID, filter, pageSize, sort)
-	if err != nil {
-		presenter.Error(c, err)
-		return
-	}
-
 	aggFilter := filter
 	aggFilter.CursorAfter = nil
-	totalCount, err := h.svc.CountTasks(c.Request.Context(), projectID, aggFilter)
-	if err != nil {
+	sumField := strings.TrimSpace(c.Query("sum_field"))
+
+	var (
+		tasks      []*taskdom.Task
+		hasMore    bool
+		totalCount int64
+		fieldSumV  float64
+	)
+	g, gctx := errgroup.WithContext(c.Request.Context())
+	g.Go(func() error {
+		var err error
+		tasks, hasMore, err = h.svc.ListTasks(gctx, projectID, filter, pageSize, sort)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		totalCount, err = h.svc.CountTasks(gctx, projectID, aggFilter)
+		return err
+	})
+	if sumField != "" && sumField != "count" {
+		g.Go(func() error {
+			var err error
+			fieldSumV, err = h.svc.SumTaskField(gctx, projectID, aggFilter, sumField)
+			return err
+		})
+	}
+	if err := g.Wait(); err != nil {
 		presenter.Error(c, err)
 		return
 	}
 
-	sumField := strings.TrimSpace(c.Query("sum_field"))
 	var fieldSum *float64
 	if sumField != "" && sumField != "count" {
-		s, err := h.svc.SumTaskField(c.Request.Context(), projectID, aggFilter, sumField)
-		if err != nil {
-			presenter.Error(c, err)
-			return
-		}
-		fieldSum = &s
+		fieldSum = &fieldSumV
 	}
 
 	resp := make([]dto.TaskResponse, 0, len(tasks))
@@ -1207,10 +1236,42 @@ func (h *TaskHandler) ListTimelineTasks(c *gin.Context) {
 		}
 	}
 
-	tasks, hasMore, err := h.svc.ListTasks(c.Request.Context(), projectID, filter, pageSize, sort)
-	if err != nil {
+	aggFilter := filter
+	aggFilter.CursorAfter = nil
+	sumField := strings.TrimSpace(c.Query("sum_field"))
+
+	var (
+		tasks      []*taskdom.Task
+		hasMore    bool
+		totalCount int64
+		fieldSumV  float64
+	)
+	g, gctx := errgroup.WithContext(c.Request.Context())
+	g.Go(func() error {
+		var err error
+		tasks, hasMore, err = h.svc.ListTasks(gctx, projectID, filter, pageSize, sort)
+		return err
+	})
+	g.Go(func() error {
+		var err error
+		totalCount, err = h.svc.CountTasks(gctx, projectID, aggFilter)
+		return err
+	})
+	if sumField != "" && sumField != "count" {
+		g.Go(func() error {
+			var err error
+			fieldSumV, err = h.svc.SumTaskField(gctx, projectID, aggFilter, sumField)
+			return err
+		})
+	}
+	if err := g.Wait(); err != nil {
 		presenter.Error(c, err)
 		return
+	}
+
+	var fieldSum *float64
+	if sumField != "" && sumField != "count" {
+		fieldSum = &fieldSumV
 	}
 
 	resp := make([]dto.TaskResponse, 0, len(tasks))
@@ -1229,7 +1290,7 @@ func (h *TaskHandler) ListTimelineTasks(c *gin.Context) {
 		s := taskdom.EncodeTaskCursor(last, sort)
 		nextCursor = &s
 	}
-	presenter.OK(c, gin.H{"items": resp, "page_size": pageSize, "next_cursor": nextCursor})
+	presenter.OK(c, gin.H{"items": resp, "page_size": pageSize, "next_cursor": nextCursor, "total_count": totalCount, "field_sum": fieldSum})
 }
 
 // --- Activities / Comments --------------------------------------------------

@@ -154,7 +154,6 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 	if err != nil {
 		t.Fatalf("get underlying sql.DB: %v", err)
 	}
-	t.Cleanup(func() { _ = sqlDB.Close() })
 
 	_, thisFile, _, _ := runtime.Caller(0)
 	migrationsDir := filepath.Join(filepath.Dir(thisFile), "..", "..", "migrations")
@@ -166,7 +165,19 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 	if err != nil {
 		t.Fatalf("open redis client: %v", err)
 	}
+
+	// Cleanup must close sqlDB BEFORE dropping the database to avoid blocking
+	// the DROP DATABASE command with active connections
+	// The cleanup order is important: LIFO (Last-In, First-Out)
+	// 1. redisClient.Close() - closes Redis connection
+	// 2. sqlDB.Close() - closes test DB connection (must happen before DROP)
+	// 3. DROP DATABASE - drops the test DB (registered earlier)
 	t.Cleanup(func() { _ = redisClient.Close() })
+	t.Cleanup(func() {
+		if sqlDB != nil {
+			_ = sqlDB.Close()
+		}
+	})
 
 	tm := jwttoken.New(e2eJWTSecret, e2eAccessTTL, e2eRefreshTTL)
 	userRepo := pgRepo.NewUserRepository(db)

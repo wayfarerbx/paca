@@ -52,6 +52,9 @@ type stubTaskSvc struct {
 	createCustomField func(ctx context.Context, in taskdom.CreateCustomFieldDefinitionInput) (*taskdom.CustomFieldDefinition, error)
 	deleteCustomField func(ctx context.Context, projectID, id uuid.UUID) error
 
+	countTasksFn   func(ctx context.Context, projectID uuid.UUID, filter taskdom.TaskFilter) (int64, error)
+	sumTaskFieldFn func(ctx context.Context, projectID uuid.UUID, filter taskdom.TaskFilter, fieldKey string) (float64, error)
+
 	listTypesCalls  int
 	listStatusCalls int
 	listFieldsCalls int
@@ -135,11 +138,17 @@ func (s *stubTaskSvc) ListTasks(_ context.Context, _ uuid.UUID, _ taskdom.TaskFi
 	return nil, false, nil
 }
 
-func (s *stubTaskSvc) CountTasks(_ context.Context, _ uuid.UUID, _ taskdom.TaskFilter) (int64, error) {
+func (s *stubTaskSvc) CountTasks(ctx context.Context, projectID uuid.UUID, filter taskdom.TaskFilter) (int64, error) {
+	if s.countTasksFn != nil {
+		return s.countTasksFn(ctx, projectID, filter)
+	}
 	return 0, nil
 }
 
-func (s *stubTaskSvc) SumTaskField(_ context.Context, _ uuid.UUID, _ taskdom.TaskFilter, _ string) (float64, error) {
+func (s *stubTaskSvc) SumTaskField(ctx context.Context, projectID uuid.UUID, filter taskdom.TaskFilter, fieldKey string) (float64, error) {
+	if s.sumTaskFieldFn != nil {
+		return s.sumTaskFieldFn(ctx, projectID, filter, fieldKey)
+	}
 	return 0, nil
 }
 
@@ -547,25 +556,24 @@ func TestCachedTask_CountTasks_DelegatesToUnderlying(t *testing.T) {
 	ctx := context.Background()
 	projectID := uuid.New()
 
-	called := false
+	calls := 0
 	stub := &stubTaskSvc{}
-	stub.listTaskTypes = func(_ context.Context, _ uuid.UUID) ([]*taskdom.TaskType, error) {
-		return nil, nil
+	stub.countTasksFn = func(_ context.Context, _ uuid.UUID, _ taskdom.TaskFilter) (int64, error) {
+		calls++
+		return 42, nil
 	}
 
 	svc := tasksvc.NewCachedService(stub, newCacheStore(t), 5*time.Minute, discardLogger())
 
-	// Override CountTasks via a thin wrapper to track the call.
-	// Since stubTaskSvc.CountTasks returns 0, we verify it's called at all.
-	_ = called // suppress unused warning until we instrument below
-
-	// The stub returns 0 for CountTasks; just verify no error and result passes through.
 	count, err := svc.CountTasks(ctx, projectID, taskdom.TaskFilter{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if count != 0 {
-		t.Errorf("expected delegated count=0, got %d", count)
+	if count != 42 {
+		t.Errorf("expected delegated count=42, got %d", count)
+	}
+	if calls != 1 {
+		t.Errorf("expected underlying CountTasks called once, got %d", calls)
 	}
 }
 
@@ -577,15 +585,23 @@ func TestCachedTask_SumTaskField_DelegatesToUnderlying(t *testing.T) {
 	ctx := context.Background()
 	projectID := uuid.New()
 
+	calls := 0
 	stub := &stubTaskSvc{}
+	stub.sumTaskFieldFn = func(_ context.Context, _ uuid.UUID, _ taskdom.TaskFilter, _ string) (float64, error) {
+		calls++
+		return 99.5, nil
+	}
+
 	svc := tasksvc.NewCachedService(stub, newCacheStore(t), 5*time.Minute, discardLogger())
 
-	// The stub returns 0; verify no error and the result passes through.
 	sum, err := svc.SumTaskField(ctx, projectID, taskdom.TaskFilter{}, "story_points")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if sum != 0 {
-		t.Errorf("expected delegated sum=0, got %v", sum)
+	if sum != 99.5 {
+		t.Errorf("expected delegated sum=99.5, got %v", sum)
+	}
+	if calls != 1 {
+		t.Errorf("expected underlying SumTaskField called once, got %d", calls)
 	}
 }

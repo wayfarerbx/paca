@@ -371,6 +371,49 @@ func (r *TaskRepository) FindDefaultTaskStatus(ctx context.Context, projectID uu
 
 // --- Tasks ------------------------------------------------------------------
 
+// applyTaskFilter adds WHERE predicates for all TaskFilter fields except
+// CursorAfter (which is handled separately by applyCursorWhere).
+// It is shared by ListTasks, CountTasks, and SumTaskField so that adding a new
+// filter dimension only requires a single change.
+func applyTaskFilter(q *gorm.DB, filter taskdom.TaskFilter) *gorm.DB {
+	switch {
+	case filter.ParentTaskID != nil:
+		q = q.Where("parent_task_id = ?", filter.ParentTaskID.String())
+	case len(filter.SprintIDs) > 0:
+		q = q.Where("sprint_id IN ?", uuidSliceToStrSlice(filter.SprintIDs))
+	case filter.BacklogOnly:
+		q = q.Where("sprint_id IS NULL")
+	case filter.SprintID != nil:
+		q = q.Where("sprint_id = ?", filter.SprintID.String())
+	}
+
+	if len(filter.StatusIDs) > 0 {
+		q = q.Where("status_id IN ?", uuidSliceToStrSlice(filter.StatusIDs))
+	} else if filter.StatusID != nil {
+		q = q.Where("status_id = ?", filter.StatusID.String())
+	}
+
+	switch {
+	case filter.AssigneeNull && len(filter.AssigneeIDs) > 0:
+		q = q.Where("assignee_id IS NULL OR assignee_id IN ?", uuidSliceToStrSlice(filter.AssigneeIDs))
+	case filter.AssigneeNull:
+		q = q.Where("assignee_id IS NULL")
+	case len(filter.AssigneeIDs) > 0:
+		q = q.Where("assignee_id IN ?", uuidSliceToStrSlice(filter.AssigneeIDs))
+	case filter.AssigneeID != nil:
+		q = q.Where("assignee_id = ?", filter.AssigneeID.String())
+	}
+
+	switch {
+	case filter.TaskTypeNull:
+		q = q.Where("task_type_id IS NULL")
+	case len(filter.TaskTypeIDs) > 0:
+		q = q.Where("task_type_id IN ?", uuidSliceToStrSlice(filter.TaskTypeIDs))
+	}
+
+	return q
+}
+
 // applyTaskSort adds the SELECT extension, JOIN (when needed), and ORDER BY
 // clause to q based on the sort configuration.
 // The secondary sort on (created_at ASC, id ASC) guarantees stable pagination.
@@ -400,6 +443,7 @@ func applyTaskSort(q *gorm.DB, sort taskdom.TaskSort) *gorm.DB {
 		if sort.By != "" && sort.CFType != "" {
 			return applyCFTaskSort(q, sort)
 		}
+		// sort.By == "created" (the public API key) falls here and uses created_at ASC.
 		return q.Order("created_at ASC, id ASC")
 	}
 }
@@ -454,12 +498,15 @@ func applyCursorWhere(q *gorm.DB, cur *taskdom.TaskCursor, sort taskdom.TaskSort
 	switch cur.SortBy {
 	case "view_position":
 		// Positioned tasks (vtp.position IS NOT NULL) sort before unpositioned ones.
-		// Cursor for a positioned task: skip all rows with a lower position, plus
-		// unpositioned rows only if we've already exhausted positioned ones.
-		// Cursor for an unpositioned task: skip later unpositioned tasks by created_at.
+		// Use a full keyset predicate so equal positions are handled correctly:
+		//   position strictly greater, OR same position with a later (created_at, id), OR unpositioned.
+		// Cursor for an unpositioned task: only unpositioned tasks after (created_at, id).
 		if cur.SortNumVal != nil {
 			pos := *cur.SortNumVal
-			return q.Where("vtp.position > ? OR vtp.position IS NULL", pos)
+			return q.Where(
+				"vtp.position > ? OR (vtp.position = ? AND (tasks.created_at, tasks.id) > (?, ?)) OR vtp.position IS NULL",
+				pos, pos, ca, id,
+			)
 		}
 		return q.Where("vtp.position IS NULL AND (tasks.created_at, tasks.id) > (?, ?)", ca, id)
 	case "importance":
@@ -571,41 +618,7 @@ func applyCFCursorWhere(q *gorm.DB, cur *taskdom.TaskCursor, sort taskdom.TaskSo
 func (r *TaskRepository) ListTasks(ctx context.Context, projectID uuid.UUID, filter taskdom.TaskFilter, limit int, sort taskdom.TaskSort) ([]*taskdom.Task, bool, error) {
 	q := r.db.WithContext(ctx).Model(&taskRecord{}).
 		Where("project_id = ?", projectID.String())
-
-	switch {
-	case filter.ParentTaskID != nil:
-		q = q.Where("parent_task_id = ?", filter.ParentTaskID.String())
-	case len(filter.SprintIDs) > 0:
-		q = q.Where("sprint_id IN ?", uuidSliceToStrSlice(filter.SprintIDs))
-	case filter.BacklogOnly:
-		q = q.Where("sprint_id IS NULL")
-	case filter.SprintID != nil:
-		q = q.Where("sprint_id = ?", filter.SprintID.String())
-	}
-
-	if len(filter.StatusIDs) > 0 {
-		q = q.Where("status_id IN ?", uuidSliceToStrSlice(filter.StatusIDs))
-	} else if filter.StatusID != nil {
-		q = q.Where("status_id = ?", filter.StatusID.String())
-	}
-
-	switch {
-	case filter.AssigneeNull && len(filter.AssigneeIDs) > 0:
-		q = q.Where("assignee_id IS NULL OR assignee_id IN ?", uuidSliceToStrSlice(filter.AssigneeIDs))
-	case filter.AssigneeNull:
-		q = q.Where("assignee_id IS NULL")
-	case len(filter.AssigneeIDs) > 0:
-		q = q.Where("assignee_id IN ?", uuidSliceToStrSlice(filter.AssigneeIDs))
-	case filter.AssigneeID != nil:
-		q = q.Where("assignee_id = ?", filter.AssigneeID.String())
-	}
-
-	switch {
-	case filter.TaskTypeNull:
-		q = q.Where("task_type_id IS NULL")
-	case len(filter.TaskTypeIDs) > 0:
-		q = q.Where("task_type_id IN ?", uuidSliceToStrSlice(filter.TaskTypeIDs))
-	}
+	q = applyTaskFilter(q, filter)
 
 	if filter.CursorAfter != nil {
 		cur, err := taskdom.DecodeTaskCursor(*filter.CursorAfter)
@@ -671,41 +684,7 @@ func (r *TaskRepository) ListTasks(ctx context.Context, projectID uuid.UUID, fil
 func (r *TaskRepository) CountTasks(ctx context.Context, projectID uuid.UUID, filter taskdom.TaskFilter) (int64, error) {
 	q := r.db.WithContext(ctx).Model(&taskRecord{}).
 		Where("project_id = ?", projectID.String())
-
-	switch {
-	case filter.ParentTaskID != nil:
-		q = q.Where("parent_task_id = ?", filter.ParentTaskID.String())
-	case len(filter.SprintIDs) > 0:
-		q = q.Where("sprint_id IN ?", uuidSliceToStrSlice(filter.SprintIDs))
-	case filter.BacklogOnly:
-		q = q.Where("sprint_id IS NULL")
-	case filter.SprintID != nil:
-		q = q.Where("sprint_id = ?", filter.SprintID.String())
-	}
-
-	if len(filter.StatusIDs) > 0 {
-		q = q.Where("status_id IN ?", uuidSliceToStrSlice(filter.StatusIDs))
-	} else if filter.StatusID != nil {
-		q = q.Where("status_id = ?", filter.StatusID.String())
-	}
-
-	switch {
-	case filter.AssigneeNull && len(filter.AssigneeIDs) > 0:
-		q = q.Where("assignee_id IS NULL OR assignee_id IN ?", uuidSliceToStrSlice(filter.AssigneeIDs))
-	case filter.AssigneeNull:
-		q = q.Where("assignee_id IS NULL")
-	case len(filter.AssigneeIDs) > 0:
-		q = q.Where("assignee_id IN ?", uuidSliceToStrSlice(filter.AssigneeIDs))
-	case filter.AssigneeID != nil:
-		q = q.Where("assignee_id = ?", filter.AssigneeID.String())
-	}
-
-	switch {
-	case filter.TaskTypeNull:
-		q = q.Where("task_type_id IS NULL")
-	case len(filter.TaskTypeIDs) > 0:
-		q = q.Where("task_type_id IN ?", uuidSliceToStrSlice(filter.TaskTypeIDs))
-	}
+	q = applyTaskFilter(q, filter)
 
 	var count int64
 	if err := q.Count(&count).Error; err != nil {
@@ -720,41 +699,7 @@ func (r *TaskRepository) CountTasks(ctx context.Context, projectID uuid.UUID, fi
 func (r *TaskRepository) SumTaskField(ctx context.Context, projectID uuid.UUID, filter taskdom.TaskFilter, fieldKey string) (float64, error) {
 	q := r.db.WithContext(ctx).Model(&taskRecord{}).
 		Where("project_id = ?", projectID.String())
-
-	switch {
-	case filter.ParentTaskID != nil:
-		q = q.Where("parent_task_id = ?", filter.ParentTaskID.String())
-	case len(filter.SprintIDs) > 0:
-		q = q.Where("sprint_id IN ?", uuidSliceToStrSlice(filter.SprintIDs))
-	case filter.BacklogOnly:
-		q = q.Where("sprint_id IS NULL")
-	case filter.SprintID != nil:
-		q = q.Where("sprint_id = ?", filter.SprintID.String())
-	}
-
-	if len(filter.StatusIDs) > 0 {
-		q = q.Where("status_id IN ?", uuidSliceToStrSlice(filter.StatusIDs))
-	} else if filter.StatusID != nil {
-		q = q.Where("status_id = ?", filter.StatusID.String())
-	}
-
-	switch {
-	case filter.AssigneeNull && len(filter.AssigneeIDs) > 0:
-		q = q.Where("assignee_id IS NULL OR assignee_id IN ?", uuidSliceToStrSlice(filter.AssigneeIDs))
-	case filter.AssigneeNull:
-		q = q.Where("assignee_id IS NULL")
-	case len(filter.AssigneeIDs) > 0:
-		q = q.Where("assignee_id IN ?", uuidSliceToStrSlice(filter.AssigneeIDs))
-	case filter.AssigneeID != nil:
-		q = q.Where("assignee_id = ?", filter.AssigneeID.String())
-	}
-
-	switch {
-	case filter.TaskTypeNull:
-		q = q.Where("task_type_id IS NULL")
-	case len(filter.TaskTypeIDs) > 0:
-		q = q.Where("task_type_id IN ?", uuidSliceToStrSlice(filter.TaskTypeIDs))
-	}
+	q = applyTaskFilter(q, filter)
 
 	var sum float64
 	var err error
