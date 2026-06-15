@@ -316,27 +316,47 @@ func (r *TaskRepository) DeleteTaskStatus(ctx context.Context, id uuid.UUID) err
 	return nil
 }
 
-// SetDefaultTaskStatus atomically marks statusID as the project's default task
-// status, clearing is_default on all other statuses in the same project. The
-// operation is expressed as a single SQL statement so concurrent calls cannot
-// produce multiple defaults. The partial unique index
-// uq_task_statuses_one_default (project_id WHERE is_default = true) further
-// enforces this invariant at the DB level.
+// SetDefaultTaskStatus marks statusID as the project's default task status,
+// clearing is_default on all other statuses in the same project.
+// SELECT FOR UPDATE at the start locks all project rows, serializing concurrent
+// calls so the clear→set pair never races. Two separate UPDATE statements are
+// required because a single multi-row UPDATE triggers uq_task_statuses_one_default
+// row-by-row before all rows are written.
 func (r *TaskRepository) SetDefaultTaskStatus(ctx context.Context, projectID, statusID uuid.UUID) error {
-	res := r.db.WithContext(ctx).Exec(`
-		UPDATE task_statuses
-		SET is_default = (id = ?), updated_at = NOW()
-		WHERE project_id = ?
-		  AND EXISTS (SELECT 1 FROM task_statuses WHERE id = ? AND project_id = ?)`,
-		statusID.String(), projectID.String(), statusID.String(), projectID.String(),
-	)
-	if res.Error != nil {
-		return fmt.Errorf("task status repo: set default: %w", res.Error)
-	}
-	if res.RowsAffected == 0 {
-		return taskdom.ErrStatusNotFound
-	}
-	return nil
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Lock all statuses for this project to serialize concurrent calls.
+		var ids []string
+		if err := tx.Raw(`SELECT id FROM task_statuses WHERE project_id = ? FOR UPDATE`,
+			projectID.String(),
+		).Scan(&ids).Error; err != nil {
+			return fmt.Errorf("task status repo: set default (lock): %w", err)
+		}
+
+		found := false
+		for _, id := range ids {
+			if id == statusID.String() {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return taskdom.ErrStatusNotFound
+		}
+
+		if err := tx.Exec(`UPDATE task_statuses SET is_default = false, updated_at = NOW() WHERE project_id = ? AND is_default = true`,
+			projectID.String(),
+		).Error; err != nil {
+			return fmt.Errorf("task status repo: set default (clear): %w", err)
+		}
+
+		if err := tx.Exec(`UPDATE task_statuses SET is_default = true, updated_at = NOW() WHERE id = ? AND project_id = ?`,
+			statusID.String(), projectID.String(),
+		).Error; err != nil {
+			return fmt.Errorf("task status repo: set default (set): %w", err)
+		}
+
+		return nil
+	})
 }
 
 // FindDefaultTaskType returns the project's default task type, or nil if none is set.
