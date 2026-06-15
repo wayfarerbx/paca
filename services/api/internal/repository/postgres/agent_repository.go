@@ -24,7 +24,7 @@ type agentRecord struct {
 	LLMProvider                   string  `gorm:"column:llm_provider"`
 	LLMModel                      string  `gorm:"column:llm_model"`
 	LLMAPIKeySecret               string  `gorm:"column:llm_api_key_secret"`
-	LLMBaseURL                    *string `gorm:"column:llm_base_url"`
+	LLMBaseURL                    string  `gorm:"column:llm_base_url"`
 	SystemPrompt                  string  `gorm:"column:system_prompt"`
 	TaskTriggerPrompt             string  `gorm:"column:task_trigger_prompt"`
 	DocCommentTriggerPrompt       string  `gorm:"column:doc_comment_trigger_prompt"`
@@ -54,7 +54,7 @@ type agentReadRow struct {
 	LLMProvider                   string
 	LLMModel                      string
 	LLMAPIKeySecret               string
-	LLMBaseURL                    *string
+	LLMBaseURL                    string
 	SystemPrompt                  string
 	TaskTriggerPrompt             string
 	DocCommentTriggerPrompt       string

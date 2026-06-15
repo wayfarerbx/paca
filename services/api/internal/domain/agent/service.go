@@ -67,7 +67,7 @@ type CreateAgentInput struct {
 	LLMProvider                   string
 	LLMModel                      string
 	LLMAPIKey                     string // plain text key; stored encrypted by service
-	LLMBaseURL                    *string
+	LLMBaseURL                    string
 	SystemPrompt                  string
 	TaskTriggerPrompt             string
 	DocCommentTriggerPrompt       string

@@ -188,7 +188,7 @@ func (s *Service) UpdateAgent(ctx context.Context, projectID, agentID uuid.UUID,
 		a.LLMAPIKeySecret = encryptedKey
 	}
 	if in.LLMBaseURL != nil {
-		a.LLMBaseURL = in.LLMBaseURL
+		a.LLMBaseURL = *in.LLMBaseURL
 	}
 	if in.SystemPrompt != nil {
 		a.SystemPrompt = *in.SystemPrompt

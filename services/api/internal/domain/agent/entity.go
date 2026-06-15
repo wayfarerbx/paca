@@ -17,7 +17,7 @@ type Agent struct {
 	LLMProvider                   string
 	LLMModel                      string
 	LLMAPIKeySecret               string // reference to secrets store entry
-	LLMBaseURL                    *string
+	LLMBaseURL                    string
 	SystemPrompt                  string
 	TaskTriggerPrompt             string
 	DocCommentTriggerPrompt       string

@@ -56,10 +56,11 @@ async def test_llm_models_returns_dict(client):
     assert resp.status_code == 200
     data = resp.json()
     assert isinstance(data, dict)
-    # Each value should be a list of model strings
-    for provider, models in data.items():
+    # Each value is an object with base_url and a models list
+    for provider, info in data.items():
         assert isinstance(provider, str)
-        assert isinstance(models, list)
+        assert isinstance(info, dict)
+        assert isinstance(info["models"], list)
 
 
 # ─── Conversations — auth ─────────────────────────────────────────────────────

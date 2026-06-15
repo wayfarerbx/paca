@@ -130,7 +130,7 @@ async def load_agent_config(agent_id: str) -> AgentConfig | None:
         llm_provider=row["llm_provider"],
         llm_model=row["llm_model"],
         llm_api_key_secret_ref=_decrypt_secret(row["llm_api_key_secret_ref"] or ""),
-        llm_base_url=row["llm_base_url"],
+        llm_base_url=row["llm_base_url"] or "",
         max_iterations=row["max_iterations"],
         can_clone_repos=row["can_clone_repos"],
         git_committer_name=row["git_committer_name"] or "paca-agent",

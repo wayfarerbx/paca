@@ -36,7 +36,7 @@ class AgentConfig:
     llm_provider: str
     llm_model: str
     llm_api_key_secret_ref: str
-    llm_base_url: str | None
+    llm_base_url: str
     max_iterations: int
     can_clone_repos: bool
     git_committer_name: str = "paca-agent"

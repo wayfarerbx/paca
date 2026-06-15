@@ -13,30 +13,20 @@ from ..models.agent import AgentConfig, AgentMCPServerRow, AgentSkillRow
 
 logger = logging.getLogger(__name__)
 
-# Providers that use an OpenAI-compatible REST API but are not natively
-# recognised by LiteLLM.  A base URL is transparently injected for them.
-_OPENAI_COMPAT_PROVIDER_URLS: dict[str, str] = {
-    "glm": "https://open.bigmodel.cn/api/paas/v4/",
-    "nvidia": "https://integrate.api.nvidia.com/v1",
-    "qwen": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-}
-
 
 def build_llm(agent_config: AgentConfig) -> LLM:
     """Construct an OpenHands SDK LLM instance from agent configuration."""
+    import litellm  # noqa: PLC0415
+
     provider = agent_config.llm_provider
-    llm_base_url = agent_config.llm_base_url
+    llm_base_url = agent_config.llm_base_url or None
 
-    if not llm_base_url and provider in _OPENAI_COMPAT_PROVIDER_URLS:
-        llm_base_url = _OPENAI_COMPAT_PROVIDER_URLS[provider]
-
-    # When a base_url is present the endpoint is OpenAI-compatible;
-    # LiteLLM requires the "openai/" prefix in that case.
-    model_str = (
-        f"openai/{agent_config.llm_model}"
-        if llm_base_url
-        else f"{provider}/{agent_config.llm_model}"
-    )
+    # For providers not natively known to LiteLLM, route through the OpenAI-compatible
+    # client by prefixing with "openai/" — LiteLLM uses base_url to reach the endpoint.
+    if llm_base_url and provider not in litellm.provider_list:
+        model_str = f"openai/{agent_config.llm_model}"
+    else:
+        model_str = f"{provider}/{agent_config.llm_model}"
 
     key_val = agent_config.llm_api_key_secret_ref or ""
     logger.info(
@@ -45,16 +35,12 @@ def build_llm(agent_config: AgentConfig) -> LLM:
         llm_base_url or "(none)",
         bool(key_val),
     )
-
-    llm_kwargs: dict = {
-        "model": model_str,
-        "api_key": SecretStr(key_val),
-        "stream": True,
-    }
-    if llm_base_url:
-        llm_kwargs["base_url"] = llm_base_url
-
-    return LLM(**llm_kwargs)
+    return LLM(
+        model=model_str,
+        api_key=SecretStr(key_val),
+        base_url=llm_base_url,
+        stream=True,
+    )
 
 
 def build_skills(db_skills: list[AgentSkillRow]) -> list[Skill]:

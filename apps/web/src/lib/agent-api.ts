@@ -123,7 +123,7 @@ export interface Agent {
 	avatar_url?: string | null;
 	llm_provider: string;
 	llm_model: string;
-	llm_base_url?: string | null;
+	llm_base_url: string;
 	system_prompt: string;
 	task_trigger_prompt: string;
 	doc_comment_trigger_prompt: string;
@@ -218,7 +218,7 @@ export async function createAgent(
 		llm_provider: string;
 		llm_model: string;
 		llm_api_key: string;
-		llm_base_url?: string | null;
+		llm_base_url: string;
 		system_prompt?: string;
 		task_trigger_prompt?: string;
 		doc_comment_trigger_prompt?: string;
@@ -560,8 +560,13 @@ export const chatSessionsQueryOptions = (projectId: string, agentId: string) =>
 
 // ── LLM Models ────────────────────────────────────────────────────────────────
 
+export interface LLMProviderInfo {
+	models: string[];
+	base_url: string | null;
+}
+
 export interface LLMModelsResponse {
-	[provider: string]: string[];
+	[provider: string]: LLMProviderInfo;
 }
 
 export async function listLLMModels(): Promise<LLMModelsResponse> {

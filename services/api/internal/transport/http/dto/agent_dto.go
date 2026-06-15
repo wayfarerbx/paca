@@ -22,7 +22,7 @@ type AgentResponse struct {
 	AvatarURL                     *string                  `json:"avatar_url,omitempty"`
 	LLMProvider                   string                   `json:"llm_provider"`
 	LLMModel                      string                   `json:"llm_model"`
-	LLMBaseURL                    *string                  `json:"llm_base_url,omitempty"`
+	LLMBaseURL                    string                   `json:"llm_base_url"`
 	SystemPrompt                  string                   `json:"system_prompt"`
 	TaskTriggerPrompt             string                   `json:"task_trigger_prompt"`
 	DocCommentTriggerPrompt       string                   `json:"doc_comment_trigger_prompt"`
@@ -48,7 +48,7 @@ type CreateAgentRequest struct {
 	LLMProvider                   string    `json:"llm_provider" binding:"required"`
 	LLMModel                      string    `json:"llm_model" binding:"required"`
 	LLMAPIKey                     string    `json:"llm_api_key" binding:"required"`
-	LLMBaseURL                    *string   `json:"llm_base_url"`
+	LLMBaseURL                    string    `json:"llm_base_url" binding:"required"`
 	SystemPrompt                  string    `json:"system_prompt"`
 	TaskTriggerPrompt             string    `json:"task_trigger_prompt"`
 	DocCommentTriggerPrompt       string    `json:"doc_comment_trigger_prompt"`

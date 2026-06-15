@@ -36,6 +36,7 @@ import {
 	Select,
 	SelectContent,
 	SelectItem,
+	SelectSeparator,
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
@@ -81,12 +82,15 @@ export const Route = createFileRoute(
 			queryClient.ensureQueryData(
 				conversationsQueryOptions(projectId, agentId),
 			),
+			queryClient.ensureQueryData(llmModelsQueryOptions),
 		]);
 	},
 	component: AgentDetailPage,
 });
 
 type Tab = "overview" | "mcp-servers" | "skills" | "conversations";
+
+const CUSTOM = "__custom__";
 
 // ── Overview Tab ──────────────────────────────────────────────────────────────
 
@@ -101,9 +105,34 @@ function OverviewTab({
 }) {
 	const qc = useQueryClient();
 	const { data: llmModels = {} } = useQuery(llmModelsQueryOptions);
+
+	const providers = Object.keys(llmModels);
+
+	// Provider select: if agent's provider is known, use it directly; otherwise custom mode
+	const knownProvider =
+		providers.length > 0 && providers.includes(agent.llm_provider);
+	const [providerSelect, setProviderSelect] = useState(
+		knownProvider
+			? agent.llm_provider
+			: agent.llm_provider
+				? CUSTOM
+				: "anthropic",
+	);
+	const [customProvider, setCustomProvider] = useState(
+		knownProvider ? "" : agent.llm_provider,
+	);
+
+	// Model select: check against the provider's model list once loaded
+	const initialModels = llmModels[agent.llm_provider]?.models ?? [];
+	const knownModel = initialModels.includes(agent.llm_model);
+	const [modelSelect, setModelSelect] = useState(
+		knownModel ? agent.llm_model : agent.llm_model ? CUSTOM : "",
+	);
+	const [customModel, setCustomModel] = useState(
+		knownModel ? "" : agent.llm_model,
+	);
+
 	const [name, setName] = useState(agent.name);
-	const [llmProvider, setLlmProvider] = useState(agent.llm_provider);
-	const [llmModel, setLlmModel] = useState(agent.llm_model);
 	const [llmApiKey, setLlmApiKey] = useState("");
 	const [llmBaseUrl, setLlmBaseUrl] = useState(agent.llm_base_url ?? "");
 	const [systemPrompt, setSystemPrompt] = useState(agent.system_prompt);
@@ -123,6 +152,29 @@ function OverviewTab({
 	const [committerEmail, setCommitterEmail] = useState(
 		agent.git_committer_email,
 	);
+
+	// Derived final values sent to the API
+	const llmProvider =
+		providerSelect === CUSTOM ? customProvider.trim() : providerSelect;
+	const llmModel = modelSelect === CUSTOM ? customModel.trim() : modelSelect;
+
+	const handleProviderChange = (v: string | null) => {
+		if (!v) return;
+		setProviderSelect(v);
+		if (v !== CUSTOM) {
+			const info = llmModels[v];
+			setLlmBaseUrl(info?.base_url ?? "");
+			const firstModel = info?.models?.[0] ?? "";
+			setModelSelect(firstModel || CUSTOM);
+			if (!firstModel) setCustomModel("");
+		} else {
+			setModelSelect(CUSTOM);
+			setCustomModel("");
+		}
+	};
+
+	const availableModels: string[] =
+		providerSelect !== CUSTOM ? (llmModels[providerSelect]?.models ?? []) : [];
 
 	const isDirty =
 		name !== agent.name ||
@@ -146,7 +198,7 @@ function OverviewTab({
 				llm_provider: llmProvider,
 				llm_model: llmModel,
 				...(llmApiKey ? { llm_api_key: llmApiKey } : {}),
-				llm_base_url: llmBaseUrl || null,
+				llm_base_url: llmBaseUrl,
 				system_prompt: systemPrompt,
 				task_trigger_prompt: taskTriggerPrompt,
 				doc_comment_trigger_prompt: docCommentTriggerPrompt,
@@ -162,8 +214,12 @@ function OverviewTab({
 		},
 	});
 
-	const availableModels: string[] = llmModels[llmProvider] ?? [];
-	const providers = Object.keys(llmModels);
+	const canSave =
+		isDirty &&
+		!!llmProvider &&
+		!!llmModel &&
+		!!llmBaseUrl.trim() &&
+		!saveMutation.isPending;
 
 	return (
 		<div className="space-y-6 max-w-2xl">
@@ -184,12 +240,8 @@ function OverviewTab({
 					<div className="space-y-1.5">
 						<Label>Provider</Label>
 						<Select
-							value={llmProvider}
-							onValueChange={(v) => {
-								if (!v) return;
-								setLlmProvider(v);
-								setLlmModel(llmModels[v]?.[0] ?? "");
-							}}
+							value={providerSelect}
+							onValueChange={handleProviderChange}
 							disabled={!canWrite}
 						>
 							<SelectTrigger>
@@ -201,27 +253,58 @@ function OverviewTab({
 										{p}
 									</SelectItem>
 								))}
+								<SelectSeparator />
+								<SelectItem value={CUSTOM}>Custom…</SelectItem>
 							</SelectContent>
 						</Select>
+						{providerSelect === CUSTOM && (
+							<Input
+								placeholder="my-provider"
+								value={customProvider}
+								onChange={(e) => setCustomProvider(e.target.value)}
+								disabled={!canWrite}
+							/>
+						)}
 					</div>
 					<div className="space-y-1.5">
 						<Label>Model</Label>
-						<Select
-							value={llmModel}
-							onValueChange={(v) => v && setLlmModel(v)}
-							disabled={!canWrite}
-						>
-							<SelectTrigger>
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{availableModels.map((m) => (
-									<SelectItem key={m} value={m}>
-										{m}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
+						{providerSelect === CUSTOM ? (
+							<Input
+								placeholder="my-model-name"
+								value={customModel}
+								onChange={(e) => setCustomModel(e.target.value)}
+								disabled={!canWrite}
+							/>
+						) : (
+							<>
+								<Select
+									value={modelSelect}
+									onValueChange={(v) => v && setModelSelect(v)}
+									disabled={!canWrite}
+								>
+									<SelectTrigger>
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										{availableModels.map((m) => (
+											<SelectItem key={m} value={m}>
+												{m}
+											</SelectItem>
+										))}
+										<SelectSeparator />
+										<SelectItem value={CUSTOM}>Custom…</SelectItem>
+									</SelectContent>
+								</Select>
+								{modelSelect === CUSTOM && (
+									<Input
+										placeholder="my-model-name"
+										value={customModel}
+										onChange={(e) => setCustomModel(e.target.value)}
+										disabled={!canWrite}
+									/>
+								)}
+							</>
+						)}
 					</div>
 				</div>
 				<div className="space-y-1.5 mt-3">
@@ -241,10 +324,7 @@ function OverviewTab({
 				</div>
 				<div className="space-y-1.5 mt-3">
 					<Label>
-						Base URL{" "}
-						<span className="text-muted-foreground font-normal text-xs">
-							(optional)
-						</span>
+						Base URL <span className="text-destructive">*</span>
 					</Label>
 					<Input
 						placeholder="https://api.openai.com/v1"
@@ -371,10 +451,7 @@ function OverviewTab({
 
 			{canWrite && (
 				<div className="flex items-center gap-3 pt-2">
-					<Button
-						onClick={() => saveMutation.mutate()}
-						disabled={!isDirty || saveMutation.isPending}
-					>
+					<Button onClick={() => saveMutation.mutate()} disabled={!canSave}>
 						{saveMutation.isPending ? (
 							<Loader2 className="size-4 mr-2 animate-spin" />
 						) : (

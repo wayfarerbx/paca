@@ -155,7 +155,7 @@ services:
     ports:
       - "3000:80"
     volumes:
-      - ./nginx/gateway.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/gateway.dev.conf:/etc/nginx/conf.d/default.conf:ro
       # Frontend plugin store — built JS bundles, served at /plugins/.
       # Layout: /var/www/plugins/<plugin-id>/assets/remoteEntry.js
       - ../plugins/local/frontend:/var/www/plugins:ro

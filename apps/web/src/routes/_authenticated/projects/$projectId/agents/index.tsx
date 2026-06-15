@@ -49,6 +49,7 @@ import {
 	Select,
 	SelectContent,
 	SelectItem,
+	SelectSeparator,
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
@@ -67,6 +68,8 @@ import {
 import { projectRolesQueryOptions } from "@/lib/project-api";
 import { cn } from "@/lib/utils";
 
+const CUSTOM = "__custom__";
+
 export const Route = createFileRoute(
 	"/_authenticated/projects/$projectId/agents/",
 )({
@@ -74,6 +77,7 @@ export const Route = createFileRoute(
 		await Promise.all([
 			queryClient.ensureQueryData(agentsQueryOptions(projectId)),
 			queryClient.ensureQueryData(projectRolesQueryOptions(projectId)),
+			queryClient.ensureQueryData(llmModelsQueryOptions),
 		]);
 	},
 	component: AgentsPage,
@@ -108,12 +112,21 @@ function CreateAgentDialog({
 	const [handle, setHandle] = useState("");
 	const [presetId, setPresetId] = useState("");
 	const [roleId, setRoleId] = useState("");
-	const [llmProvider, setLlmProvider] = useState("anthropic");
-	const [llmModel, setLlmModel] = useState("claude-sonnet-4-5-20250929");
+	const [providerSelect, setProviderSelect] = useState("anthropic");
+	const [customProvider, setCustomProvider] = useState("");
+	const [modelSelect, setModelSelect] = useState("claude-sonnet-4-5-20250929");
+	const [customModel, setCustomModel] = useState("");
 	const [llmApiKey, setLlmApiKey] = useState("");
-	const [llmBaseUrl, setLlmBaseUrl] = useState("");
+	const [llmBaseUrl, setLlmBaseUrl] = useState(
+		llmModels["anthropic"]?.base_url ?? "",
+	);
 	const [systemPrompt, setSystemPrompt] = useState("");
 	const [showApiKey, setShowApiKey] = useState(false);
+
+	// Derived final values sent to the API
+	const llmProvider =
+		providerSelect === CUSTOM ? customProvider.trim() : providerSelect;
+	const llmModel = modelSelect === CUSTOM ? customModel.trim() : modelSelect;
 
 	const reset = () => {
 		setStep(1);
@@ -121,8 +134,12 @@ function CreateAgentDialog({
 		setHandle("");
 		setPresetId("");
 		setRoleId("");
+		setProviderSelect("anthropic");
+		setCustomProvider("");
+		setModelSelect("claude-sonnet-4-5-20250929");
+		setCustomModel("");
 		setLlmApiKey("");
-		setLlmBaseUrl("");
+		setLlmBaseUrl(llmModels["anthropic"]?.base_url ?? "");
 		setSystemPrompt("");
 		setShowApiKey(false);
 	};
@@ -132,19 +149,38 @@ function CreateAgentDialog({
 		onOpenChange(v);
 	};
 
+	const handleProviderChange = (v: string | null) => {
+		if (!v) return;
+		setProviderSelect(v);
+		if (v !== CUSTOM) {
+			const info = llmModels[v];
+			setLlmBaseUrl(info?.base_url ?? "");
+			const firstModel = info?.models?.[0] ?? "";
+			setModelSelect(firstModel || CUSTOM);
+			if (!firstModel) setCustomModel("");
+		} else {
+			setModelSelect(CUSTOM);
+			setCustomModel("");
+		}
+	};
+
 	const onPresetChange = (id: string) => {
 		setPresetId(id);
 		const preset = AGENT_PRESETS.find((p) => p.id === id);
 		if (preset) {
-			if (preset.defaultLLMProvider) setLlmProvider(preset.defaultLLMProvider);
-			if (preset.defaultLLMModel) setLlmModel(preset.defaultLLMModel);
+			if (preset.defaultLLMProvider) {
+				setProviderSelect(preset.defaultLLMProvider);
+				setLlmBaseUrl(llmModels[preset.defaultLLMProvider]?.base_url ?? "");
+			}
+			if (preset.defaultLLMModel) setModelSelect(preset.defaultLLMModel);
 			if (preset.defaultSystemPrompt)
 				setSystemPrompt(preset.defaultSystemPrompt);
 		}
 	};
 
 	const providers = Object.keys(llmModels);
-	const availableModels: string[] = llmModels[llmProvider] ?? [];
+	const availableModels: string[] =
+		providerSelect !== CUSTOM ? (llmModels[providerSelect]?.models ?? []) : [];
 
 	const createMutation = useMutation({
 		mutationFn: () =>
@@ -154,7 +190,7 @@ function CreateAgentDialog({
 				llm_provider: llmProvider,
 				llm_model: llmModel,
 				llm_api_key: llmApiKey,
-				llm_base_url: llmBaseUrl || null,
+				llm_base_url: llmBaseUrl,
 				system_prompt: systemPrompt,
 				task_trigger_prompt: TRIGGER_PROMPTS.task,
 				doc_comment_trigger_prompt: TRIGGER_PROMPTS.docComment,
@@ -183,6 +219,9 @@ function CreateAgentDialog({
 	const step1Valid = !!(name.trim() && handle.trim() && roleId);
 	const canSubmit = !!(
 		step1Valid &&
+		llmProvider &&
+		llmModel &&
+		llmBaseUrl.trim() &&
 		llmApiKey.trim() &&
 		!createMutation.isPending
 	);
@@ -364,12 +403,8 @@ function CreateAgentDialog({
 								<div className="space-y-1.5">
 									<Label>Provider</Label>
 									<Select
-										value={llmProvider}
-										onValueChange={(v) => {
-											if (!v) return;
-											setLlmProvider(v);
-											setLlmModel(llmModels[v]?.[0] ?? "");
-										}}
+										value={providerSelect}
+										onValueChange={handleProviderChange}
 									>
 										<SelectTrigger>
 											<SelectValue />
@@ -380,26 +415,54 @@ function CreateAgentDialog({
 													{p}
 												</SelectItem>
 											))}
+											<SelectSeparator />
+											<SelectItem value={CUSTOM}>Custom…</SelectItem>
 										</SelectContent>
 									</Select>
+									{providerSelect === CUSTOM && (
+										<Input
+											placeholder="my-provider"
+											value={customProvider}
+											onChange={(e) => setCustomProvider(e.target.value)}
+										/>
+									)}
 								</div>
 								<div className="space-y-1.5">
 									<Label>Model</Label>
-									<Select
-										value={llmModel}
-										onValueChange={(v) => v && setLlmModel(v)}
-									>
-										<SelectTrigger>
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											{availableModels.map((m) => (
-												<SelectItem key={m} value={m}>
-													{m}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
+									{providerSelect === CUSTOM ? (
+										<Input
+											placeholder="my-model-name"
+											value={customModel}
+											onChange={(e) => setCustomModel(e.target.value)}
+										/>
+									) : (
+										<>
+											<Select
+												value={modelSelect}
+												onValueChange={(v) => v && setModelSelect(v)}
+											>
+												<SelectTrigger>
+													<SelectValue />
+												</SelectTrigger>
+												<SelectContent>
+													{availableModels.map((m) => (
+														<SelectItem key={m} value={m}>
+															{m}
+														</SelectItem>
+													))}
+													<SelectSeparator />
+													<SelectItem value={CUSTOM}>Custom…</SelectItem>
+												</SelectContent>
+											</Select>
+											{modelSelect === CUSTOM && (
+												<Input
+													placeholder="my-model-name"
+													value={customModel}
+													onChange={(e) => setCustomModel(e.target.value)}
+												/>
+											)}
+										</>
+									)}
 								</div>
 							</div>
 						</div>
@@ -442,13 +505,10 @@ function CreateAgentDialog({
 							</p>
 						</div>
 
-						{/* Base URL (optional) */}
+						{/* Base URL */}
 						<div className="space-y-1.5">
 							<Label htmlFor="agent-base-url">
-								Base URL{" "}
-								<span className="text-muted-foreground font-normal text-xs">
-									(optional)
-								</span>
+								Base URL <span className="text-destructive">*</span>
 							</Label>
 							<Input
 								id="agent-base-url"
@@ -456,9 +516,6 @@ function CreateAgentDialog({
 								value={llmBaseUrl}
 								onChange={(e) => setLlmBaseUrl(e.target.value)}
 							/>
-							<p className="text-[10px] text-muted-foreground">
-								Leave blank to use the provider's default endpoint.
-							</p>
 						</div>
 
 						{/* System Prompt */}
