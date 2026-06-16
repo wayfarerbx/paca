@@ -24,7 +24,11 @@ def build_llm(agent_config: AgentConfig) -> LLM:
     # For providers not natively known to LiteLLM, route through the OpenAI-compatible
     # client by prefixing with "openai/" — LiteLLM uses base_url to reach the endpoint.
     if llm_base_url and provider not in litellm.provider_list:
-        model_str = agent_config.llm_model if agent_config.llm_model.startswith("openai/") else f"openai/{agent_config.llm_model}"
+        model_str = (
+            agent_config.llm_model
+            if agent_config.llm_model.startswith("openai/")
+            else f"openai/{agent_config.llm_model}"
+        )
     else:
         model_str = f"{provider}/{agent_config.llm_model}"
 
