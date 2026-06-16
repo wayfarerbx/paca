@@ -6,9 +6,9 @@ import type { ProjectMember, TaskStatus, TaskType } from "@/lib/project-api";
 import { cn } from "@/lib/utils";
 import { AddTaskRow } from "./add-task-row";
 import {
+	type ColumnGroupDef,
 	getColumnGroupDefs,
 	getTaskColumnKeys,
-	type ColumnGroupDef,
 } from "./view-utils";
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
@@ -382,26 +382,24 @@ export function RoadmapView({
 							<p className="text-[12px] font-medium">No tasks to display</p>
 						</div>
 					) : (
-						<>
-							{groupDefs.map((group) => {
-								const groupTasks = filtered.filter((t) =>
-									getTaskColumnKeys(t, columnBy, viewCtx).includes(group.key),
-								);
-								if (groupTasks.length === 0) return null;
+						groupDefs.map((group) => {
+							const groupTasks = filtered.filter((t) =>
+								getTaskColumnKeys(t, columnBy, viewCtx).includes(group.key),
+							);
+							if (groupTasks.length === 0) return null;
 
-								return (
-									<div
-										key={group.key}
-										className="border-b border-border/20 last:border-0"
-									>
-										<GroupHeader group={group} count={groupTasks.length} />
-										{groupTasks.map((t) => (
-											<RoadmapTaskRow key={t.id} task={t} />
-										))}
-									</div>
-								);
-							})}
-						</>
+							return (
+								<div
+									key={group.key}
+									className="border-b border-border/20 last:border-0"
+								>
+									<GroupHeader group={group} count={groupTasks.length} />
+									{groupTasks.map((t) => (
+										<RoadmapTaskRow key={t.id} task={t} />
+									))}
+								</div>
+							);
+						})
 					)}
 
 					{/* ── Pagination button ─────────────────────────────────── */}

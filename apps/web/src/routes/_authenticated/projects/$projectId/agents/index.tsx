@@ -118,7 +118,7 @@ function CreateAgentDialog({
 	const [customModel, setCustomModel] = useState("");
 	const [llmApiKey, setLlmApiKey] = useState("");
 	const [llmBaseUrl, setLlmBaseUrl] = useState(
-		llmModels["anthropic"]?.base_url ?? "",
+		llmModels.anthropic?.base_url ?? "",
 	);
 	const [systemPrompt, setSystemPrompt] = useState("");
 	const [showApiKey, setShowApiKey] = useState(false);
@@ -139,7 +139,7 @@ function CreateAgentDialog({
 		setModelSelect("claude-sonnet-4-5-20250929");
 		setCustomModel("");
 		setLlmApiKey("");
-		setLlmBaseUrl(llmModels["anthropic"]?.base_url ?? "");
+		setLlmBaseUrl(llmModels.anthropic?.base_url ?? "");
 		setSystemPrompt("");
 		setShowApiKey(false);
 	};
