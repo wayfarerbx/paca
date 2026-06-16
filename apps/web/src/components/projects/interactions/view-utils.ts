@@ -94,6 +94,17 @@ export function getColumnGroupDefs(
 		];
 	}
 
+	if (columnBy === "reporter") {
+		return [
+			...ctx.members.map((m) => ({
+				key: m.id,
+				label: m.full_name || m.username,
+				fieldValue: m.id,
+			})),
+			{ key: "__none", label: "No Reporter", fieldValue: null },
+		];
+	}
+
 	if (columnBy === "importance") {
 		return PRIORITY_LEVELS.map((p) => ({
 			key: String(p.value),
@@ -180,6 +191,9 @@ export function getTaskColumnKeys(
 	}
 	if (columnBy === "assignee") {
 		return [task.assignee_id ?? "__unassigned"];
+	}
+	if (columnBy === "reporter") {
+		return [task.reporter_id ?? "__none"];
 	}
 	if (columnBy === "importance") {
 		// Bucket the raw numeric importance into one of the 5 named levels

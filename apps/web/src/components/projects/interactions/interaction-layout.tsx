@@ -1549,6 +1549,9 @@ export function InteractionLayout({
 						taskIdPrefix={taskIdPrefix}
 						statuses={statuses}
 						taskTypes={creatableTaskTypes}
+						members={members}
+						sprints={sprints}
+						columnBy={columnBy}
 						searchQuery={searchQuery}
 						canCreate={canCreate}
 						pagination={globalPagination}
