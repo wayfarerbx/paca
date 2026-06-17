@@ -172,29 +172,66 @@ The script walks you through configuration interactively and starts the full sta
 
 ### Option 2 — Docker Compose (manual)
 
+**1. Create a directory and download the compose file**
+
 ```bash
-# 1. Create a directory and download the compose file
 mkdir paca && cd paca
 curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/docker-compose.yml -o docker-compose.yml
 mkdir -p nginx
 curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/gateway.conf -o nginx/gateway.conf
+```
 
-# 2. Create your environment file
-cat > .env <<'EOF'
-JWT_SECRET=<run: openssl rand -hex 32>
-ADMIN_PASSWORD=<your-admin-password>
-POSTGRES_PASSWORD=<run: openssl rand -hex 32>
-AGENT_API_KEY=<run: openssl rand -hex 32>
-INTERNAL_API_KEY=<run: openssl rand -hex 32>
-ENCRYPTION_KEY=<run: openssl rand -hex 32>
+**2. Download the environment template**
+
+```bash
+curl -fsSL https://github.com/Paca-AI/paca/releases/latest/download/.env.production.example -o .env
+```
+
+**3. Generate secure passwords and secrets**
+
+```bash
+POSTGRES_PASSWORD=$(openssl rand -hex 32)
+ADMIN_PASSWORD=$(openssl rand -hex 16)
+JWT_SECRET=$(openssl rand -hex 32)
+ENCRYPTION_KEY=$(openssl rand -hex 32)
+```
+
+Optional: Generate API keys if you'll use the AI agent or external integrations:
+```bash
+AGENT_API_KEY=$(openssl rand -hex 32)
+INTERNAL_API_KEY=$(openssl rand -hex 32)
+```
+
+Optional: Generate MinIO credentials or use your own:
+```bash
+STORAGE_ACCESS_KEY_ID=$(openssl rand -hex 16)
+STORAGE_SECRET_ACCESS_KEY=$(openssl rand -hex 32)
+```
+
+**4. Update .env with your values**
+
+Edit the `.env` file and replace the placeholder values with the ones you generated above. Below are the required fields:
+
+```bash
 PUBLIC_URL=http://localhost
-EOF
+POSTGRES_PASSWORD=<use the value from step 3>
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=<use the value from step 3>
+JWT_SECRET=<use the value from step 3>
+ENCRYPTION_KEY=<use the value from step 3>
+STORAGE_ACCESS_KEY_ID=<use the value from step 3 or your own>
+STORAGE_SECRET_ACCESS_KEY=<use the value from step 3 or your own>
+```
 
-# 3. Start the stack
+**5. Start the stack**
+
+```bash
 docker compose --env-file .env up -d
 ```
 
-Open `http://localhost` — log in with `admin` and the password you set.
+> **⚠️ Important:** Save your generated passwords and secrets securely. You'll need `ADMIN_USERNAME` and `ADMIN_PASSWORD` to log in.
+
+**Login:** Open `http://localhost` and use the admin credentials you set above.
 
 > **Customizing the stack:** scale down services you don't need.
 >
