@@ -15,7 +15,7 @@ dependencies = [
     "pydantic>=2.13.0",
     "pydantic-settings>=2.14.0",
     "python-multipart>=0.0.9",
-    "cryptography>=42.0.0",
+    "cryptography>=48.0.1",
 ]
 
 [build-system]
