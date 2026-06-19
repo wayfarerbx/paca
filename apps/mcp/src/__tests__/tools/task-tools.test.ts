@@ -40,6 +40,7 @@ function makeExtendedClient(overrides: Record<string, any> = {}) {
 		listProjectMembers: vi.fn().mockResolvedValue([]),
 		listSubtasks: vi.fn().mockResolvedValue([]),
 		listTaskActivities: vi.fn().mockResolvedValue([]),
+		listTaskLinks: vi.fn().mockResolvedValue([]),
 		...overrides,
 	} as any;
 }

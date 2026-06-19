@@ -508,6 +508,7 @@ async function getTaskDetail(
 		attachments,
 		activities,
 		customFields,
+		links,
 	] = await Promise.all([
 		client.getProject(projectId).catch(() => undefined),
 		extendedClient?.listTaskStatuses(projectId)?.catch(() => []) ||
@@ -524,6 +525,8 @@ async function getTaskDetail(
 		extendedClient?.listTaskActivities(projectId, taskId)?.catch(() => []) ||
 			Promise.resolve([]),
 		viewsClient?.listCustomFieldDefinitions(projectId)?.catch(() => []) ||
+			Promise.resolve([]),
+		extendedClient?.listTaskLinks(projectId, taskId)?.catch(() => []) ||
 			Promise.resolve([]),
 	]);
 
@@ -554,6 +557,7 @@ async function getTaskDetail(
 		attachments,
 		activities,
 		customFields,
+		links,
 	);
 
 	return {

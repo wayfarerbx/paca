@@ -689,6 +689,40 @@ export interface CreateBranchResult {
 	branch_name: string;
 }
 
+// ==================== Task Links ====================
+
+export type LinkType = "blocks" | "relates_to" | "duplicates";
+export type DisplayLinkType =
+	| "blocks"
+	| "relates_to"
+	| "duplicates"
+	| "is_blocked_by"
+	| "is_duplicated_by";
+
+export interface LinkedTaskSummary {
+	id: string;
+	task_number: number;
+	title: string;
+	status_id?: string | null;
+	task_type_id?: string | null;
+}
+
+export interface TaskLink {
+	id: string;
+	source_task_id: string;
+	target_task_id: string;
+	link_type: LinkType;
+	display_link_type: DisplayLinkType;
+	linked_task: LinkedTaskSummary;
+	created_by?: string | null;
+	created_at: string;
+}
+
+export interface CreateTaskLinkInput {
+	target_task_id: string;
+	link_type: LinkType;
+}
+
 // ==================== API Response Helpers ====================
 
 export interface APIResponse<T> {

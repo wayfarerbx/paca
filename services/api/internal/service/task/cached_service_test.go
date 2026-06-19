@@ -202,6 +202,23 @@ func (s *stubTaskSvc) DeleteCustomFieldDefinition(ctx context.Context, projectID
 	return nil
 }
 
+// --- TaskLinkService stubs --------------------------------------------------
+
+func (s *stubTaskSvc) ListTaskLinks(_ context.Context, _, _ uuid.UUID) ([]*taskdom.TaskLink, error) {
+	return []*taskdom.TaskLink{}, nil
+}
+
+func (s *stubTaskSvc) CreateTaskLink(_ context.Context, in taskdom.CreateTaskLinkInput) (*taskdom.TaskLink, error) {
+	return &taskdom.TaskLink{
+		ID:           uuid.New(),
+		SourceTaskID: in.SourceTaskID,
+		TargetTaskID: in.TargetTaskID,
+		LinkType:     in.LinkType,
+	}, nil
+}
+
+func (s *stubTaskSvc) DeleteTaskLink(_ context.Context, _, _, _ uuid.UUID) error { return nil }
+
 // ---------------------------------------------------------------------------
 // ListTaskTypes
 // ---------------------------------------------------------------------------

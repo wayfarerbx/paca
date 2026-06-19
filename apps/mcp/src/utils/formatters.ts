@@ -7,6 +7,7 @@ import type {
 	Sprint,
 	Task,
 	TaskActivity,
+	TaskLink,
 	TaskStatus,
 	TaskType,
 } from "../types/index.js";
@@ -57,6 +58,14 @@ ${description}`;
  * @param customFields - Array of custom field definitions (if available)
  * @returns Comprehensive formatted task detail string
  */
+const DISPLAY_LINK_LABELS: Record<string, string> = {
+	blocks: "Blocks",
+	is_blocked_by: "Is blocked by",
+	relates_to: "Relates to",
+	duplicates: "Duplicates",
+	is_duplicated_by: "Is duplicated by",
+};
+
 export function formatTaskDetail(
 	task: Task,
 	project?: Project,
@@ -70,6 +79,7 @@ export function formatTaskDetail(
 	attachments?: Attachment[],
 	activities?: TaskActivity[],
 	customFields?: CustomFieldDefinition[],
+	links?: TaskLink[],
 ): string {
 	const description = task.description
 		? blocknoteToMarkdown(task.description)
@@ -174,6 +184,18 @@ export function formatTaskDetail(
 			sections.push(
 				`- **${attachment.file.file_name}** (${formatFileSize(attachment.file.file_size)}) - Uploaded: ${attachment.created_at}`,
 			);
+		});
+	}
+
+	if (links && links.length > 0) {
+		sections.push("");
+		sections.push("## Linked Tasks");
+		links.forEach((link) => {
+			const label =
+				DISPLAY_LINK_LABELS[link.display_link_type] || link.display_link_type;
+			const t = link.linked_task;
+			const taskRef = t ? `#${t.task_number} — ${t.title} (ID: ${t.id})` : "";
+			sections.push(`- **${label}:** ${taskRef} *(Link ID: ${link.id})*`);
 		});
 	}
 

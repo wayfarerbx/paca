@@ -473,3 +473,58 @@ type AddCommentRequest struct {
 type UpdateCommentRequest struct {
 	Content json.RawMessage `json:"content" binding:"required"`
 }
+
+// --- Task Link DTOs ---------------------------------------------------------
+
+// CreateTaskLinkRequest is the body for
+// POST /projects/:projectId/tasks/:taskId/links.
+type CreateTaskLinkRequest struct {
+	TargetTaskID uuid.UUID        `json:"target_task_id"`
+	LinkType     taskdom.LinkType `json:"link_type"`
+}
+
+// LinkedTaskSummaryResponse is the embedded task info returned alongside a link.
+type LinkedTaskSummaryResponse struct {
+	ID         uuid.UUID  `json:"id"`
+	TaskNumber int64      `json:"task_number"`
+	Title      string     `json:"title"`
+	StatusID   *uuid.UUID `json:"status_id,omitempty"`
+	TaskTypeID *uuid.UUID `json:"task_type_id,omitempty"`
+}
+
+// TaskLinkResponse is the public representation of a task link.
+// DisplayLinkType is the relationship label from the queried task's perspective
+// (e.g. "is_blocked_by" when the queried task is the target of a "blocks" link).
+type TaskLinkResponse struct {
+	ID              uuid.UUID                 `json:"id"`
+	SourceTaskID    uuid.UUID                 `json:"source_task_id"`
+	TargetTaskID    uuid.UUID                 `json:"target_task_id"`
+	LinkType        taskdom.LinkType          `json:"link_type"`
+	DisplayLinkType string                    `json:"display_link_type"`
+	LinkedTask      LinkedTaskSummaryResponse `json:"linked_task"`
+	CreatedBy       *uuid.UUID                `json:"created_by,omitempty"`
+	CreatedAt       time.Time                 `json:"created_at"`
+}
+
+// TaskLinkFromEntity maps a domain TaskLink to a TaskLinkResponse DTO.
+func TaskLinkFromEntity(l *taskdom.TaskLink) TaskLinkResponse {
+	resp := TaskLinkResponse{
+		ID:              l.ID,
+		SourceTaskID:    l.SourceTaskID,
+		TargetTaskID:    l.TargetTaskID,
+		LinkType:        l.LinkType,
+		DisplayLinkType: l.DisplayLinkType,
+		CreatedBy:       l.CreatedBy,
+		CreatedAt:       l.CreatedAt,
+	}
+	if l.LinkedTask != nil {
+		resp.LinkedTask = LinkedTaskSummaryResponse{
+			ID:         l.LinkedTask.ID,
+			TaskNumber: l.LinkedTask.TaskNumber,
+			Title:      l.LinkedTask.Title,
+			StatusID:   l.LinkedTask.StatusID,
+			TaskTypeID: l.LinkedTask.TaskTypeID,
+		}
+	}
+	return resp
+}

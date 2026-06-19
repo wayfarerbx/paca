@@ -310,6 +310,18 @@ func New(deps Deps) http.Handler {
 							Delete("/comments/{commentId}", deps.Task.DeleteComment)
 					})
 
+					// Links
+					r.Route("/{taskId}/links", func(r chi.Router) {
+						r.With(httpmw.RequirePublicProjectOrPermissions(deps.ProjectVisibilitySvc, deps.Authorizer,
+							httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
+							httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionTasksRead}},
+						)).Get("/", deps.Task.ListTaskLinks)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite)).
+							Post("/", deps.Task.CreateTaskLink)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite)).
+							Delete("/{linkId}", deps.Task.DeleteTaskLink)
+					})
+
 					// Attachments
 					r.Route("/{taskId}/attachments", func(r chi.Router) {
 						r.With(httpmw.RequirePublicProjectOrPermissions(deps.ProjectVisibilitySvc, deps.Authorizer,

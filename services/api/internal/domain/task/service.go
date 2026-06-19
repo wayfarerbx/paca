@@ -13,7 +13,28 @@ type Service interface {
 	TaskTypeService
 	TaskStatusService
 	TaskService
+	TaskLinkService
 	CustomFieldDefinitionService
+}
+
+// TaskLinkService defines task-link use cases.
+type TaskLinkService interface {
+	// ListTaskLinks returns all links for taskID, computing inverse display labels.
+	ListTaskLinks(ctx context.Context, projectID, taskID uuid.UUID) ([]*TaskLink, error)
+	// CreateTaskLink creates a directed link between two tasks in the same project.
+	CreateTaskLink(ctx context.Context, in CreateTaskLinkInput) (*TaskLink, error)
+	// DeleteTaskLink removes the link identified by linkID, verifying it
+	// belongs to a task within projectID.
+	DeleteTaskLink(ctx context.Context, projectID, taskID, linkID uuid.UUID) error
+}
+
+// CreateTaskLinkInput carries the fields required to create a task link.
+type CreateTaskLinkInput struct {
+	ProjectID    uuid.UUID
+	SourceTaskID uuid.UUID
+	TargetTaskID uuid.UUID
+	LinkType     LinkType
+	CreatedBy    *uuid.UUID
 }
 
 // --- Task Type Service -----------------------------------------------------

@@ -25,6 +25,10 @@ import {
 	getTaskActivityTools,
 	handleTaskActivityTool,
 } from "./task-activity-tools.js";
+import {
+	getTaskLinkTools,
+	handleTaskLinkTool,
+} from "./task-link-tools.js";
 import { getTaskTools, handleTaskTool } from "./task-tools.js";
 import {
 	getTaskStatusTools,
@@ -54,6 +58,7 @@ export function getAllTools(): Tool[] {
 		...getCustomFieldTools(),
 		...getAttachmentTools(),
 		...getTaskActivityTools(),
+		...getTaskLinkTools(),
 	];
 }
 
@@ -199,6 +204,15 @@ export async function handleToolCall(
 			name === "delete_task_comment"
 		) {
 			return handleTaskActivityTool(name, args, clients.taskExtendedClient);
+		}
+
+		// Task link tools
+		if (
+			name === "list_task_links" ||
+			name === "create_task_link" ||
+			name === "delete_task_link"
+		) {
+			return handleTaskLinkTool(name, args, clients.taskExtendedClient);
 		}
 
 		throw new Error(`Unknown tool: ${name}`);

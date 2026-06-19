@@ -1564,6 +1564,22 @@ func (r *fakeTaskRepo) DeleteCustomFieldDefinition(_ context.Context, id uuid.UU
 	return nil
 }
 
+// --- TaskLinkRepository stubs -----------------------------------------------
+
+func (r *fakeTaskRepo) ListTaskLinks(_ context.Context, _ uuid.UUID) ([]*taskdom.TaskLink, error) {
+	return []*taskdom.TaskLink{}, nil
+}
+
+func (r *fakeTaskRepo) FindTaskLinkByID(_ context.Context, _ uuid.UUID) (*taskdom.TaskLink, error) {
+	return nil, taskdom.ErrTaskLinkNotFound
+}
+
+func (r *fakeTaskRepo) CreateTaskLinkIfNotExists(_ context.Context, _ *taskdom.TaskLink) (bool, error) {
+	return true, nil
+}
+
+func (r *fakeTaskRepo) DeleteTaskLink(_ context.Context, _ uuid.UUID) error { return nil }
+
 // ---------------------------------------------------------------------------
 // Task Number tests
 // ---------------------------------------------------------------------------

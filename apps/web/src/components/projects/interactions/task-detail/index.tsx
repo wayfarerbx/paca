@@ -28,6 +28,7 @@ import { mapApiFieldToUi } from "./helpers";
 import { PropertiesPanel } from "./properties-panel";
 import { SubtasksSection } from "./subtasks-section";
 import { TaskHeader } from "./task-header";
+import { TaskLinksSection } from "./task-links-section";
 import type { TaskDetailModalProps } from "./types";
 
 // Re-exports for consumers
@@ -408,6 +409,17 @@ export function TaskDetailModal({
 								});
 							}}
 						/>
+
+						{/* Linked tasks */}
+						{projectId && (
+							<TaskLinksSection
+								projectId={projectId}
+								taskId={task.id}
+								taskIdPrefix={taskIdPrefix}
+								canEdit={canEdit}
+								onNavigateToTask={navigateToTask}
+							/>
+						)}
 
 						{/* Plugin extension points */}
 						{projectId && (

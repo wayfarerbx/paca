@@ -551,6 +551,24 @@ func (r *fakeTaskRepo) DeleteCustomFieldDefinition(_ context.Context, id uuid.UU
 	return nil
 }
 
+// -- fakeTaskRepo: TaskLink methods --
+
+func (r *fakeTaskRepo) ListTaskLinks(_ context.Context, _ uuid.UUID) ([]*taskdom.TaskLink, error) {
+	return []*taskdom.TaskLink{}, nil
+}
+
+func (r *fakeTaskRepo) FindTaskLinkByID(_ context.Context, _ uuid.UUID) (*taskdom.TaskLink, error) {
+	return nil, taskdom.ErrTaskLinkNotFound
+}
+
+func (r *fakeTaskRepo) CreateTaskLinkIfNotExists(_ context.Context, _ *taskdom.TaskLink) (bool, error) {
+	return true, nil
+}
+
+func (r *fakeTaskRepo) DeleteTaskLink(_ context.Context, _ uuid.UUID) error {
+	return nil
+}
+
 // ---------------------------------------------------------------------------
 // In-memory fake activity repository
 // ---------------------------------------------------------------------------
@@ -3789,22 +3807,4 @@ func taskListItemIDs(t *testing.T, body []byte) []string {
 		ids = append(ids, id)
 	}
 	return ids
-}
-
-// taskListNextCursor extracts data.next_cursor from a list-tasks response.
-// Returns "" when next_cursor is absent or null.
-func taskListNextCursor(t *testing.T, body []byte) string {
-	t.Helper()
-	var env struct {
-		Data struct {
-			NextCursor *string `json:"next_cursor"`
-		} `json:"data"`
-	}
-	if err := json.Unmarshal(body, &env); err != nil {
-		t.Fatalf("decode next_cursor: %v", err)
-	}
-	if env.Data.NextCursor == nil {
-		return ""
-	}
-	return *env.Data.NextCursor
 }

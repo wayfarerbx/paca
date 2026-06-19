@@ -722,3 +722,81 @@ export const taskActivitiesQueryOptions = (projectId: string, taskId: string) =>
 		staleTime: 15_000,
 		enabled: !!projectId && !!taskId,
 	});
+
+// ── Task Links ────────────────────────────────────────────────────────────────
+
+export type LinkType = "blocks" | "relates_to" | "duplicates";
+
+export type DisplayLinkType =
+	| "blocks"
+	| "is_blocked_by"
+	| "relates_to"
+	| "duplicates"
+	| "is_duplicated_by";
+
+export interface LinkedTaskSummary {
+	id: string;
+	task_number: number;
+	title: string;
+	status_id?: string | null;
+	task_type_id?: string | null;
+}
+
+export interface TaskLink {
+	id: string;
+	source_task_id: string;
+	target_task_id: string;
+	link_type: LinkType;
+	display_link_type: DisplayLinkType;
+	linked_task: LinkedTaskSummary;
+	created_by?: string | null;
+	created_at: string;
+}
+
+export const LINK_TYPE_LABELS: Record<DisplayLinkType, string> = {
+	blocks: "blocks",
+	is_blocked_by: "is blocked by",
+	relates_to: "relates to",
+	duplicates: "duplicates",
+	is_duplicated_by: "is duplicated by",
+};
+
+export async function listTaskLinks(
+	projectId: string,
+	taskId: string,
+): Promise<TaskLink[]> {
+	const { data } = await apiClient.instance.get<
+		SuccessEnvelope<{ items: TaskLink[] }>
+	>(`/projects/${projectId}/tasks/${taskId}/links`);
+	return data.data.items;
+}
+
+export async function createTaskLink(
+	projectId: string,
+	taskId: string,
+	payload: { target_task_id: string; link_type: LinkType },
+): Promise<TaskLink> {
+	const { data } = await apiClient.instance.post<SuccessEnvelope<TaskLink>>(
+		`/projects/${projectId}/tasks/${taskId}/links`,
+		payload,
+	);
+	return data.data;
+}
+
+export async function deleteTaskLink(
+	projectId: string,
+	taskId: string,
+	linkId: string,
+): Promise<void> {
+	await apiClient.instance.delete(
+		`/projects/${projectId}/tasks/${taskId}/links/${linkId}`,
+	);
+}
+
+export const taskLinksQueryOptions = (projectId: string, taskId: string) =>
+	queryOptions({
+		queryKey: ["projects", projectId, "tasks", taskId, "links"],
+		queryFn: () => listTaskLinks(projectId, taskId),
+		staleTime: 15_000,
+		enabled: !!projectId && !!taskId,
+	});

@@ -25,6 +25,13 @@ var (
 	ErrCustomFieldTypeInvalid = errors.New("custom field: invalid field type")
 	ErrCustomFieldNameInvalid = errors.New("custom field: display name is empty or invalid")
 
+	// Task link errors.
+	ErrTaskLinkNotFound     = errors.New("task link: not found")
+	ErrTaskLinkSelf         = errors.New("task link: a task cannot be linked to itself")
+	ErrTaskLinkDuplicate    = errors.New("task link: this relationship already exists")
+	ErrTaskLinkTypeInvalid  = errors.New("task link: invalid link type")
+	ErrTaskLinkCrossProject = errors.New("task link: cannot link tasks from different projects")
+
 	// Activity / comment errors.
 	ErrActivityNotFound      = errors.New("activity: not found")
 	ErrActivityForbidden     = errors.New("activity: only the author can modify this comment")

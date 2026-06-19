@@ -210,6 +210,14 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusBadRequest, apierr.CodeActivityNotAComment
 	case errors.Is(err, taskdom.ErrCommentContentInvalid):
 		return http.StatusBadRequest, apierr.CodeCommentContentInvalid
+	case errors.Is(err, taskdom.ErrTaskLinkNotFound):
+		return http.StatusNotFound, apierr.CodeTaskLinkNotFound
+	case errors.Is(err, taskdom.ErrTaskLinkSelf):
+		return http.StatusBadRequest, apierr.CodeTaskLinkSelf
+	case errors.Is(err, taskdom.ErrTaskLinkDuplicate):
+		return http.StatusConflict, apierr.CodeTaskLinkDuplicate
+	case errors.Is(err, taskdom.ErrTaskLinkCrossProject):
+		return http.StatusBadRequest, apierr.CodeTaskLinkCrossProject
 	case errors.Is(err, docdom.ErrDocNotFound):
 		return http.StatusNotFound, apierr.CodeDocNotFound
 	case errors.Is(err, docdom.ErrDocTitleInvalid):
@@ -321,6 +329,7 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodeTaskTypeNotFound,
 		apierr.CodeTaskStatusNotFound,
 		apierr.CodeSprintNotFound,
+		apierr.CodeTaskLinkNotFound,
 		apierr.CodeViewNotFound,
 		apierr.CodeCustomFieldNotFound,
 		apierr.CodeFileNotFound,
@@ -336,6 +345,8 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodeEpicCannotHaveParent,
 		apierr.CodeTaskCannotBeOwnParent,
 		apierr.CodeTaskParentCycleDetected,
+		apierr.CodeTaskLinkSelf,
+		apierr.CodeTaskLinkCrossProject,
 		apierr.CodeTaskTypeNameInvalid,
 		apierr.CodeTaskStatusNameInvalid,
 		apierr.CodeTaskStatusCategoryInvalid,
@@ -356,6 +367,7 @@ func httpStatusForCode(code apierr.Code) int {
 		return http.StatusForbidden
 	case apierr.CodeViewIsLastView,
 		apierr.CodeSprintAlreadyComplete,
+		apierr.CodeTaskLinkDuplicate,
 		apierr.CodeCustomFieldKeyTaken,
 		apierr.CodeTaskTypeNameReserved:
 		return http.StatusConflict

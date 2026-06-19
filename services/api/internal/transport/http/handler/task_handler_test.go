@@ -250,6 +250,24 @@ func (f *fakeTaskSvc) DeleteCustomFieldDefinition(_ context.Context, _, _ uuid.U
 	return nil
 }
 
+// --- TaskLinkService stubs --------------------------------------------------
+
+func (f *fakeTaskSvc) ListTaskLinks(_ context.Context, _, _ uuid.UUID) ([]*taskdom.TaskLink, error) {
+	return []*taskdom.TaskLink{}, nil
+}
+
+func (f *fakeTaskSvc) CreateTaskLink(_ context.Context, in taskdom.CreateTaskLinkInput) (*taskdom.TaskLink, error) {
+	return &taskdom.TaskLink{
+		ID:           uuid.New(),
+		SourceTaskID: in.SourceTaskID,
+		TargetTaskID: in.TargetTaskID,
+		LinkType:     in.LinkType,
+		CreatedBy:    in.CreatedBy,
+	}, nil
+}
+
+func (f *fakeTaskSvc) DeleteTaskLink(_ context.Context, _, _, _ uuid.UUID) error { return nil }
+
 // ---------------------------------------------------------------------------
 // Fake activity service
 // ---------------------------------------------------------------------------

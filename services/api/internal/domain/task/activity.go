@@ -35,6 +35,13 @@ const (
 	// ActivityTypeComment is a user-authored comment on the task.
 	ActivityTypeComment ActivityType = "comment"
 
+	// --- Link events ----------------------------------------------------------
+
+	// ActivityTypeTaskLinkAdded is recorded when a link is created between tasks.
+	ActivityTypeTaskLinkAdded ActivityType = "task.link.added"
+	// ActivityTypeTaskLinkRemoved is recorded when a link between tasks is deleted.
+	ActivityTypeTaskLinkRemoved ActivityType = "task.link.removed"
+
 	// --- Agent session events -------------------------------------------------
 
 	// ActivityTypeAgentSessionStarted is recorded when an AI agent begins a

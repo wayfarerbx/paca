@@ -97,6 +97,53 @@ type CustomFieldDefinition struct {
 	UpdatedAt   time.Time
 }
 
+// LinkType describes the directional relationship stored in a TaskLink row.
+// Inverse display types (is_blocked_by, is_duplicated_by) are computed at
+// the service layer and never persisted.
+type LinkType string
+
+const (
+	// LinkTypeBlocks indicates the source task blocks completion of the target.
+	LinkTypeBlocks LinkType = "blocks"
+	// LinkTypeRelatesTo indicates the source and target tasks are related.
+	LinkTypeRelatesTo LinkType = "relates_to"
+	// LinkTypeDuplicates indicates the source task duplicates the target.
+	LinkTypeDuplicates LinkType = "duplicates"
+)
+
+// ValidLinkTypes is the set of persisted link type values.
+var ValidLinkTypes = map[LinkType]bool{
+	LinkTypeBlocks:     true,
+	LinkTypeRelatesTo:  true,
+	LinkTypeDuplicates: true,
+}
+
+// TaskLink represents a directed relationship between two tasks.
+type TaskLink struct {
+	ID           uuid.UUID
+	SourceTaskID uuid.UUID
+	TargetTaskID uuid.UUID
+	LinkType     LinkType
+	CreatedBy    *uuid.UUID
+	CreatedAt    time.Time
+	// LinkedTask is populated on read with a summary of the other task.
+	LinkedTask *LinkedTaskSummary
+	// DisplayLinkType is the relationship label from the requesting task's
+	// perspective (e.g. "is_blocked_by" when this task is the target of a
+	// "blocks" link). It is never persisted.
+	DisplayLinkType string
+}
+
+// LinkedTaskSummary is a lightweight projection of a Task embedded in
+// TaskLink responses to avoid N+1 lookups.
+type LinkedTaskSummary struct {
+	ID         uuid.UUID
+	TaskNumber int64
+	Title      string
+	StatusID   *uuid.UUID
+	TaskTypeID *uuid.UUID
+}
+
 // Task is the core work item aggregate.
 type Task struct {
 	ID           uuid.UUID

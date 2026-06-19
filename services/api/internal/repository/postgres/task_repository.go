@@ -125,13 +125,16 @@ func (r *taskWithPositionRow) asTaskRecord() taskRecord {
 // --- Repository struct -------------------------------------------------------
 
 // TaskRepository is the sqlx implementation of taskdom.Repository.
+// It embeds TaskLinkRepository so that a single pointer satisfies the full
+// taskdom.Repository interface (which now includes TaskLinkRepository).
 type TaskRepository struct {
 	db *sqlx.DB
+	*TaskLinkRepository
 }
 
 // NewTaskRepository returns a new TaskRepository.
 func NewTaskRepository(db *sqlx.DB) *TaskRepository {
-	return &TaskRepository{db: db}
+	return &TaskRepository{db: db, TaskLinkRepository: NewTaskLinkRepository(db)}
 }
 
 // --- queryBuilder is a small helper for building parameterized SQL queries ---

@@ -44,6 +44,8 @@ Indexes: `(task_id, created_at)` for efficient chronological listing.
 | `task.deleted`                | Task soft-deleted                         |
 | `task.attachment.added`       | Attachment linked                         |
 | `task.attachment.removed`     | Attachment unlinked                       |
+| `task.link.added`             | Task link created                         |
+| `task.link.removed`           | Task link deleted                         |
 | `comment`                     | User comment (user-created)               |
 
 > **Plugin activities**: Installed plugins may emit additional activity types
@@ -82,6 +84,16 @@ Tracked fields: `title`, `status_id`, `assignee_id`, `reporter_id`,
 ### `task.attachment.added` / `task.attachment.removed`
 ```json
 { "file_name": "screenshot.png", "file_size": 102400 }
+```
+
+### `task.link.added`
+```json
+{ "target_task_id": "uuid", "link_type": "blocks" }
+```
+
+### `task.link.removed`
+```json
+{ "link_id": "uuid" }
 ```
 
 ### `comment`

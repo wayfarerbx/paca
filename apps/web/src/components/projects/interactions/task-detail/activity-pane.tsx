@@ -88,6 +88,17 @@ export function TaskActivityPane({
 					return `added attachment${(c as Record<string, unknown>).file_name ? `: ${(c as Record<string, unknown>).file_name}` : ""}`;
 				case "task.attachment.removed":
 					return `removed attachment${(c as Record<string, unknown>).file_name ? `: ${(c as Record<string, unknown>).file_name}` : ""}`;
+				case "task.link.added": {
+					const linkType =
+						(c as Record<string, unknown>).link_type === "blocks"
+							? "blocks"
+							: (c as Record<string, unknown>).link_type === "relates_to"
+								? "related to"
+								: "duplicates";
+					return `added task link (${linkType})`;
+				}
+				case "task.link.removed":
+					return "removed task link";
 				case "agent.session.started": {
 					const convId = (c as Record<string, unknown>).conversation_id as
 						| string

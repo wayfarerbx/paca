@@ -150,6 +150,19 @@ const (
 	// CodeCommentContentInvalid indicates an empty or invalid comment content.
 	CodeCommentContentInvalid Code = "ACTIVITY_COMMENT_CONTENT_INVALID"
 
+	// --- Task link errors ------------------------------------------------
+
+	// CodeTaskLinkNotFound indicates the requested task link does not exist.
+	CodeTaskLinkNotFound Code = "TASK_LINK_NOT_FOUND"
+	// CodeTaskLinkSelf indicates an attempt to link a task to itself.
+	CodeTaskLinkSelf Code = "TASK_LINK_CANNOT_LINK_TO_SELF"
+	// CodeTaskLinkDuplicate indicates the relationship already exists.
+	CodeTaskLinkDuplicate Code = "TASK_LINK_ALREADY_EXISTS"
+	// CodeTaskLinkCrossProject indicates an attempt to link tasks from different projects.
+	CodeTaskLinkCrossProject Code = "TASK_LINK_CROSS_PROJECT"
+
+	// --- Document errors --------------------------------------------------
+
 	// CodeDocNotFound indicates the requested document does not exist.
 	CodeDocNotFound Code = "DOC_NOT_FOUND"
 	// CodeDocTitleInvalid indicates an empty or invalid document title.

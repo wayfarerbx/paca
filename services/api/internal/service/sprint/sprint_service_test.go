@@ -174,6 +174,22 @@ func (r *fakeTaskRepo) SumTaskField(_ context.Context, _ uuid.UUID, _ taskdom.Ta
 	return 0, nil
 }
 
+func (r *fakeTaskRepo) ListTaskLinks(_ context.Context, _ uuid.UUID) ([]*taskdom.TaskLink, error) {
+	return []*taskdom.TaskLink{}, nil
+}
+
+func (r *fakeTaskRepo) FindTaskLinkByID(_ context.Context, _ uuid.UUID) (*taskdom.TaskLink, error) {
+	return nil, taskdom.ErrTaskLinkNotFound
+}
+
+func (r *fakeTaskRepo) CreateTaskLinkIfNotExists(_ context.Context, _ *taskdom.TaskLink) (bool, error) {
+	return true, nil
+}
+
+func (r *fakeTaskRepo) DeleteTaskLink(_ context.Context, _ uuid.UUID) error {
+	return nil
+}
+
 func (r *fakeTaskRepo) BulkMoveSprintTasks(_ context.Context, projectID, sourceSprintID uuid.UUID, targetSprintID *uuid.UUID) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

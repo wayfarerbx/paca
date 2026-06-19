@@ -1243,3 +1243,153 @@ func (h *TaskHandler) DeleteComment(w http.ResponseWriter, r *http.Request) {
 	}
 	presenter.NoContent(w)
 }
+
+// --- Task Links -------------------------------------------------------------
+
+// ListTaskLinks handles GET /projects/:projectId/tasks/:taskId/links.
+func (h *TaskHandler) ListTaskLinks(w http.ResponseWriter, r *http.Request) {
+	projectID, err := parseProjectID(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	taskID, err := parseTaskID(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	links, err := h.svc.ListTaskLinks(r.Context(), projectID, taskID)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	resp := make([]dto.TaskLinkResponse, 0, len(links))
+	for _, l := range links {
+		resp = append(resp, dto.TaskLinkFromEntity(l))
+	}
+	presenter.OK(w, r, map[string]any{"items": resp})
+}
+
+// CreateTaskLink handles POST /projects/:projectId/tasks/:taskId/links.
+func (h *TaskHandler) CreateTaskLink(w http.ResponseWriter, r *http.Request) {
+	projectID, err := parseProjectID(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	taskID, err := parseTaskID(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	var req dto.CreateTaskLinkRequest
+	if !middleware.BindJSON(w, r, &req) {
+		return
+	}
+	if req.TargetTaskID == uuid.Nil {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "target_task_id is required"))
+		return
+	}
+	if !taskdom.ValidLinkTypes[req.LinkType] {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "invalid link_type"))
+		return
+	}
+
+	actorID, _ := middleware.ActorIDFromContext(r.Context())
+	var createdBy *uuid.UUID
+	if actorID != uuid.Nil {
+		createdBy = &actorID
+	}
+
+	link, err := h.svc.CreateTaskLink(r.Context(), taskdom.CreateTaskLinkInput{
+		ProjectID:    projectID,
+		SourceTaskID: taskID,
+		TargetTaskID: req.TargetTaskID,
+		LinkType:     req.LinkType,
+		CreatedBy:    createdBy,
+	})
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	// Record link creation activity (best-effort).
+	if actorID, ok := middleware.ActorIDFromContext(r.Context()); ok {
+		agentID, _ := middleware.AgentIDFromContext(r.Context())
+		var agentIDPtr *uuid.UUID
+		if agentID != uuid.Nil {
+			agentIDPtr = &agentID
+		}
+		content, _ := json.Marshal(map[string]any{
+			"target_task_id": req.TargetTaskID,
+			"link_type":      req.LinkType,
+		})
+		_ = h.activitySvc.RecordActivity(r.Context(), taskdom.RecordActivityInput{
+			TaskID:       taskID,
+			ProjectID:    projectID,
+			ActorID:      &actorID,
+			ActorAgentID: agentIDPtr,
+			ActivityType: taskdom.ActivityTypeTaskLinkAdded,
+			Content:      content,
+		})
+	}
+
+	presenter.Created(w, r, dto.TaskLinkFromEntity(link))
+}
+
+// DeleteTaskLink handles DELETE /projects/:projectId/tasks/:taskId/links/:linkId.
+func (h *TaskHandler) DeleteTaskLink(w http.ResponseWriter, r *http.Request) {
+	projectID, err := parseProjectID(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	taskID, err := parseTaskID(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	linkID, err := parseLinkID(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	if err := h.svc.DeleteTaskLink(r.Context(), projectID, taskID, linkID); err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	// Record link deletion activity (best-effort).
+	if actorID, ok := middleware.ActorIDFromContext(r.Context()); ok {
+		agentID, _ := middleware.AgentIDFromContext(r.Context())
+		var agentIDPtr *uuid.UUID
+		if agentID != uuid.Nil {
+			agentIDPtr = &agentID
+		}
+		content, _ := json.Marshal(map[string]any{"link_id": linkID})
+		_ = h.activitySvc.RecordActivity(r.Context(), taskdom.RecordActivityInput{
+			TaskID:       taskID,
+			ProjectID:    projectID,
+			ActorID:      &actorID,
+			ActorAgentID: agentIDPtr,
+			ActivityType: taskdom.ActivityTypeTaskLinkRemoved,
+			Content:      content,
+		})
+	}
+
+	presenter.NoContent(w)
+}
+
+// parseLinkID parses the :linkId path parameter.
+func parseLinkID(r *http.Request) (uuid.UUID, error) {
+	raw := chi.URLParam(r, "linkId")
+	id, err := uuid.Parse(raw)
+	if err != nil {
+		return uuid.Nil, apierr.New(apierr.CodeBadRequest, "invalid link id")
+	}
+	return id, nil
+}

@@ -1,8 +1,10 @@
 import type {
 	CreateCommentInput,
+	CreateTaskLinkInput,
 	PacaConfig,
 	SuccessEnvelope,
 	TaskActivity,
+	TaskLink,
 	UpdateCommentInput,
 } from "../types/index.js";
 import { markdownToBlocknote } from "../utils/index.js";
@@ -183,5 +185,38 @@ export class PacaAPITaskExtendedClient {
 			return response;
 		}
 		return response.items || response.members || response.data || [];
+	}
+
+	// ==================== Task Links ====================
+
+	async listTaskLinks(projectId: string, taskId: string): Promise<TaskLink[]> {
+		const response = await this.get(
+			`/api/v1/projects/${projectId}/tasks/${taskId}/links`,
+		);
+		if (Array.isArray(response)) {
+			return response;
+		}
+		return response.items || response.links || response.data || [];
+	}
+
+	async createTaskLink(
+		projectId: string,
+		taskId: string,
+		input: CreateTaskLinkInput,
+	): Promise<TaskLink> {
+		return this.post(
+			`/api/v1/projects/${projectId}/tasks/${taskId}/links`,
+			input,
+		);
+	}
+
+	async deleteTaskLink(
+		projectId: string,
+		taskId: string,
+		linkId: string,
+	): Promise<void> {
+		await this.delete(
+			`/api/v1/projects/${projectId}/tasks/${taskId}/links/${linkId}`,
+		);
 	}
 }
