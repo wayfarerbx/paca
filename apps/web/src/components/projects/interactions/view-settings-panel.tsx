@@ -100,20 +100,35 @@ function DynamicSelect({
 	options: { key: string; label: string }[];
 	onChange: (v: string | undefined) => void;
 }) {
+	const selected = options.find((o) => o.key === value);
 	return (
-		<select
-			value={value ?? ""}
-			onChange={(e) =>
-				onChange(e.target.value === "" ? undefined : e.target.value)
-			}
-			className="flex-1 cursor-pointer rounded-md border border-border/30 bg-background px-2 py-1 text-xs font-medium outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20 min-w-0"
-		>
-			{options.map((o) => (
-				<option key={o.key} value={o.key}>
-					{o.label}
-				</option>
-			))}
-		</select>
+		<Popover>
+			<PopoverTrigger
+				type="button"
+				className="flex flex-1 items-center justify-between gap-1.5 cursor-pointer rounded-md border border-border/30 bg-background px-2 py-1 text-xs font-medium outline-none transition-all hover:border-border/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 min-w-0"
+			>
+				<span className="truncate">{selected?.label ?? "—"}</span>
+				<ChevronDown className="size-3 shrink-0 text-muted-foreground/50" />
+			</PopoverTrigger>
+			<PopoverContent
+				className="w-44 p-1 rounded-lg border border-border/40 shadow-lg"
+				align="start"
+			>
+				{options.map((o) => (
+					<button
+						key={o.key}
+						type="button"
+						className="flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-xs hover:bg-muted/60 transition-colors duration-100"
+						onClick={() => onChange(o.key)}
+					>
+						<span className="flex-1 text-left truncate">{o.label}</span>
+						{o.key === value && (
+							<Check className="size-3.5 text-primary shrink-0" />
+						)}
+					</button>
+				))}
+			</PopoverContent>
+		</Popover>
 	);
 }
 
@@ -947,17 +962,11 @@ export function ViewSettingsPanel({
 							</SettingRow>
 
 							<SettingRow label="Sort by">
-								<select
+								<DynamicSelect
 									value={sortByValue}
-									onChange={(e) => update({ sort_by: e.target.value })}
-									className="flex-1 cursor-pointer rounded-md border border-border/30 bg-background px-2 py-1 text-xs font-medium outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20 min-w-0"
-								>
-									{sortByOpts.map((o) => (
-										<option key={o.key} value={o.key}>
-											{o.label}
-										</option>
-									))}
-								</select>
+									options={sortByOpts}
+									onChange={(v) => update({ sort_by: v })}
+								/>
 							</SettingRow>
 
 							<SettingRow label="Field sum">

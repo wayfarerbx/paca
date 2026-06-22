@@ -1,6 +1,5 @@
 import { Check, GripVertical, Layers, Link, User } from "lucide-react";
 
-import { getTaskTypeIconComponent } from "@/components/projects/task-types/task-type-icons";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -26,6 +25,7 @@ import {
 	IMPORTANCE_BUCKET_VALUES,
 	PRIORITY_LEVELS,
 } from "./priority";
+import { TaskTypeSelector } from "./task-type-selector";
 import { DEFAULT_VISIBLE_FIELDS, type TaskFieldUpdate } from "./view-utils";
 
 // ── Column config ──────────────────────────────────────────────────────────────
@@ -42,7 +42,7 @@ export function getRowColConfig(
 ): ColConfig {
 	switch (fieldKey) {
 		case "type":
-			return { className: "w-16 shrink-0", headerLabel: "Type" };
+			return { className: "w-28 shrink-0", headerLabel: "Type" };
 		case "importance":
 			return {
 				className: "w-20 shrink-0",
@@ -149,7 +149,6 @@ export function TaskRow({
 	canEdit,
 	onUpdateTaskField,
 }: TaskRowProps) {
-	const taskType = taskTypes.find((t) => t.id === task.task_type_id);
 	const status = statuses.find((s) => s.id === task.status_id);
 
 	/** Renders a single cell value for the given field key. */
@@ -160,7 +159,7 @@ export function TaskRow({
 
 		switch (fieldKey) {
 			case "type":
-				return canEditField && taskTypes.length > 0 ? (
+				return canEditField ? (
 					// biome-ignore lint/a11y/noStaticElementInteractions: cell container stops propagation; inner controls are the interactive elements
 					<div
 						key="type"
@@ -168,84 +167,24 @@ export function TaskRow({
 						onClick={(e) => e.stopPropagation()}
 						onKeyDown={(e) => e.stopPropagation()}
 					>
-						<Popover>
-							<PopoverTrigger
-								type="button"
-								className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-bold leading-tight tracking-wide border truncate max-w-full hover:opacity-80 transition-opacity"
-								style={
-									taskType
-										? {
-												borderColor: taskType.color
-													? `${taskType.color}44`
-													: "var(--border)",
-												backgroundColor: taskType.color
-													? `${taskType.color}15`
-													: "var(--muted)",
-												color: taskType.color ?? "inherit",
-											}
-										: undefined
-								}
-							>
-								{taskType ? (
-									taskType.name
-								) : (
-									<span className="text-sm text-muted-foreground/50">—</span>
-								)}
-							</PopoverTrigger>
-							<PopoverContent
-								className="w-44 p-1 rounded-xl border border-border/40 shadow-lg"
-								align="start"
-							>
-								{taskTypes.map((tt) => {
-									const TtIcon = getTaskTypeIconComponent(tt.icon);
-									return (
-										<button
-											key={tt.id}
-											type="button"
-											className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted/60 transition-colors duration-100"
-											onClick={() =>
-												onUpdateTaskField(task.id, { task_type_id: tt.id })
-											}
-										>
-											{TtIcon && (
-												<TtIcon
-													className="size-3.5 shrink-0"
-													style={tt.color ? { color: tt.color } : undefined}
-												/>
-											)}
-											<span className="flex-1 text-left">{tt.name}</span>
-											{tt.id === taskType?.id && (
-												<Check className="size-3.5 text-primary" />
-											)}
-										</button>
-									);
-								})}
-							</PopoverContent>
-						</Popover>
+						<TaskTypeSelector
+							taskTypes={taskTypes}
+							value={task.task_type_id}
+							onChange={(id) =>
+								onUpdateTaskField(task.id, { task_type_id: id })
+							}
+						/>
 					</div>
 				) : (
 					<div
 						key="type"
 						className={cn(col.className, responsiveClass, "items-center")}
 					>
-						{taskType ? (
-							<span
-								className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-bold leading-tight tracking-wide border truncate max-w-full"
-								style={{
-									borderColor: taskType.color
-										? `${taskType.color}44`
-										: "var(--border)",
-									backgroundColor: taskType.color
-										? `${taskType.color}15`
-										: "var(--muted)",
-									color: taskType.color ?? "inherit",
-								}}
-							>
-								{taskType.name}
-							</span>
-						) : (
-							<span className="text-sm text-muted-foreground/50">—</span>
-						)}
+						<TaskTypeSelector
+							taskTypes={taskTypes}
+							value={task.task_type_id}
+							canEdit={false}
+						/>
 					</div>
 				);
 

@@ -1,5 +1,4 @@
 import { Check, User } from "lucide-react";
-import { getTaskTypeIconComponent } from "@/components/projects/task-types/task-type-icons";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -19,6 +18,7 @@ import {
 	IMPORTANCE_BUCKET_VALUES,
 	PRIORITY_LEVELS,
 } from "../priority";
+import { TaskTypeSelector } from "../task-type-selector";
 
 type SubtaskUpdatePayload = Partial<{
 	status_id: string | null;
@@ -52,7 +52,6 @@ export function SubtaskRow({
 	onClick,
 }: SubtaskRowProps) {
 	const status = statuses.find((s) => s.id === task.status_id);
-	const taskType = taskTypes.find((t) => t.id === task.task_type_id);
 	const assignee = members.find((m) => m.id === task.assignee_id);
 	const priority = getPriority(task.importance ?? 0);
 	const canEditField = !!(canEdit && onUpdate);
@@ -91,79 +90,13 @@ export function SubtaskRow({
 					onClick={(e) => e.stopPropagation()}
 					onKeyDown={(e) => e.stopPropagation()}
 				>
-					{canEditField && taskTypes.length > 0 ? (
-						<Popover>
-							<PopoverTrigger
-								type="button"
-								className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-bold leading-tight tracking-wide border hover:opacity-80 transition-opacity"
-								style={
-									taskType
-										? {
-												borderColor: taskType.color
-													? `${taskType.color}44`
-													: "var(--border)",
-												backgroundColor: taskType.color
-													? `${taskType.color}15`
-													: "var(--muted)",
-												color: taskType.color ?? "inherit",
-											}
-										: undefined
-								}
-							>
-								{taskType ? (
-									taskType.name
-								) : (
-									<span className="text-muted-foreground/50">—</span>
-								)}
-							</PopoverTrigger>
-							<PopoverContent
-								className="w-44 p-1 rounded-xl border border-border/40 shadow-lg"
-								align="end"
-							>
-								{taskTypes.map((tt) => {
-									const TtIcon = getTaskTypeIconComponent(tt.icon);
-									return (
-										<button
-											key={tt.id}
-											type="button"
-											className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-muted/60 transition-colors duration-100"
-											onClick={() =>
-												onUpdate?.(task.id, { task_type_id: tt.id })
-											}
-										>
-											{TtIcon && (
-												<TtIcon
-													className="size-3.5 shrink-0"
-													style={tt.color ? { color: tt.color } : undefined}
-												/>
-											)}
-											<span className="flex-1 text-left">{tt.name}</span>
-											{tt.id === task.task_type_id && (
-												<Check className="size-3.5 text-primary" />
-											)}
-										</button>
-									);
-								})}
-							</PopoverContent>
-						</Popover>
-					) : (
-						taskType && (
-							<span
-								className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-bold leading-tight tracking-wide border"
-								style={{
-									borderColor: taskType.color
-										? `${taskType.color}44`
-										: "var(--border)",
-									backgroundColor: taskType.color
-										? `${taskType.color}15`
-										: "var(--muted)",
-									color: taskType.color ?? "inherit",
-								}}
-							>
-								{taskType.name}
-							</span>
-						)
-					)}
+					<TaskTypeSelector
+						taskTypes={taskTypes}
+						value={task.task_type_id}
+						canEdit={canEditField && taskTypes.length > 0}
+						onChange={(id) => onUpdate?.(task.id, { task_type_id: id })}
+						align="end"
+					/>
 				</div>
 			)}
 

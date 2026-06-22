@@ -28,6 +28,7 @@ import {
 	IMPORTANCE_BUCKET_VALUES,
 	PRIORITY_LEVELS,
 } from "../priority";
+import { TaskTypeSelector } from "../task-type-selector";
 import { AddFieldDialog } from "./add-field-dialog";
 import { FieldRow, FieldValue } from "./primitives";
 import type { SelectOption, UserOption } from "./property-field";
@@ -117,17 +118,6 @@ export function PropertiesPanel({
 		colorDot: s.color ?? undefined,
 	}));
 
-	const taskTypeOptions: SelectOption[] = taskTypes.map((tt) => {
-		const Ic = getTaskTypeIconComponent(tt.icon);
-		return {
-			value: tt.id,
-			label: tt.name,
-			icon: Ic ? (
-				<Ic className="size-3.5 text-muted-foreground/80 shrink-0" />
-			) : undefined,
-		};
-	});
-
 	const sprintOptions: SelectOption[] = [
 		{
 			value: "__backlog__",
@@ -181,17 +171,16 @@ export function PropertiesPanel({
 					</button>
 				</FieldRow>
 
-				<PropertyField
-					label="Type"
-					mode="select"
-					value={taskType?.id}
-					options={taskTypeOptions}
-					onChange={(v) =>
-						onUpdate?.({ task_type_id: typeof v === "string" ? v : null })
-					}
-					canEdit={canEdit && taskTypes.length > 0}
-					hidden={!taskType && !(canEdit && taskTypes.length > 0)}
-				/>
+				{(taskType || (canEdit && taskTypes.length > 0)) && (
+					<FieldRow label="Type">
+						<TaskTypeSelector
+							taskTypes={taskTypes}
+							value={taskType?.id}
+							canEdit={canEdit && taskTypes.length > 0}
+							onChange={(id) => onUpdate?.({ task_type_id: id })}
+						/>
+					</FieldRow>
+				)}
 
 				<FieldRow label="Relationships">
 					<button
