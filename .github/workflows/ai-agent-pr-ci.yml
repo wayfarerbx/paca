@@ -118,3 +118,48 @@ jobs:
           tags: paca-ai-agent-ci:pr
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # ---------------------------------------------------------------------------
+  # 4. E2E tests — real OpenHands agent-server sandbox + a fake in-process
+  #    LLM server. Regression coverage for the agent-reply-never-persisted
+  #    bug (https://github.com/Paca-AI/paca/issues/211, #214).
+  # ---------------------------------------------------------------------------
+  test-e2e:
+    name: E2E tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [lint, test]
+
+    defaults:
+      run:
+        working-directory: services/ai-agent
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: "services/ai-agent/pyproject.toml"
+
+      - name: Install dev dependencies
+        env:
+          VIRTUAL_ENV: ""
+        run: |
+          uv venv
+          uv pip install --group dev -e .
+
+      - name: Pull agent-server sandbox image
+        # Reported as its own step for clearer timing in the Actions UI —
+        # this pulls several GB on a cold cache.
+        run: docker pull ghcr.io/openhands/agent-server:latest-python
+
+      - name: Run E2E tests
+        env:
+          PACA_E2E: "1"
+        run: uv run pytest tests/e2e -v --tb=short

@@ -180,6 +180,36 @@ class _AtomicCounter:
             return v
 
 
+class _TurnState:
+    """Tracks whether _make_token_callback already persisted the agent's
+    reply for the in-flight turn.
+
+    openhands.sdk.conversation.impl.RemoteConversation accepts a
+    token_callbacks kwarg but never wires it to anything — Conversation()
+    always builds a RemoteConversation here since docker_sandbox() always
+    yields a RemoteWorkspace, so on_token is never actually invoked.
+    _make_event_callback consults this flag to fall back to persisting the
+    SDK's own MessageEvent instead, so the reply is never silently dropped.
+    See https://github.com/Paca-AI/paca/issues/211 and #214.
+    """
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._token_persisted = False
+
+    def mark_token_persisted(self) -> None:
+        with self._lock:
+            self._token_persisted = True
+
+    def consume(self) -> bool:
+        """Return True if the token callback persisted this turn, clearing
+        the flag for the next one."""
+        with self._lock:
+            was_persisted = self._token_persisted
+            self._token_persisted = False
+            return was_persisted
+
+
 # ─── Event callback ───────────────────────────────────────────────────────────
 
 
@@ -187,13 +217,15 @@ def _make_event_callback(
     trigger: TriggerMessage,
     loop: asyncio.AbstractEventLoop,
     counter: _AtomicCounter,
+    turn_state: _TurnState,
 ):
     """Return a synchronous callback invoked by the OpenHands SDK on each complete event.
 
-    Agent MessageEvents are skipped here because _make_token_callback captures
-    the LLM's text output directly from the streaming response, which gives
-    cleaner content without SDK wrapper fields.  All other events (actions,
-    observations, system messages) are saved normally.
+    Agent MessageEvents are normally skipped here in favor of
+    _make_token_callback, which captures the LLM's text output directly from
+    the streaming response for cleaner content without SDK wrapper fields —
+    when on_token actually gets invoked (see _TurnState). All other events
+    (actions, observations, system messages) are saved normally.
     """
 
     def callback(event) -> None:
@@ -203,15 +235,19 @@ def _make_event_callback(
         # Events the frontend never renders — skip to avoid wasting event_index
         # slots and polluting the paginated events list.
         if event_type in {
-            "StreamingDeltaEvent",  # streaming chunks (handled by token_callbacks)
+            "StreamingDeltaEvent",  # raw streaming chunks — only the final message matters
             "ConversationStateUpdateEvent",  # internal iteration bookkeeping
             "SystemPromptEvent",  # system prompt echo — not shown to user
             "ConversationErrorEvent",  # SDK error signal — surfaced via conversation status
         }:
             return
-        # Agent text responses are captured by token_callbacks with richer
-        # streaming data; skip them here to avoid duplicate DB rows.
-        if event_type == "MessageEvent" and event_source == "agent":
+        # Agent text responses are normally captured by token_callbacks with
+        # richer streaming data; skip them here to avoid duplicate DB rows —
+        # unless the token callback never actually persisted this turn (it
+        # never fires at all for RemoteConversation — see _TurnState), in
+        # which case fall through and persist this event instead of silently
+        # dropping the reply.
+        if event_type == "MessageEvent" and event_source == "agent" and turn_state.consume():
             return
 
         event_index = counter.next()
@@ -262,6 +298,7 @@ def _make_token_callback(
     trigger: TriggerMessage,
     loop: asyncio.AbstractEventLoop,
     counter: _AtomicCounter,
+    turn_state: _TurnState,
 ):
     """Return a token callback that accumulates streaming LLM chunks into complete
     messages and persists each finished message as a MessageEvent.
@@ -331,6 +368,7 @@ def _make_token_callback(
                     future = asyncio.run_coroutine_threadsafe(_persist(), loop)
                     try:
                         future.result(timeout=10)
+                        turn_state.mark_token_persisted()
                     except Exception as exc:
                         logger.warning(
                             "Token callback persist failed for conversation %s: %s",
@@ -358,6 +396,7 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
     """Execute a single agent conversation end-to-end."""
     loop = asyncio.get_event_loop()
     counter = _AtomicCounter()
+    turn_state = _TurnState()
     stop_event = threading.Event()
     logger.info("Starting conversation %s (agent=%s)", trigger.conversation_id, trigger.agent_id)
     await conversation_repository.update_conversation_status(trigger.conversation_id, "running")
@@ -478,8 +517,8 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
                 conversation = Conversation(
                     agent=agent,
                     workspace=workspace,
-                    callbacks=[_make_event_callback(trigger, loop, counter)],
-                    token_callbacks=[_make_token_callback(trigger, loop, counter)],
+                    callbacks=[_make_event_callback(trigger, loop, counter, turn_state)],
+                    token_callbacks=[_make_token_callback(trigger, loop, counter, turn_state)],
                     max_iteration_per_run=agent_config.max_iterations,
                     visualizer=_QuietVisualizer(),
                 )
