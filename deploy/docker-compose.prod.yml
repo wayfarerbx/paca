@@ -66,6 +66,76 @@ services:
       timeout: 5s
       retries: 10
 
+  # ── Database backups ─────────────────────────────────────────────────────────
+  # Writes a gzip-compressed pg_dump to BACKUP_DIR on the schedule given by
+  # BACKUP_CRON (standard 5-field cron syntax), deleting dumps older than
+  # BACKUP_RETENTION_DAYS. Works against the bundled postgres container above
+  # or an external DATABASE_URL. Suppress with --scale db-backup=0.
+  # Scheduling is delegated to crond, which blocks until the next due minute
+  # (no polling loop), and the container is capped under resources.limits — so
+  # it stays near-idle on CPU/memory except for the brief daily dump window.
+  # Restore: gunzip -c <file>.sql.gz | docker compose exec -T postgres psql -U ${POSTGRES_USER:-paca} -d ${POSTGRES_DB:-paca}
+  db-backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-paca}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-paca}?sslmode=disable}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+      # Standard 5-field cron syntax: minute hour day-of-month month day-of-week.
+      # Interpreted in TZ below (UTC by default). Default: 02:00 daily.
+      BACKUP_CRON: ${BACKUP_CRON:-0 2 * * *}
+      TZ: ${TZ:-UTC}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        if [ "$$(echo "$$BACKUP_CRON" | wc -w)" -ne 5 ]; then
+          echo "Invalid BACKUP_CRON '$$BACKUP_CRON': expected 5 fields (minute hour day month weekday)" >&2
+          exit 1
+        fi
+
+        # Cron jobs run with a minimal environment, so persist what the backup
+        # script needs and have it source this file explicitly.
+        cat > /etc/backup.env <<EOF
+        DATABASE_URL="$$DATABASE_URL"
+        BACKUP_RETENTION_DAYS="$$BACKUP_RETENTION_DAYS"
+        EOF
+
+        cat > /usr/local/bin/run-backup.sh <<'EOS'
+        #!/bin/sh
+        set -e -o pipefail
+        . /etc/backup.env
+        ts="$$(date +%Y%m%d-%H%M%S)"
+        tmp="/backups/.paca-$${ts}.sql.gz.tmp"
+        out="/backups/paca-$${ts}.sql.gz"
+        if pg_dump "$$DATABASE_URL" --no-owner | gzip > "$$tmp"; then
+          mv "$$tmp" "$$out"
+          echo "Backup written: $$out"
+          find /backups -maxdepth 1 -name 'paca-*.sql.gz' -mtime "+$${BACKUP_RETENTION_DAYS}" -delete
+        else
+          echo "Backup failed at $${ts}" >&2
+          rm -f "$$tmp"
+        fi
+        EOS
+        chmod +x /usr/local/bin/run-backup.sh
+
+        mkdir -p /var/spool/cron/crontabs
+        echo "$$BACKUP_CRON /usr/local/bin/run-backup.sh >>/proc/1/fd/1 2>>/proc/1/fd/2" > /var/spool/cron/crontabs/root
+
+        echo "Database backup service started — schedule: $$BACKUP_CRON $$TZ (retention: $$BACKUP_RETENTION_DAYS days)."
+        exec crond -f -d 8
+    volumes:
+      - ${BACKUP_DIR:-./backups}:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+        required: false
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+
   # ── Valkey (Redis-compatible cache / pub-sub) ────────────────────────────────
   valkey:
     image: valkey/valkey:8-alpine

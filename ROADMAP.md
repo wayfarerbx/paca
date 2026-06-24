@@ -109,7 +109,7 @@ _Goal: production-grade stability, security, and observability for real teams._
 - 📋 Health check endpoints for all services
 - 📋 Prometheus metrics export
 - 📋 Structured JSON logging
-- 📋 Backup and restore tooling for PostgreSQL data
+- ✅ Backup and restore tooling for PostgreSQL data
 - 📋 Upgrade migration guide and tooling
 
 ### Performance & Scale

@@ -310,6 +310,52 @@ else
     info "A bundled PostgreSQL container will be started."
 fi
 
+# ── Database backups ──────────────────────────────────────────────────────────
+
+heading "Database backups"
+
+echo "  Writes a gzip-compressed database dump to a directory you choose, on a"
+echo "  cron schedule you set, pruning dumps past the retention period. Works"
+echo "  with the bundled PostgreSQL container or an external database."
+echo ""
+
+INCLUDE_BACKUPS="yes"
+yes_no INCLUDE_BACKUPS "Enable automated database backups?" "y"
+
+SCALE_DB_BACKUP=""
+BACKUP_DIR="./backups"
+BACKUP_CRON="0 2 * * *"
+BACKUP_RETENTION_DAYS="7"
+
+# validate_cron VALUE
+# Mirrors the db-backup container's own check: exactly 5 whitespace-separated fields.
+validate_cron() {
+    local v="$1"
+    local -a fields
+    read -ra fields <<< "$v"
+    if (( ${#fields[@]} != 5 )); then
+        error "Cron schedule must have exactly 5 fields (minute hour day month weekday)."
+        return 1
+    fi
+    return 0
+}
+
+if [[ "$INCLUDE_BACKUPS" == "no" ]]; then
+    SCALE_DB_BACKUP="--scale db-backup=0"
+    info "Automated backups will be skipped."
+else
+    ask BACKUP_DIR "Directory to store backups in" "$BACKUP_DIR"
+    while true; do
+        ask BACKUP_CRON "Backup schedule (cron syntax, interpreted in UTC unless you set TZ in .env later)" "$BACKUP_CRON"
+        if validate_cron "$BACKUP_CRON"; then
+            break
+        fi
+    done
+    ask BACKUP_RETENTION_DAYS "Days of backups to keep" "$BACKUP_RETENTION_DAYS"
+    mkdir -p "$BACKUP_DIR"
+    info "Backups will run on '${BACKUP_CRON}' (UTC), written to ${BACKUP_DIR} (kept for ${BACKUP_RETENTION_DAYS} days)."
+fi
+
 # ── Object storage ────────────────────────────────────────────────────────────
 
 heading "Object storage"
@@ -539,6 +585,13 @@ POSTGRES_PASSWORD=${POSTGRES_PASSWORD_VALUE}
 # Override: leave blank to use the bundled postgres container above.
 DATABASE_URL=${DATABASE_URL_OVERRIDE}
 
+# ── Database backups ─────────────────────────────────────────────────────────
+BACKUP_DIR=${BACKUP_DIR}
+# Standard 5-field cron syntax, interpreted in UTC. Uncomment TZ below to change.
+BACKUP_CRON=${BACKUP_CRON}
+BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS}
+# TZ=America/New_York
+
 # ── Cache (Valkey) ────────────────────────────────────────────────────────────
 # Leave blank to use the bundled Valkey container.
 REDIS_URL=
@@ -583,6 +636,7 @@ echo -e "  ${BOLD}Version     ${RESET}${PACA_VERSION}"
 echo -e "  ${BOLD}Public URL  ${RESET}${PUBLIC_URL}"
 echo -e "  ${BOLD}HTTPS       ${RESET}$( [[ "$USE_HTTPS" == "yes" ]] && echo "Enabled (${SITE_ADDRESS})" || echo "Disabled (plain HTTP)" )"
 echo -e "  ${BOLD}Database    ${RESET}$( [[ -n "$SCALE_POSTGRES" ]] && echo "External PostgreSQL" || echo "Bundled PostgreSQL container" )"
+echo -e "  ${BOLD}Backups     ${RESET}$( [[ -n "$SCALE_DB_BACKUP" ]] && echo "Disabled" || echo "'${BACKUP_CRON}' UTC → ${BACKUP_DIR} (kept ${BACKUP_RETENTION_DAYS}d)" )"
 echo -e "  ${BOLD}Storage     ${RESET}$( [[ "$STORAGE_PROVIDER" == "s3" ]] && echo "AWS S3 (${STORAGE_BUCKET})" || echo "Self-hosted MinIO" )"
 echo -e "  ${BOLD}Web app     ${RESET}$( [[ -n "$SCALE_WEB" ]] && echo "External / CDN (container skipped)" || echo "Bundled container" )"
 echo -e "  ${BOLD}AI Agent    ${RESET}$( [[ -n "$SCALE_AI_AGENT" ]] && echo "Disabled" || echo "Enabled" )"
@@ -597,7 +651,7 @@ if [[ "$START" != "yes" ]]; then
     warn "Installation files are ready. Start Paca manually with:"
     echo ""
     bold "  cd $(pwd)"
-    bold "  ${COMPOSE_CMD} --env-file .env up -d ${SCALE_POSTGRES} ${SCALE_MINIO} ${SCALE_WEB} ${SCALE_AI_AGENT} --pull always"
+    bold "  ${COMPOSE_CMD} --env-file .env up -d ${SCALE_POSTGRES} ${SCALE_DB_BACKUP} ${SCALE_MINIO} ${SCALE_WEB} ${SCALE_AI_AGENT} --pull always"
     echo ""
     exit 0
 fi
@@ -608,6 +662,7 @@ heading "Starting Paca"
 
 SCALE_OPTS=()
 [[ -n "$SCALE_POSTGRES"  ]] && SCALE_OPTS+=($SCALE_POSTGRES)
+[[ -n "$SCALE_DB_BACKUP" ]] && SCALE_OPTS+=($SCALE_DB_BACKUP)
 [[ -n "$SCALE_MINIO"     ]] && SCALE_OPTS+=($SCALE_MINIO)
 [[ -n "$SCALE_WEB"       ]] && SCALE_OPTS+=($SCALE_WEB)
 [[ -n "$SCALE_AI_AGENT"  ]] && SCALE_OPTS+=($SCALE_AI_AGENT)
