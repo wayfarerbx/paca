@@ -41,8 +41,9 @@ import {
 	buildFieldSumOptions,
 	buildSortByOptions,
 	buildSwimlaneOptions,
-	DEFAULT_PAGE_SIZE,
 	DEFAULT_VISIBLE_FIELDS,
+	getDefaultInitialPageSize,
+	getDefaultPageSize,
 	PAGE_SIZE_OPTIONS,
 } from "./view-utils";
 
@@ -852,9 +853,10 @@ export function ViewSettingsPanel({
 	const fieldSumOpts = buildFieldSumOptions(customFields);
 
 	const sortByValue = draft.sort_by ?? "manual";
-	// Mirrors the runtime default in interaction-layout.tsx: board views show
-	// 20 cards per column on first load, table/roadmap views show 5.
-	const defaultInitialPageSize = view?.layout === "Board" ? 20 : 5;
+	// Mirrors the runtime defaults in interaction-layout.tsx (see
+	// PAGE_SIZE_DEFAULTS in view-utils.ts).
+	const defaultInitialPageSize = getDefaultInitialPageSize(view?.layout);
+	const defaultPageSize = getDefaultPageSize(view?.layout);
 	const filterSprintIds = filterConfigToIds(draft.filters?.sprints);
 	const filterStatusIds = filterConfigToIds(draft.filters?.statuses);
 	const filterAssigneeIds = filterConfigToIds(draft.filters?.assignees);
@@ -996,7 +998,7 @@ export function ViewSettingsPanel({
 
 							<SettingRow label="Per page">
 								<DynamicSelect
-									value={String(draft.page_size ?? DEFAULT_PAGE_SIZE)}
+									value={String(draft.page_size ?? defaultPageSize)}
 									options={PAGE_SIZE_OPTIONS}
 									onChange={(v) =>
 										update({ page_size: v ? Number(v) : undefined })

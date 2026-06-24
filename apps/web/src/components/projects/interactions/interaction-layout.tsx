@@ -81,6 +81,8 @@ import { TaskDetailModal } from "./task-detail-modal";
 import { UNASSIGNED_FILTER_ID, ViewSettingsPanel } from "./view-settings-panel";
 import {
 	getColumnGroupDefs,
+	getDefaultInitialPageSize,
+	getDefaultPageSize,
 	getTaskColumnKeys,
 	type TaskFieldUpdate,
 	type ViewContext,
@@ -614,12 +616,13 @@ export function InteractionLayout({
 		!viewsQuery.isLoading &&
 		activeView?.layout !== "Roadmap";
 
-	// Initial page size: configured view setting wins; otherwise board = 20, list/roadmap = 5 on first page.
-	// "Load more" batches use the separate configuredPageSize below, defaulting to 20 regardless of layout.
-	const isBoard = activeView?.layout === "Board";
+	// Initial page size: configured view setting wins; otherwise falls back to
+	// the active layout's default (see PAGE_SIZE_DEFAULTS in view-utils.ts).
+	// "Load more" batches use the separate configuredPageSize below.
 	const configuredPageSize = activeViewConfig?.page_size;
 	const configuredInitialPageSize = activeViewConfig?.initial_page_size;
-	const initialColPageSize = configuredInitialPageSize ?? (isBoard ? 20 : 5);
+	const initialColPageSize =
+		configuredInitialPageSize ?? getDefaultInitialPageSize(activeView?.layout);
 
 	// Base options for column queries (shared filters, excluding the dimension used for column grouping)
 	const colBaseOpts = useMemo(
@@ -732,8 +735,7 @@ export function InteractionLayout({
 	);
 
 	const initialGlobalPageSize =
-		configuredInitialPageSize ??
-		(activeView?.layout === "Roadmap" ? 5 : undefined);
+		configuredInitialPageSize ?? getDefaultInitialPageSize(activeView?.layout);
 	const fallbackQueryOpts = allTasksQueryOptions(projectId, {
 		...fallbackBaseOpts,
 		pageSize: globalExpandedPageSize ?? initialGlobalPageSize,
@@ -783,7 +785,7 @@ export function InteractionLayout({
 			if (!cursor) return;
 			const colOpts = buildColumnFilter(colKey, columnBy, {
 				...colBaseOpts,
-				pageSize: configuredPageSize ?? 20,
+				pageSize: configuredPageSize ?? getDefaultPageSize(activeView?.layout),
 				cursor,
 			});
 			if (!colOpts) return;
@@ -816,6 +818,7 @@ export function InteractionLayout({
 			colLoadingMore,
 			initialColPageSize,
 			configuredPageSize,
+			activeView?.layout,
 		],
 	);
 
@@ -842,7 +845,7 @@ export function InteractionLayout({
 		try {
 			const result = await listAllTasks(projectId, {
 				...fallbackBaseOpts,
-				pageSize: configuredPageSize ?? 20,
+				pageSize: configuredPageSize ?? getDefaultPageSize(activeView?.layout),
 				cursor: globalNextCursor,
 			});
 			setGlobalExtraTasks((prev) => [...prev, ...result.items]);
@@ -850,7 +853,7 @@ export function InteractionLayout({
 			// Grow the effective page size so the next WS-triggered refetch
 			// returns the same number of items currently visible.
 			setGlobalExpandedPageSize(
-				(prev) => (prev ?? initialGlobalPageSize ?? 20) + result.items.length,
+				(prev) => (prev ?? initialGlobalPageSize) + result.items.length,
 			);
 		} finally {
 			setGlobalLoadingMore(false);
@@ -862,6 +865,7 @@ export function InteractionLayout({
 		globalLoadingMore,
 		initialGlobalPageSize,
 		configuredPageSize,
+		activeView?.layout,
 	]);
 
 	const tasks = useMemo(() => {
