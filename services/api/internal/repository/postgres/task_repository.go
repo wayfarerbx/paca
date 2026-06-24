@@ -448,6 +448,28 @@ func applyTaskFilter(b *queryBuilder, filter taskdom.TaskFilter) {
 	case len(filter.TaskTypeIDs) > 0:
 		b.addInClause("task_type_id", uuidSliceToStrSlice(filter.TaskTypeIDs))
 	}
+
+	if filter.Search != nil {
+		if q := strings.TrimSpace(*filter.Search); q != "" {
+			pattern := "%" + escapeLikePattern(q) + "%"
+			p1 := b.placeholder()
+			b.args = append(b.args, pattern)
+			p2 := b.placeholder()
+			b.args = append(b.args, pattern)
+			b.whereClauses = append(b.whereClauses, fmt.Sprintf(
+				"(title ILIKE %s OR ('#' || task_number::text) ILIKE %s)", p1, p2))
+		}
+	}
+}
+
+// escapeLikePattern escapes the LIKE/ILIKE wildcard characters (% and _) and
+// the backslash escape character itself, so free-text search input is matched
+// literally instead of as a glob pattern.
+func escapeLikePattern(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, "%", `\%`)
+	s = strings.ReplaceAll(s, "_", `\_`)
+	return s
 }
 
 // applyTaskSort returns the FROM/JOIN extension and ORDER BY clause.

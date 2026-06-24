@@ -142,6 +142,51 @@ func TestViewFromEntity_PluginConfigRoundtrip(t *testing.T) {
 	}
 }
 
+// TestViewFromEntity_PageSizeRoundtrip verifies the page_size field is copied
+// from domain config to DTO config.
+func TestViewFromEntity_PageSizeRoundtrip(t *testing.T) {
+	entity := &sprintdom.SprintView{
+		ID:        uuid.New(),
+		ProjectID: uuid.New(),
+		Name:      "Table",
+		ViewType:  sprintdom.ViewTypeTable,
+		Config: sprintdom.ViewConfig{
+			PageSize: 50,
+		},
+	}
+
+	resp := dto.ViewFromEntity(entity)
+
+	if resp.Config.PageSize != 50 {
+		t.Errorf("PageSize: want 50, got %d", resp.Config.PageSize)
+	}
+}
+
+// TestViewFromEntity_InitialPageSizeRoundtrip verifies the initial_page_size
+// field is copied from domain config to DTO config, independently of
+// PageSize.
+func TestViewFromEntity_InitialPageSizeRoundtrip(t *testing.T) {
+	entity := &sprintdom.SprintView{
+		ID:        uuid.New(),
+		ProjectID: uuid.New(),
+		Name:      "Board",
+		ViewType:  sprintdom.ViewTypeBoard,
+		Config: sprintdom.ViewConfig{
+			PageSize:        20,
+			InitialPageSize: 10,
+		},
+	}
+
+	resp := dto.ViewFromEntity(entity)
+
+	if resp.Config.InitialPageSize != 10 {
+		t.Errorf("InitialPageSize: want 10, got %d", resp.Config.InitialPageSize)
+	}
+	if resp.Config.PageSize != 20 {
+		t.Errorf("PageSize: want 20, got %d", resp.Config.PageSize)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // toViewConfig (via CreateViewRequest / UpdateViewRequest) roundtrip
 // ---------------------------------------------------------------------------
@@ -228,6 +273,54 @@ func TestCreateViewRequest_ToCreateInput_PluginConfigRoundtrip(t *testing.T) {
 	}
 	if input.Config.PluginComponent != "KanbanByPriority" {
 		t.Errorf("PluginComponent: want %q, got %q", "KanbanByPriority", input.Config.PluginComponent)
+	}
+}
+
+// TestCreateViewRequest_ToCreateInput_PageSizeRoundtrip verifies the
+// page_size field is copied from DTO config to domain config through
+// toViewConfig.
+func TestCreateViewRequest_ToCreateInput_PageSizeRoundtrip(t *testing.T) {
+	sprintID := uuid.New()
+	projectID := uuid.New()
+
+	req := dto.CreateViewRequest{
+		Name:     "Table",
+		ViewType: sprintdom.ViewTypeTable,
+		Config: &dto.ViewConfigDTO{
+			PageSize: 100,
+		},
+	}
+
+	input := req.ToCreateInput(sprintID, projectID)
+
+	if input.Config.PageSize != 100 {
+		t.Errorf("PageSize: want 100, got %d", input.Config.PageSize)
+	}
+}
+
+// TestCreateViewRequest_ToCreateInput_InitialPageSizeRoundtrip verifies the
+// initial_page_size field is copied from DTO config to domain config through
+// toViewConfig, independently of PageSize.
+func TestCreateViewRequest_ToCreateInput_InitialPageSizeRoundtrip(t *testing.T) {
+	sprintID := uuid.New()
+	projectID := uuid.New()
+
+	req := dto.CreateViewRequest{
+		Name:     "Board",
+		ViewType: sprintdom.ViewTypeBoard,
+		Config: &dto.ViewConfigDTO{
+			PageSize:        20,
+			InitialPageSize: 10,
+		},
+	}
+
+	input := req.ToCreateInput(sprintID, projectID)
+
+	if input.Config.InitialPageSize != 10 {
+		t.Errorf("InitialPageSize: want 10, got %d", input.Config.InitialPageSize)
+	}
+	if input.Config.PageSize != 20 {
+		t.Errorf("PageSize: want 20, got %d", input.Config.PageSize)
 	}
 }
 

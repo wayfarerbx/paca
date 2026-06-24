@@ -31,7 +31,6 @@ export interface ListViewProps {
 	epics?: Task[];
 	viewConfig?: ViewConfig;
 	canCreate: boolean;
-	searchQuery: string;
 	onCreateTask: (
 		statusId: string,
 		title: string,
@@ -82,7 +81,6 @@ export function ListView({
 	epics = [],
 	viewConfig,
 	canCreate,
-	searchQuery,
 	onCreateTask,
 	onTaskClick,
 	manualSort,
@@ -112,25 +110,6 @@ export function ListView({
 		[statuses, taskTypes, members, customFields, sprints],
 	);
 
-	const filtered = useMemo(
-		() =>
-			tasks.filter((t) => {
-				if (searchQuery) {
-					const q = searchQuery.toLowerCase();
-					const taskId = taskIdPrefix
-						? `${taskIdPrefix}-${t.task_number}`
-						: `#${t.task_number}`;
-					if (
-						!t.title.toLowerCase().includes(q) &&
-						!taskId.toLowerCase().includes(q)
-					)
-						return false;
-				}
-				return true;
-			}),
-		[tasks, searchQuery, taskIdPrefix],
-	);
-
 	const groupDefs = useMemo(
 		() => getColumnGroupDefs(columnBy, viewCtx),
 		[columnBy, viewCtx],
@@ -143,7 +122,7 @@ export function ListView({
 		} else {
 			const seen = new Set<string>();
 			const dynamic: ColumnGroupDef[] = [];
-			for (const t of filtered) {
+			for (const t of tasks) {
 				for (const k of getTaskColumnKeys(t, columnBy, viewCtx)) {
 					if (!seen.has(k)) {
 						seen.add(k);
@@ -169,7 +148,7 @@ export function ListView({
 		);
 	}, [
 		groupDefs,
-		filtered,
+		tasks,
 		columnBy,
 		viewCtx,
 		isStatusGrouping,
@@ -183,7 +162,7 @@ export function ListView({
 	);
 
 	const getGroupTasks = (groupKey: string): Task[] =>
-		filtered.filter((t) =>
+		tasks.filter((t) =>
 			getTaskColumnKeys(t, columnBy, viewCtx).includes(groupKey),
 		);
 

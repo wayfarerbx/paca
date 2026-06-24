@@ -44,7 +44,6 @@ interface BoardViewProps {
 	viewConfig?: ViewConfig;
 	canCreate: boolean;
 	canEdit: boolean;
-	searchQuery: string;
 	tasksQueryKey: unknown[];
 	onCreateTask: (
 		statusId: string,
@@ -85,7 +84,6 @@ export function BoardView({
 	viewConfig,
 	canCreate,
 	canEdit,
-	searchQuery,
 	tasksQueryKey,
 	epics = [],
 	onCreateTask,
@@ -175,31 +173,10 @@ export function BoardView({
 		[swimlaneBy, viewCtx],
 	);
 
-	// ── Filtering ─────────────────────────────────────────────────────────────
-
-	const filteredTasks = useMemo(
-		() =>
-			tasks.filter((t) => {
-				if (searchQuery) {
-					const q = searchQuery.toLowerCase();
-					const taskId = taskIdPrefix
-						? `${taskIdPrefix}-${t.task_number}`
-						: `#${t.task_number}`;
-					if (
-						!t.title.toLowerCase().includes(q) &&
-						!taskId.toLowerCase().includes(q)
-					)
-						return false;
-				}
-				return true;
-			}),
-		[tasks, searchQuery, taskIdPrefix],
-	);
-
 	// ── Column tasks helper ───────────────────────────────────────────────────
 
 	const getColumnTasks = (colKey: string): Task[] =>
-		filteredTasks.filter((t) =>
+		tasks.filter((t) =>
 			getTaskColumnKeys(t, columnBy, viewCtx).includes(colKey),
 		);
 
@@ -448,7 +425,7 @@ export function BoardView({
 			// Build columns from unique task values (for number/text fields)
 			const seen = new Set<string>();
 			const dynamic: ColumnGroupDef[] = [];
-			for (const t of filteredTasks) {
+			for (const t of tasks) {
 				for (const k of getTaskColumnKeys(t, columnBy, viewCtx)) {
 					if (!seen.has(k)) {
 						seen.add(k);
@@ -474,7 +451,7 @@ export function BoardView({
 		);
 	}, [
 		columnDefs,
-		filteredTasks,
+		tasks,
 		columnBy,
 		viewCtx,
 		isStatusGrouping,
@@ -579,7 +556,7 @@ export function BoardView({
 							type="button"
 							onClick={pg.onLoadMore}
 							disabled={pg.isLoadingMore}
-							className="mt-1 w-full rounded-lg border border-dashed border-border/40 py-1.5 text-sm font-medium text-muted-foreground/70 hover:border-primary/40 hover:text-primary transition-all duration-150 disabled:opacity-50"
+							className="mt-1 w-full rounded-lg border border-dashed border-border/40 py-1.5 text-xs font-medium text-muted-foreground/70 hover:border-primary/40 hover:text-primary transition-all duration-150 disabled:opacity-50"
 						>
 							{pg.isLoadingMore ? "Loading…" : "View more"}
 						</button>
@@ -786,7 +763,7 @@ export function BoardView({
 	};
 
 	return (
-		<div className="flex flex-1 min-h-0 gap-4 overflow-x-auto px-6 py-5 pb-8">
+		<div className="flex flex-1 min-h-0 items-start gap-4 overflow-auto px-6 py-5 pb-8">
 			{effectiveColumnDefs.map((colDef) => {
 				const isCollapsed = collapsedColumns.has(colDef.key);
 				const displayCount = getDisplayCount(colDef.key);

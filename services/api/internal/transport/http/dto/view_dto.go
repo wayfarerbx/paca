@@ -40,6 +40,12 @@ type ViewConfigDTO struct {
 	SliceBy          string          `json:"slice_by,omitempty"`
 	Filters          *ViewFiltersDTO `json:"filters,omitempty"`
 	CollapsedColumns []string        `json:"collapsed_columns,omitempty"`
+	// PageSize is the saved number of tasks to fetch when paginating further
+	// (e.g. "load more") within this view.
+	PageSize int `json:"page_size,omitempty"`
+	// InitialPageSize is the saved number of tasks to fetch on the first load
+	// of this view, independent of PageSize.
+	InitialPageSize int `json:"initial_page_size,omitempty"`
 	// PluginManifestID is the reverse-DNS plugin manifest identifier
 	// (for example "com.paca.bdd").
 	PluginManifestID string `json:"plugin_manifest_id,omitempty"`
@@ -76,6 +82,8 @@ func ViewFromEntity(v *sprintdom.SprintView) ViewResponse {
 			SliceBy:          v.Config.SliceBy,
 			Filters:          v.Config.Filters,
 			CollapsedColumns: v.Config.CollapsedColumns,
+			PageSize:         v.Config.PageSize,
+			InitialPageSize:  v.Config.InitialPageSize,
 			PluginManifestID: v.Config.PluginID,
 			PluginComponent:  v.Config.PluginComponent,
 		},
@@ -99,6 +107,8 @@ func toViewConfig(d *ViewConfigDTO) sprintdom.ViewConfig {
 		SliceBy:          d.SliceBy,
 		Filters:          d.Filters,
 		CollapsedColumns: d.CollapsedColumns,
+		PageSize:         d.PageSize,
+		InitialPageSize:  d.InitialPageSize,
 		PluginID:         d.PluginManifestID,
 		PluginComponent:  d.PluginComponent,
 	}

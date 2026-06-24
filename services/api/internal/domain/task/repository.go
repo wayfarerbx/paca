@@ -105,6 +105,9 @@ type TaskFilter struct {
 	TaskTypeNull bool        // true → only tasks where task_type_id IS NULL
 	BacklogOnly  bool        // true → only tasks where sprint_id IS NULL
 	CursorAfter  *string     // opaque base64 cursor; when set, replaces offset-based paging
+	// Search, when non-nil and non-blank, restricts results to tasks whose title
+	// or "#<task_number>" id contains the text (case-insensitive).
+	Search *string
 }
 
 // CustomFieldDefinitionRepository defines persistence operations for custom

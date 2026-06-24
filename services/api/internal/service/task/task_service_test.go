@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -31,6 +32,20 @@ type fakeTaskRepo struct {
 	findDefaultTypeErr   error               // injected error for FindDefaultTaskType
 	findDefaultStatusErr error               // injected error for FindDefaultTaskStatus
 	setDefaultStatusErr  error               // injected error for SetDefaultTaskStatus
+}
+
+// taskMatchesSearch mirrors the postgres repo's title / "#<task_number>" ILIKE
+// matching so the fake exercises the same filter contract as production.
+func taskMatchesSearch(t *taskdom.Task, filter taskdom.TaskFilter) bool {
+	if filter.Search == nil {
+		return true
+	}
+	q := strings.ToLower(strings.TrimSpace(*filter.Search))
+	if q == "" {
+		return true
+	}
+	return strings.Contains(strings.ToLower(t.Title), q) ||
+		strings.Contains(fmt.Sprintf("#%d", t.TaskNumber), q)
 }
 
 func newFakeTaskRepo() *fakeTaskRepo {
@@ -239,6 +254,9 @@ func (r *fakeTaskRepo) ListTasks(_ context.Context, projectID uuid.UUID, filter 
 		if filter.AssigneeID != nil && (t.AssigneeID == nil || *t.AssigneeID != *filter.AssigneeID) {
 			continue
 		}
+		if !taskMatchesSearch(t, filter) {
+			continue
+		}
 		cp := *t
 		all = append(all, &cp)
 	}
@@ -350,6 +368,9 @@ func (r *fakeTaskRepo) CountTasks(_ context.Context, projectID uuid.UUID, filter
 		if filter.BacklogOnly && t.SprintID != nil {
 			continue
 		}
+		if !taskMatchesSearch(t, filter) {
+			continue
+		}
 		count++
 	}
 	return count, nil
@@ -374,6 +395,9 @@ func (r *fakeTaskRepo) SumTaskField(_ context.Context, projectID uuid.UUID, filt
 			continue
 		}
 		if filter.BacklogOnly && t.SprintID != nil {
+			continue
+		}
+		if !taskMatchesSearch(t, filter) {
 			continue
 		}
 		if fieldKey == "story_points" {
@@ -969,6 +993,83 @@ func TestListTasks_FilterBySprint(t *testing.T) {
 	}
 	if len(tasks) != 1 || tasks[0].Title != "In Sprint" {
 		t.Errorf("expected 1 filtered task In Sprint, got %v", tasks)
+	}
+}
+
+func TestListTasks_FilterBySearch_MatchesTitleCaseInsensitive(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	_, _ = svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projectID, Title: "Fix login bug"})
+	_, _ = svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projectID, Title: "Add signup flow"})
+
+	search := "LOGIN"
+	tasks, _, err := svc.ListTasks(ctx, projectID, taskdom.TaskFilter{Search: &search}, 20, taskdom.TaskSort{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(tasks) != 1 || tasks[0].Title != "Fix login bug" {
+		t.Errorf("expected 1 filtered task 'Fix login bug', got %v", tasks)
+	}
+}
+
+func TestListTasks_FilterBySearch_MatchesTaskNumber(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	first, _ := svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projectID, Title: "First task"})
+	_, _ = svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projectID, Title: "Second task"})
+
+	search := fmt.Sprintf("#%d", first.TaskNumber)
+	tasks, _, err := svc.ListTasks(ctx, projectID, taskdom.TaskFilter{Search: &search}, 20, taskdom.TaskSort{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(tasks) != 1 || tasks[0].ID != first.ID {
+		t.Errorf("expected 1 filtered task matching %s, got %v", search, tasks)
+	}
+}
+
+func TestListTasks_FilterBySearch_BlankIsNoOp(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	_, _ = svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projectID, Title: "Task one"})
+	_, _ = svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projectID, Title: "Task two"})
+
+	blank := "   "
+	tasks, _, err := svc.ListTasks(ctx, projectID, taskdom.TaskFilter{Search: &blank}, 20, taskdom.TaskSort{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(tasks) != 2 {
+		t.Errorf("expected blank search to be a no-op returning 2 tasks, got %d", len(tasks))
+	}
+}
+
+func TestCountTasks_FilterBySearch(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	_, _ = svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projectID, Title: "Fix login bug"})
+	_, _ = svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projectID, Title: "Fix logout bug"})
+	_, _ = svc.CreateTask(ctx, taskdom.CreateTaskInput{ProjectID: projectID, Title: "Add signup flow"})
+
+	search := "fix"
+	count, err := svc.CountTasks(ctx, projectID, taskdom.TaskFilter{Search: &search})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("expected count=2, got %d", count)
 	}
 }
 

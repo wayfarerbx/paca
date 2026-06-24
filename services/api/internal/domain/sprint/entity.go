@@ -171,6 +171,14 @@ type ViewConfig struct {
 	SliceBy          string       `json:"slice_by,omitempty"`
 	Filters          *ViewFilters `json:"filters,omitempty"`
 	CollapsedColumns []string     `json:"collapsed_columns,omitempty"`
+	// PageSize is the saved number of tasks to fetch when paginating further
+	// (e.g. "load more") within this view. Zero means unset; the client falls
+	// back to its own default.
+	PageSize int `json:"page_size,omitempty"`
+	// InitialPageSize is the saved number of tasks to fetch on the first load
+	// of this view, independent of PageSize. Zero means unset; the client
+	// falls back to its own per-layout default.
+	InitialPageSize int `json:"initial_page_size,omitempty"`
 	// Plugin view fields (only set when view_type = "plugin")
 	// PluginID stores the plugin manifest identifier (reverse-DNS), not the
 	// plugin UUID used by plugin-extension-settings APIs.

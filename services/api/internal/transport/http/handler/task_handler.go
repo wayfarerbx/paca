@@ -339,6 +339,7 @@ func parseTaskSort(ctx context.Context, svc taskdom.Service, projectID uuid.UUID
 //   - assignee_id=<uuid> or assignee_ids=<uuid,uuid>
 //   - task_type_ids=<uuid,uuid>
 //   - parent_task_id=<uuid>
+//   - search=<text> (matches title or "#<task_number>", case-insensitive)
 func (h *TaskHandler) ListTasks(w http.ResponseWriter, r *http.Request) {
 	projectID, err := parseProjectID(r)
 	if err != nil {
@@ -429,6 +430,9 @@ func (h *TaskHandler) ListTasks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		filter.ParentTaskID = &id
+	}
+	if raw := strings.TrimSpace(r.URL.Query().Get("search")); raw != "" {
+		filter.Search = &raw
 	}
 	if cursorRaw := r.URL.Query().Get("cursor"); cursorRaw != "" {
 		filter.CursorAfter = &cursorRaw

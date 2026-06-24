@@ -42,6 +42,9 @@ import {
 	buildSortByOptions,
 	buildSwimlaneOptions,
 	DEFAULT_VISIBLE_FIELDS,
+	getDefaultInitialPageSize,
+	getDefaultPageSize,
+	PAGE_SIZE_OPTIONS,
 } from "./view-utils";
 
 // ── Category visual config ────────────────────────────────────────────────────
@@ -850,6 +853,10 @@ export function ViewSettingsPanel({
 	const fieldSumOpts = buildFieldSumOptions(customFields);
 
 	const sortByValue = draft.sort_by ?? "manual";
+	// Mirrors the runtime defaults in interaction-layout.tsx (see
+	// PAGE_SIZE_DEFAULTS in view-utils.ts).
+	const defaultInitialPageSize = getDefaultInitialPageSize(view?.layout);
+	const defaultPageSize = getDefaultPageSize(view?.layout);
 	const filterSprintIds = filterConfigToIds(draft.filters?.sprints);
 	const filterStatusIds = filterConfigToIds(draft.filters?.statuses);
 	const filterAssigneeIds = filterConfigToIds(draft.filters?.assignees);
@@ -974,6 +981,28 @@ export function ViewSettingsPanel({
 									value={draft.field_sum ?? "count"}
 									options={fieldSumOpts}
 									onChange={(v) => update({ field_sum: v })}
+								/>
+							</SettingRow>
+
+							<SettingRow label="Initial size">
+								<DynamicSelect
+									value={String(
+										draft.initial_page_size ?? defaultInitialPageSize,
+									)}
+									options={PAGE_SIZE_OPTIONS}
+									onChange={(v) =>
+										update({ initial_page_size: v ? Number(v) : undefined })
+									}
+								/>
+							</SettingRow>
+
+							<SettingRow label="Per page">
+								<DynamicSelect
+									value={String(draft.page_size ?? defaultPageSize)}
+									options={PAGE_SIZE_OPTIONS}
+									onChange={(v) =>
+										update({ page_size: v ? Number(v) : undefined })
+									}
 								/>
 							</SettingRow>
 						</div>

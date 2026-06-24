@@ -114,6 +114,10 @@ export interface ViewConfig {
 	slice_by?: string;
 	filters?: ViewFilters;
 	collapsed_columns?: string[];
+	/** Saved number of tasks to fetch when paginating further ("load more") within this view. Unset falls back to a fixed default. */
+	page_size?: number;
+	/** Saved number of tasks to fetch on the first load of this view, independent of page_size. Unset falls back to the layout's default. */
+	initial_page_size?: number;
 	/** Populated only for plugin views (view_type = "plugin") */
 	plugin_manifest_id?: string;
 	plugin_component?: string;
@@ -421,6 +425,8 @@ export interface ListTasksOptions {
 	/** When provided for a manual-sort view, passed as view_id so the backend
 	 *  can JOIN view_task_positions and return tasks in saved position order. */
 	viewId?: string;
+	/** Free-text search matched server-side against title and "#<task_number>". */
+	search?: string;
 }
 
 function buildTaskQueryParams(opts: ListTasksOptions = {}) {
@@ -458,6 +464,7 @@ function buildTaskQueryParams(opts: ListTasksOptions = {}) {
 	if (opts.viewId) {
 		params.view_id = opts.viewId;
 	}
+	if (opts.search?.trim()) params.search = opts.search.trim();
 	return params;
 }
 

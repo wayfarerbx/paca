@@ -415,7 +415,7 @@ export function ListGroup({
 			type="button"
 			onClick={groupPagination.onLoadMore}
 			disabled={groupPagination.isLoadingMore}
-			className="flex w-full items-center justify-center border-t border-border/10 py-2 text-sm font-medium text-muted-foreground/60 hover:text-primary hover:bg-primary/5 transition-all duration-150 disabled:opacity-50"
+			className="flex w-full items-center justify-center border-t border-border/10 py-2 text-xs font-medium text-muted-foreground/60 hover:text-primary hover:bg-primary/5 transition-all duration-150 disabled:opacity-50"
 		>
 			{groupPagination.isLoadingMore ? "Loading…" : "View more"}
 		</button>

@@ -40,14 +40,12 @@ function fmtDate(ms: number): string {
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface RoadmapViewProps {
 	tasks: Task[];
-	taskIdPrefix?: string;
 	statuses: TaskStatus[];
 	taskTypes: TaskType[];
 	members?: ProjectMember[];
 	sprints?: Sprint[];
 	customFields?: CustomFieldDefinition[];
 	columnBy?: string;
-	searchQuery: string;
 	canCreate?: boolean;
 	onCreateTask?: (
 		statusId: string,
@@ -79,14 +77,12 @@ interface BarData {
 // ─── Component ────────────────────────────────────────────────────────────────
 export function RoadmapView({
 	tasks,
-	taskIdPrefix = "",
 	statuses,
 	taskTypes,
 	members = [],
 	sprints = [],
 	customFields = [],
 	columnBy = "status",
-	searchQuery,
 	canCreate = false,
 	onCreateTask,
 	onTaskClick,
@@ -94,21 +90,6 @@ export function RoadmapView({
 }: RoadmapViewProps) {
 	// Stable "now" — fixed at mount so all bars are consistent
 	const now = useMemo(() => Date.now(), []);
-
-	const filtered = useMemo(
-		() =>
-			tasks.filter((t) => {
-				if (!searchQuery) return true;
-				const q = searchQuery.toLowerCase();
-				const id = taskIdPrefix
-					? `${taskIdPrefix}-${t.task_number}`
-					: `#${t.task_number}`;
-				return (
-					t.title.toLowerCase().includes(q) || id.toLowerCase().includes(q)
-				);
-			}),
-		[tasks, searchQuery, taskIdPrefix],
-	);
 
 	const viewCtx = useMemo(
 		() => ({ statuses, taskTypes, members, customFields, sprints }),
@@ -131,7 +112,7 @@ export function RoadmapView({
 	// ── Timeline geometry ──────────────────────────────────────────────────────
 	const { chartWidth, toPx, months, todayPx } = useMemo(() => {
 		const allMs: number[] = [];
-		for (const t of filtered) {
+		for (const t of tasks) {
 			const s = parseDateMs(t.start_date);
 			const d = parseDateMs(t.due_date);
 			if (s !== null) allMs.push(s);
@@ -176,7 +157,7 @@ export function RoadmapView({
 		}
 
 		return { chartWidth, toPx, months, todayPx: toPx(now) };
-	}, [filtered, now]);
+	}, [tasks, now]);
 
 	const todayInRange = todayPx >= 0 && todayPx <= chartWidth;
 
@@ -382,14 +363,14 @@ export function RoadmapView({
 					</div>
 
 					{/* ── Content ────────────────────────────────────────────── */}
-					{filtered.length === 0 ? (
+					{tasks.length === 0 ? (
 						<div className="flex flex-col items-center py-20 text-muted-foreground/40">
 							<CalendarDays className="mb-2 size-7" />
 							<p className="text-sm font-medium">No tasks to display</p>
 						</div>
 					) : (
 						groupDefs.map((group) => {
-							const groupTasks = filtered.filter((t) =>
+							const groupTasks = tasks.filter((t) =>
 								getTaskColumnKeys(t, columnBy, viewCtx).includes(group.key),
 							);
 							if (groupTasks.length === 0) return null;
@@ -415,7 +396,7 @@ export function RoadmapView({
 								type="button"
 								onClick={pagination.onLoadMore}
 								disabled={pagination.isLoadingMore}
-								className="rounded-lg border border-border/40 px-4 py-1.5 text-sm font-medium text-muted-foreground hover:border-primary/50 hover:text-primary transition-all duration-150 disabled:opacity-50"
+								className="rounded-lg border border-border/40 px-4 py-1.5 text-xs font-medium text-muted-foreground hover:border-primary/50 hover:text-primary transition-all duration-150 disabled:opacity-50"
 							>
 								{pagination.isLoadingMore ? "Loading…" : "View more"}
 							</button>

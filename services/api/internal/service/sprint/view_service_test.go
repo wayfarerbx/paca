@@ -318,6 +318,31 @@ func TestViewService_UpdateView_Config(t *testing.T) {
 	}
 }
 
+func TestViewService_UpdateView_Config_PageSize(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeViewRepo()
+	svc := sprintsvc.NewViewService(repo)
+
+	created, _ := svc.CreateView(ctx, sprintdom.CreateViewInput{
+		SprintID:    uuidPtr(uuid.New()),
+		Name:        "Table View",
+		ViewType:    sprintdom.ViewTypeTable,
+		ViewContext: sprintdom.ViewContextSprint,
+	})
+
+	cfg := sprintdom.ViewConfig{PageSize: 50, InitialPageSize: 10}
+	updated, err := svc.UpdateView(ctx, created.ProjectID, created.ID, sprintdom.UpdateViewInput{Config: &cfg})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if updated.Config.PageSize != 50 {
+		t.Errorf("expected page_size=50, got %d", updated.Config.PageSize)
+	}
+	if updated.Config.InitialPageSize != 10 {
+		t.Errorf("expected initial_page_size=10, got %d", updated.Config.InitialPageSize)
+	}
+}
+
 func TestViewService_UpdateView_NotFound(t *testing.T) {
 	ctx := context.Background()
 	svc := sprintsvc.NewViewService(newFakeViewRepo())

@@ -104,7 +104,6 @@ function renderBoard(
 			taskTypes={taskTypes}
 			canCreate={false}
 			canEdit={true}
-			searchQuery=""
 			tasksQueryKey={["tasks"]}
 			onCreateTask={vi.fn()}
 			onTaskClick={vi.fn()}
@@ -181,22 +180,6 @@ describe("BoardView", () => {
 			renderBoard([t1, t2]);
 			expect(screen.getByText("Todo Task")).toBeInTheDocument();
 			expect(screen.getByText("Done Task")).toBeInTheDocument();
-		});
-
-		it("applies filter to hide tasks that don't match searchQuery", () => {
-			const t1 = makeTask({
-				id: "t1",
-				title: "Alpha task",
-				status_id: "status-todo",
-			});
-			const t2 = makeTask({
-				id: "t2",
-				title: "Beta task",
-				status_id: "status-todo",
-			});
-			renderBoard([t1, t2], { searchQuery: "alpha" });
-			expect(screen.getByText("Alpha task")).toBeInTheDocument();
-			expect(screen.queryByText("Beta task")).not.toBeInTheDocument();
 		});
 	});
 

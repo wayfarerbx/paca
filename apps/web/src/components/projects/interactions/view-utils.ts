@@ -3,6 +3,7 @@ import {
 	resolveFilterConfig,
 	type Sprint,
 	type Task,
+	type ViewLayout,
 } from "@/lib/interaction-api";
 import type {
 	CustomFieldDefinition,
@@ -289,6 +290,42 @@ export const FIELD_SUM_COUNT: { key: string; label: string } = {
 	key: "count",
 	label: "Count",
 };
+
+/**
+ * Per-layout pagination defaults, keyed by `ViewLayout`. `initial` is the page
+ * size used on a view's first load; `perPage` is the batch size used by
+ * subsequent "load more" fetches. A saved view's `initial_page_size` /
+ * `page_size` always takes priority over these — they only apply when unset.
+ * Plugin views render arbitrary content and don't paginate through this
+ * mechanism, so they reuse the Table (list) defaults.
+ */
+export const PAGE_SIZE_DEFAULTS: Record<
+	ViewLayout,
+	{ initial: number; perPage: number }
+> = {
+	Table: { initial: 5, perPage: 20 },
+	Board: { initial: 20, perPage: 20 },
+	Roadmap: { initial: 100, perPage: 100 },
+	Plugin: { initial: 5, perPage: 20 },
+};
+
+export function getDefaultInitialPageSize(
+	layout: ViewLayout | undefined,
+): number {
+	return PAGE_SIZE_DEFAULTS[layout ?? "Table"].initial;
+}
+
+export function getDefaultPageSize(layout: ViewLayout | undefined): number {
+	return PAGE_SIZE_DEFAULTS[layout ?? "Table"].perPage;
+}
+
+export const PAGE_SIZE_OPTIONS: { key: string; label: string }[] = [
+	{ key: "5", label: "5" },
+	{ key: "10", label: "10" },
+	{ key: "20", label: "20" },
+	{ key: "50", label: "50" },
+	{ key: "100", label: "100" },
+];
 
 /** All built-in fields available for the Field Picker. Title is excluded — it is always visible. */
 export const BUILTIN_FIELDS: { key: string; label: string }[] = [

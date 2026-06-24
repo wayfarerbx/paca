@@ -267,6 +267,35 @@ describe("interaction-api", () => {
 			expect(config.params?.view_id).toBeUndefined();
 			expect(config.params?.backlog).toBeUndefined();
 		});
+
+		it("includes a trimmed search param when provided", async () => {
+			mockGet.mockResolvedValue(
+				ok({ items: [], total: 0, page: 1, page_size: 200 }),
+			);
+
+			await listAllTasks(PROJECT_ID, { search: "  login bug  " });
+
+			expect(mockGet).toHaveBeenCalledWith(
+				`/projects/${PROJECT_ID}/tasks`,
+				expect.objectContaining({
+					params: expect.objectContaining({ search: "login bug" }),
+				}),
+			);
+		});
+
+		it("omits the search param when blank or whitespace-only", async () => {
+			mockGet.mockResolvedValue(
+				ok({ items: [], total: 0, page: 1, page_size: 200 }),
+			);
+
+			await listAllTasks(PROJECT_ID, { search: "   " });
+
+			const [, config] = mockGet.mock.calls[0] as [
+				string,
+				{ params: Record<string, unknown> },
+			];
+			expect(config.params?.search).toBeUndefined();
+		});
 	});
 
 	// ── layoutToViewType ─────────────────────────────────────────────────────

@@ -1685,3 +1685,81 @@ func TestIntegrationViews_UpdateConfig_TaskTypes(t *testing.T) {
 		t.Errorf("task_types.items.normal after patch: want {all:true}, got %v", items["normal"])
 	}
 }
+
+// TestIntegrationViews_UpdateConfig_PageSize verifies that PATCHing a view
+// with page_size and initial_page_size persists both independently and
+// returns them on a subsequent GET.
+func TestIntegrationViews_UpdateConfig_PageSize(t *testing.T) {
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionSprintsRead, authz.PermissionSprintsWrite},
+		},
+	}
+	sprintRepo := newFakeSprintRepoIT()
+	viewRepo := newFakeViewRepoIT()
+	r := buildViewTestRouter(viewRepo, sprintRepo, store)
+	tok := issueViewToken(t, uuid.NewString())
+	sprintID := seedSprintIT(t, sprintRepo, projectID)
+	itemBase := fmt.Sprintf("/api/v1/projects/%s/views", projectID)
+	base := fmt.Sprintf("%s?context=sprint&sprint_id=%s", itemBase, sprintID)
+
+	createW := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{
+		"name":      "Board View",
+		"view_type": "board",
+	}))
+	if createW.Code != http.StatusCreated {
+		t.Fatalf("create: expected 201, got %d", createW.Code)
+	}
+	viewID := viewIDFrom(t, createW.Body.Bytes())
+
+	// PATCH page_size and initial_page_size independently.
+	patchW := serve(r, authedJSONReq(t.Context(), http.MethodPatch, itemBase+"/"+viewID, tok, map[string]any{
+		"config": map[string]any{
+			"page_size":         50,
+			"initial_page_size": 10,
+		},
+	}))
+	if patchW.Code != http.StatusOK {
+		t.Fatalf("patch: expected 200, got %d (%s)", patchW.Code, patchW.Body.String())
+	}
+
+	var patchResp struct {
+		Data map[string]any `json:"data"`
+	}
+	if err := json.Unmarshal(patchW.Body.Bytes(), &patchResp); err != nil {
+		t.Fatalf("decode patch response: %v", err)
+	}
+	cfg, _ := patchResp.Data["config"].(map[string]any)
+	if cfg == nil {
+		t.Fatal("expected config in patch response")
+	}
+	if pageSize, _ := cfg["page_size"].(float64); pageSize != 50 {
+		t.Errorf("page_size: want 50, got %v", cfg["page_size"])
+	}
+	if initialPageSize, _ := cfg["initial_page_size"].(float64); initialPageSize != 10 {
+		t.Errorf("initial_page_size: want 10, got %v", cfg["initial_page_size"])
+	}
+
+	// GET the view back and verify both fields survive the round trip.
+	getW := serve(r, authedJSONReq(t.Context(), http.MethodGet, itemBase+"/"+viewID, tok, nil))
+	if getW.Code != http.StatusOK {
+		t.Fatalf("get: expected 200, got %d (%s)", getW.Code, getW.Body.String())
+	}
+	var getResp struct {
+		Data map[string]any `json:"data"`
+	}
+	if err := json.Unmarshal(getW.Body.Bytes(), &getResp); err != nil {
+		t.Fatalf("decode get response: %v", err)
+	}
+	getCfg, _ := getResp.Data["config"].(map[string]any)
+	if getCfg == nil {
+		t.Fatal("expected config in get response")
+	}
+	if pageSize, _ := getCfg["page_size"].(float64); pageSize != 50 {
+		t.Errorf("after GET, page_size: want 50, got %v", getCfg["page_size"])
+	}
+	if initialPageSize, _ := getCfg["initial_page_size"].(float64); initialPageSize != 10 {
+		t.Errorf("after GET, initial_page_size: want 10, got %v", getCfg["initial_page_size"])
+	}
+}

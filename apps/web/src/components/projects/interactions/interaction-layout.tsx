@@ -32,6 +32,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import {
 	allTasksQueryOptions,
 	bulkMoveViewTaskPositions,
@@ -80,6 +81,8 @@ import { TaskDetailModal } from "./task-detail-modal";
 import { UNASSIGNED_FILTER_ID, ViewSettingsPanel } from "./view-settings-panel";
 import {
 	getColumnGroupDefs,
+	getDefaultInitialPageSize,
+	getDefaultPageSize,
 	getTaskColumnKeys,
 	type TaskFieldUpdate,
 	type ViewContext,
@@ -505,6 +508,13 @@ export function InteractionLayout({
 		!activeViewConfig?.sort_by ||
 		activeViewConfig?.sort_by?.toLowerCase() === "manual";
 	const [searchQuery, setSearchQuery] = useState("");
+	// Debounced so search doesn't fire a request on every keystroke now that
+	// it's a server-side query (needed for correct pagination — see colBaseOpts).
+	const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+	const debouncedSetSearchQuery = useDebouncedCallback(
+		(q: string) => setDebouncedSearchQuery(q),
+		300,
+	);
 	const [searchOpen, setSearchOpen] = useState(false);
 	const searchRef = useRef<HTMLInputElement>(null);
 	const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -606,9 +616,13 @@ export function InteractionLayout({
 		!viewsQuery.isLoading &&
 		activeView?.layout !== "Roadmap";
 
-	// Page size: board = 20, list/roadmap = 5 on first page
-	const isBoard = activeView?.layout === "Board";
-	const initialColPageSize = isBoard ? 20 : 5;
+	// Initial page size: configured view setting wins; otherwise falls back to
+	// the active layout's default (see PAGE_SIZE_DEFAULTS in view-utils.ts).
+	// "Load more" batches use the separate configuredPageSize below.
+	const configuredPageSize = activeViewConfig?.page_size;
+	const configuredInitialPageSize = activeViewConfig?.initial_page_size;
+	const initialColPageSize =
+		configuredInitialPageSize ?? getDefaultInitialPageSize(activeView?.layout);
 
 	// Base options for column queries (shared filters, excluding the dimension used for column grouping)
 	const colBaseOpts = useMemo(
@@ -628,6 +642,7 @@ export function InteractionLayout({
 			sumField: activeViewConfig?.field_sum,
 			sortBy: activeViewConfig?.sort_by,
 			viewId: effectiveViewId,
+			search: debouncedSearchQuery || undefined,
 		}),
 		[
 			context,
@@ -639,6 +654,7 @@ export function InteractionLayout({
 			activeViewConfig?.field_sum,
 			activeViewConfig?.sort_by,
 			effectiveViewId,
+			debouncedSearchQuery,
 		],
 	);
 
@@ -705,6 +721,7 @@ export function InteractionLayout({
 			taskTypeIds: apiFilters.task_type_ids,
 			sortBy: activeViewConfig?.sort_by,
 			viewId: effectiveViewId,
+			search: debouncedSearchQuery || undefined,
 		}),
 		[
 			context,
@@ -713,11 +730,12 @@ export function InteractionLayout({
 			apiFilters,
 			activeViewConfig?.sort_by,
 			effectiveViewId,
+			debouncedSearchQuery,
 		],
 	);
 
 	const initialGlobalPageSize =
-		activeView?.layout === "Roadmap" ? 5 : undefined;
+		configuredInitialPageSize ?? getDefaultInitialPageSize(activeView?.layout);
 	const fallbackQueryOpts = allTasksQueryOptions(projectId, {
 		...fallbackBaseOpts,
 		pageSize: globalExpandedPageSize ?? initialGlobalPageSize,
@@ -767,7 +785,7 @@ export function InteractionLayout({
 			if (!cursor) return;
 			const colOpts = buildColumnFilter(colKey, columnBy, {
 				...colBaseOpts,
-				pageSize: 20,
+				pageSize: configuredPageSize ?? getDefaultPageSize(activeView?.layout),
 				cursor,
 			});
 			if (!colOpts) return;
@@ -799,6 +817,8 @@ export function InteractionLayout({
 			projectId,
 			colLoadingMore,
 			initialColPageSize,
+			configuredPageSize,
+			activeView?.layout,
 		],
 	);
 
@@ -825,7 +845,7 @@ export function InteractionLayout({
 		try {
 			const result = await listAllTasks(projectId, {
 				...fallbackBaseOpts,
-				pageSize: 20,
+				pageSize: configuredPageSize ?? getDefaultPageSize(activeView?.layout),
 				cursor: globalNextCursor,
 			});
 			setGlobalExtraTasks((prev) => [...prev, ...result.items]);
@@ -833,7 +853,7 @@ export function InteractionLayout({
 			// Grow the effective page size so the next WS-triggered refetch
 			// returns the same number of items currently visible.
 			setGlobalExpandedPageSize(
-				(prev) => (prev ?? initialGlobalPageSize ?? 20) + result.items.length,
+				(prev) => (prev ?? initialGlobalPageSize) + result.items.length,
 			);
 		} finally {
 			setGlobalLoadingMore(false);
@@ -844,6 +864,8 @@ export function InteractionLayout({
 		fallbackBaseOpts,
 		globalLoadingMore,
 		initialGlobalPageSize,
+		configuredPageSize,
+		activeView?.layout,
 	]);
 
 	const tasks = useMemo(() => {
@@ -1430,13 +1452,17 @@ export function InteractionLayout({
 							<input
 								ref={searchRef}
 								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
+								onChange={(e) => {
+									setSearchQuery(e.target.value);
+									debouncedSetSearchQuery(e.target.value);
+								}}
 								placeholder="Search tasks…"
 								className="w-36 bg-transparent text-xs font-medium outline-none placeholder:text-muted-foreground/50"
 								onKeyDown={(e) => {
 									if (e.key === "Escape") {
 										setSearchOpen(false);
 										setSearchQuery("");
+										setDebouncedSearchQuery("");
 									}
 								}}
 							/>
@@ -1445,6 +1471,7 @@ export function InteractionLayout({
 								onClick={() => {
 									setSearchOpen(false);
 									setSearchQuery("");
+									setDebouncedSearchQuery("");
 								}}
 								className="flex size-5 items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground transition-all duration-150"
 							>
@@ -1518,7 +1545,6 @@ export function InteractionLayout({
 						viewConfig={activeViewConfig}
 						canCreate={canCreate}
 						canEdit={canEdit}
-						searchQuery={searchQuery}
 						tasksQueryKey={tasksListQueryKey}
 						columnPagination={columnPagination}
 						onCreateTask={handleCreateTask}
@@ -1544,14 +1570,12 @@ export function InteractionLayout({
 				) : activeView?.layout === "Roadmap" ? (
 					<RoadmapView
 						tasks={tasks}
-						taskIdPrefix={taskIdPrefix}
 						statuses={statuses}
 						taskTypes={creatableTaskTypes}
 						members={members}
 						sprints={sprints}
 						customFields={customFields}
 						columnBy={columnBy}
-						searchQuery={searchQuery}
 						canCreate={canCreate}
 						pagination={globalPagination}
 						onCreateTask={handleCreateTask}
@@ -1568,7 +1592,6 @@ export function InteractionLayout({
 						epics={epicTasks}
 						viewConfig={activeViewConfig}
 						canCreate={canCreate}
-						searchQuery={searchQuery}
 						columnPagination={columnPagination}
 						onCreateTask={handleCreateTask}
 						onTaskClick={handleTaskClick}

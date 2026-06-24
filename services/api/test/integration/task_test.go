@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"slices"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -53,6 +54,20 @@ func newFakeTaskRepoIT() *fakeTaskRepo {
 		counters:      make(map[uuid.UUID]int64),
 		viewPositions: make(map[string]float64),
 	}
+}
+
+// taskMatchesSearch mirrors the postgres repo's title / "#<task_number>" ILIKE
+// matching so the fake exercises the same filter contract as production.
+func taskMatchesSearch(t *taskdom.Task, filter taskdom.TaskFilter) bool {
+	if filter.Search == nil {
+		return true
+	}
+	q := strings.ToLower(strings.TrimSpace(*filter.Search))
+	if q == "" {
+		return true
+	}
+	return strings.Contains(strings.ToLower(t.Title), q) ||
+		strings.Contains(fmt.Sprintf("#%d", t.TaskNumber), q)
 }
 
 // addViewPosition seeds a manual position for a task within a view. Used in
@@ -248,6 +263,9 @@ func (r *fakeTaskRepo) ListTasks(_ context.Context, projectID uuid.UUID, filter 
 		if filter.AssigneeID != nil && (t.AssigneeID == nil || *t.AssigneeID != *filter.AssigneeID) {
 			continue
 		}
+		if !taskMatchesSearch(t, filter) {
+			continue
+		}
 		cp := *t
 		// Populate ViewPosition when sorting by view_position so the fake
 		// behaves like the postgres repo (which gets it via LEFT JOIN).
@@ -312,6 +330,9 @@ func (r *fakeTaskRepo) CountTasks(_ context.Context, projectID uuid.UUID, filter
 		if filter.AssigneeID != nil && (t.AssigneeID == nil || *t.AssigneeID != *filter.AssigneeID) {
 			continue
 		}
+		if !taskMatchesSearch(t, filter) {
+			continue
+		}
 		count++
 	}
 	return count, nil
@@ -333,6 +354,9 @@ func (r *fakeTaskRepo) SumTaskField(_ context.Context, projectID uuid.UUID, filt
 			continue
 		}
 		if filter.StatusID != nil && (t.StatusID == nil || *t.StatusID != *filter.StatusID) {
+			continue
+		}
+		if !taskMatchesSearch(t, filter) {
 			continue
 		}
 		if fieldKey == "story_points" {
@@ -1364,6 +1388,66 @@ func TestIntegrationTasks_ListWithSprintFilter(t *testing.T) {
 	}
 	if count := taskListCount(t, w.Body.Bytes()); count != 1 {
 		t.Errorf("expected 1 filtered task, got %d", count)
+	}
+}
+
+func TestIntegrationTasks_ListWithSearchFilter(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/tasks", projectID)
+
+	serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{
+		"title": "Fix login bug",
+	}))
+	createW := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{
+		"title": "Add signup flow",
+	}))
+	var created struct {
+		Data struct {
+			TaskNumber int64 `json:"task_number"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(createW.Body.Bytes(), &created); err != nil {
+		t.Fatalf("decode create response: %v", err)
+	}
+
+	// Search matches title case-insensitively, and pagination metadata
+	// (total_count) reflects the filtered set, not the full project.
+	w := serve(r, authedJSONReq(t.Context(), http.MethodGet, base+"?search=LOGIN", tok, nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("search by title: expected 200, got %d (%s)", w.Code, w.Body.String())
+	}
+	if count := taskListCount(t, w.Body.Bytes()); count != 1 {
+		t.Errorf("expected 1 task matching title search, got %d", count)
+	}
+	if total := taskListTotalCount(t, w.Body.Bytes()); total != 1 {
+		t.Errorf("expected total_count=1 for title search, got %d", total)
+	}
+
+	// Search also matches by "#<task_number>".
+	searchURL := fmt.Sprintf("%s?search=%s", base, url.QueryEscape(fmt.Sprintf("#%d", created.Data.TaskNumber)))
+	w = serve(r, authedJSONReq(t.Context(), http.MethodGet, searchURL, tok, nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("search by task number: expected 200, got %d (%s)", w.Code, w.Body.String())
+	}
+	if count := taskListCount(t, w.Body.Bytes()); count != 1 {
+		t.Errorf("expected 1 task matching task-number search, got %d", count)
+	}
+
+	// A search with no matches returns an empty (not error) result.
+	w = serve(r, authedJSONReq(t.Context(), http.MethodGet, base+"?search=nonexistent", tok, nil))
+	if w.Code != http.StatusOK {
+		t.Fatalf("search with no matches: expected 200, got %d (%s)", w.Code, w.Body.String())
+	}
+	if count := taskListCount(t, w.Body.Bytes()); count != 0 {
+		t.Errorf("expected 0 tasks for non-matching search, got %d", count)
 	}
 }
 
