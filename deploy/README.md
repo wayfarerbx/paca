@@ -304,6 +304,44 @@ and use Docker Compose only for PostgreSQL and Valkey.
 | MinIO S3 API | 9000 | Local object store (S3-compatible) |
 | MinIO Console | 9001 | MinIO web UI (credentials: `minioadmin` / `minioadmin`) |
 
+### Database backups (dev)
+
+`docker-compose.dev.yml` includes the same `db-backup` service as production
+(see [Database backups](#database-backups) above), pointed at the local
+`postgres` container by default. It starts automatically with the rest of the
+stack and writes dumps to `deploy/backups/`.
+
+To test it without waiting for the cron schedule, trigger a dump on demand:
+
+```bash
+docker compose -f deploy/docker-compose.dev.yml exec db-backup run-backup.sh
+ls deploy/backups/
+```
+
+To test retention pruning, backdate a dummy file past the retention window
+and re-run the script:
+
+```bash
+docker compose -f deploy/docker-compose.dev.yml exec db-backup \
+  touch -d '10 days ago' /backups/paca-fake.sql.gz
+docker compose -f deploy/docker-compose.dev.yml exec db-backup run-backup.sh
+ls deploy/backups/   # paca-fake.sql.gz should be gone
+```
+
+To watch the cron schedule itself fire, override `BACKUP_CRON` in
+`deploy/.env.dev` (e.g. `*/2 * * * *` for every 2 minutes) and tail the logs:
+
+```bash
+docker compose --env-file deploy/.env.dev -f deploy/docker-compose.dev.yml up -d db-backup
+docker compose -f deploy/docker-compose.dev.yml logs -f db-backup
+```
+
+Restore a dump into the local dev database:
+
+```bash
+gunzip -c deploy/backups/paca-<timestamp>.sql.gz | docker compose -f deploy/docker-compose.dev.yml exec -T postgres psql -U paca -d paca
+```
+
 Stop the development stack:
 
 ```bash

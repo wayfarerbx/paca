@@ -314,14 +314,6 @@ fi
 
 heading "Database backups"
 
-echo "  Writes a gzip-compressed database dump to a directory you choose, on a"
-echo "  cron schedule you set, pruning dumps past the retention period. Works"
-echo "  with the bundled PostgreSQL container or an external database."
-echo ""
-
-INCLUDE_BACKUPS="yes"
-yes_no INCLUDE_BACKUPS "Enable automated database backups?" "y"
-
 SCALE_DB_BACKUP=""
 BACKUP_DIR="./backups"
 BACKUP_CRON="0 2 * * *"
@@ -340,20 +332,37 @@ validate_cron() {
     return 0
 }
 
-if [[ "$INCLUDE_BACKUPS" == "no" ]]; then
+if [[ -n "$SCALE_POSTGRES" ]]; then
+    # db-backup runs pg_dump against the bundled container; an external/managed
+    # database is assumed to already have its own backup mechanism.
     SCALE_DB_BACKUP="--scale db-backup=0"
-    info "Automated backups will be skipped."
+    info "Using an external database — skipping automated backups (its provider"
+    info "likely already handles this). To have Paca back it up instead, set"
+    info "BACKUP_DIR/BACKUP_CRON/BACKUP_RETENTION_DAYS in .env and start without"
+    info "--scale db-backup=0."
 else
-    ask BACKUP_DIR "Directory to store backups in" "$BACKUP_DIR"
-    while true; do
-        ask BACKUP_CRON "Backup schedule (cron syntax, interpreted in UTC unless you set TZ in .env later)" "$BACKUP_CRON"
-        if validate_cron "$BACKUP_CRON"; then
-            break
-        fi
-    done
-    ask BACKUP_RETENTION_DAYS "Days of backups to keep" "$BACKUP_RETENTION_DAYS"
-    mkdir -p "$BACKUP_DIR"
-    info "Backups will run on '${BACKUP_CRON}' (UTC), written to ${BACKUP_DIR} (kept for ${BACKUP_RETENTION_DAYS} days)."
+    echo "  Writes a gzip-compressed database dump to a directory you choose, on a"
+    echo "  cron schedule you set, pruning dumps past the retention period."
+    echo ""
+
+    INCLUDE_BACKUPS="yes"
+    yes_no INCLUDE_BACKUPS "Enable automated database backups?" "y"
+
+    if [[ "$INCLUDE_BACKUPS" == "no" ]]; then
+        SCALE_DB_BACKUP="--scale db-backup=0"
+        info "Automated backups will be skipped."
+    else
+        ask BACKUP_DIR "Directory to store backups in" "$BACKUP_DIR"
+        while true; do
+            ask BACKUP_CRON "Backup schedule (cron syntax, interpreted in UTC unless you set TZ in .env later)" "$BACKUP_CRON"
+            if validate_cron "$BACKUP_CRON"; then
+                break
+            fi
+        done
+        ask BACKUP_RETENTION_DAYS "Days of backups to keep" "$BACKUP_RETENTION_DAYS"
+        mkdir -p "$BACKUP_DIR"
+        info "Backups will run on '${BACKUP_CRON}' (UTC), written to ${BACKUP_DIR} (kept for ${BACKUP_RETENTION_DAYS} days)."
+    fi
 fi
 
 # ── Object storage ────────────────────────────────────────────────────────────

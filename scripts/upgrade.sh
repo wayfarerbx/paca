@@ -278,25 +278,35 @@ fi
 
 # Backfill variables for the db-backup service introduced after this install
 # was created. Installations from before that release have neither in .env.
-if ! has_env_var .env BACKUP_DIR; then
-    backup_env_once
-    set_env_var .env BACKUP_DIR "./backups"
-    info "Added BACKUP_DIR=./backups to .env."
+# Only relevant for the bundled postgres container — a non-blank DATABASE_URL
+# means an external/managed database is in use, which is assumed to already
+# have its own backup mechanism (mirrors the bundled-vs-external check in
+# install.sh).
+SCALE_OPTS=()
+if [[ -z "$(get_env_var .env DATABASE_URL)" ]]; then
+    if ! has_env_var .env BACKUP_DIR; then
+        backup_env_once
+        set_env_var .env BACKUP_DIR "./backups"
+        info "Added BACKUP_DIR=./backups to .env."
+    fi
+    if ! has_env_var .env BACKUP_RETENTION_DAYS; then
+        backup_env_once
+        set_env_var .env BACKUP_RETENTION_DAYS "7"
+        info "Added BACKUP_RETENTION_DAYS=7 to .env."
+    fi
+    if ! has_env_var .env BACKUP_CRON; then
+        backup_env_once
+        set_env_var .env BACKUP_CRON "0 2 * * *"
+        info "Added BACKUP_CRON=0 2 * * * to .env (runs daily at 02:00 UTC)."
+    fi
+    _BACKUP_DIR="$(get_env_var .env BACKUP_DIR)"
+    _BACKUP_DIR="${_BACKUP_DIR:-./backups}"
+    mkdir -p "$_BACKUP_DIR"
+    warn "A new db-backup service now writes a daily database dump to ${_BACKUP_DIR}. Disable with --scale db-backup=0 if you already back up this database elsewhere."
+else
+    SCALE_OPTS+=(--scale db-backup=0)
+    info "Using an external database (DATABASE_URL is set) — skipping the automated db-backup service."
 fi
-if ! has_env_var .env BACKUP_RETENTION_DAYS; then
-    backup_env_once
-    set_env_var .env BACKUP_RETENTION_DAYS "7"
-    info "Added BACKUP_RETENTION_DAYS=7 to .env."
-fi
-if ! has_env_var .env BACKUP_CRON; then
-    backup_env_once
-    set_env_var .env BACKUP_CRON "0 2 * * *"
-    info "Added BACKUP_CRON=0 2 * * * to .env (runs daily at 02:00 UTC)."
-fi
-_BACKUP_DIR="$(get_env_var .env BACKUP_DIR)"
-_BACKUP_DIR="${_BACKUP_DIR:-./backups}"
-mkdir -p "$_BACKUP_DIR"
-warn "A new db-backup service now writes a daily database dump to ${_BACKUP_DIR}. Disable with --scale db-backup=0 if you already back up this database elsewhere."
 
 # ── Pull and restart ──────────────────────────────────────────────────────────
 
@@ -305,7 +315,7 @@ heading "Pulling images and restarting"
 # shellcheck disable=SC2086
 $COMPOSE_CMD --env-file .env pull
 # shellcheck disable=SC2086
-$COMPOSE_CMD --env-file .env up -d --remove-orphans "$@"
+$COMPOSE_CMD --env-file .env up -d --remove-orphans ${SCALE_OPTS[@]+"${SCALE_OPTS[@]}"} "$@"
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 
