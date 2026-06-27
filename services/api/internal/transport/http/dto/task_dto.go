@@ -247,6 +247,11 @@ type TaskStatusResponse struct {
 	UpdatedAt time.Time              `json:"updated_at"`
 }
 
+// ReorderTaskStatusesRequest is the body for PUT /projects/:projectId/task-statuses/positions.
+type ReorderTaskStatusesRequest struct {
+	StatusIDs []uuid.UUID `json:"status_ids" binding:"required,min=1"`
+}
+
 // TaskStatusFromEntity maps a domain TaskStatus to a TaskStatusResponse DTO.
 func TaskStatusFromEntity(s *taskdom.TaskStatus) TaskStatusResponse {
 	return TaskStatusResponse{

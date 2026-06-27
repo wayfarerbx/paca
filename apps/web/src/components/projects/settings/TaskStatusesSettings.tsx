@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Edit2, LayoutList, Plus, Star, Trash2 } from "lucide-react";
-import { useState } from "react";
+import {
+	Edit2,
+	GripVertical,
+	LayoutList,
+	Plus,
+	Star,
+	Trash2,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { DeleteTaskStatusDialog } from "@/components/projects/task-statuses/DeleteTaskStatusDialog";
 import { TaskStatusFormDialog } from "@/components/projects/task-statuses/TaskStatusFormDialog";
 import { Button } from "@/components/ui/button";
@@ -14,11 +21,13 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import {
+	reorderTaskStatuses,
 	STATUS_CATEGORY_LABELS,
 	setDefaultTaskStatus,
 	type TaskStatus,
 	taskStatusesQueryOptions,
 } from "@/lib/project-api";
+import { cn } from "@/lib/utils";
 
 function StatusCategoryBadge({ category }: { category: string }) {
 	const colors: Record<string, string> = {
@@ -59,6 +68,10 @@ export function TaskStatusesSettings({
 	const [createOpen, setCreateOpen] = useState(false);
 	const [editStatus, setEditStatus] = useState<TaskStatus | null>(null);
 	const [deleteStatus, setDeleteStatus] = useState<TaskStatus | null>(null);
+	const [localOrder, setLocalOrder] = useState<TaskStatus[] | null>(null);
+	const [dragId, setDragId] = useState<string | null>(null);
+	const [dragOverId, setDragOverId] = useState<string | null>(null);
+	const [reorderError, setReorderError] = useState<string | null>(null);
 
 	const setDefaultMutation = useMutation({
 		mutationFn: (statusId: string) => setDefaultTaskStatus(projectId, statusId),
@@ -69,7 +82,50 @@ export function TaskStatusesSettings({
 		},
 	});
 
+	const reorderMutation = useMutation({
+		mutationFn: (ordered: TaskStatus[]) =>
+			reorderTaskStatuses(
+				projectId,
+				ordered.map((s) => s.id),
+			),
+		onSuccess: () => {
+			setReorderError(null);
+			queryClient.invalidateQueries({
+				queryKey: taskStatusesQueryOptions(projectId).queryKey,
+			});
+		},
+		onError: () => {
+			setLocalOrder(null);
+			setReorderError("Failed to save the new order. Please try again.");
+		},
+	});
+
 	const sorted = [...(statuses ?? [])].sort((a, b) => a.position - b.position);
+	const displayed = localOrder ?? sorted;
+
+	// Once the server confirms a reorder (statuses refetched), drop the local
+	// override so the table reflects the authoritative order again.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset local order only when server statuses refresh
+	useEffect(() => {
+		if (!dragId) setLocalOrder(null);
+	}, [statuses]);
+
+	const handleDrop = (targetId: string) => {
+		const srcId = dragId;
+		setDragId(null);
+		setDragOverId(null);
+		if (!srcId || srcId === targetId) return;
+		const current = displayed;
+		const srcIndex = current.findIndex((s) => s.id === srcId);
+		const targetIndex = current.findIndex((s) => s.id === targetId);
+		if (srcIndex === -1 || targetIndex === -1) return;
+		const next = [...current];
+		const [moved] = next.splice(srcIndex, 1);
+		next.splice(targetIndex, 0, moved);
+		setLocalOrder(next);
+		setReorderError(null);
+		reorderMutation.mutate(next);
+	};
 
 	return (
 		<div className="rounded-xl border border-border/60 bg-card p-6">
@@ -92,6 +148,12 @@ export function TaskStatusesSettings({
 					</Button>
 				) : null}
 			</div>
+
+			{reorderError ? (
+				<p className="mt-4 text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+					{reorderError}
+				</p>
+			) : null}
 
 			{isLoading ? (
 				<div className="rounded-xl border overflow-hidden mt-4">
@@ -137,6 +199,7 @@ export function TaskStatusesSettings({
 					<Table>
 						<TableHeader>
 							<TableRow className="bg-muted/40 hover:bg-muted/40">
+								<TableHead className="w-6 px-2" />
 								<TableHead className="w-8 px-5 text-xs font-semibold uppercase tracking-wide">
 									#
 								</TableHead>
@@ -153,10 +216,43 @@ export function TaskStatusesSettings({
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{sorted.map((status) => (
-								<TableRow key={status.id} className="group">
+							{displayed.map((status, index) => (
+								<TableRow
+									key={status.id}
+									className={cn(
+										"group",
+										canWrite && "cursor-grab active:cursor-grabbing",
+										dragOverId === status.id &&
+											dragId !== status.id &&
+											"bg-primary/5",
+									)}
+									draggable={canWrite}
+									onDragStart={() => canWrite && setDragId(status.id)}
+									onDragOver={(e) => {
+										if (!canWrite) return;
+										e.preventDefault();
+										e.dataTransfer.dropEffect = "move";
+										setDragOverId(status.id);
+									}}
+									onDragLeave={() =>
+										setDragOverId((id) => (id === status.id ? null : id))
+									}
+									onDrop={(e) => {
+										e.preventDefault();
+										handleDrop(status.id);
+									}}
+									onDragEnd={() => {
+										setDragId(null);
+										setDragOverId(null);
+									}}
+								>
+									<TableCell className="px-2">
+										{canWrite ? (
+											<GripVertical className="size-3.5 shrink-0 text-muted-foreground/40" />
+										) : null}
+									</TableCell>
 									<TableCell className="px-5 text-sm text-muted-foreground tabular-nums">
-										{status.position + 1}
+										{index + 1}
 									</TableCell>
 									<TableCell className="px-5">
 										<div className="flex items-center gap-2">

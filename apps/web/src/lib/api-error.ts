@@ -47,6 +47,7 @@ export const ApiErrorCode = {
 	TaskStatusNotFound: "TASK_STATUS_NOT_FOUND",
 	TaskStatusNameInvalid: "TASK_STATUS_NAME_INVALID",
 	TaskStatusCategoryInvalid: "TASK_STATUS_CATEGORY_INVALID",
+	TaskStatusReorderInvalid: "TASK_STATUS_REORDER_INVALID",
 
 	// Task domain errors.
 	TaskNotFound: "TASK_NOT_FOUND",

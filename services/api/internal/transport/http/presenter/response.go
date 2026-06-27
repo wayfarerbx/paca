@@ -152,6 +152,8 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusBadRequest, apierr.CodeTaskStatusNameInvalid
 	case errors.Is(err, taskdom.ErrStatusCategoryInvalid):
 		return http.StatusBadRequest, apierr.CodeTaskStatusCategoryInvalid
+	case errors.Is(err, taskdom.ErrStatusReorderInvalid):
+		return http.StatusBadRequest, apierr.CodeTaskStatusReorderInvalid
 	case errors.Is(err, sprintdom.ErrSprintNotFound):
 		return http.StatusNotFound, apierr.CodeSprintNotFound
 	case errors.Is(err, sprintdom.ErrSprintNameInvalid):
@@ -350,6 +352,7 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodeTaskTypeNameInvalid,
 		apierr.CodeTaskStatusNameInvalid,
 		apierr.CodeTaskStatusCategoryInvalid,
+		apierr.CodeTaskStatusReorderInvalid,
 		apierr.CodeSprintNameInvalid,
 		apierr.CodeSprintStatusInvalid,
 		apierr.CodeViewNameInvalid,

@@ -168,7 +168,9 @@ func (s *Service) UpdateTaskStatus(ctx context.Context, projectID, id uuid.UUID,
 	if name := strings.TrimSpace(in.Name); name != "" {
 		st.Name = name
 	}
-	st.Color = in.Color
+	if in.Color != nil {
+		st.Color = in.Color
+	}
 	if in.Position != nil {
 		st.Position = *in.Position
 	}
@@ -205,6 +207,15 @@ func (s *Service) SetDefaultTaskStatus(ctx context.Context, projectID, statusID 
 		return nil, err
 	}
 	return s.repo.FindTaskStatusByID(ctx, statusID)
+}
+
+// ReorderTaskStatuses persists a new display order for the project's task
+// statuses, assigning position = index in statusIDs to each status.
+func (s *Service) ReorderTaskStatuses(ctx context.Context, projectID uuid.UUID, statusIDs []uuid.UUID) error {
+	if len(statusIDs) == 0 {
+		return taskdom.ErrStatusReorderInvalid
+	}
+	return s.repo.ReorderTaskStatuses(ctx, projectID, statusIDs)
 }
 
 // isEpicTaskType returns whether typeID belongs to the system Epic type.

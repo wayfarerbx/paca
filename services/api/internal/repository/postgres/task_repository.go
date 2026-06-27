@@ -313,8 +313,8 @@ func (r *TaskRepository) CreateTaskStatus(ctx context.Context, s *taskdom.TaskSt
 // UpdateTaskStatus persists changes to an existing task status.
 func (r *TaskRepository) UpdateTaskStatus(ctx context.Context, s *taskdom.TaskStatus) error {
 	_, err := r.db.ExecContext(ctx, `
-		UPDATE task_statuses SET name=$1, color=$2, category=$3, updated_at=$4 WHERE id=$5`,
-		s.Name, s.Color, string(s.Category), s.UpdatedAt, s.ID.String(),
+		UPDATE task_statuses SET name=$1, color=$2, category=$3, position=$4, updated_at=$5 WHERE id=$6`,
+		s.Name, s.Color, string(s.Category), s.Position, s.UpdatedAt, s.ID.String(),
 	)
 	if err != nil {
 		return fmt.Errorf("task status repo: update: %w", err)
@@ -360,6 +360,39 @@ func (r *TaskRepository) SetDefaultTaskStatus(ctx context.Context, projectID, st
 			return fmt.Errorf("task status repo: set default (set): %w", err)
 		}
 
+		return nil
+	})
+}
+
+// ReorderTaskStatuses atomically assigns position = index in statusIDs to
+// each status. It verifies statusIDs is an exact permutation of the
+// project's existing statuses before writing anything.
+func (r *TaskRepository) ReorderTaskStatuses(ctx context.Context, projectID uuid.UUID, statusIDs []uuid.UUID) error {
+	return WithTx(ctx, r.db, func(tx *sqlx.Tx) error {
+		// Lock all statuses for this project to serialize concurrent reorders.
+		var ids []string
+		if err := tx.SelectContext(ctx, &ids, `SELECT id FROM task_statuses WHERE project_id = $1 FOR UPDATE`, projectID.String()); err != nil {
+			return fmt.Errorf("task status repo: reorder (lock): %w", err)
+		}
+
+		if len(ids) != len(statusIDs) {
+			return taskdom.ErrStatusReorderInvalid
+		}
+		existing := make(map[string]struct{}, len(ids))
+		for _, id := range ids {
+			existing[id] = struct{}{}
+		}
+		for _, id := range statusIDs {
+			if _, ok := existing[id.String()]; !ok {
+				return taskdom.ErrStatusReorderInvalid
+			}
+		}
+
+		for i, id := range statusIDs {
+			if _, err := tx.ExecContext(ctx, `UPDATE task_statuses SET position = $1, updated_at = NOW() WHERE id = $2 AND project_id = $3`, i, id.String(), projectID.String()); err != nil {
+				return fmt.Errorf("task status repo: reorder: %w", err)
+			}
+		}
 		return nil
 	})
 }

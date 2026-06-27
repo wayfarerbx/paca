@@ -83,6 +83,9 @@ type TaskStatusService interface {
 	DeleteTaskStatus(ctx context.Context, projectID, id uuid.UUID) error
 	// SetDefaultTaskStatus atomically marks statusID as the default for the project.
 	SetDefaultTaskStatus(ctx context.Context, projectID, statusID uuid.UUID) (*TaskStatus, error)
+	// ReorderTaskStatuses atomically persists a new display order, assigning
+	// position = index in statusIDs to each status.
+	ReorderTaskStatuses(ctx context.Context, projectID uuid.UUID, statusIDs []uuid.UUID) error
 }
 
 // CreateTaskStatusInput carries fields required to create a task status.

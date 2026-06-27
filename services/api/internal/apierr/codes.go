@@ -92,6 +92,8 @@ const (
 	CodeTaskStatusNameInvalid Code = "TASK_STATUS_NAME_INVALID"
 	// CodeTaskStatusCategoryInvalid indicates an invalid status category value.
 	CodeTaskStatusCategoryInvalid Code = "TASK_STATUS_CATEGORY_INVALID"
+	// CodeTaskStatusReorderInvalid indicates the provided status IDs do not match the project's statuses.
+	CodeTaskStatusReorderInvalid Code = "TASK_STATUS_REORDER_INVALID"
 
 	// CodeSprintNotFound indicates the requested sprint does not exist.
 	CodeSprintNotFound Code = "SPRINT_NOT_FOUND"

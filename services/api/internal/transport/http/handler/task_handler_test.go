@@ -101,6 +101,10 @@ func (f *fakeTaskSvc) SetDefaultTaskStatus(_ context.Context, _, _ uuid.UUID) (*
 	return &taskdom.TaskStatus{}, nil
 }
 
+func (f *fakeTaskSvc) ReorderTaskStatuses(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+	return nil
+}
+
 // -- TaskService --
 
 func (f *fakeTaskSvc) ListTasks(_ context.Context, projectID uuid.UUID, filter taskdom.TaskFilter, _ int, _ taskdom.TaskSort) ([]*taskdom.Task, bool, error) {

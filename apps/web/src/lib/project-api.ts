@@ -379,6 +379,19 @@ export async function setDefaultTaskStatus(
 	return data.data;
 }
 
+/** Persists a new display order for task statuses in a single atomic request. */
+export async function reorderTaskStatuses(
+	projectId: string,
+	orderedStatusIds: string[],
+): Promise<void> {
+	await apiClient.instance.put(
+		`/projects/${projectId}/task-statuses/positions`,
+		{
+			status_ids: orderedStatusIds,
+		},
+	);
+}
+
 // ── Custom Field Definitions ─────────────────────────────────────────────────
 
 export type FieldType =

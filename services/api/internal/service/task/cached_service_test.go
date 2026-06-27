@@ -132,6 +132,10 @@ func (s *stubTaskSvc) SetDefaultTaskStatus(_ context.Context, projectID, statusI
 	return &taskdom.TaskStatus{ID: statusID, ProjectID: projectID, IsDefault: true}, nil
 }
 
+func (s *stubTaskSvc) ReorderTaskStatuses(_ context.Context, _ uuid.UUID, _ []uuid.UUID) error {
+	return nil
+}
+
 // TaskService methods (pass-through in CachedService)
 
 func (s *stubTaskSvc) ListTasks(_ context.Context, _ uuid.UUID, _ taskdom.TaskFilter, _ int, _ taskdom.TaskSort) ([]*taskdom.Task, bool, error) {
@@ -403,6 +407,26 @@ func TestCachedTask_DeleteTaskStatus_InvalidatesList(t *testing.T) {
 	}
 	if _, err := svc.ListTaskStatuses(ctx, projectID); err != nil {
 		t.Fatalf("ListTaskStatuses after Delete: %v", err)
+	}
+	if stub.listStatusCalls != 2 {
+		t.Fatalf("expected 2 stub calls, got %d", stub.listStatusCalls)
+	}
+}
+
+func TestCachedTask_ReorderTaskStatuses_InvalidatesList(t *testing.T) {
+	ctx := context.Background()
+	projectID := uuid.New()
+	stub := &stubTaskSvc{}
+	svc := tasksvc.NewCachedService(stub, newCacheStore(t), 5*time.Minute, discardLogger())
+
+	if _, err := svc.ListTaskStatuses(ctx, projectID); err != nil {
+		t.Fatalf("ListTaskStatuses: %v", err)
+	}
+	if err := svc.ReorderTaskStatuses(ctx, projectID, []uuid.UUID{uuid.New()}); err != nil {
+		t.Fatalf("ReorderTaskStatuses: %v", err)
+	}
+	if _, err := svc.ListTaskStatuses(ctx, projectID); err != nil {
+		t.Fatalf("ListTaskStatuses after Reorder: %v", err)
 	}
 	if stub.listStatusCalls != 2 {
 		t.Fatalf("expected 2 stub calls, got %d", stub.listStatusCalls)

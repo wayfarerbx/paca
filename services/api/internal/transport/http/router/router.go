@@ -213,6 +213,9 @@ func New(deps Deps) http.Handler {
 					)).Get("/", deps.Task.ListTaskStatuses)
 					r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite)).
 						Post("/", deps.Task.CreateTaskStatus)
+					// Static /positions must be registered before /{statusId}.
+					r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite)).
+						Put("/positions", deps.Task.ReorderTaskStatuses)
 					r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite)).
 						Patch("/{statusId}", deps.Task.UpdateTaskStatus)
 					r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite)).

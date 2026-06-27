@@ -235,6 +235,29 @@ func (r *fakeTaskRepo) FindDefaultTaskStatus(_ context.Context, projectID uuid.U
 	return nil, nil
 }
 
+func (r *fakeTaskRepo) ReorderTaskStatuses(_ context.Context, projectID uuid.UUID, statusIDs []uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	existing := make(map[uuid.UUID]struct{})
+	for _, s := range r.statuses {
+		if s.ProjectID == projectID {
+			existing[s.ID] = struct{}{}
+		}
+	}
+	if len(existing) != len(statusIDs) {
+		return taskdom.ErrStatusReorderInvalid
+	}
+	for _, id := range statusIDs {
+		if _, ok := existing[id]; !ok {
+			return taskdom.ErrStatusReorderInvalid
+		}
+	}
+	for i, id := range statusIDs {
+		r.statuses[id].Position = i
+	}
+	return nil
+}
+
 // -- Task methods --
 
 func (r *fakeTaskRepo) ListTasks(_ context.Context, projectID uuid.UUID, filter taskdom.TaskFilter, limit int, _ taskdom.TaskSort) ([]*taskdom.Task, bool, error) {
@@ -1607,6 +1630,58 @@ func TestSetDefaultTaskStatus_RepoErrorPropagates(t *testing.T) {
 	_, err := svc.SetDefaultTaskStatus(ctx, uuid.New(), uuid.New())
 	if err == nil || err.Error() != "db unavailable" {
 		t.Errorf("expected db unavailable error, got %v", err)
+	}
+}
+
+func TestReorderTaskStatuses_OK(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	st1, _ := svc.CreateTaskStatus(ctx, taskdom.CreateTaskStatusInput{ProjectID: projectID, Name: "A", Category: taskdom.StatusCategoryTodo, Position: 0})
+	st2, _ := svc.CreateTaskStatus(ctx, taskdom.CreateTaskStatusInput{ProjectID: projectID, Name: "B", Category: taskdom.StatusCategoryDone, Position: 1})
+	st3, _ := svc.CreateTaskStatus(ctx, taskdom.CreateTaskStatusInput{ProjectID: projectID, Name: "C", Category: taskdom.StatusCategoryTodo, Position: 2})
+
+	if err := svc.ReorderTaskStatuses(ctx, projectID, []uuid.UUID{st3.ID, st1.ID, st2.ID}); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	got1, _ := svc.GetTaskStatus(ctx, st3.ID)
+	got2, _ := svc.GetTaskStatus(ctx, st1.ID)
+	got3, _ := svc.GetTaskStatus(ctx, st2.ID)
+	if got1.Position != 0 || got2.Position != 1 || got3.Position != 2 {
+		t.Errorf("expected positions 0,1,2 for C,A,B, got %d,%d,%d", got1.Position, got2.Position, got3.Position)
+	}
+}
+
+func TestReorderTaskStatuses_InvalidSet(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	st1, _ := svc.CreateTaskStatus(ctx, taskdom.CreateTaskStatusInput{ProjectID: projectID, Name: "A", Category: taskdom.StatusCategoryTodo})
+	_, _ = svc.CreateTaskStatus(ctx, taskdom.CreateTaskStatusInput{ProjectID: projectID, Name: "B", Category: taskdom.StatusCategoryDone})
+
+	// Missing st2 from the submitted set.
+	if err := svc.ReorderTaskStatuses(ctx, projectID, []uuid.UUID{st1.ID}); err != taskdom.ErrStatusReorderInvalid {
+		t.Errorf("expected ErrStatusReorderInvalid for incomplete set, got %v", err)
+	}
+
+	// Unknown ID included.
+	if err := svc.ReorderTaskStatuses(ctx, projectID, []uuid.UUID{st1.ID, uuid.New()}); err != taskdom.ErrStatusReorderInvalid {
+		t.Errorf("expected ErrStatusReorderInvalid for unknown ID, got %v", err)
+	}
+}
+
+func TestReorderTaskStatuses_Empty(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+
+	if err := svc.ReorderTaskStatuses(ctx, uuid.New(), nil); err != taskdom.ErrStatusReorderInvalid {
+		t.Errorf("expected ErrStatusReorderInvalid for empty input, got %v", err)
 	}
 }
 

@@ -57,6 +57,10 @@ type TaskStatusRepository interface {
 	// SetDefaultTaskStatus atomically clears is_default for every status in the
 	// project and then marks the given status as the default.
 	SetDefaultTaskStatus(ctx context.Context, projectID, statusID uuid.UUID) error
+	// ReorderTaskStatuses atomically assigns position = index in statusIDs to
+	// each status, verifying statusIDs is an exact permutation of the
+	// project's existing statuses.
+	ReorderTaskStatuses(ctx context.Context, projectID uuid.UUID, statusIDs []uuid.UUID) error
 }
 
 // TaskRepository defines persistence operations for tasks.

@@ -242,6 +242,29 @@ func (r *fakeTaskRepo) FindDefaultTaskStatus(_ context.Context, projectID uuid.U
 	return nil, nil
 }
 
+func (r *fakeTaskRepo) ReorderTaskStatuses(_ context.Context, projectID uuid.UUID, statusIDs []uuid.UUID) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	existing := make(map[uuid.UUID]struct{})
+	for _, s := range r.statuses {
+		if s.ProjectID == projectID {
+			existing[s.ID] = struct{}{}
+		}
+	}
+	if len(existing) != len(statusIDs) {
+		return taskdom.ErrStatusReorderInvalid
+	}
+	for _, id := range statusIDs {
+		if _, ok := existing[id]; !ok {
+			return taskdom.ErrStatusReorderInvalid
+		}
+	}
+	for i, id := range statusIDs {
+		r.statuses[id].Position = i
+	}
+	return nil
+}
+
 func (r *fakeTaskRepo) ListTasks(_ context.Context, projectID uuid.UUID, filter taskdom.TaskFilter, limit int, sort taskdom.TaskSort) ([]*taskdom.Task, bool, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -1079,6 +1102,7 @@ func TestIntegrationTaskStatuses_CRUD(t *testing.T) {
 	// Create
 	createW := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{
 		"name":     "To Do",
+		"color":    "#ff0000",
 		"position": 0,
 		"category": "todo",
 	}))
@@ -1096,7 +1120,9 @@ func TestIntegrationTaskStatuses_CRUD(t *testing.T) {
 		t.Errorf("expected 1 status, got %d", count)
 	}
 
-	// Update position
+	// Update position without touching color: the new position must persist
+	// and the existing color must survive (regression: a prior bug dropped
+	// position from the SQL UPDATE and unconditionally nulled color on PATCH).
 	patchW := serve(r, authedJSONReq(t.Context(), http.MethodPatch, base+"/"+statusID, tok, map[string]any{
 		"name":     "To Do",
 		"position": 5,
@@ -1104,11 +1130,127 @@ func TestIntegrationTaskStatuses_CRUD(t *testing.T) {
 	if patchW.Code != http.StatusOK {
 		t.Fatalf("update status: expected 200, got %d (%s)", patchW.Code, patchW.Body.String())
 	}
+	patched := decodeTaskData(t, patchW.Body.Bytes())
+	if pos, _ := patched["position"].(float64); pos != 5 {
+		t.Errorf("expected position 5 after update, got %v", patched["position"])
+	}
+	if color, _ := patched["color"].(string); color != "#ff0000" {
+		t.Errorf("expected color to remain #ff0000 after position-only update, got %v", patched["color"])
+	}
+
+	// Re-fetch to confirm the change was actually persisted, not just echoed
+	// back in the PATCH response.
+	listW2 := serve(r, authedJSONReq(t.Context(), http.MethodGet, base, tok, nil))
+	if listW2.Code != http.StatusOK {
+		t.Fatalf("re-list statuses: expected 200, got %d (%s)", listW2.Code, listW2.Body.String())
+	}
+	var listEnv struct {
+		Data struct {
+			Items []map[string]any `json:"items"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(listW2.Body.Bytes(), &listEnv); err != nil {
+		t.Fatalf("decode re-list response: %v", err)
+	}
+	if len(listEnv.Data.Items) != 1 {
+		t.Fatalf("expected 1 status on re-list, got %d", len(listEnv.Data.Items))
+	}
+	if pos, _ := listEnv.Data.Items[0]["position"].(float64); pos != 5 {
+		t.Errorf("expected persisted position 5, got %v", listEnv.Data.Items[0]["position"])
+	}
 
 	// Delete
 	delW := serve(r, authedJSONReq(t.Context(), http.MethodDelete, base+"/"+statusID, tok, nil))
 	if delW.Code != http.StatusOK {
 		t.Fatalf("delete status: expected 200, got %d (%s)", delW.Code, delW.Body.String())
+	}
+}
+
+func TestIntegrationTaskStatuses_Reorder(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/task-statuses", projectID)
+
+	var ids []string
+	for i, name := range []string{"To Do", "In Progress", "Done"} {
+		createW := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{
+			"name":     name,
+			"position": i,
+			"category": "todo",
+		}))
+		if createW.Code != http.StatusCreated {
+			t.Fatalf("create status %q: expected 201, got %d (%s)", name, createW.Code, createW.Body.String())
+		}
+		ids = append(ids, taskIDFrom(t, "task-status", createW.Body.Bytes()))
+	}
+
+	// Reverse the order in a single request.
+	reorderW := serve(r, authedJSONReq(t.Context(), http.MethodPut, base+"/positions", tok, map[string]any{
+		"status_ids": []string{ids[2], ids[1], ids[0]},
+	}))
+	if reorderW.Code != http.StatusNoContent {
+		t.Fatalf("reorder statuses: expected 204, got %d (%s)", reorderW.Code, reorderW.Body.String())
+	}
+
+	listW := serve(r, authedJSONReq(t.Context(), http.MethodGet, base, tok, nil))
+	if listW.Code != http.StatusOK {
+		t.Fatalf("list statuses: expected 200, got %d (%s)", listW.Code, listW.Body.String())
+	}
+	var listEnv struct {
+		Data struct {
+			Items []map[string]any `json:"items"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(listW.Body.Bytes(), &listEnv); err != nil {
+		t.Fatalf("decode list response: %v", err)
+	}
+	gotPosition := make(map[string]float64, len(listEnv.Data.Items))
+	for _, item := range listEnv.Data.Items {
+		id, _ := item["id"].(string)
+		pos, _ := item["position"].(float64)
+		gotPosition[id] = pos
+	}
+	if gotPosition[ids[2]] != 0 || gotPosition[ids[1]] != 1 || gotPosition[ids[0]] != 2 {
+		t.Errorf("expected reversed positions 0,1,2 for Done,In Progress,To Do, got %v", gotPosition)
+	}
+}
+
+func TestIntegrationTaskStatuses_ReorderInvalidSetReturns400(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/task-statuses", projectID)
+
+	createW := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{
+		"name":     "To Do",
+		"position": 0,
+		"category": "todo",
+	}))
+	if createW.Code != http.StatusCreated {
+		t.Fatalf("create status: expected 201, got %d (%s)", createW.Code, createW.Body.String())
+	}
+
+	// Submitting an unknown status ID alongside a valid one must be rejected
+	// rather than silently reordering a partial set.
+	statusID := taskIDFrom(t, "task-status", createW.Body.Bytes())
+	w := serve(r, authedJSONReq(t.Context(), http.MethodPut, base+"/positions", tok, map[string]any{
+		"status_ids": []string{statusID, uuid.NewString()},
+	}))
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("reorder with unknown id: expected 400, got %d (%s)", w.Code, w.Body.String())
 	}
 }
 

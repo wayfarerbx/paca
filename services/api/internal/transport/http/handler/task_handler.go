@@ -301,6 +301,30 @@ func (h *TaskHandler) SetDefaultTaskStatus(w http.ResponseWriter, r *http.Reques
 	presenter.OK(w, r, dto.TaskStatusFromEntity(s))
 }
 
+// ReorderTaskStatuses handles PUT /projects/:projectId/task-statuses/positions.
+func (h *TaskHandler) ReorderTaskStatuses(w http.ResponseWriter, r *http.Request) {
+	projectID, err := parseProjectID(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+
+	var req dto.ReorderTaskStatusesRequest
+	if !middleware.BindJSON(w, r, &req) {
+		return
+	}
+	if len(req.StatusIDs) == 0 {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "status_ids must not be empty"))
+		return
+	}
+
+	if err := h.svc.ReorderTaskStatuses(r.Context(), projectID, req.StatusIDs); err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	presenter.NoContent(w)
+}
+
 // --- Tasks ------------------------------------------------------------------
 
 // parseTaskSort resolves the sort_by query parameter into a TaskSort.

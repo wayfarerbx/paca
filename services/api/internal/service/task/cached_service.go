@@ -209,6 +209,17 @@ func (c *CachedService) SetDefaultTaskStatus(ctx context.Context, projectID, sta
 	return st, nil
 }
 
+// ReorderTaskStatuses delegates to the underlying service and invalidates the task-statuses cache.
+func (c *CachedService) ReorderTaskStatuses(ctx context.Context, projectID uuid.UUID, statusIDs []uuid.UUID) error {
+	if err := c.svc.ReorderTaskStatuses(ctx, projectID, statusIDs); err != nil {
+		return err
+	}
+	if err := c.st.Delete(ctx, taskStatusesKey(projectID)); err != nil {
+		c.log.WarnContext(ctx, "cache: ReorderTaskStatuses delete", "err", err)
+	}
+	return nil
+}
+
 // --- Tasks (pass-through) ----------------------------------------------------
 // Tasks are not cached because they are highly mutable and queries are filtered
 // in many different ways, making cache key cardinality prohibitively large.
