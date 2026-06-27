@@ -208,7 +208,7 @@ func (s *ActivitySvc) UpdateComment(ctx context.Context, id uuid.UUID, projectID
 	if err := s.repo.UpdateActivity(ctx, a); err != nil {
 		return nil, err
 	}
-	s.publishRealtimeOnly(ctx, events.TopicTaskCommentUpdated, activityPayload(a, uuid.Nil))
+	s.publishRealtimeOnly(ctx, events.TopicTaskCommentUpdated, activityPayload(a, projectID))
 	return a, nil
 }
 
@@ -233,9 +233,10 @@ func (s *ActivitySvc) DeleteComment(ctx context.Context, id uuid.UUID, projectID
 		return err
 	}
 	s.publishRealtimeOnly(ctx, events.TopicTaskCommentDeleted, map[string]any{
-		"id":       id,
-		"task_id":  a.TaskID,
-		"actor_id": actorID,
+		"id":         id,
+		"task_id":    a.TaskID,
+		"project_id": projectID,
+		"actor_id":   actorID,
 	})
 	return nil
 }
@@ -265,30 +266,44 @@ func activityPayload(a *taskdom.Activity, projectID uuid.UUID) map[string]any {
 // Valkey stream and also broadcasts a real-time pub/sub notification.
 // agentID, when non-nil, is embedded so the consumer can resolve the actor as
 // an agent member instead of a user member.
-// Errors are intentionally swallowed — a messaging failure must not block
-// the primary HTTP response.
 func (s *ActivitySvc) publishToActivityStream(ctx context.Context, a *taskdom.Activity, projectID uuid.UUID, agentID *uuid.UUID) {
-	if s.publisher == nil {
-		return
-	}
 	payload := activityPayload(a, projectID)
 	if agentID != nil {
 		payload["actor_agent_id"] = agentID.String()
 	}
-	_ = s.publisher.Append(ctx, events.StreamTaskActivities, string(a.ActivityType), payload)
-	_ = s.publisher.Publish(ctx, events.ChannelRealtime, map[string]any{
-		"type":    string(a.ActivityType),
-		"payload": payload,
-	})
+	s.fanout(ctx, string(a.ActivityType), payload, true)
 }
 
 // publishRealtimeOnly sends a real-time pub/sub notification without writing
-// to any stream.  Used for comment operations that already write to the DB
-// directly and don't need the consumer-persistence path.
+// to the activity-persistence stream. Used for comment operations that
+// already write to the DB directly and don't need the consumer-persistence
+// path.
 func (s *ActivitySvc) publishRealtimeOnly(ctx context.Context, topic string, payload any) {
+	s.fanout(ctx, topic, payload, false)
+}
+
+// fanout is the single dispatch point for an activity event. It writes the
+// event into Valkey exactly once per destination, and every listener —
+// ActivityConsumer (DB persistence), PluginEventConsumer (plugin dispatch),
+// and services/realtime (live UI updates) — reads it back out as a
+// subscriber. ActivitySvc never calls into the plugin runtime, or any other
+// listener, directly: Valkey is the only fan-out point. To add a new
+// listener, give it its own stream/consumer rather than adding another call
+// here.
+// appendToActivityStream controls whether the event is also durably appended
+// to StreamTaskActivities (skipped for events whose owning write path
+// persists to Postgres directly, e.g. comments); StreamPluginEvents and
+// ChannelRealtime always receive every event regardless.
+// Errors are intentionally swallowed — a messaging failure must not block
+// the primary HTTP response.
+func (s *ActivitySvc) fanout(ctx context.Context, topic string, payload any, appendToActivityStream bool) {
 	if s.publisher == nil {
 		return
 	}
+	if appendToActivityStream {
+		_ = s.publisher.Append(ctx, events.StreamTaskActivities, topic, payload)
+	}
+	_ = s.publisher.Append(ctx, events.StreamPluginEvents, topic, payload)
 	_ = s.publisher.Publish(ctx, events.ChannelRealtime, map[string]any{
 		"type":    topic,
 		"payload": payload,

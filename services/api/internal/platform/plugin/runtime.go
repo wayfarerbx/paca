@@ -625,6 +625,15 @@ func (r *Runtime) execQuery(ctx context.Context, schema, sqlStr, paramsJSON stri
 		if err := rows.Scan(ptrs...); err != nil {
 			return nil, err
 		}
+		// Postgres driver returns text/json/jsonb columns as []byte; encoding/json
+		// would otherwise base64-encode those when marshaling the result across
+		// the WASM boundary, corrupting the value for the plugin. Convert to
+		// string so plugins receive the raw text.
+		for i, v := range vals {
+			if b, ok := v.([]byte); ok {
+				vals[i] = string(b)
+			}
+		}
 		result.Rows = append(result.Rows, vals)
 	}
 	if err := rows.Err(); err != nil {
@@ -1233,7 +1242,10 @@ func (r *Runtime) registerFetchFunction(b wazero.HostModuleBuilder, p plugindom.
 }
 
 // isAllowedFetchDomain reports whether rawURL's host is in the allowlist.
-// An empty allowlist means no outbound requests are permitted.
+// An empty allowlist means no outbound requests are permitted. A literal "*"
+// entry allows any HTTPS host (used by plugins like webhook integrations that
+// must call user-supplied URLs); the scheme, hostname, and private/internal IP
+// checks below still apply in that case.
 func isAllowedFetchDomain(ctx context.Context, rawURL string, allowed []string) bool {
 	if len(allowed) == 0 {
 		return false
@@ -1254,7 +1266,8 @@ func isAllowedFetchDomain(ctx context.Context, rawURL string, allowed []string) 
 
 	hostAllowed := false
 	for _, a := range allowed {
-		if strings.EqualFold(host, strings.TrimSpace(a)) {
+		a = strings.TrimSpace(a)
+		if a == "*" || strings.EqualFold(host, a) {
 			hostAllowed = true
 			break
 		}

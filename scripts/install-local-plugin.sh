@@ -359,7 +359,7 @@ if [[ "$SKIP_INSTALL" = false ]]; then
         MANIFEST=$(cat "$PLUGIN_DIR/plugin.json")
         
         # Install the plugin
-        INSTALL_RESPONSE=$(curl -s -X POST "${API_ENDPOINT}/plugins" \
+        INSTALL_RESPONSE=$(curl -s -X POST "${API_ENDPOINT}/admin/plugins" \
             -H "${AUTH_HEADER}" \
             -H "Content-Type: application/json" \
             -d "{\"name\":\"${PLUGIN_ID}\",\"version\":\"${PLUGIN_VERSION}\",\"manifest\":${MANIFEST},\"enabled\":true}" \

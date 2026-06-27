@@ -121,6 +121,23 @@ func (h *PluginHandler) InstallPlugin(w http.ResponseWriter, r *http.Request) {
 		presenter.Error(w, r, err)
 		return
 	}
+
+	if h.migrationRunner != nil {
+		if err := h.migrationRunner.Run(r.Context(), plugin.Name); err != nil {
+			_ = h.svc.DeletePlugin(r.Context(), plugin.ID)
+			presenter.Error(w, r, apierr.New(apierr.CodeInternalError, "failed to run plugin migrations: "+err.Error()))
+			return
+		}
+	}
+
+	if plugin.Enabled && h.runtime != nil {
+		if err := h.runtime.Load(r.Context(), *plugin); err != nil {
+			_ = h.svc.DeletePlugin(r.Context(), plugin.ID)
+			presenter.Error(w, r, apierr.New(apierr.CodeInternalError, "failed to load plugin runtime: "+err.Error()))
+			return
+		}
+	}
+
 	presenter.Created(w, r, dto.PluginResponseFromEntity(plugin))
 }
 
@@ -237,6 +254,25 @@ func (h *PluginHandler) UpdatePlugin(w http.ResponseWriter, r *http.Request) {
 		presenter.Error(w, r, err)
 		return
 	}
+
+	if h.migrationRunner != nil {
+		if err := h.migrationRunner.Run(r.Context(), plugin.Name); err != nil {
+			presenter.Error(w, r, apierr.New(apierr.CodeInternalError, "failed to run plugin migrations: "+err.Error()))
+			return
+		}
+	}
+
+	if h.runtime != nil {
+		if plugin.Enabled {
+			if err := h.runtime.Load(r.Context(), *plugin); err != nil {
+				presenter.Error(w, r, apierr.New(apierr.CodeInternalError, "failed to reload plugin runtime: "+err.Error()))
+				return
+			}
+		} else {
+			h.runtime.Unload(r.Context(), plugin.Name)
+		}
+	}
+
 	presenter.OK(w, r, dto.PluginResponseFromEntity(plugin))
 }
 

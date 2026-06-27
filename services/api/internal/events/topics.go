@@ -26,6 +26,14 @@ const StreamDocActivities = "paca.doc_activities"
 // publishes real-time push events.
 const StreamTaskAssignments = "paca.task_assignments"
 
+// StreamPluginEvents is the Valkey Stream key every activity event (task
+// activities, comments, links, etc.) is appended to so that the plugin
+// runtime can dispatch them to subscribed plugins via PluginEventConsumer.
+// The plugin runtime is just another stream subscriber here — the API
+// service that records an activity never calls into the plugin runtime
+// directly.
+const StreamPluginEvents = "paca.plugin_events"
+
 // Event type constants used in both Pub/Sub messages and Stream entries.
 const (
 	// --- Auth events --------------------------------------------------------
