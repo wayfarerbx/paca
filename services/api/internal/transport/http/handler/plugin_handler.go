@@ -121,7 +121,37 @@ func (h *PluginHandler) InstallPlugin(w http.ResponseWriter, r *http.Request) {
 		presenter.Error(w, r, err)
 		return
 	}
+
+	onFailure := func() { _ = h.svc.DeletePlugin(r.Context(), plugin.ID) }
+	if !h.runMigrationsAndLoad(w, r, plugin, onFailure) {
+		return
+	}
+
 	presenter.Created(w, r, dto.PluginResponseFromEntity(plugin))
+}
+
+// runMigrationsAndLoad runs any pending migrations for plugin and, if it is
+// enabled, loads it into the WASM runtime. On failure it invokes onFailure
+// (used by callers to roll back whatever they just persisted), writes the
+// error response, and returns false; returns true on success.
+func (h *PluginHandler) runMigrationsAndLoad(w http.ResponseWriter, r *http.Request, plugin *plugindom.Plugin, onFailure func()) bool {
+	if h.migrationRunner != nil {
+		if err := h.migrationRunner.Run(r.Context(), plugin.Name); err != nil {
+			onFailure()
+			presenter.Error(w, r, apierr.New(apierr.CodeInternalError, "failed to run plugin migrations: "+err.Error()))
+			return false
+		}
+	}
+
+	if plugin.Enabled && h.runtime != nil {
+		if err := h.runtime.Load(r.Context(), *plugin); err != nil {
+			onFailure()
+			presenter.Error(w, r, apierr.New(apierr.CodeInternalError, "failed to load plugin runtime: "+err.Error()))
+			return false
+		}
+	}
+
+	return true
 }
 
 // ListMarketplacePlugins handles GET /api/v1/admin/plugins/marketplace.
@@ -196,20 +226,9 @@ func (h *PluginHandler) InstallMarketplacePlugin(w http.ResponseWriter, r *http.
 		return
 	}
 
-	if h.migrationRunner != nil {
-		if err := h.migrationRunner.Run(r.Context(), pl.Name); err != nil {
-			_ = h.svc.DeletePlugin(r.Context(), pl.ID)
-			presenter.Error(w, r, apierr.New(apierr.CodeInternalError, "failed to run plugin migrations: "+err.Error()))
-			return
-		}
-	}
-
-	if pl.Enabled && h.runtime != nil {
-		if err := h.runtime.Load(r.Context(), *pl); err != nil {
-			_ = h.svc.DeletePlugin(r.Context(), pl.ID)
-			presenter.Error(w, r, apierr.New(apierr.CodeInternalError, "failed to load plugin runtime: "+err.Error()))
-			return
-		}
+	onFailure := func() { _ = h.svc.DeletePlugin(r.Context(), pl.ID) }
+	if !h.runMigrationsAndLoad(w, r, pl, onFailure) {
+		return
 	}
 
 	success = true
@@ -228,6 +247,26 @@ func (h *PluginHandler) UpdatePlugin(w http.ResponseWriter, r *http.Request) {
 		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, err.Error()))
 		return
 	}
+
+	// Capture the pre-update state so we can roll the DB record back if
+	// migrations or the runtime reload fail below.
+	plugins, err := h.svc.ListPlugins(r.Context())
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	var previous *plugindom.Plugin
+	for _, p := range plugins {
+		if p.ID == id {
+			previous = p
+			break
+		}
+	}
+	if previous == nil {
+		presenter.Error(w, r, apierr.New(apierr.CodePluginNotFound, "plugin not found"))
+		return
+	}
+
 	plugin, err := h.svc.UpdatePlugin(r.Context(), id, plugindom.UpdateInput{
 		Version:  req.Version,
 		Manifest: req.Manifest,
@@ -237,6 +276,45 @@ func (h *PluginHandler) UpdatePlugin(w http.ResponseWriter, r *http.Request) {
 		presenter.Error(w, r, err)
 		return
 	}
+
+	rollback := func(reason, msg string) {
+		if _, rollbackErr := h.svc.UpdatePlugin(r.Context(), id, plugindom.UpdateInput{
+			Version:  &previous.Version,
+			Manifest: &previous.Manifest,
+			Enabled:  &previous.Enabled,
+		}); rollbackErr != nil {
+			slog.Error("plugin update: failed to roll back DB record", "name", previous.Name, "reason", reason, "error", rollbackErr)
+		}
+		presenter.Error(w, r, apierr.New(apierr.CodeInternalError, msg))
+	}
+
+	if h.migrationRunner != nil {
+		if err := h.migrationRunner.Run(r.Context(), plugin.Name); err != nil {
+			rollback("migration failure", "failed to run plugin migrations: "+err.Error())
+			return
+		}
+	}
+
+	if h.runtime != nil {
+		if plugin.Enabled {
+			if err := h.runtime.Load(r.Context(), *plugin); err != nil {
+				// Best-effort: restore the previously-loaded version/state in the
+				// runtime so it doesn't keep serving the now-rolled-back plugin.
+				if previous.Enabled {
+					if rollbackErr := h.runtime.Load(r.Context(), *previous); rollbackErr != nil {
+						slog.Error("plugin update: failed to roll back runtime", "name", previous.Name, "error", rollbackErr)
+					}
+				} else {
+					h.runtime.Unload(r.Context(), previous.Name)
+				}
+				rollback("runtime reload failure", "failed to reload plugin runtime: "+err.Error())
+				return
+			}
+		} else {
+			h.runtime.Unload(r.Context(), plugin.Name)
+		}
+	}
+
 	presenter.OK(w, r, dto.PluginResponseFromEntity(plugin))
 }
 

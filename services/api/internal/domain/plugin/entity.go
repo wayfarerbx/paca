@@ -64,8 +64,10 @@ type BackendManifest struct {
 	// EventSubscriptions lists the event topics the plugin subscribes to.
 	EventSubscriptions []string `json:"eventSubscriptions,omitempty"`
 	// AllowedOutboundDomains is the list of hostnames the plugin is permitted to
-	// contact via paca.fetch. Matching is exact, case-insensitive hostname match
-	// only (no wildcard support). Requests to unlisted domains are rejected.
+	// contact via paca.fetch. Matching is exact, case-insensitive hostname match,
+	// except for the literal entry "*" which permits any HTTPS host (still
+	// subject to the private/internal IP block). Requests to unlisted domains
+	// are rejected.
 	AllowedOutboundDomains []string `json:"allowedOutboundDomains,omitempty"`
 	// AllowedConfigKeys is the list of host config keys the plugin may read via
 	// paca.config_get. Keys not listed here are not exposed to the plugin.

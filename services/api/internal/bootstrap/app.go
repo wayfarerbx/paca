@@ -60,6 +60,7 @@ type App struct {
 	activityConsumer     *worker.ActivityConsumer
 	docActivityConsumer  *worker.DocActivityConsumer
 	notificationConsumer *worker.NotificationConsumer
+	pluginEventConsumer  *worker.PluginEventConsumer
 	log                  *slog.Logger
 }
 
@@ -242,6 +243,13 @@ func New(cfg *config.Config) (*App, error) {
 		log.Error("plugin: some plugins failed to load", "error", err)
 	}
 
+	// Forward every recorded activity (task created/updated/deleted, comments,
+	// links, etc.) to subscribed plugins. ActivitySvc appends to the
+	// StreamPluginEvents Valkey stream; this consumer reads it back and
+	// dispatches to the plugin runtime — the API never calls into the plugin
+	// runtime directly when recording an activity.
+	pluginEventConsumer := worker.NewPluginEventConsumer(redisClient, pluginRuntime, log)
+
 	pluginHandler := handler.NewPluginHandler(pluginService, pluginRuntime, projectRepo).
 		WithRouteAuth(tokenManager, apiKeyService, authorizer).
 		WithMarketplace(marketplaceClient, pluginInstaller, pluginMigrationRunner)
@@ -296,7 +304,7 @@ func New(cfg *config.Config) (*App, error) {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	return &App{server: srv, publisher: publisher, activityConsumer: activityConsumer, docActivityConsumer: docActivityConsumer, notificationConsumer: notificationConsumer, log: log}, nil
+	return &App{server: srv, publisher: publisher, activityConsumer: activityConsumer, docActivityConsumer: docActivityConsumer, notificationConsumer: notificationConsumer, pluginEventConsumer: pluginEventConsumer, log: log}, nil
 }
 
 // Run starts the activity consumers and the HTTP server.
@@ -306,6 +314,7 @@ func (a *App) Run() error {
 	a.activityConsumer.Start(context.Background())
 	a.docActivityConsumer.Start(context.Background())
 	a.notificationConsumer.Start(context.Background())
+	a.pluginEventConsumer.Start(context.Background())
 	return a.server.ListenAndServe()
 }
 
@@ -315,6 +324,7 @@ func (a *App) Shutdown(ctx context.Context) error {
 	a.activityConsumer.Stop()
 	a.docActivityConsumer.Stop()
 	a.notificationConsumer.Stop()
+	a.pluginEventConsumer.Stop()
 	if a.publisher != nil {
 		a.publisher.Close()
 	}
