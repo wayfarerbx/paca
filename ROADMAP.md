@@ -72,6 +72,7 @@ _Goal: deliver the features that make Paca meaningfully different from standard 
 ### Core Platform
 - 📋 Keyboard shortcuts and command palette
 - 📋 OAuth token support for MCP Server (alongside API key)
+- 📋 i18n foundation for the web UI
 
 ### Planning & Task Management
 - ✅ Task linking — link related tasks (blocked by, blocks, related, duplicate, parent/child)
