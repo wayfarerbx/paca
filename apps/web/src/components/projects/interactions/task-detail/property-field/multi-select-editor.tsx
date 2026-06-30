@@ -1,11 +1,7 @@
-import { Check, Plus, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import {
-	Popover,
-	PopoverContent,
-	PopoverTrigger,
-} from "@/components/ui/popover";
 import { FieldValue } from "../primitives";
+import { ChipField } from "./chip-field";
+import { OptionListButton } from "./option-list-button";
 import type { SelectOption } from "./types";
 
 export function MultiSelectEditor({
@@ -53,56 +49,20 @@ export function MultiSelectEditor({
 	}
 
 	return (
-		<div className="flex flex-wrap items-center gap-1.5 min-h-7">
-			{selected.map((opt) => (
-				<span
+		<ChipField
+			chips={selected.map((opt) => ({ key: opt.value, label: opt.label }))}
+			onRemoveChip={toggle}
+			canEdit={canEdit}
+			addLabel={t("taskDetail.propertyField.multiSelectEditor.addOption")}
+		>
+			{options.map((opt) => (
+				<OptionListButton
 					key={opt.value}
-					className="inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-0.5 text-xs font-medium text-foreground/80 border border-border/20 hover:border-border/40 transition-colors duration-150"
-				>
-					{opt.label}
-					<button
-						type="button"
-						onClick={() => toggle(opt.value)}
-						className="text-muted-foreground/60 hover:text-destructive transition-colors duration-150"
-					>
-						<X className="size-2.5" />
-					</button>
-				</span>
+					option={opt}
+					isSelected={value.includes(opt.value)}
+					onClick={() => toggle(opt.value)}
+				/>
 			))}
-			<Popover>
-				<PopoverTrigger
-					type="button"
-					className="inline-flex items-center gap-1 rounded-md border border-dashed border-border/30 px-2 py-0.5 text-xs text-muted-foreground/60 hover:border-border/60 hover:text-muted-foreground transition-all duration-150"
-				>
-					<Plus className="size-2.5" />
-					{t("taskDetail.propertyField.multiSelectEditor.addOption")}
-				</PopoverTrigger>
-				<PopoverContent
-					className="w-52 p-1 rounded-xl border border-border/40 shadow-lg"
-					align="start"
-				>
-					{options.map((opt) => {
-						const isSelected = value.includes(opt.value);
-						return (
-							<button
-								key={opt.value}
-								type="button"
-								className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm hover:bg-muted/60 transition-colors duration-100"
-								onClick={() => toggle(opt.value)}
-							>
-								{opt.colorDot && (
-									<span
-										className="size-2 rounded-full shrink-0"
-										style={{ background: opt.colorDot }}
-									/>
-								)}
-								<span className="flex-1 text-left">{opt.label}</span>
-								{isSelected && <Check className="size-3.5 text-primary" />}
-							</button>
-						);
-					})}
-				</PopoverContent>
-			</Popover>
-		</div>
+		</ChipField>
 	);
 }

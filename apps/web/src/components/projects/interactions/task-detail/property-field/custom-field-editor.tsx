@@ -101,7 +101,9 @@ export function CustomFieldEditor({
 			}));
 			const currentVal = Array.isArray(rawValue)
 				? rawValue.filter((v): v is string => typeof v === "string")
-				: [];
+				: typeof rawValue === "string" && rawValue
+					? [rawValue]
+					: [];
 			return (
 				<MultiSelectEditor
 					value={currentVal}
