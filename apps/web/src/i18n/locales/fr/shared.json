@@ -1,0 +1,151 @@
+{
+	"activityPane": {
+		"title": "Activité",
+		"empty": "Aucune activité pour le moment",
+		"editingComment": "Modification du commentaire...",
+		"cancel": "Annuler",
+		"sendHint": "⌘↵ pour envoyer",
+		"systemActor": "Système",
+		"editing": "Modification",
+		"edit": "Modifier",
+		"delete": "Supprimer",
+		"viewDiff": "Voir les différences",
+		"revert": "Annuler",
+		"timeAgo": {
+			"justNow": "à l'instant",
+			"minutes_one": "il y a {{count}} min",
+			"minutes_other": "il y a {{count}} min",
+			"hours_one": "il y a {{count}} h",
+			"hours_other": "il y a {{count}} h",
+			"days_one": "il y a {{count}} j",
+			"days_other": "il y a {{count}} j"
+		},
+		"errors": {
+			"revertFailed": "Échec de l'annulation. Veuillez réessayer."
+		}
+	},
+	"contentDiff": {
+		"emptyLine": "(ligne vide)",
+		"noDifferences": "Aucune différence de texte",
+		"changeDiff": "Différences des modifications",
+		"removed": "Supprimé",
+		"added": "Ajouté"
+	},
+	"home": {
+		"greeting": {
+			"morning": "Bonjour",
+			"afternoon": "Bon après-midi",
+			"evening": "Bonsoir",
+			"fallbackName": "vous"
+		},
+		"hero": {
+			"badge": "Espace de travail Scrumban",
+			"subtitleWithProjects_one": "Vous avez {{count}} projet actif. Reprenez là où vous vous étiez arrêté.",
+			"subtitleWithProjects_other": "Vous avez {{count}} projets actifs. Reprenez là où vous vous étiez arrêté.",
+			"subtitleEmpty": "Votre espace de travail est prêt. Créez un projet, invitez votre équipe et commencez à livrer.",
+			"newProject": "Nouveau projet"
+		},
+		"stats": {
+			"projects": {
+				"label": "Projets",
+				"subEmpty": "Aucun projet pour le moment",
+				"subActive": "{{count}} actifs"
+			},
+			"openTasks": {
+				"label": "Tâches ouvertes",
+				"sub": "Tous projets confondus"
+			},
+			"teamMembers": {
+				"label": "Membres de l'équipe",
+				"sub": "Vous inclus"
+			},
+			"aiAgents": {
+				"label": "Agents IA",
+				"sub": "Aucun configuré"
+			}
+		},
+		"projectsSection": {
+			"title": "Projets",
+			"countInWorkspace_one": "{{count}} projet dans votre espace de travail",
+			"countInWorkspace_other": "{{count}} projets dans votre espace de travail",
+			"newShort": "Nouveau",
+			"newProjectCard": "Nouveau projet"
+		},
+		"projectCard": {
+			"public": "Public",
+			"noDescription": "Aucune description"
+		},
+		"gettingStarted": {
+			"title": "Premiers pas",
+			"progress": "{{completed}} / {{total}}",
+			"subtitle": "Effectuez ces étapes pour exploiter pleinement la puissance de Paca.",
+			"steps": {
+				"createProject": {
+					"title": "Créez votre premier projet",
+					"description": "Configurez un tableau scrumban pour gérer le travail de votre équipe."
+				},
+				"inviteTeam": {
+					"title": "Invitez votre équipe",
+					"description": "Ajoutez des collaborateurs humains et attribuez des rôles."
+				},
+				"configureAgent": {
+					"title": "Configurez un agent IA",
+					"description": "Connectez une IA pour traiter les tâches de manière autonome."
+				},
+				"runSprint": {
+					"title": "Lancez votre premier sprint",
+					"description": "Faites passer les tâches par le cycle Planifier → Agir → Vérifier → Adapter."
+				}
+			}
+		},
+		"quickActions": {
+			"title": "Actions rapides",
+			"newProject": {
+				"label": "Nouveau projet",
+				"description": "Créer un tableau scrumban"
+			},
+			"inviteTeam": {
+				"label": "Inviter l'équipe",
+				"description": "Ajouter des membres ou des agents"
+			},
+			"addAiAgent": {
+				"label": "Ajouter un agent IA",
+				"description": "Configurer l'automatisation"
+			}
+		},
+		"about": {
+			"title": "Comment fonctionne Paca",
+			"descriptionLead": "Combinez la créativité humaine et la rapidité de l'IA sur un tableau scrumban partagé. Les tâches suivent le cycle",
+			"workflow": "Planifier → Agir → Vérifier → Adapter",
+			"descriptionTrail": "avec une transparence totale sur qui — humain ou IA — a fait quoi.",
+			"openSource": "Open source · Apache-2.0"
+		},
+		"createDialog": {
+			"title": "Nouveau projet",
+			"description": "Créez un espace de travail scrumban pour votre équipe. Vous pourrez inviter des membres et configurer les paramètres après la création.",
+			"nameLabel": "Nom du projet *",
+			"namePlaceholder": "ex. Platform v3",
+			"prefixLabel": "Préfixe d'ID de tâche",
+			"prefixHint": "(ex. PACA)",
+			"prefixPlaceholder": "PROJ",
+			"prefixExampleLead": "Les tâches seront étiquetées",
+			"descriptionLabel": "Description",
+			"optionalHint": "(optionnel)",
+			"descriptionPlaceholder": "De quoi parle ce projet ?",
+			"publicProject": {
+				"label": "Projet public",
+				"publicHint": "Toute personne disposant du lien peut consulter ce projet. Les utilisateurs anonymes ont un accès en lecture seule.",
+				"privateHint": "Seuls les membres de l'équipe peuvent accéder à ce projet."
+			},
+			"cancel": "Annuler",
+			"submit": "Créer le projet",
+			"errors": {
+				"nameRequired": "Le nom du projet est requis.",
+				"nameTaken": "Un projet portant ce nom existe déjà.",
+				"nameInvalid": "Le nom du projet est vide ou invalide.",
+				"prefixInvalid": "Le préfixe doit comporter entre 1 et 10 lettres majuscules/chiffres (ex. PACA).",
+				"generic": "Une erreur s'est produite. Veuillez réessayer."
+			}
+		}
+	}
+}

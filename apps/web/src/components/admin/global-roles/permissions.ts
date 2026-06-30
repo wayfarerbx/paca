@@ -2,106 +2,118 @@ import { FolderKanban, type LucideIcon, Shield, Users } from "lucide-react";
 
 export interface KnownPermission {
 	key: string;
-	label: string;
-	description: string;
+	labelKey: string;
+	descriptionKey: string;
 	domain: string;
 }
 
-export const KNOWN_PERMISSIONS: KnownPermission[] = [
+export const KNOWN_PERMISSIONS = [
 	{
 		key: "global_roles.read",
-		label: "Read Global Roles",
-		description: "View global role definitions",
+		labelKey: "globalRoles.permissions.globalRolesRead.label",
+		descriptionKey: "globalRoles.permissions.globalRolesRead.description",
 		domain: "global_roles",
 	},
 	{
 		key: "global_roles.write",
-		label: "Write Global Roles",
-		description: "Create and update global role definitions",
+		labelKey: "globalRoles.permissions.globalRolesWrite.label",
+		descriptionKey: "globalRoles.permissions.globalRolesWrite.description",
 		domain: "global_roles",
 	},
 	{
 		key: "global_roles.assign",
-		label: "Assign Global Roles",
-		description: "Assign global roles to users",
+		labelKey: "globalRoles.permissions.globalRolesAssign.label",
+		descriptionKey: "globalRoles.permissions.globalRolesAssign.description",
 		domain: "global_roles",
 	},
 	{
 		key: "users.read",
-		label: "Read Users",
-		description: "View user profiles and list",
+		labelKey: "globalRoles.permissions.usersRead.label",
+		descriptionKey: "globalRoles.permissions.usersRead.description",
 		domain: "users",
 	},
 	{
 		key: "users.write",
-		label: "Write Users",
-		description: "Create and update user accounts",
+		labelKey: "globalRoles.permissions.usersWrite.label",
+		descriptionKey: "globalRoles.permissions.usersWrite.description",
 		domain: "users",
 	},
 	{
 		key: "users.delete",
-		label: "Delete Users",
-		description: "Remove user accounts",
+		labelKey: "globalRoles.permissions.usersDelete.label",
+		descriptionKey: "globalRoles.permissions.usersDelete.description",
 		domain: "users",
 	},
 	{
 		key: "projects.read",
-		label: "Read All Projects",
-		description: "View all projects in the workspace",
+		labelKey: "globalRoles.permissions.projectsRead.label",
+		descriptionKey: "globalRoles.permissions.projectsRead.description",
 		domain: "projects",
 	},
 	{
 		key: "projects.create",
-		label: "Create Projects",
-		description: "Create new projects",
+		labelKey: "globalRoles.permissions.projectsCreate.label",
+		descriptionKey: "globalRoles.permissions.projectsCreate.description",
 		domain: "projects",
 	},
 	{
 		key: "projects.write",
-		label: "Write Projects",
-		description: "Update project details",
+		labelKey: "globalRoles.permissions.projectsWrite.label",
+		descriptionKey: "globalRoles.permissions.projectsWrite.description",
 		domain: "projects",
 	},
 	{
 		key: "projects.delete",
-		label: "Delete Projects",
-		description: "Permanently delete projects",
+		labelKey: "globalRoles.permissions.projectsDelete.label",
+		descriptionKey: "globalRoles.permissions.projectsDelete.description",
 		domain: "projects",
 	},
 	{
 		key: "project.members.read",
-		label: "Read Project Members",
-		description: "View members of any project",
+		labelKey: "globalRoles.permissions.projectMembersRead.label",
+		descriptionKey: "globalRoles.permissions.projectMembersRead.description",
 		domain: "projects",
 	},
 	{
 		key: "project.members.write",
-		label: "Write Project Members",
-		description: "Add, remove, and update members in any project",
+		labelKey: "globalRoles.permissions.projectMembersWrite.label",
+		descriptionKey: "globalRoles.permissions.projectMembersWrite.description",
 		domain: "projects",
 	},
 	{
 		key: "project.roles.read",
-		label: "Read Project Roles",
-		description: "View roles defined in any project",
+		labelKey: "globalRoles.permissions.projectRolesRead.label",
+		descriptionKey: "globalRoles.permissions.projectRolesRead.description",
 		domain: "projects",
 	},
 	{
 		key: "project.roles.write",
-		label: "Write Project Roles",
-		description: "Create and update roles in any project",
+		labelKey: "globalRoles.permissions.projectRolesWrite.label",
+		descriptionKey: "globalRoles.permissions.projectRolesWrite.description",
 		domain: "projects",
 	},
-];
+] as const satisfies KnownPermission[];
 
 export interface PermissionGroup {
 	domain: string;
-	label: string;
+	labelKey: string;
 	Icon: LucideIcon;
 }
 
-export const PERMISSION_GROUPS: PermissionGroup[] = [
-	{ domain: "global_roles", label: "Global Roles", Icon: Shield },
-	{ domain: "users", label: "Users", Icon: Users },
-	{ domain: "projects", label: "Projects", Icon: FolderKanban },
-];
+export const PERMISSION_GROUPS = [
+	{
+		domain: "global_roles",
+		labelKey: "globalRoles.permissionGroups.globalRoles",
+		Icon: Shield,
+	},
+	{
+		domain: "users",
+		labelKey: "globalRoles.permissionGroups.users",
+		Icon: Users,
+	},
+	{
+		domain: "projects",
+		labelKey: "globalRoles.permissionGroups.projects",
+		Icon: FolderKanban,
+	},
+] as const satisfies PermissionGroup[];

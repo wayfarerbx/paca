@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Shield } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +42,7 @@ export function RoleFormDialog({
 	open,
 	onOpenChange,
 }: RoleFormDialogProps) {
+	const { t } = useTranslation("admin");
 	const queryClient = useQueryClient();
 	const isEdit = !!role;
 
@@ -62,7 +64,8 @@ export function RoleFormDialog({
 
 	const mutation = useMutation({
 		mutationFn: async () => {
-			if (!name.trim()) throw new Error("Role name is required.");
+			if (!name.trim())
+				throw new Error(t("globalRoles.formDialog.errors.roleNameRequired"));
 			const payload = {
 				name: name.trim(),
 				permissions: normalizePermissionsToWildcards(
@@ -86,25 +89,26 @@ export function RoleFormDialog({
 			setNameError(null);
 			const code = getApiErrorCode(err);
 			if (code === ApiErrorCode.GlobalRoleNameTaken) {
-				setNameError("A role with this name already exists.");
+				setNameError(t("globalRoles.formDialog.errors.nameTaken"));
 				return;
 			}
 			if (code === ApiErrorCode.GlobalRoleNameInvalid) {
-				setNameError(
-					"Role name must be uppercase letters, numbers, and underscores only.",
-				);
+				setNameError(t("globalRoles.formDialog.errors.nameInvalid"));
 				return;
 			}
 			const messages: Partial<Record<string, string>> = {
-				[ApiErrorCode.GlobalRoleNotFound]:
-					"This role no longer exists. It may have already been deleted.",
-				[ApiErrorCode.Forbidden]:
-					"You don't have permission to perform this action.",
-				[ApiErrorCode.InternalError]:
-					"Something went wrong on the server. Please try again.",
+				[ApiErrorCode.GlobalRoleNotFound]: t(
+					"globalRoles.formDialog.errors.roleNotFound",
+				),
+				[ApiErrorCode.Forbidden]: t("globalRoles.formDialog.errors.forbidden"),
+				[ApiErrorCode.InternalError]: t(
+					"globalRoles.formDialog.errors.internalError",
+				),
 			};
 			const fallback =
-				err instanceof Error ? err.message : "Something went wrong.";
+				err instanceof Error
+					? err.message
+					: t("globalRoles.formDialog.errors.generic");
 			setError((code && messages[code]) ?? fallback);
 		},
 	});
@@ -129,13 +133,15 @@ export function RoleFormDialog({
 							<Shield className="size-4" />
 						</div>
 						<DialogTitle className="text-base">
-							{isEdit ? "Edit Role" : "Create Role"}
+							{isEdit
+								? t("globalRoles.formDialog.editTitle")
+								: t("globalRoles.formDialog.createTitle")}
 						</DialogTitle>
 					</div>
 					<DialogDescription className="mt-2">
 						{isEdit
-							? "Update the role name and its permission grants."
-							: "Define a new system-wide role and configure its permissions."}
+							? t("globalRoles.formDialog.editDescription")
+							: t("globalRoles.formDialog.createDescription")}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -145,11 +151,11 @@ export function RoleFormDialog({
 							htmlFor="role-name"
 							className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
 						>
-							Role Name
+							{t("globalRoles.formDialog.roleNameLabel")}
 						</Label>
 						<Input
 							id="role-name"
-							placeholder="e.g. SECURITY_ADMIN"
+							placeholder={t("globalRoles.formDialog.roleNamePlaceholder")}
 							value={name}
 							onChange={(e) => {
 								setName(e.target.value);
@@ -169,11 +175,13 @@ export function RoleFormDialog({
 					<div className="flex flex-col gap-2.5">
 						<div className="flex items-center justify-between">
 							<span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-								Permissions
+								{t("globalRoles.formDialog.permissionsLabel")}
 							</span>
 							{enabledCount > 0 && (
 								<span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-									{enabledCount} enabled
+									{t("globalRoles.formDialog.enabledCount", {
+										count: enabledCount,
+									})}
 								</span>
 							)}
 						</div>
@@ -190,7 +198,7 @@ export function RoleFormDialog({
 										<div className="mb-3 flex items-center gap-1.5">
 											<Icon className="size-3.5 text-muted-foreground" />
 											<span className="text-xs font-semibold text-muted-foreground">
-												{group.label}
+												{t(group.labelKey)}
 											</span>
 										</div>
 										<div className="flex flex-col">
@@ -202,10 +210,10 @@ export function RoleFormDialog({
 													<div className="flex items-center justify-between py-1">
 														<div className="flex flex-col gap-0.5">
 															<span className="text-sm font-medium">
-																{permission.label}
+																{t(permission.labelKey)}
 															</span>
 															<span className="text-xs text-muted-foreground">
-																{permission.description}
+																{t(permission.descriptionKey)}
 															</span>
 														</div>
 														<Switch
@@ -234,17 +242,17 @@ export function RoleFormDialog({
 
 				<DialogFooter>
 					<DialogClose render={<Button variant="outline" />}>
-						Cancel
+						{t("globalRoles.formDialog.cancel")}
 					</DialogClose>
 					<Button
 						onClick={() => mutation.mutate()}
 						disabled={mutation.isPending}
 					>
 						{mutation.isPending
-							? "Saving…"
+							? t("globalRoles.formDialog.saving")
 							: isEdit
-								? "Save changes"
-								: "Create role"}
+								? t("globalRoles.formDialog.saveChanges")
+								: t("globalRoles.formDialog.createRole")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

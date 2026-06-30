@@ -1,0 +1,264 @@
+{
+	"users": {
+		"header": {
+			"title": "用户管理",
+			"description": "查看并管理用户账户及其分配的角色。",
+			"newUser": "新建用户"
+		},
+		"stats": {
+			"userCount_one": "{{count}} 名用户",
+			"userCount_other": "{{count}} 名用户",
+			"inSystem": "系统中",
+			"mustChangePassword": "需修改密码"
+		},
+		"empty": {
+			"title": "未找到用户",
+			"description": "创建您的第一个用户以开始使用。",
+			"createUser": "创建用户"
+		},
+		"errors": {
+			"loadFailed": "加载用户失败",
+			"tryAgain": "请刷新页面后重试。"
+		},
+		"noPermission": {
+			"title": "您没有权限查看用户",
+			"description": "您仍可以使用上方的按钮创建新用户。"
+		},
+		"table": {
+			"columnUsername": "用户名",
+			"columnFullName": "姓名",
+			"columnRole": "角色",
+			"columnCreated": "创建时间",
+			"pwdResetBadge": "密码已重置",
+			"youBadge": "您",
+			"noFullName": "—",
+			"resetPasswordAction": "重置密码",
+			"editAction": "编辑用户",
+			"deleteAction": "删除用户"
+		},
+		"formDialog": {
+			"createdTitle": "用户已创建",
+			"createdDescriptionSuffix": "已创建。请分享以下临时密码 — 用户将在首次登录时被要求修改密码。",
+			"temporaryPasswordLabel": "临时密码",
+			"hidePassword": "隐藏密码",
+			"showPassword": "显示密码",
+			"copyPassword": "复制密码",
+			"passwordNotShownAgain": "此密码将不会再次显示，请立即复制。",
+			"done": "完成",
+			"editTitle": "编辑用户",
+			"createTitle": "创建用户",
+			"editDescription": "更新用户的显示名称和角色分配。",
+			"createDescription": "系统将自动生成一个安全的临时密码。用户将在首次登录时被要求修改密码。",
+			"usernameLabel": "用户名",
+			"usernamePlaceholder": "例如：john.doe",
+			"fullNameLabel": "姓名",
+			"fullNamePlaceholder": "例如：John Doe",
+			"roleLabel": "角色",
+			"roleOptionalHint": "（可选 — 默认为 USER）",
+			"rolePlaceholder": "选择一个角色…",
+			"cancel": "取消",
+			"saving": "正在保存…",
+			"creating": "正在创建…",
+			"saveChanges": "保存更改",
+			"createUser": "创建用户",
+			"errors": {
+				"fullNameRequired": "姓名不能为空。",
+				"usernameTaken": "该用户名已被占用。",
+				"userNotFound": "未找到该用户，可能已被删除。",
+				"forbidden": "您没有权限执行此操作。",
+				"internalError": "服务器出现错误，请重试。",
+				"generic": "出现错误。"
+			}
+		},
+		"resetPasswordDialog": {
+			"title": "重置密码",
+			"descriptionSuccessPrefix": "用户",
+			"descriptionSuccessSuffix": "的密码已重置。请分享以下临时密码 — 之后将不会再次显示。",
+			"descriptionConfirmPrefix": "系统将生成一个强临时密码并分配给",
+			"descriptionConfirmSuffix": "用户下次登录时将被要求修改密码。",
+			"temporaryPasswordLabel": "临时密码",
+			"hidePassword": "隐藏密码",
+			"showPassword": "显示密码",
+			"copyPassword": "复制密码",
+			"notShownAgain": "⚠ 关闭后此密码将不会再次显示。",
+			"done": "完成",
+			"cancel": "取消",
+			"resetting": "正在重置…",
+			"resetButton": "重置密码",
+			"errors": {
+				"userNotFound": "该用户已不存在。",
+				"forbidden": "您没有权限重置该用户的密码。",
+				"internalError": "出现错误，请重试。",
+				"generic": "出现错误。"
+			}
+		},
+		"deleteDialog": {
+			"title": "删除用户",
+			"confirmTextPrefix": "确定要删除",
+			"confirmTextSuffix": "吗？该账户将被永久移除。",
+			"cannotBeUndone": "此操作无法撤销。",
+			"cancel": "取消",
+			"deleting": "正在删除…",
+			"confirmButton": "删除用户",
+			"errors": {
+				"userNotFound": "该用户已不存在。",
+				"forbidden": "您没有权限删除该用户。",
+				"internalError": "出现错误，请重试。",
+				"generic": "出现错误。"
+			}
+		}
+	},
+	"globalRoles": {
+		"header": {
+			"title": "全局角色",
+			"description": "管理系统级角色及其授予用户的权限。",
+			"newRole": "新建角色"
+		},
+		"stats": {
+			"roleCount_one": "{{count}} 个角色",
+			"roleCount_other": "{{count}} 个角色",
+			"defined": "已定义",
+			"permissionGrants": "项跨所有角色的权限授予"
+		},
+		"empty": {
+			"title": "尚未定义任何角色",
+			"description": "创建您的第一个角色，开始管理用户权限。",
+			"createRole": "创建角色"
+		},
+		"errors": {
+			"loadFailed": "加载角色失败",
+			"tryAgain": "请刷新页面后重试。"
+		},
+		"noPermission": {
+			"title": "您没有权限查看角色",
+			"description": "您仍可以使用上方的按钮创建新角色。"
+		},
+		"table": {
+			"columnName": "名称",
+			"columnPermissions": "权限",
+			"columnCreated": "创建时间",
+			"noPermissionsAssigned": "未分配权限",
+			"editAction": "编辑角色",
+			"deleteAction": "删除角色"
+		},
+		"formDialog": {
+			"editTitle": "编辑角色",
+			"createTitle": "创建角色",
+			"editDescription": "更新角色名称及其权限授予。",
+			"createDescription": "定义一个新的系统级角色并配置其权限。",
+			"roleNameLabel": "角色名称",
+			"roleNamePlaceholder": "例如：SECURITY_ADMIN",
+			"permissionsLabel": "权限",
+			"enabledCount_one": "已启用 {{count}} 项",
+			"enabledCount_other": "已启用 {{count}} 项",
+			"cancel": "取消",
+			"saving": "正在保存…",
+			"saveChanges": "保存更改",
+			"createRole": "创建角色",
+			"errors": {
+				"roleNameRequired": "角色名称不能为空。",
+				"nameTaken": "已存在同名角色。",
+				"nameInvalid": "角色名称只能包含大写字母、数字和下划线。",
+				"roleNotFound": "该角色已不存在，可能已被删除。",
+				"forbidden": "您没有权限执行此操作。",
+				"internalError": "服务器出现错误，请重试。",
+				"generic": "出现错误。"
+			}
+		},
+		"deleteDialog": {
+			"title": "删除角色",
+			"confirmTextPrefix": "确定要删除",
+			"confirmTextSuffix": "吗？这也会移除所有用户对该角色的分配。",
+			"cannotBeUndone": "此操作无法撤销。",
+			"cancel": "取消",
+			"deleting": "正在删除…",
+			"confirmButton": "删除角色",
+			"errors": {
+				"roleNotFound": "该角色已不存在。",
+				"hasUsersWarning": "该角色仍被分配给一个或多个用户，无法删除。",
+				"forbidden": "您没有权限删除该角色。",
+				"internalError": "出现错误，请重试。",
+				"generic": "出现错误。"
+			}
+		},
+		"permissions": {
+			"globalRolesRead": {
+				"label": "查看全局角色",
+				"description": "查看全局角色定义"
+			},
+			"globalRolesWrite": {
+				"label": "编辑全局角色",
+				"description": "创建和更新全局角色定义"
+			},
+			"globalRolesAssign": {
+				"label": "分配全局角色",
+				"description": "将全局角色分配给用户"
+			},
+			"usersRead": {
+				"label": "查看用户",
+				"description": "查看用户资料和列表"
+			},
+			"usersWrite": {
+				"label": "编辑用户",
+				"description": "创建和更新用户账户"
+			},
+			"usersDelete": {
+				"label": "删除用户",
+				"description": "移除用户账户"
+			},
+			"projectsRead": {
+				"label": "查看所有项目",
+				"description": "查看工作区中的所有项目"
+			},
+			"projectsCreate": {
+				"label": "创建项目",
+				"description": "创建新项目"
+			},
+			"projectsWrite": {
+				"label": "编辑项目",
+				"description": "更新项目详情"
+			},
+			"projectsDelete": {
+				"label": "删除项目",
+				"description": "永久删除项目"
+			},
+			"projectMembersRead": {
+				"label": "查看项目成员",
+				"description": "查看任意项目的成员"
+			},
+			"projectMembersWrite": {
+				"label": "编辑项目成员",
+				"description": "在任意项目中添加、移除和更新成员"
+			},
+			"projectRolesRead": {
+				"label": "查看项目角色",
+				"description": "查看任意项目中定义的角色"
+			},
+			"projectRolesWrite": {
+				"label": "编辑项目角色",
+				"description": "在任意项目中创建和更新角色"
+			}
+		},
+		"permissionGroups": {
+			"globalRoles": "全局角色",
+			"users": "用户",
+			"projects": "项目"
+		}
+	},
+	"plugins": {
+		"title": "插件设置",
+		"description": "为所有用户管理系统级插件面板的排序和可见性。",
+		"tabs": {
+			"marketplace": "插件市场",
+			"layout": "扩展点布局"
+		},
+		"marketplace": {
+			"title": "插件市场",
+			"description": "从公开的 paca-plugins 目录安装或卸载插件。"
+		},
+		"layout": {
+			"title": "扩展点布局",
+			"description": "拖动以重新排列各扩展点内的插件面板。切换可见性以为所有用户显示或隐藏面板。"
+		}
+	}
+}

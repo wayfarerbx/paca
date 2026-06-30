@@ -1,4 +1,5 @@
 import { ListChecks } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Task } from "@/lib/interaction-api";
 import type { ProjectMember, TaskStatus, TaskType } from "@/lib/project-api";
 import { AddTaskRow } from "../add-task-row";
@@ -45,10 +46,11 @@ export function SubtasksSection({
 	onSubtaskCreate,
 	onSubtaskClick,
 }: SubtasksSectionProps) {
+	const { t } = useTranslation("projects");
 	return (
 		<div className="space-y-3">
 			<h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 flex items-center gap-2">
-				<span>Subtasks</span>
+				<span>{t("taskDetail.subtasks.title")}</span>
 				<div className="flex-1 h-px bg-linear-to-r from-border/40 to-transparent" />
 			</h3>
 
@@ -72,8 +74,8 @@ export function SubtasksSection({
 						<AddTaskRow
 							variant="list"
 							taskTypes={normalTaskTypes}
-							label="Add subtask"
-							placeholder="Subtask title…"
+							label={t("taskDetail.subtasks.addButton")}
+							placeholder={t("taskDetail.subtasks.titlePlaceholder")}
 							onAdd={(title, taskTypeId) =>
 								onSubtaskCreate?.({ title, task_type_id: taskTypeId })
 							}
@@ -85,7 +87,7 @@ export function SubtasksSection({
 			{!canEdit && subtasks.length === 0 && (
 				<div className="flex items-center gap-3 px-1 py-3 text-muted-foreground/45">
 					<ListChecks className="size-4 opacity-70" />
-					<p className="text-sm italic">No subtasks yet</p>
+					<p className="text-sm italic">{t("taskDetail.subtasks.empty")}</p>
 				</div>
 			)}
 		</div>

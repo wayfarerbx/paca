@@ -1,4 +1,5 @@
 import { Check, User } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -51,6 +52,7 @@ export function SubtaskRow({
 	onUpdate,
 	onClick,
 }: SubtaskRowProps) {
+	const { t } = useTranslation("projects");
 	const status = statuses.find((s) => s.id === task.status_id);
 	const assignee = members.find((m) => m.id === task.assignee_id);
 	const priority = getPriority(task.importance ?? 0);
@@ -140,7 +142,9 @@ export function SubtaskRow({
 								onClick={() => onUpdate?.(task.id, { assignee_id: null })}
 							>
 								<User className="size-3.5 opacity-60" />
-								<span className="flex-1 text-left">Unassigned</span>
+								<span className="flex-1 text-left">
+									{t("taskDetail.common.unassigned")}
+								</span>
 								{!assignee && <Check className="size-3.5 text-primary" />}
 							</button>
 							{members.map((m) => (
@@ -203,7 +207,7 @@ export function SubtaskRow({
 										className="text-xs font-medium truncate"
 										style={{ color: priority.color }}
 									>
-										{priority.label}
+										{t(priority.labelKey)}
 									</span>
 								</>
 							) : (
@@ -224,10 +228,11 @@ export function SubtaskRow({
 										className="size-2 rounded-full shrink-0 mr-2"
 										style={{ background: p.color }}
 									/>
-									<span style={{ color: p.color }}>{p.label}</span>
-									{priority.label === p.label && (task.importance ?? 0) > 0 && (
-										<Check className="size-3.5 text-primary ml-auto" />
-									)}
+									<span style={{ color: p.color }}>{t(p.labelKey)}</span>
+									{priority.labelKey === p.labelKey &&
+										(task.importance ?? 0) > 0 && (
+											<Check className="size-3.5 text-primary ml-auto" />
+										)}
 								</DropdownMenuItem>
 							))}
 						</DropdownMenuContent>
@@ -242,7 +247,7 @@ export function SubtaskRow({
 							className="text-xs font-medium truncate"
 							style={{ color: priority.color }}
 						>
-							{priority.label}
+							{t(priority.labelKey)}
 						</span>
 					</>
 				) : (

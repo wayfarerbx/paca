@@ -1,0 +1,151 @@
+{
+	"activityPane": {
+		"title": "アクティビティ",
+		"empty": "アクティビティはまだありません",
+		"editingComment": "コメントを編集中...",
+		"cancel": "キャンセル",
+		"sendHint": "⌘↵ で送信",
+		"systemActor": "システム",
+		"editing": "編集中",
+		"edit": "編集",
+		"delete": "削除",
+		"viewDiff": "差分を表示",
+		"revert": "元に戻す",
+		"timeAgo": {
+			"justNow": "たった今",
+			"minutes_one": "{{count}}分前",
+			"minutes_other": "{{count}}分前",
+			"hours_one": "{{count}}時間前",
+			"hours_other": "{{count}}時間前",
+			"days_one": "{{count}}日前",
+			"days_other": "{{count}}日前"
+		},
+		"errors": {
+			"revertFailed": "元に戻せませんでした。もう一度お試しください。"
+		}
+	},
+	"contentDiff": {
+		"emptyLine": "（空行）",
+		"noDifferences": "テキストの差分はありません",
+		"changeDiff": "変更差分",
+		"removed": "削除",
+		"added": "追加"
+	},
+	"home": {
+		"greeting": {
+			"morning": "おはようございます",
+			"afternoon": "こんにちは",
+			"evening": "こんばんは",
+			"fallbackName": "さん"
+		},
+		"hero": {
+			"badge": "スクラムバン ワークスペース",
+			"subtitleWithProjects_one": "現在{{count}}件のアクティブなプロジェクトがあります。続きから始めましょう。",
+			"subtitleWithProjects_other": "現在{{count}}件のアクティブなプロジェクトがあります。続きから始めましょう。",
+			"subtitleEmpty": "ワークスペースの準備ができました。プロジェクトを作成し、チームを招待して、作業を始めましょう。",
+			"newProject": "新しいプロジェクト"
+		},
+		"stats": {
+			"projects": {
+				"label": "プロジェクト",
+				"subEmpty": "プロジェクトはまだありません",
+				"subActive": "{{count}}件がアクティブ"
+			},
+			"openTasks": {
+				"label": "未完了タスク",
+				"sub": "全プロジェクト合計"
+			},
+			"teamMembers": {
+				"label": "チームメンバー",
+				"sub": "あなたを含む"
+			},
+			"aiAgents": {
+				"label": "AIエージェント",
+				"sub": "未設定"
+			}
+		},
+		"projectsSection": {
+			"title": "プロジェクト",
+			"countInWorkspace_one": "ワークスペース内に{{count}}件のプロジェクト",
+			"countInWorkspace_other": "ワークスペース内に{{count}}件のプロジェクト",
+			"newShort": "新規",
+			"newProjectCard": "新しいプロジェクト"
+		},
+		"projectCard": {
+			"public": "公開",
+			"noDescription": "説明はありません"
+		},
+		"gettingStarted": {
+			"title": "はじめに",
+			"progress": "{{completed}} / {{total}}",
+			"subtitle": "以下のステップを完了して、Pacaの機能をフル活用しましょう。",
+			"steps": {
+				"createProject": {
+					"title": "最初のプロジェクトを作成する",
+					"description": "チームの作業を管理するスクラムバンボードをセットアップします。"
+				},
+				"inviteTeam": {
+					"title": "チームを招待する",
+					"description": "人間のメンバーを追加し、ロールを割り当てます。"
+				},
+				"configureAgent": {
+					"title": "AIエージェントを設定する",
+					"description": "タスクを自律的に処理するAIを接続します。"
+				},
+				"runSprint": {
+					"title": "最初のスプリントを実行する",
+					"description": "計画 → 実行 → 確認 → 適応 のサイクルでタスクを進めます。"
+				}
+			}
+		},
+		"quickActions": {
+			"title": "クイックアクション",
+			"newProject": {
+				"label": "新しいプロジェクト",
+				"description": "スクラムバンボードを作成"
+			},
+			"inviteTeam": {
+				"label": "チームを招待",
+				"description": "メンバーやエージェントを追加"
+			},
+			"addAiAgent": {
+				"label": "AIエージェントを追加",
+				"description": "自動化を設定"
+			}
+		},
+		"about": {
+			"title": "Pacaの仕組み",
+			"descriptionLead": "人間の創造力とAIのスピードを、共有のスクラムバンボード上で組み合わせます。タスクは",
+			"workflow": "計画 → 実行 → 確認 → 適応",
+			"descriptionTrail": "というサイクルを流れ、人間とAIどちらが何を行ったかも完全に可視化されます。",
+			"openSource": "オープンソース・Apache-2.0"
+		},
+		"createDialog": {
+			"title": "新しいプロジェクト",
+			"description": "チーム向けのスクラムバンワークスペースを作成します。作成後にメンバーを招待したり、設定を変更したりできます。",
+			"nameLabel": "プロジェクト名 *",
+			"namePlaceholder": "例: Platform v3",
+			"prefixLabel": "タスクIDプレフィックス",
+			"prefixHint": "（例: PACA）",
+			"prefixPlaceholder": "PROJ",
+			"prefixExampleLead": "タスクには次のようなラベルが付きます:",
+			"descriptionLabel": "説明",
+			"optionalHint": "（任意）",
+			"descriptionPlaceholder": "このプロジェクトについて教えてください",
+			"publicProject": {
+				"label": "公開プロジェクト",
+				"publicHint": "リンクを知っている人は誰でもこのプロジェクトを閲覧できます。匿名ユーザーは読み取り専用でアクセスできます。",
+				"privateHint": "チームメンバーのみがこのプロジェクトにアクセスできます。"
+			},
+			"cancel": "キャンセル",
+			"submit": "プロジェクトを作成",
+			"errors": {
+				"nameRequired": "プロジェクト名を入力してください。",
+				"nameTaken": "この名前のプロジェクトは既に存在します。",
+				"nameInvalid": "プロジェクト名が空か無効です。",
+				"prefixInvalid": "プレフィックスは1〜10文字の大文字英数字で入力してください（例: PACA）。",
+				"generic": "問題が発生しました。もう一度お試しください。"
+			}
+		}
+	}
+}

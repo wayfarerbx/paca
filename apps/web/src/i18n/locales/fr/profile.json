@@ -1,0 +1,106 @@
+{
+	"page": {
+		"title": "Mon profil",
+		"subtitle": "Consultez et mettez à jour les informations de votre compte."
+	},
+	"fields": {
+		"fullName": "Nom complet",
+		"fullNamePlaceholder": "Entrez votre nom complet",
+		"notSet": "Non défini",
+		"username": "Nom d'utilisateur"
+	},
+	"actions": {
+		"editProfile": "Modifier le profil",
+		"saveChanges": "Enregistrer les modifications",
+		"saving": "Enregistrement…",
+		"cancel": "Annuler"
+	},
+	"errors": {
+		"updateFailed": "Échec de la mise à jour du profil. Veuillez réessayer."
+	},
+	"joinedOn": "Inscrit le {{date}}",
+	"changePassword": {
+		"title": "Changer le mot de passe",
+		"description": "Mettez à jour le mot de passe de votre compte.",
+		"descriptionMustChange": "Vous devez définir un nouveau mot de passe avant de continuer.",
+		"temporaryPasswordNotice": "Un mot de passe temporaire a été défini pour votre compte. Veuillez le changer maintenant.",
+		"success": "Mot de passe changé avec succès.",
+		"fields": {
+			"currentPassword": "Mot de passe actuel",
+			"newPassword": "Nouveau mot de passe",
+			"confirmPassword": "Confirmer le nouveau mot de passe",
+			"passwordPlaceholder": "••••••••",
+			"newPasswordHint": "Utilisez au moins 8 caractères et choisissez quelque chose de différent de votre mot de passe actuel."
+		},
+		"aria": {
+			"showCurrentPassword": "Afficher le mot de passe actuel",
+			"hideCurrentPassword": "Masquer le mot de passe actuel",
+			"showNewPassword": "Afficher le nouveau mot de passe",
+			"hideNewPassword": "Masquer le nouveau mot de passe",
+			"showConfirmPassword": "Afficher la confirmation du mot de passe",
+			"hideConfirmPassword": "Masquer la confirmation du mot de passe"
+		},
+		"actions": {
+			"submit": "Changer le mot de passe",
+			"updating": "Mise à jour…"
+		},
+		"errors": {
+			"currentPasswordRequired": "Le mot de passe actuel est requis.",
+			"currentPasswordIncorrect": "Le mot de passe actuel est incorrect.",
+			"sessionExpired": "Votre session a expiré. Veuillez vous reconnecter.",
+			"serverError": "Une erreur s'est produite sur le serveur. Veuillez réessayer.",
+			"changeFailed": "Échec du changement de mot de passe."
+		}
+	},
+	"apiKeys": {
+		"title": "Clés API",
+		"subtitle": "Les clés API vous permettent d'authentifier des requêtes API sans utiliser les cookies de session. Traitez-les comme des mots de passe — ne les partagez jamais.",
+		"empty": "Aucune clé API pour le moment. Créez-en une pour commencer.",
+		"yourKeys": {
+			"title": "Vos clés",
+			"description": "Les clés sont affichées avec seulement les 8 premiers caractères pour identification."
+		},
+		"table": {
+			"name": "Nom",
+			"prefix": "Préfixe",
+			"created": "Créée",
+			"expires": "Expire",
+			"lastUsed": "Dernière utilisation"
+		},
+		"actions": {
+			"newKey": "Nouvelle clé",
+			"cancel": "Annuler",
+			"creating": "Création…",
+			"createKey": "Créer la clé",
+			"done": "Terminé",
+			"revoking": "Révocation…",
+			"revokeKey": "Révoquer la clé",
+			"revokeKeyAria": "Révoquer la clé",
+			"copyKeyAria": "Copier la clé"
+		},
+		"createDialog": {
+			"title": "Créer une clé API",
+			"description": "Donnez à votre clé un nom descriptif afin de pouvoir l'identifier plus tard.",
+			"nameLabel": "Nom",
+			"namePlaceholder": "ex. Pipeline CI, Dev local",
+			"expiryLabel": "Date d'expiration",
+			"expiryOptional": "(optionnel)"
+		},
+		"revealDialog": {
+			"title": "Clé API créée",
+			"description": "Copiez votre nouvelle clé maintenant. Vous ne pourrez plus la revoir.",
+			"copied": "Copié dans le presse-papiers !"
+		},
+		"revokeDialog": {
+			"title": "Révoquer la clé API",
+			"confirmPrefix": "Êtes-vous sûr de vouloir révoquer",
+			"confirmSuffix": " ? Toutes les requêtes utilisant cette clé cesseront de fonctionner immédiatement."
+		},
+		"errors": {
+			"nameRequired": "Le nom ne doit pas être vide.",
+			"nameTooLong": "Le nom doit comporter 100 caractères ou moins.",
+			"createFailed": "Échec de la création de la clé. Veuillez réessayer.",
+			"copyFailed": "Échec de la copie. Veuillez copier la clé manuellement."
+		}
+	}
+}

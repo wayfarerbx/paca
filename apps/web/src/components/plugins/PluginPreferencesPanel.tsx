@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Eye, EyeOff, GripVertical } from "lucide-react";
 import { type DragEvent, useCallback, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
 	type ExtensionPointId,
@@ -10,13 +11,13 @@ import {
 } from "@/lib/plugin-api";
 import { usePluginRegistry } from "@/lib/plugins/registry";
 
-const EXTENSION_POINT_LABELS: Record<ExtensionPointId, string> = {
-	"sidebar.general.section": "Sidebar — General",
-	"sidebar.project.section": "Sidebar — Project",
-	"task.detail.section": "Task Detail",
-	"project.settings.tab": "Project Settings Tab",
-	view: "Custom View",
-};
+const EXTENSION_POINT_LABEL_KEYS = {
+	"sidebar.general.section": "preferences.extensionPoints.sidebarGeneral",
+	"sidebar.project.section": "preferences.extensionPoints.sidebarProject",
+	"task.detail.section": "preferences.extensionPoints.taskDetail",
+	"project.settings.tab": "preferences.extensionPoints.projectSettingsTab",
+	view: "preferences.extensionPoints.customView",
+} as const satisfies Record<ExtensionPointId, string>;
 
 const ALL_POINTS: ExtensionPointId[] = [
 	"sidebar.general.section",
@@ -48,6 +49,7 @@ function DraggableItem({
 	onDrop,
 	dragOverIndex,
 }: DraggableItemProps) {
+	const { t } = useTranslation("plugins");
 	return (
 		<li
 			draggable
@@ -65,13 +67,17 @@ function DraggableItem({
 			<div className="flex-1 min-w-0">
 				<p className="text-sm font-medium truncate">{reg.label}</p>
 				<p className="text-xs text-muted-foreground truncate">
-					{reg.pluginName} · {EXTENSION_POINT_LABELS[point]}
+					{reg.pluginName} · {t(EXTENSION_POINT_LABEL_KEYS[point])}
 				</p>
 			</div>
 			<button
 				type="button"
 				onClick={() => onToggleHidden(reg)}
-				title={reg.hidden ? "Show" : "Hide"}
+				title={
+					reg.hidden
+						? t("preferences.actions.show")
+						: t("preferences.actions.hide")
+				}
 				className="flex items-center justify-center size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0"
 			>
 				{reg.hidden ? (
@@ -101,6 +107,7 @@ function PointSection({
 	onToggleHidden,
 	onReorder,
 }: PointSectionProps) {
+	const { t } = useTranslation("plugins");
 	const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 	const dragIndexRef = useRef<number>(-1);
 
@@ -126,7 +133,7 @@ function PointSection({
 	return (
 		<div className="space-y-2">
 			<p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60">
-				{EXTENSION_POINT_LABELS[point]}
+				{t(EXTENSION_POINT_LABEL_KEYS[point])}
 			</p>
 			<div className="space-y-1.5">
 				{registrations.map((reg, index) => (
@@ -149,6 +156,7 @@ function PointSection({
 }
 
 export function PluginPreferencesPanel() {
+	const { t } = useTranslation("plugins");
 	const qc = useQueryClient();
 	const { data: plugins = [] } = useQuery(pluginsQueryOptions);
 	const { getRegistrations } = usePluginRegistry();
@@ -201,7 +209,7 @@ export function PluginPreferencesPanel() {
 	if (!hasAny) {
 		return (
 			<div className="py-8 text-center text-sm text-muted-foreground">
-				No plugins with extension points are installed.
+				{t("preferences.empty")}
 			</div>
 		);
 	}

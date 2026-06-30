@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +31,7 @@ export function DeleteRoleDialog({
 	open,
 	onOpenChange,
 }: DeleteRoleDialogProps) {
+	const { t } = useTranslation("admin");
 	const queryClient = useQueryClient();
 	const [error, setError] = useState<string | null>(null);
 
@@ -44,15 +46,23 @@ export function DeleteRoleDialog({
 		onError: (err: unknown) => {
 			const code = getApiErrorCode(err);
 			const messages: Partial<Record<string, string>> = {
-				[ApiErrorCode.GlobalRoleNotFound]: "This role no longer exists.",
-				[ApiErrorCode.GlobalRoleHasUsers]:
-					"This role cannot be deleted because it is still assigned to one or more users.",
-				[ApiErrorCode.Forbidden]:
-					"You don't have permission to delete this role.",
-				[ApiErrorCode.InternalError]: "Something went wrong. Please try again.",
+				[ApiErrorCode.GlobalRoleNotFound]: t(
+					"globalRoles.deleteDialog.errors.roleNotFound",
+				),
+				[ApiErrorCode.GlobalRoleHasUsers]: t(
+					"globalRoles.deleteDialog.errors.hasUsersWarning",
+				),
+				[ApiErrorCode.Forbidden]: t(
+					"globalRoles.deleteDialog.errors.forbidden",
+				),
+				[ApiErrorCode.InternalError]: t(
+					"globalRoles.deleteDialog.errors.internalError",
+				),
 			};
 			const fallback =
-				err instanceof Error ? err.message : "Something went wrong.";
+				err instanceof Error
+					? err.message
+					: t("globalRoles.deleteDialog.errors.generic");
 			setError((code && messages[code]) ?? fallback);
 		},
 	});
@@ -70,17 +80,17 @@ export function DeleteRoleDialog({
 					<div className="mb-1 flex size-9 items-center justify-center rounded-lg bg-destructive/10">
 						<Trash2 className="size-4 text-destructive" />
 					</div>
-					<DialogTitle>Delete role</DialogTitle>
+					<DialogTitle>{t("globalRoles.deleteDialog.title")}</DialogTitle>
 					<DialogDescription className="mt-1 space-y-1">
 						<span>
-							Are you sure you want to delete{" "}
+							{t("globalRoles.deleteDialog.confirmTextPrefix")}{" "}
 							<span className="font-mono font-semibold text-foreground">
 								{role.name}
 							</span>
-							? This will also remove all user assignments for this role.
+							{t("globalRoles.deleteDialog.confirmTextSuffix")}
 						</span>{" "}
 						<span className="font-medium text-foreground">
-							This action cannot be undone.
+							{t("globalRoles.deleteDialog.cannotBeUndone")}
 						</span>
 					</DialogDescription>
 				</DialogHeader>
@@ -92,14 +102,16 @@ export function DeleteRoleDialog({
 				) : null}
 				<DialogFooter>
 					<DialogClose render={<Button variant="outline" />}>
-						Cancel
+						{t("globalRoles.deleteDialog.cancel")}
 					</DialogClose>
 					<Button
 						variant="destructive"
 						onClick={() => mutation.mutate()}
 						disabled={mutation.isPending}
 					>
-						{mutation.isPending ? "Deleting…" : "Delete role"}
+						{mutation.isPending
+							? t("globalRoles.deleteDialog.deleting")
+							: t("globalRoles.deleteDialog.confirmButton")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

@@ -1,0 +1,38 @@
+{
+	"marketplace": {
+		"loading": "Đang tải chợ plugin...",
+		"searchPlaceholder": "Tìm kiếm plugin",
+		"empty": "Không tìm thấy plugin nào trong chợ.",
+		"card": {
+			"installed": "Đã cài đặt",
+			"updateAvailable": "Có bản cập nhật",
+			"source": "Nguồn",
+			"upgrading": "Đang nâng cấp...",
+			"upgradeTo": "Nâng cấp lên {{version}}",
+			"uninstalling": "Đang gỡ cài đặt...",
+			"uninstall": "Gỡ cài đặt",
+			"installing": "Đang cài đặt...",
+			"install": "Cài đặt",
+			"features": {
+				"backend": "Backend",
+				"frontend": "Frontend",
+				"migrations": "Migrations",
+				"mcp": "MCP"
+			}
+		}
+	},
+	"preferences": {
+		"empty": "Không có plugin nào có điểm mở rộng được cài đặt.",
+		"actions": {
+			"show": "Hiện",
+			"hide": "Ẩn"
+		},
+		"extensionPoints": {
+			"sidebarGeneral": "Thanh bên — Chung",
+			"sidebarProject": "Thanh bên — Dự án",
+			"taskDetail": "Chi tiết nhiệm vụ",
+			"projectSettingsTab": "Tab cài đặt dự án",
+			"customView": "Chế độ xem tùy chỉnh"
+		}
+	}
+}

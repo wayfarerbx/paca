@@ -1,4 +1,5 @@
 import { Key, Shield } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Separator } from "@/components/ui/separator";
 
@@ -11,6 +12,8 @@ export function GlobalRolesStats({
 	rolesCount,
 	totalGranted,
 }: GlobalRolesStatsProps) {
+	const { t } = useTranslation("admin");
+
 	return (
 		<div className="flex items-center gap-5 rounded-xl border bg-muted/20 px-5 py-3">
 			<div className="flex items-center gap-2">
@@ -18,7 +21,8 @@ export function GlobalRolesStats({
 				<span className="text-sm">
 					<span className="font-semibold tabular-nums">{rolesCount}</span>
 					<span className="ml-1.5 text-muted-foreground">
-						{rolesCount === 1 ? "role" : "roles"} defined
+						{t("globalRoles.stats.roleCount", { count: rolesCount })}{" "}
+						{t("globalRoles.stats.defined")}
 					</span>
 				</span>
 			</div>
@@ -28,7 +32,7 @@ export function GlobalRolesStats({
 				<span className="text-sm">
 					<span className="font-semibold tabular-nums">{totalGranted}</span>
 					<span className="ml-1.5 text-muted-foreground">
-						permission grants across all roles
+						{t("globalRoles.stats.permissionGrants")}
 					</span>
 				</span>
 			</div>

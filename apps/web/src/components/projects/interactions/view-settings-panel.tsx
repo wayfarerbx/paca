@@ -7,6 +7,7 @@ import {
 	Settings,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { getTaskTypeIconComponent } from "@/components/projects/task-types/task-type-icons";
 import {
 	Popover,
@@ -103,6 +104,7 @@ function DynamicSelect({
 	options: { key: string; label: string }[];
 	onChange: (v: string | undefined) => void;
 }) {
+	const { t } = useTranslation("projects");
 	const selected = options.find((o) => o.key === value);
 	return (
 		<Popover>
@@ -110,7 +112,9 @@ function DynamicSelect({
 				type="button"
 				className="flex flex-1 items-center justify-between gap-1.5 cursor-pointer rounded-md border border-border/30 bg-background px-2 py-1 text-xs font-medium outline-none transition-all hover:border-border/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 min-w-0"
 			>
-				<span className="truncate">{selected?.label ?? "—"}</span>
+				<span className="truncate">
+					{selected?.label ?? t("layout.viewSettings.noSelection")}
+				</span>
 				<ChevronDown className="size-3 shrink-0 text-muted-foreground/50" />
 			</PopoverTrigger>
 			<PopoverContent
@@ -222,7 +226,8 @@ function FieldPicker({
 	customFields,
 	onChange,
 }: FieldPickerProps) {
-	const allFields = buildAllFieldOptions(customFields);
+	const { t } = useTranslation("projects");
+	const allFields = buildAllFieldOptions(customFields, t);
 	const dragRef = useRef<string | null>(null);
 
 	const toggle = (key: string) => {
@@ -323,11 +328,14 @@ function SprintFilterSection({
 	selectedIds: string[];
 	onChange: (ids: string[]) => void;
 }) {
+	const { t } = useTranslation("projects");
 	const isAll = selectedIds.length === 0;
 
 	if (sprints.length === 0) {
 		return (
-			<p className="px-3 pb-2 text-xs text-muted-foreground/50">No sprints</p>
+			<p className="px-3 pb-2 text-xs text-muted-foreground/50">
+				{t("layout.viewSettings.sprintFilter.noSprints")}
+			</p>
 		);
 	}
 
@@ -343,7 +351,7 @@ function SprintFilterSection({
 		<div className="px-3 pb-3 space-y-1.5">
 			<div className="flex flex-wrap gap-1.5">
 				<FilterPill selected={isAll} onClick={() => onChange([])}>
-					All sprints
+					{t("layout.viewSettings.sprintFilter.allSprints")}
 				</FilterPill>
 				{sprints.map((sprint) => {
 					const selected = selectedIds.includes(sprint.id);
@@ -373,6 +381,7 @@ function StatusFilterSection({
 	selectedIds: string[];
 	onChange: (ids: string[]) => void;
 }) {
+	const { t } = useTranslation("projects");
 	const allIds = statuses.map((s) => s.id);
 	const isAll = selectedIds.length === 0;
 
@@ -405,7 +414,9 @@ function StatusFilterSection({
 
 	if (statuses.length === 0) {
 		return (
-			<p className="px-3 pb-2 text-xs text-muted-foreground/50">No statuses</p>
+			<p className="px-3 pb-2 text-xs text-muted-foreground/50">
+				{t("layout.viewSettings.statusFilter.noStatuses")}
+			</p>
 		);
 	}
 
@@ -413,7 +424,7 @@ function StatusFilterSection({
 		<div className="px-1 pb-3 space-y-0.5">
 			<CheckRow
 				id="status-all"
-				label="All statuses"
+				label={t("layout.viewSettings.statusFilter.allStatuses")}
 				checked={isAll}
 				bold
 				onChange={() => onChange([])}
@@ -441,7 +452,9 @@ function StatusFilterSection({
 								onClick={() => toggleGroup(groupIds)}
 								className="ml-auto text-xs text-muted-foreground/50 hover:text-primary transition-colors font-medium"
 							>
-								{allChecked ? "Clear" : "All"}
+								{allChecked
+									? t("layout.viewSettings.statusFilter.clear")
+									: t("layout.viewSettings.statusFilter.all")}
 							</button>
 						</div>
 						{groupStatuses.map((status) => (
@@ -482,6 +495,7 @@ function AssigneeFilterSection({
 	selectedIds: string[];
 	onChange: (ids: string[]) => void;
 }) {
+	const { t } = useTranslation("projects");
 	const allFilterIds = [...members.map((m) => m.id), UNASSIGNED_FILTER_ID];
 	const isAll = selectedIds.length === 0;
 
@@ -501,13 +515,15 @@ function AssigneeFilterSection({
 		<div className="px-1 pb-3 space-y-0.5 max-h-44 overflow-y-auto">
 			<CheckRow
 				id="assignee-all"
-				label="All assignees"
+				label={t("layout.viewSettings.assigneeFilter.allAssignees")}
 				checked={isAll}
 				bold
 				onChange={() => onChange([])}
 			/>
 			{members.length === 0 ? (
-				<p className="px-2 py-1 text-xs text-muted-foreground/50">No members</p>
+				<p className="px-2 py-1 text-xs text-muted-foreground/50">
+					{t("layout.viewSettings.assigneeFilter.noMembers")}
+				</p>
 			) : (
 				members.map((m) => {
 					const display = m.full_name || m.username;
@@ -529,7 +545,7 @@ function AssigneeFilterSection({
 			)}
 			<CheckRow
 				id="assignee-unassigned"
-				label="Unassigned"
+				label={t("layout.viewSettings.assigneeFilter.unassigned")}
 				checked={isAll || selectedIds.includes(UNASSIGNED_FILTER_ID)}
 				onChange={() => toggle(UNASSIGNED_FILTER_ID)}
 				icon={
@@ -607,8 +623,9 @@ function TaskTypeFilterSection({
 	onChange: (ids: string[]) => void;
 	onAllNormalChange: (allNormal: boolean) => void;
 }) {
-	const normalTypes = taskTypes.filter((t) => !t.is_system);
-	const systemTypes = taskTypes.filter((t) => t.is_system);
+	const { t } = useTranslation("projects");
+	const normalTypes = taskTypes.filter((tt) => !tt.is_system);
+	const systemTypes = taskTypes.filter((tt) => tt.is_system);
 
 	const toggle = (id: string) => {
 		if (selectedIds.includes(id)) {
@@ -643,13 +660,15 @@ function TaskTypeFilterSection({
 				<>
 					<div className="flex items-center gap-1.5 px-2 pt-2 pb-0.5">
 						<span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/50">
-							Normal types
+							{t("layout.viewSettings.taskTypeFilter.normalTypes")}
 						</span>
 					</div>
 					{/* "All normal types" toggle */}
 					<CheckRow
 						id="type-all-normal"
-						label="All normal types (dynamic)"
+						label={t(
+							"layout.viewSettings.taskTypeFilter.allNormalTypesDynamic",
+						)}
 						checked={allNormal}
 						bold
 						onChange={() => onAllNormalChange(!allNormal)}
@@ -683,7 +702,7 @@ function TaskTypeFilterSection({
 				<>
 					<div className="flex items-center gap-1.5 px-2 pt-2 pb-0.5">
 						<span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/50">
-							System types
+							{t("layout.viewSettings.taskTypeFilter.systemTypes")}
 						</span>
 					</div>
 					{systemTypes.map((type) => (
@@ -701,7 +720,7 @@ function TaskTypeFilterSection({
 
 			{taskTypes.length === 0 && (
 				<p className="px-2 py-1 text-xs text-muted-foreground/50">
-					No task types
+					{t("layout.viewSettings.taskTypeFilter.noTaskTypes")}
 				</p>
 			)}
 		</div>
@@ -769,6 +788,7 @@ export function ViewSettingsPanel({
 	onPreview,
 	isPending,
 }: ViewSettingsPanelProps) {
+	const { t } = useTranslation("projects");
 	const { data: customFields = [] } = useQuery(
 		customFieldsQueryOptions(projectId),
 	);
@@ -839,18 +859,18 @@ export function ViewSettingsPanel({
 			? draft.fields
 			: DEFAULT_VISIBLE_FIELDS;
 
-	const allFieldOpts = buildAllFieldOptions(customFields);
+	const allFieldOpts = buildAllFieldOptions(customFields, t);
 	const fieldsLabel = [
-		"Title",
+		t("layout.viewSettings.titleField"),
 		...visibleFields.map(
 			(k) => allFieldOpts.find((f) => f.key === k)?.label ?? k,
 		),
 	].join(", ");
 
-	const columnByOpts = buildColumnByOptions(customFields);
-	const sortByOpts = buildSortByOptions(customFields);
-	const swimlaneOpts = buildSwimlaneOptions(customFields);
-	const fieldSumOpts = buildFieldSumOptions(customFields);
+	const columnByOpts = buildColumnByOptions(customFields, t);
+	const sortByOpts = buildSortByOptions(customFields, t);
+	const swimlaneOpts = buildSwimlaneOptions(customFields, t);
+	const fieldSumOpts = buildFieldSumOptions(customFields, t);
 
 	const sortByValue = draft.sort_by ?? "manual";
 	// Mirrors the runtime defaults in interaction-layout.tsx (see
@@ -877,7 +897,7 @@ export function ViewSettingsPanel({
 				render={
 					<button
 						type="button"
-						aria-label="View settings"
+						aria-label={t("layout.viewSettings.viewSettingsAriaLabel")}
 						className={cn(
 							"relative flex size-7 items-center justify-center rounded-md transition-all duration-150",
 							open
@@ -900,20 +920,20 @@ export function ViewSettingsPanel({
 					{fieldsOpen ? (
 						<>
 							<p className="text-xs font-semibold text-muted-foreground/80">
-								Choose fields
+								{t("layout.viewSettings.chooseFields")}
 							</p>
 							<button
 								type="button"
 								onClick={() => setFieldsOpen(false)}
 								className="text-xs font-medium text-primary/80 hover:text-primary transition-colors"
 							>
-								← Back
+								{t("layout.viewSettings.back")}
 							</button>
 						</>
 					) : (
 						<>
 							<p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground/70">
-								View settings
+								{t("layout.viewSettings.title")}
 							</p>
 							{hasSavedFilters && (
 								<button
@@ -921,7 +941,7 @@ export function ViewSettingsPanel({
 									onClick={() => update({ filters: {} })}
 									className="text-xs font-medium text-muted-foreground/60 hover:text-foreground transition-colors"
 								>
-									Clear filters
+									{t("layout.viewSettings.clearFilters")}
 								</button>
 							)}
 						</>
@@ -940,9 +960,11 @@ export function ViewSettingsPanel({
 				) : (
 					<div className="overflow-y-auto max-h-[70vh]">
 						{/* ── Display section ─────────────────────────────────── */}
-						<PanelSectionHeader>Display</PanelSectionHeader>
+						<PanelSectionHeader>
+							{t("layout.viewSettings.display")}
+						</PanelSectionHeader>
 						<div className="pb-2 space-y-0.5">
-							<SettingRow label="Fields">
+							<SettingRow label={t("layout.viewSettings.fieldsLabel")}>
 								<button
 									type="button"
 									onClick={() => setFieldsOpen(true)}
@@ -952,7 +974,7 @@ export function ViewSettingsPanel({
 								</button>
 							</SettingRow>
 
-							<SettingRow label="Column by">
+							<SettingRow label={t("layout.viewSettings.columnByLabel")}>
 								<DynamicSelect
 									value={draft.column_by ?? "status"}
 									options={columnByOpts}
@@ -960,7 +982,7 @@ export function ViewSettingsPanel({
 								/>
 							</SettingRow>
 
-							<SettingRow label="Swimlanes">
+							<SettingRow label={t("layout.viewSettings.swimlanesLabel")}>
 								<DynamicSelect
 									value={draft.swimlanes ?? "none"}
 									options={swimlaneOpts}
@@ -968,7 +990,7 @@ export function ViewSettingsPanel({
 								/>
 							</SettingRow>
 
-							<SettingRow label="Sort by">
+							<SettingRow label={t("layout.viewSettings.sortByLabel")}>
 								<DynamicSelect
 									value={sortByValue}
 									options={sortByOpts}
@@ -976,7 +998,7 @@ export function ViewSettingsPanel({
 								/>
 							</SettingRow>
 
-							<SettingRow label="Field sum">
+							<SettingRow label={t("layout.viewSettings.fieldSumLabel")}>
 								<DynamicSelect
 									value={draft.field_sum ?? "count"}
 									options={fieldSumOpts}
@@ -984,7 +1006,7 @@ export function ViewSettingsPanel({
 								/>
 							</SettingRow>
 
-							<SettingRow label="Initial size">
+							<SettingRow label={t("layout.viewSettings.initialSizeLabel")}>
 								<DynamicSelect
 									value={String(
 										draft.initial_page_size ?? defaultInitialPageSize,
@@ -996,7 +1018,7 @@ export function ViewSettingsPanel({
 								/>
 							</SettingRow>
 
-							<SettingRow label="Per page">
+							<SettingRow label={t("layout.viewSettings.perPageLabel")}>
 								<DynamicSelect
 									value={String(draft.page_size ?? defaultPageSize)}
 									options={PAGE_SIZE_OPTIONS}
@@ -1009,11 +1031,13 @@ export function ViewSettingsPanel({
 
 						{/* ── Filters section ──────────────────────────────────── */}
 						<div className="border-t border-border/20">
-							<PanelSectionHeader>Filters</PanelSectionHeader>
+							<PanelSectionHeader>
+								{t("layout.viewSettings.filters")}
+							</PanelSectionHeader>
 
 							<div className="pb-1">
 								<CollapsibleFilter
-									label="Sprints"
+									label={t("layout.viewSettings.sprintsLabel")}
 									badge={filterSprintIds.length}
 									defaultOpen={filterSprintIds.length > 0}
 								>
@@ -1027,7 +1051,7 @@ export function ViewSettingsPanel({
 								</CollapsibleFilter>
 
 								<CollapsibleFilter
-									label="Statuses"
+									label={t("layout.viewSettings.statusesLabel")}
 									badge={filterStatusIds.length}
 									defaultOpen={filterStatusIds.length > 0}
 								>
@@ -1041,7 +1065,7 @@ export function ViewSettingsPanel({
 								</CollapsibleFilter>
 
 								<CollapsibleFilter
-									label="Assignees"
+									label={t("layout.viewSettings.assigneesLabel")}
 									badge={filterAssigneeIds.length}
 									defaultOpen={filterAssigneeIds.length > 0}
 								>
@@ -1055,7 +1079,7 @@ export function ViewSettingsPanel({
 								</CollapsibleFilter>
 
 								<CollapsibleFilter
-									label="Task types"
+									label={t("layout.viewSettings.taskTypesLabel")}
 									badge={
 										filterTaskTypeIds.length + (filterTaskTypeAllNormal ? 1 : 0)
 									}
@@ -1082,7 +1106,8 @@ export function ViewSettingsPanel({
 													next
 														? filterTaskTypeIds.filter(
 																(id) =>
-																	taskTypes.find((t) => t.id === id)?.is_system,
+																	taskTypes.find((tt) => tt.id === id)
+																		?.is_system,
 															)
 														: filterTaskTypeIds,
 												),
@@ -1102,7 +1127,7 @@ export function ViewSettingsPanel({
 						onClick={handleReset}
 						className="rounded-lg bg-muted/50 px-2.5 py-1.5 text-xs font-semibold text-muted-foreground/80 transition-all duration-150 hover:bg-muted hover:text-foreground"
 					>
-						Reset
+						{t("layout.viewSettings.reset")}
 					</button>
 					<button
 						type="button"
@@ -1110,7 +1135,9 @@ export function ViewSettingsPanel({
 						disabled={isPending}
 						className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition-all duration-150 hover:bg-primary/90 disabled:opacity-40"
 					>
-						{isPending ? "Saving…" : "Save"}
+						{isPending
+							? t("layout.viewSettings.saving")
+							: t("layout.viewSettings.save")}
 					</button>
 				</div>
 			</PopoverContent>

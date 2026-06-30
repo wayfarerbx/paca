@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { AlertCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { AIChatFloat } from "@/components/projects/ai-chat-float";
 import { useProjectRealtime } from "@/hooks/use-project-realtime";
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/projects/$projectId")({
 });
 
 function ProjectLayout() {
+	const { t } = useTranslation("projects");
 	const { projectId } = Route.useParams();
 	const { data: project, isError } = useQuery(projectQueryOptions(projectId));
 
@@ -30,7 +32,7 @@ function ProjectLayout() {
 		return (
 			<div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-muted-foreground">
 				<AlertCircle className="size-8 opacity-40" />
-				<p className="text-sm">Project not found or access denied.</p>
+				<p className="text-sm">{t("project.notFound")}</p>
 			</div>
 		);
 	}

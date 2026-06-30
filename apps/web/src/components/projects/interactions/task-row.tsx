@@ -1,4 +1,6 @@
+import type { TFunction } from "i18next";
 import { Check, GripVertical, Layers, Link, User } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import {
 	DropdownMenu,
@@ -39,58 +41,65 @@ interface ColConfig {
 export function getRowColConfig(
 	fieldKey: string,
 	customFields: CustomFieldDefinition[],
+	t: TFunction<"projects">,
 ): ColConfig {
 	switch (fieldKey) {
 		case "type":
-			return { className: "w-28 shrink-0", headerLabel: "Type" };
+			return {
+				className: "w-28 shrink-0",
+				headerLabel: t("board.taskRow.columnHeaders.type"),
+			};
 		case "importance":
 			return {
 				className: "w-20 shrink-0",
-				headerLabel: "Importance",
+				headerLabel: t("board.taskRow.columnHeaders.importance"),
 				responsive: true,
 			};
 		case "story_points":
 			return {
 				className: "w-14 shrink-0",
-				headerLabel: "SP",
+				headerLabel: t("board.taskRow.columnHeaders.storyPoints"),
 				responsive: true,
 			};
 		case "status":
 			return {
 				className: "w-24 shrink-0",
-				headerLabel: "Status",
+				headerLabel: t("board.taskRow.columnHeaders.status"),
 				responsive: true,
 			};
 		case "assignee":
-			return { className: "w-20 shrink-0", headerLabel: "Assignee" };
+			return {
+				className: "w-20 shrink-0",
+				headerLabel: t("board.taskRow.columnHeaders.assignee"),
+			};
 		case "reporter":
 			return {
 				className: "w-20 shrink-0",
-				headerLabel: "Reporter",
+				headerLabel: t("board.taskRow.columnHeaders.reporter"),
 				responsive: true,
 			};
 		case "start_date":
 			return {
 				className: "w-24 shrink-0",
-				headerLabel: "Start Date",
+				headerLabel: t("board.taskRow.columnHeaders.startDate"),
 				responsive: true,
 			};
 		case "due_date":
 			return {
 				className: "w-24 shrink-0",
-				headerLabel: "Due Date",
+				headerLabel: t("board.taskRow.columnHeaders.dueDate"),
 				responsive: true,
 			};
 		case "epic":
 			return {
 				className: "w-32 shrink-0",
-				headerLabel: "Epic",
+				headerLabel: t("board.taskRow.columnHeaders.epic"),
 				responsive: true,
 			};
 		case "created":
 			return {
 				className: "w-24 shrink-0",
-				headerLabel: "Created",
+				headerLabel: t("board.taskRow.columnHeaders.created"),
 				responsive: true,
 			};
 		default: {
@@ -149,11 +158,12 @@ export function TaskRow({
 	canEdit,
 	onUpdateTaskField,
 }: TaskRowProps) {
+	const { t } = useTranslation("projects");
 	const status = statuses.find((s) => s.id === task.status_id);
 
 	/** Renders a single cell value for the given field key. */
 	const renderCell = (fieldKey: string) => {
-		const col = getRowColConfig(fieldKey, customFields);
+		const col = getRowColConfig(fieldKey, customFields, t);
 		const responsiveClass = col.responsive ? "hidden sm:flex" : "flex";
 		const canEditField = !!(canEdit && onUpdateTaskField);
 
@@ -211,7 +221,7 @@ export function TaskRow({
 												className="text-xs font-medium truncate"
 												style={{ color: p.color }}
 											>
-												{p.label}
+												{t(p.labelKey)}
 											</span>
 										</>
 									) : (
@@ -233,8 +243,8 @@ export function TaskRow({
 											className="size-2 rounded-full shrink-0 mr-2"
 											style={{ background: p.color }}
 										/>
-										<span style={{ color: p.color }}>{p.label}</span>
-										{getPriority(task.importance).label === p.label &&
+										<span style={{ color: p.color }}>{t(p.labelKey)}</span>
+										{getPriority(task.importance).labelKey === p.labelKey &&
 											task.importance > 0 === p.value > 0 && (
 												<Check className="size-3.5 text-primary ml-auto" />
 											)}
@@ -260,7 +270,7 @@ export function TaskRow({
 										className="text-xs font-medium truncate"
 										style={{ color: p.color }}
 									>
-										{p.label}
+										{t(p.labelKey)}
 									</span>
 								</>
 							) : (
@@ -388,7 +398,9 @@ export function TaskRow({
 									}
 								>
 									<User className="size-3.5 opacity-60" />
-									<span className="flex-1 text-left">Unassigned</span>
+									<span className="flex-1 text-left">
+										{t("board.taskRow.unassigned")}
+									</span>
 									{!assignee && <Check className="size-3.5 text-primary" />}
 								</button>
 								{members.map((m) => (
@@ -558,7 +570,9 @@ export function TaskRow({
 										onUpdateTaskField(task.id, { parent_task_id: null })
 									}
 								>
-									<span className="flex-1 text-left">No Epic</span>
+									<span className="flex-1 text-left">
+										{t("board.taskRow.noEpic")}
+									</span>
 									{!task.parent_task_id && (
 										<Check className="size-3.5 text-primary" />
 									)}

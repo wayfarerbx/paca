@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { KeyRound } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +26,8 @@ interface ChangePasswordCardProps {
 }
 
 export function ChangePasswordCard({ mustChange }: ChangePasswordCardProps) {
+	const { t } = useTranslation("profile");
+	const { t: tCommon } = useTranslation("common");
 	const queryClient = useQueryClient();
 	const [currentPassword, setCurrentPassword] = useState("");
 	const [newPassword, setNewPassword] = useState("");
@@ -34,11 +37,16 @@ export function ChangePasswordCard({ mustChange }: ChangePasswordCardProps) {
 
 	const mutation = useMutation({
 		mutationFn: async () => {
-			const lengthError = validateNewPassword(newPassword, currentPassword);
+			const lengthError = validateNewPassword(
+				newPassword,
+				currentPassword,
+				tCommon,
+			);
 			if (lengthError) throw new Error(lengthError);
 			const confirmError = validateConfirmPassword(
 				confirmPassword,
 				newPassword,
+				tCommon,
 			);
 			if (confirmError) throw new Error(confirmError);
 			return changeMyPassword(currentPassword, newPassword);
@@ -52,7 +60,7 @@ export function ChangePasswordCard({ mustChange }: ChangePasswordCardProps) {
 			setSuccess(true);
 		},
 		onError: (err: Error) => {
-			setError(err.message ?? "Failed to change password.");
+			setError(err.message ?? t("changePassword.errors.changeFailed"));
 			setSuccess(false);
 		},
 	});
@@ -65,17 +73,19 @@ export function ChangePasswordCard({ mustChange }: ChangePasswordCardProps) {
 						<KeyRound className="size-4 text-muted-foreground" />
 					</div>
 					<div>
-						<CardTitle className="text-base">Change Password</CardTitle>
+						<CardTitle className="text-base">
+							{t("changePassword.title")}
+						</CardTitle>
 						<CardDescription className="mt-0.5">
 							{mustChange
-								? "You must set a new password before continuing."
-								: "Update your account password."}
+								? t("changePassword.descriptionMustChange")
+								: t("changePassword.description")}
 						</CardDescription>
 					</div>
 				</div>
 				{mustChange ? (
 					<div className="mt-3 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-400">
-						A temporary password was set for your account. Please change it now.
+						{t("changePassword.temporaryPasswordNotice")}
 					</div>
 				) : null}
 			</CardHeader>
@@ -85,7 +95,9 @@ export function ChangePasswordCard({ mustChange }: ChangePasswordCardProps) {
 			<CardContent className="pt-5">
 				<div className="flex flex-col gap-4 max-w-sm">
 					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="current-password">Current password</Label>
+						<Label htmlFor="current-password">
+							{t("changePassword.fields.currentPassword")}
+						</Label>
 						<Input
 							id="current-password"
 							type="password"
@@ -95,7 +107,9 @@ export function ChangePasswordCard({ mustChange }: ChangePasswordCardProps) {
 						/>
 					</div>
 					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="new-password">New password</Label>
+						<Label htmlFor="new-password">
+							{t("changePassword.fields.newPassword")}
+						</Label>
 						<Input
 							id="new-password"
 							type="password"
@@ -105,7 +119,9 @@ export function ChangePasswordCard({ mustChange }: ChangePasswordCardProps) {
 						/>
 					</div>
 					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="confirm-password">Confirm new password</Label>
+						<Label htmlFor="confirm-password">
+							{t("changePassword.fields.confirmPassword")}
+						</Label>
 						<Input
 							id="confirm-password"
 							type="password"
@@ -117,7 +133,7 @@ export function ChangePasswordCard({ mustChange }: ChangePasswordCardProps) {
 					{error ? <p className="text-sm text-destructive">{error}</p> : null}
 					{success ? (
 						<p className="text-sm text-primary">
-							Password changed successfully.
+							{t("changePassword.success")}
 						</p>
 					) : null}
 				</div>
@@ -134,7 +150,9 @@ export function ChangePasswordCard({ mustChange }: ChangePasswordCardProps) {
 						!confirmPassword
 					}
 				>
-					{mutation.isPending ? "Updating…" : "Change password"}
+					{mutation.isPending
+						? t("changePassword.actions.updating")
+						: t("changePassword.actions.submit")}
 				</Button>
 			</CardFooter>
 		</Card>

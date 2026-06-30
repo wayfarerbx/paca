@@ -1,0 +1,79 @@
+{
+	"language": {
+		"label": "언어",
+		"toggleTooltip": "언어: {{language}} — 클릭하여 변경"
+	},
+	"brand": {
+		"logoAlt": "Paca 로고"
+	},
+	"theme": {
+		"label": "테마",
+		"light": "라이트",
+		"dark": "다크",
+		"auto": "자동",
+		"cycleTooltip": "테마: {{mode}} — 클릭하여 전환",
+		"modeAutoTooltip": "테마 모드: 자동(시스템). 클릭하면 라이트 모드로 전환됩니다.",
+		"modeTooltip": "테마 모드: {{mode}}. 클릭하여 모드를 전환하세요."
+	},
+	"nav": {
+		"home": "홈",
+		"administration": "관리",
+		"globalRoles": "전역 역할",
+		"users": "사용자",
+		"plugins": "플러그인",
+		"allProjects": "모든 프로젝트",
+		"project": "프로젝트",
+		"agents": "에이전트",
+		"team": "팀",
+		"settings": "설정"
+	},
+	"projectSwitcher": {
+		"projects": "프로젝트",
+		"yourProjects": "내 프로젝트",
+		"noProjectsYet": "아직 프로젝트가 없습니다",
+		"newProject": "새 프로젝트"
+	},
+	"interactions": {
+		"title": "인터랙션",
+		"timeline": "타임라인",
+		"productBacklog": "제품 백로그"
+	},
+	"docs": {
+		"documentation": "문서",
+		"noDocumentsYet": "아직 문서가 없습니다",
+		"emptyFolder": "빈 폴더",
+		"add": "추가",
+		"newDocument": "새 문서",
+		"newFolder": "새 폴더",
+		"newFolderDefaultName": "새 폴더",
+		"newSubfolder": "새 하위 폴더",
+		"rename": "이름 변경",
+		"delete": "삭제",
+		"untitled": "제목 없음"
+	},
+	"notifications": {
+		"title": "알림",
+		"empty": "아직 알림이 없습니다",
+		"markAllAsRead": "모두 읽음으로 표시",
+		"text": {
+			"assigned": "{{actor}}님이 작업 #{{taskNumber}} — {{taskTitle}}에 회원님을 배정했습니다",
+			"mentioned": "{{actor}}님이 #{{taskNumber}} — {{taskTitle}}에서 회원님을 멘션했습니다"
+		},
+		"timeAgo": {
+			"justNow": "방금 전",
+			"minutes_one": "{{count}}분 전",
+			"minutes_other": "{{count}}분 전",
+			"hours_one": "{{count}}시간 전",
+			"hours_other": "{{count}}시간 전",
+			"days_one": "{{count}}일 전",
+			"days_other": "{{count}}일 전"
+		}
+	},
+	"userMenu": {
+		"signIn": "로그인",
+		"myProfile": "내 프로필",
+		"apiKeys": "API 키",
+		"logOut": "로그아웃",
+		"loggingOut": "로그아웃 중…"
+	}
+}

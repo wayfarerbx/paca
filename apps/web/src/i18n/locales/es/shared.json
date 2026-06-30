@@ -1,0 +1,151 @@
+{
+	"activityPane": {
+		"title": "Actividad",
+		"empty": "Aún no hay actividad",
+		"editingComment": "Editando comentario...",
+		"cancel": "Cancelar",
+		"sendHint": "⌘↵ para enviar",
+		"systemActor": "Sistema",
+		"editing": "Editando",
+		"edit": "Editar",
+		"delete": "Eliminar",
+		"viewDiff": "Ver diferencias",
+		"revert": "Revertir",
+		"timeAgo": {
+			"justNow": "justo ahora",
+			"minutes_one": "hace {{count}} min",
+			"minutes_other": "hace {{count}} min",
+			"hours_one": "hace {{count}} h",
+			"hours_other": "hace {{count}} h",
+			"days_one": "hace {{count}} d",
+			"days_other": "hace {{count}} d"
+		},
+		"errors": {
+			"revertFailed": "Error al revertir. Inténtalo de nuevo."
+		}
+	},
+	"contentDiff": {
+		"emptyLine": "(línea vacía)",
+		"noDifferences": "No hay diferencias de texto",
+		"changeDiff": "Diferencias del cambio",
+		"removed": "Eliminado",
+		"added": "Añadido"
+	},
+	"home": {
+		"greeting": {
+			"morning": "Buenos días",
+			"afternoon": "Buenas tardes",
+			"evening": "Buenas noches",
+			"fallbackName": "hola"
+		},
+		"hero": {
+			"badge": "Espacio de trabajo Scrumban",
+			"subtitleWithProjects_one": "Tienes {{count}} proyecto activo. Continúa donde lo dejaste.",
+			"subtitleWithProjects_other": "Tienes {{count}} proyectos activos. Continúa donde lo dejaste.",
+			"subtitleEmpty": "Tu espacio de trabajo está listo. Crea un proyecto, invita a tu equipo y empieza a entregar resultados.",
+			"newProject": "Nuevo proyecto"
+		},
+		"stats": {
+			"projects": {
+				"label": "Proyectos",
+				"subEmpty": "Aún no hay proyectos",
+				"subActive": "{{count}} activos"
+			},
+			"openTasks": {
+				"label": "Tareas abiertas",
+				"sub": "En todos los proyectos"
+			},
+			"teamMembers": {
+				"label": "Miembros del equipo",
+				"sub": "Incluyéndote a ti"
+			},
+			"aiAgents": {
+				"label": "Agentes de IA",
+				"sub": "Ninguno configurado"
+			}
+		},
+		"projectsSection": {
+			"title": "Proyectos",
+			"countInWorkspace_one": "{{count}} proyecto en tu espacio de trabajo",
+			"countInWorkspace_other": "{{count}} proyectos en tu espacio de trabajo",
+			"newShort": "Nuevo",
+			"newProjectCard": "Nuevo proyecto"
+		},
+		"projectCard": {
+			"public": "Público",
+			"noDescription": "Sin descripción"
+		},
+		"gettingStarted": {
+			"title": "Primeros pasos",
+			"progress": "{{completed}} / {{total}}",
+			"subtitle": "Completa estos pasos para aprovechar todo el potencial de Paca.",
+			"steps": {
+				"createProject": {
+					"title": "Crea tu primer proyecto",
+					"description": "Configura un tablero scrumban para gestionar el trabajo de tu equipo."
+				},
+				"inviteTeam": {
+					"title": "Invita a tu equipo",
+					"description": "Añade colaboradores humanos y asígnales roles."
+				},
+				"configureAgent": {
+					"title": "Configura un agente de IA",
+					"description": "Conecta una IA para gestionar tareas de forma autónoma."
+				},
+				"runSprint": {
+					"title": "Ejecuta tu primer sprint",
+					"description": "Mueve las tareas a través del ciclo Planificar → Actuar → Verificar → Adaptar."
+				}
+			}
+		},
+		"quickActions": {
+			"title": "Acciones rápidas",
+			"newProject": {
+				"label": "Nuevo proyecto",
+				"description": "Crea un tablero scrumban"
+			},
+			"inviteTeam": {
+				"label": "Invitar equipo",
+				"description": "Añade miembros o agentes"
+			},
+			"addAiAgent": {
+				"label": "Añadir agente de IA",
+				"description": "Configura la automatización"
+			}
+		},
+		"about": {
+			"title": "Cómo funciona Paca",
+			"descriptionLead": "Combina la creatividad humana con la velocidad de la IA en un tablero scrumban compartido. Las tareas fluyen a través del ciclo",
+			"workflow": "Planificar → Actuar → Verificar → Adaptar",
+			"descriptionTrail": "con total transparencia sobre quién — humano o IA — hizo qué.",
+			"openSource": "Código abierto · Apache-2.0"
+		},
+		"createDialog": {
+			"title": "Nuevo proyecto",
+			"description": "Crea un espacio de trabajo scrumban para tu equipo. Podrás invitar miembros y configurar ajustes después de crearlo.",
+			"nameLabel": "Nombre del proyecto *",
+			"namePlaceholder": "p. ej. Platform v3",
+			"prefixLabel": "Prefijo de ID de tarea",
+			"prefixHint": "(p. ej. PACA)",
+			"prefixPlaceholder": "PROJ",
+			"prefixExampleLead": "Las tareas se etiquetarán como",
+			"descriptionLabel": "Descripción",
+			"optionalHint": "(opcional)",
+			"descriptionPlaceholder": "¿De qué trata este proyecto?",
+			"publicProject": {
+				"label": "Proyecto público",
+				"publicHint": "Cualquiera con el enlace puede ver este proyecto. Los usuarios anónimos tienen acceso de solo lectura.",
+				"privateHint": "Solo los miembros del equipo pueden acceder a este proyecto."
+			},
+			"cancel": "Cancelar",
+			"submit": "Crear proyecto",
+			"errors": {
+				"nameRequired": "El nombre del proyecto es obligatorio.",
+				"nameTaken": "Ya existe un proyecto con este nombre.",
+				"nameInvalid": "El nombre del proyecto está vacío o no es válido.",
+				"prefixInvalid": "El prefijo debe tener entre 1 y 10 letras mayúsculas/dígitos (p. ej. PACA).",
+				"generic": "Algo salió mal. Inténtalo de nuevo."
+			}
+		}
+	}
+}

@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import {
 	Popover,
 	PopoverContent,
@@ -17,6 +18,7 @@ export function SelectEditor({
 	onChange: (value: string | null) => void;
 	align?: "start" | "end" | "center";
 }) {
+	const { t } = useTranslation("projects");
 	const selectedArr = Array.isArray(value) ? value : value ? [value] : [];
 	const firstSelected = options.find((o) => o.value === selectedArr[0]);
 
@@ -45,7 +47,7 @@ export function SelectEditor({
 						{firstSelected.label}
 					</>
 				) : (
-					"None"
+					t("taskDetail.properties.none")
 				)}
 			</PopoverTrigger>
 			<PopoverContent

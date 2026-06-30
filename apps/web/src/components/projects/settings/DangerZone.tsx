@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { AlertTriangle, Loader2, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -17,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { deleteProject, projectQueryOptions } from "@/lib/project-api";
 
 export function DangerZone({ projectId }: { projectId: string }) {
+	const { t } = useTranslation("projects");
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const { data: project } = useQuery(projectQueryOptions(projectId));
@@ -35,14 +37,15 @@ export function DangerZone({ projectId }: { projectId: string }) {
 	return (
 		<div className="rounded-xl border border-destructive/30 bg-destructive/3 p-6">
 			<h3 className="font-[Syne] text-base font-semibold text-destructive mb-4">
-				Danger Zone
+				{t("settings.dangerZone.title")}
 			</h3>
 			<div className="flex items-center justify-between">
 				<div>
-					<p className="text-sm font-medium">Delete this project</p>
+					<p className="text-sm font-medium">
+						{t("settings.dangerZone.deleteProjectTitle")}
+					</p>
 					<p className="text-xs text-muted-foreground mt-0.5">
-						Permanently delete the project and all its data. This action cannot
-						be undone.
+						{t("settings.dangerZone.deleteProjectDescription")}
 					</p>
 				</div>
 				<Button
@@ -52,7 +55,7 @@ export function DangerZone({ projectId }: { projectId: string }) {
 					onClick={() => setOpen(true)}
 				>
 					<Trash2 className="size-3.5" />
-					Delete project
+					{t("settings.dangerZone.deleteProjectButton")}
 				</Button>
 			</div>
 
@@ -68,14 +71,15 @@ export function DangerZone({ projectId }: { projectId: string }) {
 						<div className="flex size-10 items-center justify-center rounded-full bg-destructive/10 mb-2">
 							<AlertTriangle className="size-5 text-destructive" />
 						</div>
-						<DialogTitle>Delete project</DialogTitle>
+						<DialogTitle>
+							{t("settings.dangerZone.deleteDialog.title")}
+						</DialogTitle>
 						<DialogDescription>
-							This will permanently delete{" "}
+							{t("settings.dangerZone.deleteDialog.confirmTextPrefix")}{" "}
 							<span className="font-semibold text-foreground">
 								{project?.name}
 							</span>{" "}
-							and all its data, including members, roles, and interactions. This
-							action cannot be undone.
+							{t("settings.dangerZone.deleteDialog.confirmTextSuffix")}
 						</DialogDescription>
 					</DialogHeader>
 					<div className="space-y-1.5">
@@ -83,11 +87,11 @@ export function DangerZone({ projectId }: { projectId: string }) {
 							htmlFor="confirm-name"
 							className="text-xs text-muted-foreground"
 						>
-							Type{" "}
+							{t("settings.dangerZone.deleteDialog.typeToConfirmPrefix")}{" "}
 							<span className="font-semibold text-foreground">
 								{project?.name}
 							</span>{" "}
-							to confirm
+							{t("settings.dangerZone.deleteDialog.typeToConfirmSuffix")}
 						</Label>
 						<Input
 							id="confirm-name"
@@ -99,7 +103,7 @@ export function DangerZone({ projectId }: { projectId: string }) {
 					</div>
 					{deleteMutation.isError ? (
 						<p className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">
-							Failed to delete project. Please try again.
+							{t("settings.dangerZone.deleteDialog.deleteFailed")}
 						</p>
 					) : null}
 					<DialogFooter>
@@ -112,7 +116,7 @@ export function DangerZone({ projectId }: { projectId: string }) {
 								/>
 							}
 						>
-							Cancel
+							{t("settings.dangerZone.deleteDialog.cancel")}
 						</DialogClose>
 						<Button
 							variant="destructive"
@@ -127,7 +131,7 @@ export function DangerZone({ projectId }: { projectId: string }) {
 							) : (
 								<Trash2 className="size-3.5" />
 							)}
-							Delete permanently
+							{t("settings.dangerZone.deleteDialog.deletePermanently")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

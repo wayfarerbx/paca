@@ -5,6 +5,7 @@ import {
 	LoginFooter,
 	LoginFormPanel,
 } from "@/components/auth/login/index";
+import LanguageToggle from "@/components/LanguageToggle";
 import ThemeToggle from "@/components/ThemeToggle";
 import { currentUserQueryOptions } from "@/lib/auth-api";
 
@@ -22,7 +23,8 @@ function LoginPage() {
 	return (
 		<div className="flex min-h-screen flex-col">
 			{/* Top bar */}
-			<header className="flex items-center justify-end px-5 py-4 sm:px-8">
+			<header className="flex items-center justify-end gap-2 px-5 py-4 sm:px-8">
+				<LanguageToggle />
 				<ThemeToggle />
 			</header>
 

@@ -1,0 +1,264 @@
+{
+	"users": {
+		"header": {
+			"title": "Gestion des utilisateurs",
+			"description": "Consultez et gérez les comptes utilisateurs et leurs rôles attribués.",
+			"newUser": "Nouvel utilisateur"
+		},
+		"stats": {
+			"userCount_one": "{{count}} utilisateur",
+			"userCount_other": "{{count}} utilisateurs",
+			"inSystem": "dans le système",
+			"mustChangePassword": "doivent changer leur mot de passe"
+		},
+		"empty": {
+			"title": "Aucun utilisateur trouvé",
+			"description": "Créez votre premier utilisateur pour commencer.",
+			"createUser": "Créer un utilisateur"
+		},
+		"errors": {
+			"loadFailed": "Échec du chargement des utilisateurs",
+			"tryAgain": "Veuillez actualiser la page et réessayer."
+		},
+		"noPermission": {
+			"title": "Vous n'avez pas la permission de voir les utilisateurs",
+			"description": "Vous pouvez toujours créer de nouveaux utilisateurs à l'aide du bouton ci-dessus."
+		},
+		"table": {
+			"columnUsername": "Nom d'utilisateur",
+			"columnFullName": "Nom complet",
+			"columnRole": "Rôle",
+			"columnCreated": "Créé",
+			"pwdResetBadge": "mdp réinitialisé",
+			"youBadge": "vous",
+			"noFullName": "—",
+			"resetPasswordAction": "Réinitialiser le mot de passe",
+			"editAction": "Modifier l'utilisateur",
+			"deleteAction": "Supprimer l'utilisateur"
+		},
+		"formDialog": {
+			"createdTitle": "Utilisateur créé",
+			"createdDescriptionSuffix": "a été créé. Partagez le mot de passe temporaire ci-dessous — l'utilisateur devra le changer lors de sa première connexion.",
+			"temporaryPasswordLabel": "Mot de passe temporaire",
+			"hidePassword": "Masquer le mot de passe",
+			"showPassword": "Afficher le mot de passe",
+			"copyPassword": "Copier le mot de passe",
+			"passwordNotShownAgain": "Ce mot de passe ne sera plus affiché. Veillez à le copier maintenant.",
+			"done": "Terminé",
+			"editTitle": "Modifier l'utilisateur",
+			"createTitle": "Créer un utilisateur",
+			"editDescription": "Mettez à jour le nom affiché de l'utilisateur et son attribution de rôle.",
+			"createDescription": "Un mot de passe temporaire sécurisé sera généré automatiquement. L'utilisateur devra le changer lors de sa première connexion.",
+			"usernameLabel": "Nom d'utilisateur",
+			"usernamePlaceholder": "ex. john.doe",
+			"fullNameLabel": "Nom complet",
+			"fullNamePlaceholder": "ex. John Doe",
+			"roleLabel": "Rôle",
+			"roleOptionalHint": "(optionnel — USER par défaut)",
+			"rolePlaceholder": "Sélectionner un rôle…",
+			"cancel": "Annuler",
+			"saving": "Enregistrement…",
+			"creating": "Création…",
+			"saveChanges": "Enregistrer les modifications",
+			"createUser": "Créer l'utilisateur",
+			"errors": {
+				"fullNameRequired": "Le nom complet est requis.",
+				"usernameTaken": "Ce nom d'utilisateur est déjà pris.",
+				"userNotFound": "Utilisateur introuvable. Il a peut-être déjà été supprimé.",
+				"forbidden": "Vous n'avez pas la permission d'effectuer cette action.",
+				"internalError": "Une erreur s'est produite sur le serveur. Veuillez réessayer.",
+				"generic": "Une erreur s'est produite."
+			}
+		},
+		"resetPasswordDialog": {
+			"title": "Réinitialiser le mot de passe",
+			"descriptionSuccessPrefix": "Le mot de passe de",
+			"descriptionSuccessSuffix": "a été réinitialisé. Partagez le mot de passe temporaire ci-dessous — il ne sera plus affiché.",
+			"descriptionConfirmPrefix": "Un mot de passe temporaire fort sera généré et attribué à",
+			"descriptionConfirmSuffix": "Il devra le changer lors de sa prochaine connexion.",
+			"temporaryPasswordLabel": "Mot de passe temporaire",
+			"hidePassword": "Masquer le mot de passe",
+			"showPassword": "Afficher le mot de passe",
+			"copyPassword": "Copier le mot de passe",
+			"notShownAgain": "⚠ Ce mot de passe ne sera plus affiché après fermeture.",
+			"done": "Terminé",
+			"cancel": "Annuler",
+			"resetting": "Réinitialisation…",
+			"resetButton": "Réinitialiser le mot de passe",
+			"errors": {
+				"userNotFound": "Cet utilisateur n'existe plus.",
+				"forbidden": "Vous n'avez pas la permission de réinitialiser le mot de passe de cet utilisateur.",
+				"internalError": "Une erreur s'est produite. Veuillez réessayer.",
+				"generic": "Une erreur s'est produite."
+			}
+		},
+		"deleteDialog": {
+			"title": "Supprimer l'utilisateur",
+			"confirmTextPrefix": "Êtes-vous sûr de vouloir supprimer",
+			"confirmTextSuffix": " ? Son compte sera définitivement supprimé.",
+			"cannotBeUndone": "Cette action est irréversible.",
+			"cancel": "Annuler",
+			"deleting": "Suppression…",
+			"confirmButton": "Supprimer l'utilisateur",
+			"errors": {
+				"userNotFound": "Cet utilisateur n'existe plus.",
+				"forbidden": "Vous n'avez pas la permission de supprimer cet utilisateur.",
+				"internalError": "Une erreur s'est produite. Veuillez réessayer.",
+				"generic": "Une erreur s'est produite."
+			}
+		}
+	},
+	"globalRoles": {
+		"header": {
+			"title": "Rôles globaux",
+			"description": "Gérez les rôles à l'échelle du système et les permissions qu'ils accordent aux utilisateurs.",
+			"newRole": "Nouveau rôle"
+		},
+		"stats": {
+			"roleCount_one": "{{count}} rôle",
+			"roleCount_other": "{{count}} rôles",
+			"defined": "définis",
+			"permissionGrants": "permissions accordées dans tous les rôles"
+		},
+		"empty": {
+			"title": "Aucun rôle défini pour le moment",
+			"description": "Créez votre premier rôle pour commencer à gérer les permissions des utilisateurs.",
+			"createRole": "Créer un rôle"
+		},
+		"errors": {
+			"loadFailed": "Échec du chargement des rôles",
+			"tryAgain": "Veuillez actualiser la page et réessayer."
+		},
+		"noPermission": {
+			"title": "Vous n'avez pas la permission de voir les rôles",
+			"description": "Vous pouvez toujours créer de nouveaux rôles à l'aide du bouton ci-dessus."
+		},
+		"table": {
+			"columnName": "Nom",
+			"columnPermissions": "Permissions",
+			"columnCreated": "Créé",
+			"noPermissionsAssigned": "Aucune permission attribuée",
+			"editAction": "Modifier le rôle",
+			"deleteAction": "Supprimer le rôle"
+		},
+		"formDialog": {
+			"editTitle": "Modifier le rôle",
+			"createTitle": "Créer un rôle",
+			"editDescription": "Mettez à jour le nom du rôle et ses permissions accordées.",
+			"createDescription": "Définissez un nouveau rôle à l'échelle du système et configurez ses permissions.",
+			"roleNameLabel": "Nom du rôle",
+			"roleNamePlaceholder": "ex. SECURITY_ADMIN",
+			"permissionsLabel": "Permissions",
+			"enabledCount_one": "{{count}} activée",
+			"enabledCount_other": "{{count}} activées",
+			"cancel": "Annuler",
+			"saving": "Enregistrement…",
+			"saveChanges": "Enregistrer les modifications",
+			"createRole": "Créer le rôle",
+			"errors": {
+				"roleNameRequired": "Le nom du rôle est requis.",
+				"nameTaken": "Un rôle portant ce nom existe déjà.",
+				"nameInvalid": "Le nom du rôle ne doit contenir que des lettres majuscules, des chiffres et des underscores.",
+				"roleNotFound": "Ce rôle n'existe plus. Il a peut-être déjà été supprimé.",
+				"forbidden": "Vous n'avez pas la permission d'effectuer cette action.",
+				"internalError": "Une erreur s'est produite sur le serveur. Veuillez réessayer.",
+				"generic": "Une erreur s'est produite."
+			}
+		},
+		"deleteDialog": {
+			"title": "Supprimer le rôle",
+			"confirmTextPrefix": "Êtes-vous sûr de vouloir supprimer",
+			"confirmTextSuffix": " ? Cela supprimera également toutes les attributions de ce rôle aux utilisateurs.",
+			"cannotBeUndone": "Cette action est irréversible.",
+			"cancel": "Annuler",
+			"deleting": "Suppression…",
+			"confirmButton": "Supprimer le rôle",
+			"errors": {
+				"roleNotFound": "Ce rôle n'existe plus.",
+				"hasUsersWarning": "Ce rôle ne peut pas être supprimé car il est encore attribué à un ou plusieurs utilisateurs.",
+				"forbidden": "Vous n'avez pas la permission de supprimer ce rôle.",
+				"internalError": "Une erreur s'est produite. Veuillez réessayer.",
+				"generic": "Une erreur s'est produite."
+			}
+		},
+		"permissions": {
+			"globalRolesRead": {
+				"label": "Lire les rôles globaux",
+				"description": "Voir les définitions des rôles globaux"
+			},
+			"globalRolesWrite": {
+				"label": "Écrire les rôles globaux",
+				"description": "Créer et mettre à jour les définitions des rôles globaux"
+			},
+			"globalRolesAssign": {
+				"label": "Attribuer les rôles globaux",
+				"description": "Attribuer des rôles globaux aux utilisateurs"
+			},
+			"usersRead": {
+				"label": "Lire les utilisateurs",
+				"description": "Voir les profils et la liste des utilisateurs"
+			},
+			"usersWrite": {
+				"label": "Écrire les utilisateurs",
+				"description": "Créer et mettre à jour les comptes utilisateurs"
+			},
+			"usersDelete": {
+				"label": "Supprimer les utilisateurs",
+				"description": "Supprimer des comptes utilisateurs"
+			},
+			"projectsRead": {
+				"label": "Lire tous les projets",
+				"description": "Voir tous les projets de l'espace de travail"
+			},
+			"projectsCreate": {
+				"label": "Créer des projets",
+				"description": "Créer de nouveaux projets"
+			},
+			"projectsWrite": {
+				"label": "Écrire les projets",
+				"description": "Mettre à jour les détails des projets"
+			},
+			"projectsDelete": {
+				"label": "Supprimer les projets",
+				"description": "Supprimer définitivement des projets"
+			},
+			"projectMembersRead": {
+				"label": "Lire les membres du projet",
+				"description": "Voir les membres de tout projet"
+			},
+			"projectMembersWrite": {
+				"label": "Écrire les membres du projet",
+				"description": "Ajouter, supprimer et mettre à jour les membres de tout projet"
+			},
+			"projectRolesRead": {
+				"label": "Lire les rôles du projet",
+				"description": "Voir les rôles définis dans tout projet"
+			},
+			"projectRolesWrite": {
+				"label": "Écrire les rôles du projet",
+				"description": "Créer et mettre à jour les rôles de tout projet"
+			}
+		},
+		"permissionGroups": {
+			"globalRoles": "Rôles globaux",
+			"users": "Utilisateurs",
+			"projects": "Projets"
+		}
+	},
+	"plugins": {
+		"title": "Paramètres des plugins",
+		"description": "Gérez l'ordre et la visibilité des panneaux de plugins à l'échelle du système pour tous les utilisateurs.",
+		"tabs": {
+			"marketplace": "Marketplace",
+			"layout": "Disposition des points d'extension"
+		},
+		"marketplace": {
+			"title": "Marketplace",
+			"description": "Installez ou désinstallez des plugins depuis le catalogue public paca-plugins."
+		},
+		"layout": {
+			"title": "Disposition des points d'extension",
+			"description": "Faites glisser pour réorganiser les panneaux de plugins au sein de chaque point d'extension. Activez ou désactivez la visibilité pour afficher ou masquer les panneaux pour tous les utilisateurs."
+		}
+	}
+}

@@ -1,0 +1,1058 @@
+{
+	"project": {
+		"notFound": "プロジェクトが見つからないか、アクセスが拒否されました。",
+		"settingsPage": {
+			"title": "設定",
+			"subtitle": "プロジェクトの設定、ロール、権限を構成します",
+			"nav": {
+				"general": "一般",
+				"roles": "ロール",
+				"taskStatuses": "タスクステータス",
+				"taskTypes": "タスクタイプ",
+				"customFields": "カスタムフィールド",
+				"dangerZone": "危険な操作",
+				"plugins": "プラグイン"
+			}
+		}
+	},
+	"agents": {
+		"createDialog": {
+			"title": "AIエージェントを作成",
+			"step1Description": "エージェントの名前とロールを設定します",
+			"step2Description": "エージェントを動かすAIモデルを構成します",
+			"stepIndicator": "{{step}} / 2",
+			"startFromPreset": "プリセットから開始",
+			"nameLabel": "名前",
+			"handleLabel": "ハンドル",
+			"handleHint": "名前から自動生成されます。コメント内の@メンションに使用されます。",
+			"projectRoleLabel": "プロジェクトロール",
+			"projectRolePlaceholder": "プロジェクトロールを選択…",
+			"projectRoleHint": "このプロジェクト内でエージェントが読み取り・変更できる範囲を制御します。",
+			"modelSection": "モデル",
+			"providerLabel": "プロバイダー",
+			"modelLabel": "モデル",
+			"customOption": "カスタム…",
+			"apiKeyLabel": "APIキー",
+			"hideApiKey": "APIキーを非表示",
+			"showApiKey": "APIキーを表示",
+			"apiKeyHint": "暗号化して保存されます — APIレスポンスに表示されることはありません。",
+			"baseUrlLabel": "ベースURL",
+			"systemPromptLabel": "システムプロンプト",
+			"optional": "（任意）",
+			"charsCount": "{{count}}文字",
+			"createFailed": "エージェントの作成に失敗しました。もう一度お試しください。",
+			"cancel": "キャンセル",
+			"continue": "続ける",
+			"back": "戻る",
+			"creating": "作成中…",
+			"createAgent": "エージェントを作成",
+			"namePlaceholder": "Dev Bot",
+			"systemPromptPlaceholder": "あなたはシニアソフトウェアエンジニアです…"
+		},
+		"card": {
+			"configure": "設定",
+			"delete": "削除",
+			"repos": "リポジトリ",
+			"configureAndViewActivity": "設定とアクティビティの確認",
+			"deleteDialog": {
+				"title": "{{name}}を削除しますか？",
+				"description": "このエージェントを完全に削除し、プロジェクトから除外します。実行中の会話は停止されます。",
+				"cancel": "キャンセル",
+				"delete": "削除"
+			}
+		},
+		"page": {
+			"title": "AIエージェント",
+			"subtitle": "タスクを処理し、チームとチャットする自律型エージェント",
+			"newAgent": "新規エージェント",
+			"empty": {
+				"title": "エージェントはまだいません",
+				"description": "AIエージェントを追加して、タスクの自動化、コードレビュー、ドキュメント作成などを行いましょう。",
+				"createFirstAgent": "最初のエージェントを作成"
+			},
+			"chatShortcutPrefix": "任意のエージェントを",
+			"chatShortcutSuffix": "クリックすると、チャット、会話の表示、MCPサーバーやスキルの管理ができます。"
+		},
+		"detail": {
+			"tabs": {
+				"overview": "概要",
+				"mcpServers": "MCPサーバー",
+				"skills": "スキル",
+				"conversations": "会話"
+			},
+			"overview": {
+				"nameLabel": "名前",
+				"llmConfiguration": "LLM設定",
+				"providerLabel": "プロバイダー",
+				"modelLabel": "モデル",
+				"customOption": "カスタム…",
+				"apiKeyUpdateLabel": "APIキーの更新",
+				"apiKeyUpdateHint": "（変更しない場合は空欄のまま）",
+				"baseUrlLabel": "ベースURL",
+				"triggerPrompts": {
+					"title": "自動付加トリガープロンプト",
+					"hint": "エージェントの呼び出され方に応じて、実行時にシステムプロンプトへ自動的に追加されます。",
+					"taskAssignment": "タスク割り当て・タスクコメント",
+					"docCommentMention": "ドキュメントコメントでの@メンション",
+					"directChat": "ダイレクトチャット",
+					"writeDescription": "AIによるタスク説明の作成"
+				},
+				"capabilities": "能力",
+				"cloneRepositories": "リポジトリのクローン",
+				"cloneRepositoriesHint": "エージェントによるローカルへのgit clone を許可",
+				"gitCommitterIdentity": "Gitコミッターの情報",
+				"gitCommitterHint": "このエージェントによるコミットで使用される名前とメールアドレスです。",
+				"committerNameLabel": "コミッター名",
+				"committerEmailLabel": "コミッターのメールアドレス",
+				"saveChanges": "変更を保存",
+				"saved": "保存しました",
+				"saveFailed": "保存に失敗しました。もう一度お試しください。",
+				"systemPromptLabel": "システムプロンプト"
+			},
+			"mcp": {
+				"serverCount_one": "{{count}}件のサーバーを設定済み",
+				"serverCount_other": "{{count}}件のサーバーを設定済み",
+				"addServer": "サーバーを追加",
+				"empty": {
+					"title": "MCPサーバーが追加されていません",
+					"addFirstServer": "最初のサーバーを追加"
+				},
+				"addDialog": {
+					"title": "MCPサーバーを追加",
+					"description": "MCPサーバーを接続して、エージェントの機能を拡張します。",
+					"serverNameLabel": "サーバー名",
+					"transportLabel": "トランスポート",
+					"commandLabel": "コマンド",
+					"argsLabel": "引数",
+					"argsHint": "（スペース区切り）",
+					"urlLabel": "URL",
+					"cancel": "キャンセル",
+					"addServer": "サーバーを追加"
+				}
+			},
+			"skills": {
+				"skillCount_one": "{{count}}件のスキルを追加済み",
+				"skillCount_other": "{{count}}件のスキルを追加済み",
+				"addSkill": "スキルを追加",
+				"empty": {
+					"title": "スキルはまだありません",
+					"addFirstSkill": "最初のスキルを追加"
+				},
+				"addDialog": {
+					"title": "スキルを追加",
+					"description": "エージェントに専門的な指示や能力を与えます。",
+					"skillNameLabel": "スキル名",
+					"sourceLabel": "ソース",
+					"sourceInline": "インライン（ここに直接記述）",
+					"sourceMarketplace": "マーケットプレイス",
+					"sourceGithubUrl": "GitHub URL",
+					"skillContentLabel": "スキル内容（Markdown）",
+					"urlLabel": "URL",
+					"cancel": "キャンセル",
+					"addSkill": "スキルを追加"
+				}
+			},
+			"conversations": {
+				"triggerChat": "チャット",
+				"triggerWriteDescription": "説明の作成",
+				"triggerTask": "タスク",
+				"iterations_one": "{{count}}回の反復",
+				"iterations_other": "{{count}}回の反復",
+				"prOpened": "PRを作成しました",
+				"watch": "監視",
+				"empty": {
+					"title": "会話はまだありません",
+					"description": "タスクがこのエージェントに割り当てられるか、誰かがメッセージを送ると会話が始まります。"
+				}
+			}
+		},
+		"conversationView": {
+			"thinking": "思考中…",
+			"observation": "観察結果",
+			"toolLabel": "ツール: {{toolName}}",
+			"stop": "停止",
+			"notFound": "会話が見つかりません",
+			"chatSession": "チャットセッション",
+			"taskSession": "タスクセッション",
+			"pr": "PR",
+			"noMessages": "メッセージはまだありません"
+		}
+	},
+	"docs": {
+		"editorPage": {
+			"notFound": {
+				"title": "ドキュメントが見つかりません",
+				"description": "このドキュメントは削除されたか、リンクが無効である可能性があります。"
+			},
+			"unsaved": "未保存",
+			"saving": "保存中…",
+			"saved": "保存しました",
+			"commentsAndActivity": "コメントとアクティビティ"
+		},
+		"activity": {
+			"created": "このドキュメントを作成しました",
+			"updated": "ドキュメントを更新しました",
+			"updatedFields": "{{fields}}を更新しました",
+			"deleted": "ドキュメントを削除しました",
+			"moved": "ドキュメントを移動しました",
+			"contentChangeDiff": "内容の変更差分"
+		}
+	},
+	"roles": {
+		"deleteDialog": {
+			"title": "ロールを削除",
+			"confirmTextPrefix": "本当に削除しますか",
+			"confirmTextSuffix": "？このロールが割り当てられているメンバーはアクセス権を失います。この操作は取り消せません。",
+			"cancel": "キャンセル",
+			"deleteRole": "ロールを削除",
+			"errors": {
+				"notFound": "このロールは既に存在しません。",
+				"hasMembers": "このロールは1人以上のメンバーに割り当てられているため削除できません。",
+				"forbidden": "このロールを削除する権限がありません。",
+				"internalError": "問題が発生しました。もう一度お試しください。",
+				"generic": "問題が発生しました。"
+			}
+		},
+		"formDialog": {
+			"editTitle": "ロールを編集",
+			"createTitle": "新規ロール",
+			"editDescription": "ロール名と権限の付与を更新します。",
+			"createDescription": "新しいプロジェクトロールを定義し、メンバーに付与する権限を設定します。",
+			"roleNameLabel": "ロール名",
+			"roleNamePlaceholder": "例: PROJECT_REVIEWER",
+			"permissionsLabel": "権限",
+			"enabledCount_one": "{{count}}件有効",
+			"enabledCount_other": "{{count}}件有効",
+			"cancel": "キャンセル",
+			"saveChanges": "変更を保存",
+			"createRole": "ロールを作成",
+			"errors": {
+				"nameTaken": "この名前のロールは既に存在します。",
+				"nameInvalid": "ロール名は大文字、数字、アンダースコアのみ使用できます。",
+				"notFound": "このロールは既に存在しません。既に削除された可能性があります。",
+				"forbidden": "この操作を実行する権限がありません。",
+				"internalError": "サーバーで問題が発生しました。もう一度お試しください。",
+				"generic": "問題が発生しました。"
+			}
+		},
+		"permissions": {
+			"projectsRead": {
+				"label": "プロジェクトの閲覧",
+				"description": "プロジェクトの詳細と設定を表示します"
+			},
+			"projectsWrite": {
+				"label": "プロジェクトの編集",
+				"description": "プロジェクト名、説明、設定を更新します"
+			},
+			"projectsDelete": {
+				"label": "プロジェクトの削除",
+				"description": "このプロジェクトを完全に削除します"
+			},
+			"membersRead": {
+				"label": "メンバーの閲覧",
+				"description": "プロジェクトメンバーの一覧表示と閲覧"
+			},
+			"membersWrite": {
+				"label": "メンバーの管理",
+				"description": "プロジェクトメンバーの追加・削除・再割り当て"
+			},
+			"rolesRead": {
+				"label": "ロールの閲覧",
+				"description": "プロジェクトロールの定義の一覧表示と閲覧"
+			},
+			"rolesWrite": {
+				"label": "ロールの管理",
+				"description": "プロジェクトロールの作成・編集・削除"
+			},
+			"tasksRead": {
+				"label": "タスクの閲覧",
+				"description": "プロジェクト内のタスクを閲覧します"
+			},
+			"tasksWrite": {
+				"label": "タスクの編集",
+				"description": "タスクの作成・更新・移動を行います"
+			},
+			"sprintsRead": {
+				"label": "スプリントの閲覧",
+				"description": "スプリントボードとバックログを閲覧します"
+			},
+			"sprintsWrite": {
+				"label": "スプリントの管理",
+				"description": "スプリントの作成・更新・終了を行います"
+			},
+			"docsRead": {
+				"label": "ドキュメントの閲覧",
+				"description": "プロジェクト内のドキュメントを閲覧します"
+			},
+			"docsWrite": {
+				"label": "ドキュメントの編集",
+				"description": "ドキュメントとフォルダの作成・更新・削除を行います"
+			},
+			"agentsRead": {
+				"label": "エージェントの閲覧",
+				"description": "AIエージェントとその設定を閲覧します"
+			},
+			"agentsWrite": {
+				"label": "エージェントの管理",
+				"description": "AIエージェントの作成・設定・削除を行います"
+			}
+		},
+		"permissionGroups": {
+			"project": "プロジェクト",
+			"members": "メンバー",
+			"roles": "ロール",
+			"tasks": "タスク",
+			"sprints": "スプリント",
+			"documents": "ドキュメント",
+			"aiAgents": "AIエージェント"
+		}
+	},
+	"settings": {
+		"general": {
+			"title": "一般",
+			"projectNameLabel": "プロジェクト名",
+			"projectNamePlaceholder": "My awesome project",
+			"taskIdPrefixLabel": "タスクIDプレフィックス",
+			"taskIdPrefixHint": "例: PACA → PACA-1, PACA-2…",
+			"taskIdPrefixPlaceholder": "PROJ",
+			"descriptionLabel": "説明",
+			"descriptionPlaceholder": "このプロジェクトについて説明してください…",
+			"publicProjectLabel": "公開プロジェクト",
+			"publicProjectHintPublic": "リンクを知っている人は誰でもこのプロジェクトを閲覧できます。匿名ユーザーは読み取り専用でアクセスできます。",
+			"publicProjectHintPrivate": "チームメンバーのみがこのプロジェクトにアクセスできます。",
+			"saveChanges": "変更を保存",
+			"saved": "保存しました ✓",
+			"noPermission": "このプロジェクトを編集する権限がありません。",
+			"errors": {
+				"nameTaken": "この名前のプロジェクトは既に存在します。",
+				"nameInvalid": "プロジェクト名が空か無効です。",
+				"prefixInvalid": "プレフィックスは1〜10文字の大文字英数字で入力してください（例: PACA）。",
+				"updateFailed": "プロジェクトの更新に失敗しました。もう一度お試しください。"
+			}
+		},
+		"roles": {
+			"title": "プロジェクトロール",
+			"description": "このプロジェクトのメンバーのロールと権限を管理します。",
+			"newRole": "新規ロール",
+			"noPermissionsAssigned": "権限が割り当てられていません",
+			"editRole": "ロールを編集",
+			"deleteRole": "ロールを削除",
+			"rolesDefined_one": "件のロールが定義済み",
+			"rolesDefined_other": "件のロールが定義済み",
+			"permissionGrants": "全ロールでの権限付与数",
+			"empty": {
+				"title": "ロールがまだ定義されていません",
+				"description": "最初のロールを作成して、メンバーへの権限割り当てを始めましょう。",
+				"createRole": "ロールを作成"
+			},
+			"table": {
+				"name": "名前",
+				"permissions": "権限",
+				"created": "作成日"
+			},
+			"systemRolesNote": "システムロールは共有テンプレートであり、編集・削除はできません。"
+		},
+		"taskStatuses": {
+			"title": "タスクステータス",
+			"description": "このプロジェクトでタスクが進行するワークフローステータスを定義します。",
+			"newStatus": "新規ステータス",
+			"reorderFailed": "新しい順序の保存に失敗しました。もう一度お試しください。",
+			"empty": {
+				"title": "ステータスが定義されていません",
+				"description": "ステータスを作成して、このプロジェクトのタスクワークフローを定義しましょう。",
+				"createStatus": "ステータスを作成"
+			},
+			"table": {
+				"name": "名前",
+				"category": "カテゴリ",
+				"default": "既定"
+			},
+			"default": "既定",
+			"setAsDefault": "既定のステータスに設定",
+			"editStatus": "ステータスを編集",
+			"deleteStatus": "ステータスを削除"
+		},
+		"taskTypes": {
+			"title": "タスクタイプ",
+			"description": "カスタムタイプ（例: バグ、機能、ストーリー）でタスクを分類します。",
+			"newType": "新規タイプ",
+			"empty": {
+				"title": "タスクタイプが定義されていません",
+				"description": "タイプを作成して、タスクを種類別に分類しましょう — 例: バグ、機能、ストーリー。",
+				"createType": "タイプを作成"
+			},
+			"table": {
+				"icon": "アイコン",
+				"name": "名前",
+				"description": "説明",
+				"default": "既定"
+			},
+			"default": "既定",
+			"setAsDefault": "既定のタイプに設定",
+			"editType": "タイプを編集",
+			"deleteType": "タイプを削除"
+		},
+		"customFields": {
+			"title": "カスタムフィールド",
+			"description": "ワークフロー固有のデータをタスクに追加する、プロジェクトレベルのカスタムタスクフィールドを定義します。",
+			"newField": "新規カスタムフィールド",
+			"empty": {
+				"title": "カスタムフィールドはまだありません",
+				"description": "カスタムフィールドを使うと、スプリントや重要度レベル、リリースタグなど、ワークフロー固有のデータを記録できます。",
+				"createFirstField": "最初のフィールドを作成"
+			},
+			"table": {
+				"displayName": "表示名",
+				"fieldKey": "フィールドキー",
+				"type": "タイプ",
+				"required": "必須"
+			},
+			"yes": "はい",
+			"no": "いいえ",
+			"editField": "フィールドを編集",
+			"deleteField": "フィールドを削除",
+			"cancel": "キャンセル",
+			"saveChanges": "変更を保存",
+			"displayNameLabel": "表示名",
+			"displayNamePlaceholder": "例: リリースタグ",
+			"fieldKeyLabel": "フィールドキー",
+			"fieldKeyHint": "APIやデータエクスポートで識別子として使用されます。",
+			"fieldKeyImmutableHint": "フィールドキーは作成後に変更できません。",
+			"fieldTypeLabel": "フィールドタイプ",
+			"fieldTypeImmutableHint": "フィールドタイプは作成後に変更できません。",
+			"optionsLabel": "選択肢",
+			"addOptionPlaceholder": "選択肢を追加…",
+			"addOption": "追加",
+			"requiredLabel": "必須",
+			"requiredHint": "タスクの作成・編集時にユーザーはこのフィールドを入力する必要があります。",
+			"fieldTypes": {
+				"text": "テキスト",
+				"number": "数値",
+				"date": "日付",
+				"checkbox": "チェックボックス",
+				"select": "選択",
+				"multiSelect": "複数選択",
+				"url": "URL"
+			},
+			"createDialog": {
+				"title": "カスタムフィールドを作成",
+				"description": "このプロジェクトのタスクに追加データを記録するための新しいフィールドを定義します。",
+				"createField": "フィールドを作成",
+				"errors": {
+					"keyTaken": "このキーを持つフィールドは既にプロジェクト内に存在します。",
+					"keyInvalid": "フィールドキーが空か無効です。",
+					"nameInvalid": "表示名が空か無効です。",
+					"createFailed": "フィールドの作成に失敗しました。もう一度お試しください。"
+				}
+			},
+			"editDialog": {
+				"title": "カスタムフィールドを編集",
+				"description": "フィールドの設定を更新します。",
+				"errors": {
+					"nameInvalid": "表示名が空か無効です。",
+					"saveFailed": "変更の保存に失敗しました。もう一度お試しください。"
+				}
+			},
+			"deleteDialog": {
+				"title": "カスタムフィールドを削除",
+				"confirmTextPrefix": "削除しますか:",
+				"confirmTextSuffix": "？このフィールドに保存されているタスクデータは失われます。この操作は取り消せません。",
+				"deleteFailed": "フィールドの削除に失敗しました。もう一度お試しください。",
+				"deleteField": "フィールドを削除"
+			}
+		},
+		"dangerZone": {
+			"title": "危険な操作",
+			"deleteProjectTitle": "このプロジェクトを削除",
+			"deleteProjectDescription": "プロジェクトとそのすべてのデータを完全に削除します。この操作は取り消せません。",
+			"deleteProjectButton": "プロジェクトを削除",
+			"deleteDialog": {
+				"title": "プロジェクトを削除",
+				"confirmTextPrefix": "メンバー、ロール、インタラクションを含む",
+				"confirmTextSuffix": "のすべてのデータが完全に削除されます。この操作は取り消せません。",
+				"typeToConfirmPrefix": "確認のため",
+				"typeToConfirmSuffix": "と入力してください",
+				"deleteFailed": "プロジェクトの削除に失敗しました。もう一度お試しください。",
+				"cancel": "キャンセル",
+				"deletePermanently": "完全に削除"
+			}
+		}
+	},
+	"taskStatuses": {
+		"deleteDialog": {
+			"title": "ステータスを削除",
+			"confirmTextPrefix": "削除しますか:",
+			"confirmTextSuffix": "？このステータスを使用しているタスクはステータスを失います。この操作は取り消せません。",
+			"deleteFailed": "ステータスの削除に失敗しました。もう一度お試しください。",
+			"cancel": "キャンセル",
+			"deleteStatus": "ステータスを削除"
+		},
+		"formDialog": {
+			"editTitle": "ステータスを編集",
+			"createTitle": "ステータスを作成",
+			"editDescription": "このワークフローステータスを更新します。",
+			"createDescription": "プロジェクトのワークフローに新しいステータスを追加します。",
+			"nameLabel": "名前",
+			"namePlaceholder": "例: レビュー中",
+			"categoryLabel": "カテゴリ",
+			"colorLabel": "色",
+			"customColorTitle": "カスタムカラー",
+			"cancel": "キャンセル",
+			"saveChanges": "変更を保存",
+			"createStatus": "ステータスを作成",
+			"errors": {
+				"nameInvalid": "ステータス名が空か無効です。",
+				"categoryInvalid": "選択されたカテゴリが無効です。",
+				"saveFailed": "ステータスの保存に失敗しました。もう一度お試しください。"
+			}
+		}
+	},
+	"team": {
+		"title": "チーム",
+		"subtitle": "プロジェクトのメンバーとロールを管理します",
+		"addMember": "メンバーを追加",
+		"memberCount_one": "{{count}}人のメンバー",
+		"memberCount_other": "{{count}}人のメンバー",
+		"empty": {
+			"title": "メンバーはまだいません",
+			"description": "チームメイトやAIエージェントをこのプロジェクトに追加して始めましょう。",
+			"addFirstMember": "最初のメンバーを追加"
+		},
+		"addMemberDialog": {
+			"title": "メンバーを追加",
+			"description": "ユーザーを選択し、このプロジェクトでのロールを割り当てます。",
+			"userLabel": "ユーザー",
+			"change": "変更",
+			"searchPlaceholder": "名前またはユーザー名で検索…",
+			"noUsersMatch": "検索条件に一致するユーザーがいません。",
+			"noUsersAvailable": "追加できるユーザーがいません。",
+			"roleLabel": "ロール",
+			"rolePlaceholder": "ロールを選択…",
+			"cancel": "キャンセル",
+			"addMember": "メンバーを追加",
+			"errors": {
+				"addFailed": "メンバーの追加に失敗しました。もう一度お試しください。"
+			}
+		},
+		"roleChip": {
+			"changeRole": "ロールを変更",
+			"changeFailed": "ロールの変更に失敗しました。"
+		},
+		"memberRow": {
+			"removeMember": "メンバーを削除"
+		},
+		"removeDialog": {
+			"title": "メンバーを削除",
+			"removePrefix": "",
+			"fromInfix": "を",
+			"confirmSuffix": "から削除しますか？このメンバーはすぐにアクセス権を失います。",
+			"removeFailed": "メンバーの削除に失敗しました。もう一度お試しください。",
+			"cancel": "キャンセル",
+			"remove": "削除"
+		}
+	},
+	"aiChat": {
+		"chatWithAgent": "AIエージェントとチャット",
+		"newConversation": "新しい会話",
+		"agentLabel": "エージェント",
+		"noAgentsConfigured": "このプロジェクトにはエージェントが設定されていません。",
+		"selectAgentPlaceholder": "エージェントを選択…",
+		"messageLabel": "メッセージ",
+		"messageHint": "（Enterで送信、Shift+Enterで改行）",
+		"messagePlaceholder": "エージェントに何をしてほしいですか？",
+		"send": "送信"
+	},
+	"taskTypes": {
+		"deleteDialog": {
+			"title": "タスクタイプを削除",
+			"confirmTextPrefix": "削除しますか:",
+			"confirmTextSuffix": "？このタイプを使用しているタスクはタイプの割り当てを失います。この操作は取り消せません。",
+			"deleteFailed": "タスクタイプの削除に失敗しました。もう一度お試しください。",
+			"cancel": "キャンセル",
+			"deleteType": "タイプを削除"
+		},
+		"formDialog": {
+			"editTitle": "タスクタイプを編集",
+			"createTitle": "タスクタイプを作成",
+			"editDescription": "このタスクタイプを更新します。",
+			"createDescription": "このプロジェクトでタスクを分類するための新しいタイプを追加します。",
+			"nameLabel": "名前",
+			"namePlaceholder": "例: バグ、機能、ストーリー",
+			"iconLabel": "アイコン",
+			"optional": "（任意）",
+			"clear": "クリア",
+			"colorLabel": "色",
+			"customColorTitle": "カスタムカラー",
+			"descriptionLabel": "説明",
+			"descriptionPlaceholder": "このタイプをいつ使うか説明してください…",
+			"cancel": "キャンセル",
+			"saveChanges": "変更を保存",
+			"createType": "タイプを作成",
+			"errors": {
+				"nameInvalid": "タイプ名が空か無効です。",
+				"saveFailed": "タスクタイプの保存に失敗しました。もう一度お試しください。"
+			}
+		}
+	},
+	"taskDetail": {
+		"common": {
+			"empty": "空",
+			"dash": "—",
+			"unassigned": "未割り当て"
+		},
+		"notFound": {
+			"title": "タスクが見つかりません",
+			"description": "このタスクは削除されたか、リンクが無効である可能性があります。",
+			"ariaLabel": "タスク詳細",
+			"backToProject": "プロジェクトに戻る",
+			"projectFallback": "プロジェクト"
+		},
+		"header": {
+			"created": "{{date}}に作成",
+			"copied": "コピーしました！",
+			"share": "共有",
+			"taskActions": "タスク操作",
+			"delete": "削除",
+			"closeTaskDetail": "タスク詳細を閉じる",
+			"deleteDialog": {
+				"title": "タスクを削除しますか？",
+				"description": "「{{title}}」とそのすべてのデータが完全に削除されます。この操作は取り消せません。",
+				"cancel": "キャンセル",
+				"delete": "削除"
+			}
+		},
+		"properties": {
+			"title": "プロパティ",
+			"status": "ステータス",
+			"dates": "日付",
+			"trackTime": "作業時間を記録",
+			"addTime": "時間を追加",
+			"type": "タイプ",
+			"relationships": "関連付け",
+			"assignees": "担当者",
+			"importance": "重要度",
+			"none": "なし",
+			"storyPoints": "ストーリーポイント",
+			"tags": "タグ",
+			"reporter": "報告者",
+			"sprint": "スプリント",
+			"productBacklog": "プロダクトバックログ",
+			"epic": "エピック",
+			"viewEpic": "エピックを表示",
+			"removeEpic": "エピックを削除",
+			"parent": "親タスク",
+			"viewParent": "親タスクを表示",
+			"removeParent": "親タスクを削除",
+			"addFields": "フィールドを追加"
+		},
+		"description": {
+			"title": "説明",
+			"writeWithAI": "AIで作成",
+			"writeWithAIDialog": {
+				"title": "AIで作成",
+				"description": "タスクの説明を作成するエージェントを選択してください。",
+				"noAgents": "このプロジェクトにはエージェントが設定されていません。",
+				"cancel": "キャンセル",
+				"starting": "開始中...",
+				"writeButton": "説明を作成"
+			}
+		},
+		"subtasks": {
+			"title": "サブタスク",
+			"addButton": "サブタスクを追加",
+			"titlePlaceholder": "サブタスクのタイトル…",
+			"empty": "サブタスクはまだありません"
+		},
+		"links": {
+			"title": "関連タスク",
+			"addButton": "リンクを追加",
+			"openTask": "タスクを開く",
+			"removeLink": "リンクを削除",
+			"empty": "関連タスクはありません"
+		},
+		"attachments": {
+			"title": "添付ファイル",
+			"uploadLabel": "添付ファイルをアップロード",
+			"dropZoneTitle": "ここにファイルをドロップしてアップロード",
+			"dropZoneSubtitle": "またはクリックして選択",
+			"previewLabel": "{{fileName}}をプレビュー",
+			"downloadLabel": "{{fileName}}をダウンロード",
+			"deleteLabel": "{{fileName}}を削除",
+			"unitBytes_one": "{{count}} B",
+			"unitBytes_other": "{{count}} B",
+			"unitKilobytes": "{{value}} KB",
+			"unitMegabytes": "{{value}} MB"
+		},
+		"addFieldDialog": {
+			"title": "カスタムフィールドを作成",
+			"displayNameLabel": "表示名",
+			"displayNamePlaceholder": "例: リリースタグ",
+			"fieldKeyLabel": "フィールドキー",
+			"fieldKeyPlaceholder": "release_tag",
+			"fieldTypeLabel": "フィールドタイプ",
+			"requiredLabel": "必須",
+			"cancel": "キャンセル",
+			"creating": "作成中…",
+			"createField": "フィールドを作成",
+			"fieldTypes": {
+				"text": "テキスト",
+				"number": "数値",
+				"date": "日付",
+				"checkbox": "チェックボックス",
+				"select": "選択"
+			}
+		},
+		"addTaskLinkModal": {
+			"title": "タスクをリンク",
+			"relationship": "関係",
+			"searchPlaceholder": "タイトルまたは番号でタスクを検索...",
+			"loadingTasks": "タスクを読み込み中…",
+			"noTasksFound": "タスクが見つかりません",
+			"linkTypes": {
+				"blocks": {
+					"label": "ブロックする",
+					"description": "このタスクは相手のタスクより先に完了する必要があります"
+				},
+				"isBlockedBy": {
+					"label": "ブロックされている",
+					"description": "相手のタスクが完了するまでこのタスクは開始できません"
+				},
+				"relatesTo": {
+					"label": "関連する",
+					"description": "これらのタスクは関連していますが、依存関係はありません"
+				},
+				"duplicates": {
+					"label": "重複する",
+					"description": "このタスクは相手のタスクの重複です"
+				}
+			}
+		},
+		"propertyField": {
+			"dateEditor": {
+				"datePlaceholder": "日付",
+				"clearDate": "日付をクリア",
+				"startDate": "開始日",
+				"dueDate": "期日"
+			},
+			"storyPointsEditor": {
+				"decrease": "ストーリーポイントを減らす",
+				"increase": "ストーリーポイントを増やす"
+			},
+			"tagsEditor": {
+				"addTag": "タグを追加",
+				"addTagPlaceholder": "タグを追加..."
+			}
+		},
+		"panel": {
+			"priority": "優先度",
+			"assignee": "担当者",
+			"assigned": "割り当て済み",
+			"sprint": "スプリント",
+			"created": "作成日",
+			"updated": "更新日"
+		},
+		"activity": {
+			"none": "なし",
+			"system": "システム",
+			"created": "このタスクを作成しました",
+			"deleted": "このタスクを削除しました",
+			"updated": "このタスクを更新しました",
+			"changedStatus": "ステータスを「{{oldVal}}」から「{{newVal}}」に変更しました",
+			"setStatus": "ステータスを「{{newVal}}」に設定しました",
+			"clearedStatus": "ステータスをクリアしました",
+			"changedType": "タイプを「{{oldVal}}」から「{{newVal}}」に変更しました",
+			"setType": "タイプを「{{newVal}}」に設定しました",
+			"clearedType": "タイプをクリアしました",
+			"renamed": "「{{oldVal}}」から「{{newVal}}」に名称を変更しました",
+			"setTitle": "タイトルを「{{newVal}}」に設定しました",
+			"changedPriority": "優先度を{{oldVal}}から{{newVal}}に変更しました",
+			"setPriority": "優先度を{{newVal}}に設定しました",
+			"changedAssignee": "担当者を{{oldName}}から{{newName}}に変更しました",
+			"assignedTo": "{{newName}}に割り当てました",
+			"removedAssignee": "担当者{{oldName}}を削除しました",
+			"changedReporter": "報告者を{{oldName}}から{{newName}}に変更しました",
+			"setReporter": "報告者を{{newName}}に設定しました",
+			"removedReporter": "報告者{{oldName}}を削除しました",
+			"movedSprint": "スプリント「{{oldSprint}}」から「{{newSprint}}」に移動しました",
+			"addedToSprint": "スプリント「{{newSprint}}」に追加しました",
+			"removedFromSprint": "スプリント「{{oldSprint}}」から削除しました",
+			"setParentTask": "親タスクを設定しました",
+			"removedParentTask": "親タスクを削除しました",
+			"changedDueDate": "期日を{{oldVal}}から{{newVal}}に変更しました",
+			"setDueDate": "期日を{{newVal}}に設定しました",
+			"removedDueDate": "期日を削除しました",
+			"changedStartDate": "開始日を{{oldVal}}から{{newVal}}に変更しました",
+			"setStartDate": "開始日を{{newVal}}に設定しました",
+			"removedStartDate": "開始日を削除しました",
+			"updatedDescription": "説明を更新しました",
+			"updatedTags": "タグを更新しました",
+			"updatedCustomFields": "カスタムフィールドを更新しました",
+			"updatedField": "{{field}}を更新しました",
+			"addedAttachment": "添付ファイルを追加しました",
+			"addedAttachmentNamed": "添付ファイルを追加しました: {{fileName}}",
+			"removedAttachment": "添付ファイルを削除しました",
+			"removedAttachmentNamed": "添付ファイルを削除しました: {{fileName}}",
+			"linkTypeBlocks": "ブロックする",
+			"linkTypeRelatedTo": "関連する",
+			"linkTypeDuplicates": "重複する",
+			"addedTaskLink": "タスクリンクを追加しました（{{linkType}}）",
+			"removedTaskLink": "タスクリンクを削除しました",
+			"startedAiSession": "AIセッションを開始しました",
+			"watchSession": "セッションを見る",
+			"madeChange": "変更を加えました",
+			"descriptionChangeDiff": "説明の変更差分"
+		},
+		"timeAgo": {
+			"justNow": "たった今",
+			"minutes_one": "{{count}}分前",
+			"minutes_other": "{{count}}分前",
+			"hours_one": "{{count}}時間前",
+			"hours_other": "{{count}}時間前",
+			"days_one": "{{count}}日前",
+			"days_other": "{{count}}日前"
+		}
+	},
+	"board": {
+		"common": {
+			"none": "なし"
+		},
+		"view": {
+			"noTasks": "タスクはありません",
+			"loading": "読み込み中…",
+			"viewMore": "もっと見る",
+			"expandColumn": "列を展開",
+			"collapseColumn": "列を折りたたむ"
+		},
+		"taskCard": {
+			"unassigned": "未割り当て",
+			"priorityLabel": "優先度",
+			"reporterTitle": "報告者",
+			"epicLabel": "エピック",
+			"noEpic": "エピックなし",
+			"storyPointsTitle": "ストーリーポイント"
+		},
+		"listGroup": {
+			"columnHeaders": {
+				"id": "ID",
+				"title": "タイトル"
+			},
+			"loading": "読み込み中…",
+			"viewMore": "もっと見る",
+			"startSprint": "スプリントを開始",
+			"newSprint": "新規スプリント",
+			"noTasks": "タスクはありません"
+		},
+		"taskRow": {
+			"columnHeaders": {
+				"type": "タイプ",
+				"importance": "重要度",
+				"storyPoints": "SP",
+				"status": "ステータス",
+				"assignee": "担当者",
+				"reporter": "報告者",
+				"startDate": "開始日",
+				"dueDate": "期日",
+				"epic": "エピック",
+				"created": "作成日"
+			},
+			"unassigned": "未割り当て",
+			"noEpic": "エピックなし"
+		},
+		"addTaskRow": {
+			"addTask": "タスクを追加",
+			"placeholder": "タスクのタイトル…",
+			"cancel": "キャンセル",
+			"create": "作成"
+		},
+		"taskTypeSelector": {
+			"noType": "—"
+		},
+		"backlog": {
+			"title": "プロダクトバックログ",
+			"description": "スプリントに割り当てられていないすべての作業項目です。"
+		}
+	},
+	"layout": {
+		"shell": {
+			"newSprint": "新規スプリント",
+			"renameView": "ビュー名を変更",
+			"deleteView": "ビューを削除",
+			"searchTasksPlaceholder": "タスクを検索…",
+			"pluginNotAvailable": "プラグインを利用できません"
+		},
+		"viewSettings": {
+			"viewSettingsAriaLabel": "ビュー設定",
+			"title": "ビュー設定",
+			"chooseFields": "フィールドを選択",
+			"back": "← 戻る",
+			"clearFilters": "フィルターをクリア",
+			"display": "表示",
+			"filters": "フィルター",
+			"noSelection": "—",
+			"titleField": "タイトル",
+			"fieldsLabel": "フィールド",
+			"columnByLabel": "列分け",
+			"swimlanesLabel": "スイムレーン",
+			"sortByLabel": "並べ替え",
+			"fieldSumLabel": "フィールド合計",
+			"initialSizeLabel": "初期サイズ",
+			"perPageLabel": "ページあたりの件数",
+			"sprintsLabel": "スプリント",
+			"statusesLabel": "ステータス",
+			"assigneesLabel": "担当者",
+			"taskTypesLabel": "タスクタイプ",
+			"reset": "リセット",
+			"saving": "保存中…",
+			"save": "保存",
+			"sprintFilter": {
+				"noSprints": "スプリントはありません",
+				"allSprints": "すべてのスプリント"
+			},
+			"statusFilter": {
+				"noStatuses": "ステータスはありません",
+				"allStatuses": "すべてのステータス",
+				"clear": "クリア",
+				"all": "すべて"
+			},
+			"assigneeFilter": {
+				"allAssignees": "すべての担当者",
+				"noMembers": "メンバーはいません",
+				"unassigned": "未割り当て"
+			},
+			"taskTypeFilter": {
+				"normalTypes": "通常のタイプ",
+				"allNormalTypesDynamic": "すべての通常タイプ（動的）",
+				"systemTypes": "システムタイプ",
+				"noTaskTypes": "タスクタイプはありません"
+			}
+		},
+		"roadmap": {
+			"taskColumnLabel": "タスク",
+			"noTasksToDisplay": "表示するタスクはありません",
+			"noDatesSet": "日付が設定されていません",
+			"dateRangeTooltip": "{{start}} → {{end}}",
+			"startDateTooltip": "開始: {{date}}",
+			"dueDateTooltip": "期日: {{date}}",
+			"loading": "読み込み中…",
+			"viewMore": "もっと見る"
+		},
+		"newViewPopover": {
+			"addView": "ビューを追加",
+			"addViewAriaLabel": "ビューを追加",
+			"title": "新規ビュー",
+			"viewNameLabel": "ビュー名",
+			"defaultName": "新規{{layout}}",
+			"layoutLabel": "レイアウト",
+			"creating": "作成中…",
+			"createView": "ビューを作成",
+			"layouts": {
+				"board": "ボード",
+				"table": "テーブル",
+				"roadmap": "ロードマップ",
+				"plugin": "プラグイン"
+			}
+		},
+		"renameViewDialog": {
+			"title": "ビュー名を変更",
+			"cancel": "キャンセル",
+			"renaming": "変更中…",
+			"rename": "名前を変更"
+		},
+		"startSprintModal": {
+			"title": "スプリントを開始",
+			"nameLabel": "名前",
+			"goalLabel": "目標",
+			"optional": "（任意）",
+			"goalPlaceholder": "このスプリントで達成したいことは？",
+			"startDateLabel": "開始日",
+			"endDateLabel": "終了日",
+			"cancel": "キャンセル",
+			"starting": "開始中…",
+			"startSprint": "スプリントを開始"
+		},
+		"timeline": {
+			"title": "タイムライン",
+			"description": "ロードマップ上でのエピックと長期的な計画。"
+		},
+		"sprintDetail": {
+			"notFound": "スプリントが見つからないか、アクセスが拒否されました。",
+			"statusActive": "進行中",
+			"statusPlanned": "計画中",
+			"statusCompleted": "完了",
+			"description": "{{status}}のスプリント",
+			"descriptionWithStartDate": "{{status}}のスプリント・{{date}}に開始",
+			"completeSprint": "スプリントを完了",
+			"completeSprintModal": {
+				"title": "スプリントを完了",
+				"willBeMovedTo_one": "{{count}}件の未完了タスクが次の場所に移動されます:",
+				"willBeMovedTo_other": "{{count}}件の未完了タスクが次の場所に移動されます:",
+				"noIncompleteTasks": "このスプリントに未完了のタスクはありません。",
+				"productBacklog": "プロダクトバックログ",
+				"unassignedHint": "タスクはどのスプリントにも割り当てられない状態になります",
+				"cancel": "キャンセル",
+				"completing": "完了処理中…",
+				"completeSprint": "スプリントを完了"
+			}
+		},
+		"conversation": {
+			"agentsFallback": "エージェント"
+		}
+	},
+	"priority": {
+		"none": "なし",
+		"low": "低",
+		"medium": "中",
+		"high": "高",
+		"critical": "緊急"
+	},
+	"viewUtils": {
+		"groups": {
+			"backlog": "バックログ",
+			"unassigned": "未割り当て",
+			"noReporter": "報告者なし",
+			"noType": "タイプなし",
+			"none": "なし",
+			"yes": "はい",
+			"no": "いいえ"
+		},
+		"columnBy": {
+			"status": "ステータス",
+			"sprint": "スプリント",
+			"assignee": "担当者",
+			"importance": "重要度",
+			"type": "タイプ",
+			"reporter": "報告者"
+		},
+		"sortBy": {
+			"manual": "手動",
+			"importance": "重要度",
+			"storyPoints": "ストーリーポイント",
+			"title": "タイトル",
+			"created": "作成日",
+			"startDate": "開始日",
+			"dueDate": "期日"
+		},
+		"swimlanes": {
+			"none": "なし",
+			"assignee": "担当者",
+			"importance": "重要度",
+			"type": "タイプ"
+		},
+		"fieldSum": {
+			"count": "件数",
+			"storyPoints": "ストーリーポイント"
+		},
+		"fields": {
+			"assignee": "担当者",
+			"status": "ステータス",
+			"importance": "重要度",
+			"storyPoints": "ストーリーポイント",
+			"type": "タイプ",
+			"epic": "エピック",
+			"reporter": "報告者",
+			"startDate": "開始日",
+			"dueDate": "期日",
+			"created": "作成日"
+		}
+	}
+}

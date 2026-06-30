@@ -1,0 +1,1058 @@
+{
+	"project": {
+		"notFound": "未找到项目或访问被拒绝。",
+		"settingsPage": {
+			"title": "设置",
+			"subtitle": "配置项目设置、角色和权限",
+			"nav": {
+				"general": "通用",
+				"roles": "角色",
+				"taskStatuses": "任务状态",
+				"taskTypes": "任务类型",
+				"customFields": "自定义字段",
+				"dangerZone": "危险区域",
+				"plugins": "插件"
+			}
+		}
+	},
+	"agents": {
+		"createDialog": {
+			"title": "创建 AI 智能体",
+			"step1Description": "设置智能体的身份和角色",
+			"step2Description": "配置驱动智能体的 AI 模型",
+			"stepIndicator": "{{step}} / 2",
+			"startFromPreset": "从预设开始",
+			"nameLabel": "名称",
+			"handleLabel": "Handle",
+			"handleHint": "自动根据名称生成，用于评论中的 @提及。",
+			"projectRoleLabel": "项目角色",
+			"projectRolePlaceholder": "选择一个项目角色…",
+			"projectRoleHint": "控制智能体在此项目中可以读取和修改的内容。",
+			"modelSection": "模型",
+			"providerLabel": "提供方",
+			"modelLabel": "模型",
+			"customOption": "自定义…",
+			"apiKeyLabel": "API 密钥",
+			"hideApiKey": "隐藏 API 密钥",
+			"showApiKey": "显示 API 密钥",
+			"apiKeyHint": "加密存储 — 不会在 API 响应中暴露。",
+			"baseUrlLabel": "基础 URL",
+			"systemPromptLabel": "系统提示词",
+			"optional": "（可选）",
+			"charsCount": "{{count}} 个字符",
+			"createFailed": "创建智能体失败，请重试。",
+			"cancel": "取消",
+			"continue": "继续",
+			"back": "返回",
+			"creating": "正在创建…",
+			"createAgent": "创建智能体",
+			"namePlaceholder": "Dev Bot",
+			"systemPromptPlaceholder": "你是一名高级软件工程师…"
+		},
+		"card": {
+			"configure": "配置",
+			"delete": "删除",
+			"repos": "代码仓库",
+			"configureAndViewActivity": "配置并查看动态",
+			"deleteDialog": {
+				"title": "删除 {{name}}？",
+				"description": "这将永久删除该智能体并将其从项目中移除。正在进行的对话将被终止。",
+				"cancel": "取消",
+				"delete": "删除"
+			}
+		},
+		"page": {
+			"title": "AI 智能体",
+			"subtitle": "处理任务并与团队沟通的自主智能体",
+			"newAgent": "新建智能体",
+			"empty": {
+				"title": "暂无智能体",
+				"description": "添加一个 AI 智能体来自动处理任务、审查代码、编写文档等。",
+				"createFirstAgent": "创建您的第一个智能体"
+			},
+			"chatShortcutPrefix": "点击",
+			"chatShortcutSuffix": "任意智能体即可聊天、查看对话，并管理 MCP 服务器和技能。"
+		},
+		"detail": {
+			"tabs": {
+				"overview": "概览",
+				"mcpServers": "MCP 服务器",
+				"skills": "技能",
+				"conversations": "对话"
+			},
+			"overview": {
+				"nameLabel": "名称",
+				"llmConfiguration": "LLM 配置",
+				"providerLabel": "提供方",
+				"modelLabel": "模型",
+				"customOption": "自定义…",
+				"apiKeyUpdateLabel": "更新 API 密钥",
+				"apiKeyUpdateHint": "（留空以保留当前密钥）",
+				"baseUrlLabel": "基础 URL",
+				"triggerPrompts": {
+					"title": "自动附加的触发提示词",
+					"hint": "根据智能体的调用方式，运行时会自动附加到系统提示词中。",
+					"taskAssignment": "任务分配 / 任务评论",
+					"docCommentMention": "文档评论 @提及",
+					"directChat": "直接聊天",
+					"writeDescription": "使用 AI 编写任务描述"
+				},
+				"capabilities": "能力",
+				"cloneRepositories": "克隆代码仓库",
+				"cloneRepositoriesHint": "允许智能体在本地 git clone 代码仓库",
+				"gitCommitterIdentity": "Git 提交者身份",
+				"gitCommitterHint": "该智能体提交代码时使用的姓名和邮箱。",
+				"committerNameLabel": "提交者姓名",
+				"committerEmailLabel": "提交者邮箱",
+				"saveChanges": "保存更改",
+				"saved": "已保存",
+				"saveFailed": "保存失败，请重试。",
+				"systemPromptLabel": "系统提示词"
+			},
+			"mcp": {
+				"serverCount_one": "已配置 {{count}} 个服务器",
+				"serverCount_other": "已配置 {{count}} 个服务器",
+				"addServer": "添加服务器",
+				"empty": {
+					"title": "尚未添加 MCP 服务器",
+					"addFirstServer": "添加您的第一个服务器"
+				},
+				"addDialog": {
+					"title": "添加 MCP 服务器",
+					"description": "连接一个 MCP 服务器以扩展智能体的能力。",
+					"serverNameLabel": "服务器名称",
+					"transportLabel": "传输方式",
+					"commandLabel": "命令",
+					"argsLabel": "参数",
+					"argsHint": "（以空格分隔）",
+					"urlLabel": "URL",
+					"cancel": "取消",
+					"addServer": "添加服务器"
+				}
+			},
+			"skills": {
+				"skillCount_one": "已附加 {{count}} 项技能",
+				"skillCount_other": "已附加 {{count}} 项技能",
+				"addSkill": "添加技能",
+				"empty": {
+					"title": "暂无技能",
+					"addFirstSkill": "添加第一项技能"
+				},
+				"addDialog": {
+					"title": "添加技能",
+					"description": "为智能体提供专门的指令或能力。",
+					"skillNameLabel": "技能名称",
+					"sourceLabel": "来源",
+					"sourceInline": "内联（在此处编写内容）",
+					"sourceMarketplace": "插件市场",
+					"sourceGithubUrl": "GitHub URL",
+					"skillContentLabel": "技能内容（Markdown）",
+					"urlLabel": "URL",
+					"cancel": "取消",
+					"addSkill": "添加技能"
+				}
+			},
+			"conversations": {
+				"triggerChat": "聊天",
+				"triggerWriteDescription": "编写描述",
+				"triggerTask": "任务",
+				"iterations_one": "{{count}} 次迭代",
+				"iterations_other": "{{count}} 次迭代",
+				"prOpened": "PR 已创建",
+				"watch": "查看",
+				"empty": {
+					"title": "暂无对话",
+					"description": "当任务分配给该智能体或有人向其发送消息时，对话将开始。"
+				}
+			}
+		},
+		"conversationView": {
+			"thinking": "思考中…",
+			"observation": "观察结果",
+			"toolLabel": "工具：{{toolName}}",
+			"stop": "停止",
+			"notFound": "未找到对话",
+			"chatSession": "聊天会话",
+			"taskSession": "任务会话",
+			"pr": "PR",
+			"noMessages": "暂无消息"
+		}
+	},
+	"docs": {
+		"editorPage": {
+			"notFound": {
+				"title": "未找到文档",
+				"description": "该文档可能已被删除，或链接无效。"
+			},
+			"unsaved": "未保存",
+			"saving": "正在保存…",
+			"saved": "已保存",
+			"commentsAndActivity": "评论和动态"
+		},
+		"activity": {
+			"created": "创建了此文档",
+			"updated": "更新了该文档",
+			"updatedFields": "更新了 {{fields}}",
+			"deleted": "删除了该文档",
+			"moved": "移动了该文档",
+			"contentChangeDiff": "内容更改差异"
+		}
+	},
+	"roles": {
+		"deleteDialog": {
+			"title": "删除角色",
+			"confirmTextPrefix": "确定要删除",
+			"confirmTextSuffix": "吗？当前分配此角色的所有成员将失去相应访问权限。此操作无法撤销。",
+			"cancel": "取消",
+			"deleteRole": "删除角色",
+			"errors": {
+				"notFound": "该角色已不存在。",
+				"hasMembers": "该角色仍被分配给一个或多个成员，无法删除。",
+				"forbidden": "您没有权限删除该角色。",
+				"internalError": "出现错误，请重试。",
+				"generic": "出现错误。"
+			}
+		},
+		"formDialog": {
+			"editTitle": "编辑角色",
+			"createTitle": "新建角色",
+			"editDescription": "更新角色名称并配置其权限授予。",
+			"createDescription": "定义一个新的项目角色，并配置其授予成员的权限。",
+			"roleNameLabel": "角色名称",
+			"roleNamePlaceholder": "例如：PROJECT_REVIEWER",
+			"permissionsLabel": "权限",
+			"enabledCount_one": "已启用 {{count}} 项",
+			"enabledCount_other": "已启用 {{count}} 项",
+			"cancel": "取消",
+			"saveChanges": "保存更改",
+			"createRole": "创建角色",
+			"errors": {
+				"nameTaken": "已存在同名角色。",
+				"nameInvalid": "角色名称只能使用大写字母、数字和下划线。",
+				"notFound": "该角色已不存在，可能已被删除。",
+				"forbidden": "您没有权限执行此操作。",
+				"internalError": "服务器出现错误，请重试。",
+				"generic": "出现错误。"
+			}
+		},
+		"permissions": {
+			"projectsRead": {
+				"label": "查看项目",
+				"description": "查看项目详情和设置"
+			},
+			"projectsWrite": {
+				"label": "编辑项目",
+				"description": "更新项目名称、描述和设置"
+			},
+			"projectsDelete": {
+				"label": "删除项目",
+				"description": "永久删除此项目"
+			},
+			"membersRead": {
+				"label": "查看成员",
+				"description": "列出并查看项目成员"
+			},
+			"membersWrite": {
+				"label": "管理成员",
+				"description": "添加、移除和重新分配项目成员"
+			},
+			"rolesRead": {
+				"label": "查看角色",
+				"description": "列出并查看项目角色定义"
+			},
+			"rolesWrite": {
+				"label": "管理角色",
+				"description": "创建、编辑和删除项目角色"
+			},
+			"tasksRead": {
+				"label": "查看任务",
+				"description": "浏览并读取项目中的任务"
+			},
+			"tasksWrite": {
+				"label": "编辑任务",
+				"description": "创建、更新和移动任务"
+			},
+			"sprintsRead": {
+				"label": "查看冲刺",
+				"description": "浏览冲刺看板和待办列表"
+			},
+			"sprintsWrite": {
+				"label": "管理冲刺",
+				"description": "创建、更新和结束冲刺"
+			},
+			"docsRead": {
+				"label": "查看文档",
+				"description": "浏览并读取项目中的文档"
+			},
+			"docsWrite": {
+				"label": "编辑文档",
+				"description": "创建、更新和删除文档及文件夹"
+			},
+			"agentsRead": {
+				"label": "查看智能体",
+				"description": "浏览 AI 智能体并查看其配置"
+			},
+			"agentsWrite": {
+				"label": "管理智能体",
+				"description": "创建、配置和删除 AI 智能体"
+			}
+		},
+		"permissionGroups": {
+			"project": "项目",
+			"members": "成员",
+			"roles": "角色",
+			"tasks": "任务",
+			"sprints": "冲刺",
+			"documents": "文档",
+			"aiAgents": "AI 智能体"
+		}
+	},
+	"settings": {
+		"general": {
+			"title": "通用",
+			"projectNameLabel": "项目名称",
+			"projectNamePlaceholder": "我的精彩项目",
+			"taskIdPrefixLabel": "任务编号前缀",
+			"taskIdPrefixHint": "例如：PACA → PACA-1、PACA-2…",
+			"taskIdPrefixPlaceholder": "PROJ",
+			"descriptionLabel": "描述",
+			"descriptionPlaceholder": "描述一下这个项目是关于什么的…",
+			"publicProjectLabel": "公开项目",
+			"publicProjectHintPublic": "任何拥有链接的人都可以查看此项目。匿名用户拥有只读权限。",
+			"publicProjectHintPrivate": "仅团队成员可以访问此项目。",
+			"saveChanges": "保存更改",
+			"saved": "已保存 ✓",
+			"noPermission": "您没有权限编辑此项目。",
+			"errors": {
+				"nameTaken": "已存在同名项目。",
+				"nameInvalid": "项目名称为空或无效。",
+				"prefixInvalid": "前缀必须为 1–10 个大写字母/数字（例如 PACA）。",
+				"updateFailed": "更新项目失败，请重试。"
+			}
+		},
+		"roles": {
+			"title": "项目角色",
+			"description": "管理此项目成员的角色和权限。",
+			"newRole": "新建角色",
+			"noPermissionsAssigned": "未分配权限",
+			"editRole": "编辑角色",
+			"deleteRole": "删除角色",
+			"rolesDefined_one": "个已定义角色",
+			"rolesDefined_other": "个已定义角色",
+			"permissionGrants": "项跨所有角色的权限授予",
+			"empty": {
+				"title": "尚未定义任何角色",
+				"description": "创建您的第一个角色，开始为成员分配权限。",
+				"createRole": "创建角色"
+			},
+			"table": {
+				"name": "名称",
+				"permissions": "权限",
+				"created": "创建时间"
+			},
+			"systemRolesNote": "系统角色是共享模板，无法编辑或删除。"
+		},
+		"taskStatuses": {
+			"title": "任务状态",
+			"description": "定义此项目中任务流转的工作流状态。",
+			"newStatus": "新建状态",
+			"reorderFailed": "保存新顺序失败，请重试。",
+			"empty": {
+				"title": "未定义状态",
+				"description": "创建状态以定义此项目中任务的工作流。",
+				"createStatus": "创建状态"
+			},
+			"table": {
+				"name": "名称",
+				"category": "类别",
+				"default": "默认"
+			},
+			"default": "默认",
+			"setAsDefault": "设为默认状态",
+			"editStatus": "编辑状态",
+			"deleteStatus": "删除状态"
+		},
+		"taskTypes": {
+			"title": "任务类型",
+			"description": "使用自定义类型（如 Bug、功能、故事）对任务进行分类。",
+			"newType": "新建类型",
+			"empty": {
+				"title": "未定义任务类型",
+				"description": "创建类型以按种类对任务分类 — 例如 Bug、功能、故事。",
+				"createType": "创建类型"
+			},
+			"table": {
+				"icon": "图标",
+				"name": "名称",
+				"description": "描述",
+				"default": "默认"
+			},
+			"default": "默认",
+			"setAsDefault": "设为默认类型",
+			"editType": "编辑类型",
+			"deleteType": "删除类型"
+		},
+		"customFields": {
+			"title": "自定义字段",
+			"description": "定义项目级的自定义任务字段，为任务扩展符合您工作流程的额外数据。",
+			"newField": "新建自定义字段",
+			"empty": {
+				"title": "暂无自定义字段",
+				"description": "自定义字段可让您捕获特定于工作流程的数据 — 冲刺、严重程度级别、发布标签等。",
+				"createFirstField": "创建第一个字段"
+			},
+			"table": {
+				"displayName": "显示名称",
+				"fieldKey": "字段键",
+				"type": "类型",
+				"required": "必填"
+			},
+			"yes": "是",
+			"no": "否",
+			"editField": "编辑字段",
+			"deleteField": "删除字段",
+			"cancel": "取消",
+			"saveChanges": "保存更改",
+			"displayNameLabel": "显示名称",
+			"displayNamePlaceholder": "例如：发布标签",
+			"fieldKeyLabel": "字段键",
+			"fieldKeyHint": "用作 API 和数据导出中的标识符。",
+			"fieldKeyImmutableHint": "字段键创建后不可更改。",
+			"fieldTypeLabel": "字段类型",
+			"fieldTypeImmutableHint": "字段类型创建后不可更改。",
+			"optionsLabel": "选项",
+			"addOptionPlaceholder": "添加选项…",
+			"addOption": "添加",
+			"requiredLabel": "必填",
+			"requiredHint": "用户在创建或编辑任务时必须填写此字段。",
+			"fieldTypes": {
+				"text": "文本",
+				"number": "数字",
+				"date": "日期",
+				"checkbox": "复选框",
+				"select": "单选",
+				"multiSelect": "多选",
+				"url": "URL"
+			},
+			"createDialog": {
+				"title": "创建自定义字段",
+				"description": "定义一个新字段，用于捕获此项目中任务的额外数据。",
+				"createField": "创建字段",
+				"errors": {
+					"keyTaken": "该项目中已存在使用此键的字段。",
+					"keyInvalid": "字段键为空或无效。",
+					"nameInvalid": "显示名称为空或无效。",
+					"createFailed": "创建字段失败，请重试。"
+				}
+			},
+			"editDialog": {
+				"title": "编辑自定义字段",
+				"description": "更新字段设置。",
+				"errors": {
+					"nameInvalid": "显示名称为空或无效。",
+					"saveFailed": "保存更改失败，请重试。"
+				}
+			},
+			"deleteDialog": {
+				"title": "删除自定义字段",
+				"confirmTextPrefix": "删除",
+				"confirmTextSuffix": "？此字段中存储的任务数据将丢失。此操作无法撤销。",
+				"deleteFailed": "删除字段失败，请重试。",
+				"deleteField": "删除字段"
+			}
+		},
+		"dangerZone": {
+			"title": "危险区域",
+			"deleteProjectTitle": "删除此项目",
+			"deleteProjectDescription": "永久删除该项目及其所有数据。此操作无法撤销。",
+			"deleteProjectButton": "删除项目",
+			"deleteDialog": {
+				"title": "删除项目",
+				"confirmTextPrefix": "这将永久删除",
+				"confirmTextSuffix": "及其所有数据，包括成员、角色和互动记录。此操作无法撤销。",
+				"typeToConfirmPrefix": "请输入",
+				"typeToConfirmSuffix": "以确认",
+				"deleteFailed": "删除项目失败，请重试。",
+				"cancel": "取消",
+				"deletePermanently": "永久删除"
+			}
+		}
+	},
+	"taskStatuses": {
+		"deleteDialog": {
+			"title": "删除状态",
+			"confirmTextPrefix": "删除",
+			"confirmTextSuffix": "？使用此状态的任务将失去其状态。此操作无法撤销。",
+			"deleteFailed": "删除状态失败，请重试。",
+			"cancel": "取消",
+			"deleteStatus": "删除状态"
+		},
+		"formDialog": {
+			"editTitle": "编辑状态",
+			"createTitle": "创建状态",
+			"editDescription": "更新此工作流状态。",
+			"createDescription": "为项目工作流添加一个新状态。",
+			"nameLabel": "名称",
+			"namePlaceholder": "例如：审核中",
+			"categoryLabel": "类别",
+			"colorLabel": "颜色",
+			"customColorTitle": "自定义颜色",
+			"cancel": "取消",
+			"saveChanges": "保存更改",
+			"createStatus": "创建状态",
+			"errors": {
+				"nameInvalid": "状态名称为空或无效。",
+				"categoryInvalid": "选择的类别无效。",
+				"saveFailed": "保存状态失败，请重试。"
+			}
+		}
+	},
+	"team": {
+		"title": "团队",
+		"subtitle": "管理项目成员和角色",
+		"addMember": "添加成员",
+		"memberCount_one": "{{count}} 名成员",
+		"memberCount_other": "{{count}} 名成员",
+		"empty": {
+			"title": "暂无成员",
+			"description": "为此项目添加队友或 AI 智能体以开始使用。",
+			"addFirstMember": "添加第一位成员"
+		},
+		"addMemberDialog": {
+			"title": "添加成员",
+			"description": "选择一名用户并为其分配此项目中的角色。",
+			"userLabel": "用户",
+			"change": "更改",
+			"searchPlaceholder": "按姓名或用户名搜索…",
+			"noUsersMatch": "没有符合搜索条件的用户。",
+			"noUsersAvailable": "没有可添加的用户。",
+			"roleLabel": "角色",
+			"rolePlaceholder": "选择一个角色…",
+			"cancel": "取消",
+			"addMember": "添加成员",
+			"errors": {
+				"addFailed": "添加成员失败，请重试。"
+			}
+		},
+		"roleChip": {
+			"changeRole": "更改角色",
+			"changeFailed": "更改角色失败。"
+		},
+		"memberRow": {
+			"removeMember": "移除成员"
+		},
+		"removeDialog": {
+			"title": "移除成员",
+			"removePrefix": "移除",
+			"fromInfix": "从",
+			"confirmSuffix": "中移除？该成员将立即失去访问权限。",
+			"removeFailed": "移除成员失败，请重试。",
+			"cancel": "取消",
+			"remove": "移除"
+		}
+	},
+	"aiChat": {
+		"chatWithAgent": "与 AI 智能体聊天",
+		"newConversation": "新建对话",
+		"agentLabel": "智能体",
+		"noAgentsConfigured": "此项目尚未配置智能体。",
+		"selectAgentPlaceholder": "选择一个智能体…",
+		"messageLabel": "消息",
+		"messageHint": "（按 Enter 发送，Shift+Enter 换行）",
+		"messagePlaceholder": "您希望智能体帮您做什么？",
+		"send": "发送"
+	},
+	"taskTypes": {
+		"deleteDialog": {
+			"title": "删除任务类型",
+			"confirmTextPrefix": "删除",
+			"confirmTextSuffix": "？使用此类型的任务将失去其类型分配。此操作无法撤销。",
+			"deleteFailed": "删除任务类型失败，请重试。",
+			"cancel": "取消",
+			"deleteType": "删除类型"
+		},
+		"formDialog": {
+			"editTitle": "编辑任务类型",
+			"createTitle": "创建任务类型",
+			"editDescription": "更新此任务类型。",
+			"createDescription": "为此项目添加一个新类型以对任务进行分类。",
+			"nameLabel": "名称",
+			"namePlaceholder": "例如：Bug、功能、故事",
+			"iconLabel": "图标",
+			"optional": "（可选）",
+			"clear": "清除",
+			"colorLabel": "颜色",
+			"customColorTitle": "自定义颜色",
+			"descriptionLabel": "描述",
+			"descriptionPlaceholder": "描述何时使用此类型…",
+			"cancel": "取消",
+			"saveChanges": "保存更改",
+			"createType": "创建类型",
+			"errors": {
+				"nameInvalid": "类型名称为空或无效。",
+				"saveFailed": "保存任务类型失败，请重试。"
+			}
+		}
+	},
+	"taskDetail": {
+		"common": {
+			"empty": "空",
+			"dash": "—",
+			"unassigned": "未分配"
+		},
+		"notFound": {
+			"title": "未找到任务",
+			"description": "该任务可能已被删除，或链接无效。",
+			"ariaLabel": "任务详情",
+			"backToProject": "返回项目",
+			"projectFallback": "项目"
+		},
+		"header": {
+			"created": "创建于 {{date}}",
+			"copied": "已复制！",
+			"share": "分享",
+			"taskActions": "任务操作",
+			"delete": "删除",
+			"closeTaskDetail": "关闭任务详情",
+			"deleteDialog": {
+				"title": "删除任务？",
+				"description": "这将永久删除“{{title}}”及其所有数据。此操作无法撤销。",
+				"cancel": "取消",
+				"delete": "删除"
+			}
+		},
+		"properties": {
+			"title": "属性",
+			"status": "状态",
+			"dates": "日期",
+			"trackTime": "记录时间",
+			"addTime": "添加时间",
+			"type": "类型",
+			"relationships": "关联关系",
+			"assignees": "负责人",
+			"importance": "重要程度",
+			"none": "无",
+			"storyPoints": "故事点",
+			"tags": "标签",
+			"reporter": "报告人",
+			"sprint": "冲刺",
+			"productBacklog": "产品待办列表",
+			"epic": "史诗",
+			"viewEpic": "查看史诗",
+			"removeEpic": "移除史诗",
+			"parent": "父任务",
+			"viewParent": "查看父任务",
+			"removeParent": "移除父任务",
+			"addFields": "添加字段"
+		},
+		"description": {
+			"title": "描述",
+			"writeWithAI": "用 AI 撰写",
+			"writeWithAIDialog": {
+				"title": "用 AI 撰写",
+				"description": "选择一个智能体来撰写任务描述。",
+				"noAgents": "此项目尚未配置智能体。",
+				"cancel": "取消",
+				"starting": "正在启动...",
+				"writeButton": "撰写描述"
+			}
+		},
+		"subtasks": {
+			"title": "子任务",
+			"addButton": "添加子任务",
+			"titlePlaceholder": "子任务标题…",
+			"empty": "暂无子任务"
+		},
+		"links": {
+			"title": "关联任务",
+			"addButton": "添加关联",
+			"openTask": "打开任务",
+			"removeLink": "移除关联",
+			"empty": "暂无关联任务"
+		},
+		"attachments": {
+			"title": "附件",
+			"uploadLabel": "上传附件",
+			"dropZoneTitle": "将文件拖放到此处上传",
+			"dropZoneSubtitle": "或点击浏览",
+			"previewLabel": "预览 {{fileName}}",
+			"downloadLabel": "下载 {{fileName}}",
+			"deleteLabel": "删除 {{fileName}}",
+			"unitBytes_one": "{{count}} B",
+			"unitBytes_other": "{{count}} B",
+			"unitKilobytes": "{{value}} KB",
+			"unitMegabytes": "{{value}} MB"
+		},
+		"addFieldDialog": {
+			"title": "创建自定义字段",
+			"displayNameLabel": "显示名称",
+			"displayNamePlaceholder": "例如：发布标签",
+			"fieldKeyLabel": "字段键",
+			"fieldKeyPlaceholder": "release_tag",
+			"fieldTypeLabel": "字段类型",
+			"requiredLabel": "必填",
+			"cancel": "取消",
+			"creating": "正在创建…",
+			"createField": "创建字段",
+			"fieldTypes": {
+				"text": "文本",
+				"number": "数字",
+				"date": "日期",
+				"checkbox": "复选框",
+				"select": "单选"
+			}
+		},
+		"addTaskLinkModal": {
+			"title": "关联任务",
+			"relationship": "关系",
+			"searchPlaceholder": "按标题或编号搜索任务...",
+			"loadingTasks": "正在加载任务…",
+			"noTasksFound": "未找到任务",
+			"linkTypes": {
+				"blocks": {
+					"label": "阻塞",
+					"description": "此任务必须在另一任务之前完成"
+				},
+				"isBlockedBy": {
+					"label": "被阻塞于",
+					"description": "此任务需等待另一任务完成后才能开始"
+				},
+				"relatesTo": {
+					"label": "相关",
+					"description": "这些任务相关但无依赖关系"
+				},
+				"duplicates": {
+					"label": "重复于",
+					"description": "此任务与另一任务重复"
+				}
+			}
+		},
+		"propertyField": {
+			"dateEditor": {
+				"datePlaceholder": "日期",
+				"clearDate": "清除日期",
+				"startDate": "开始日期",
+				"dueDate": "截止日期"
+			},
+			"storyPointsEditor": {
+				"decrease": "减少故事点",
+				"increase": "增加故事点"
+			},
+			"tagsEditor": {
+				"addTag": "添加标签",
+				"addTagPlaceholder": "添加标签..."
+			}
+		},
+		"panel": {
+			"priority": "优先级",
+			"assignee": "负责人",
+			"assigned": "已分配",
+			"sprint": "冲刺",
+			"created": "创建时间",
+			"updated": "更新时间"
+		},
+		"activity": {
+			"none": "无",
+			"system": "系统",
+			"created": "创建了此任务",
+			"deleted": "删除了此任务",
+			"updated": "更新了此任务",
+			"changedStatus": "将状态从“{{oldVal}}”改为“{{newVal}}”",
+			"setStatus": "将状态设置为“{{newVal}}”",
+			"clearedStatus": "清除了状态",
+			"changedType": "将类型从“{{oldVal}}”改为“{{newVal}}”",
+			"setType": "将类型设置为“{{newVal}}”",
+			"clearedType": "清除了类型",
+			"renamed": "将标题从“{{oldVal}}”改为“{{newVal}}”",
+			"setTitle": "将标题设置为“{{newVal}}”",
+			"changedPriority": "将优先级从 {{oldVal}} 改为 {{newVal}}",
+			"setPriority": "将优先级设置为 {{newVal}}",
+			"changedAssignee": "将负责人从 {{oldName}} 改为 {{newName}}",
+			"assignedTo": "分配给了 {{newName}}",
+			"removedAssignee": "移除了负责人 {{oldName}}",
+			"changedReporter": "将报告人从 {{oldName}} 改为 {{newName}}",
+			"setReporter": "将报告人设置为 {{newName}}",
+			"removedReporter": "移除了报告人 {{oldName}}",
+			"movedSprint": "从冲刺“{{oldSprint}}”移动到“{{newSprint}}”",
+			"addedToSprint": "添加到冲刺“{{newSprint}}”",
+			"removedFromSprint": "从冲刺“{{oldSprint}}”移除",
+			"setParentTask": "设置了父任务",
+			"removedParentTask": "移除了父任务",
+			"changedDueDate": "将截止日期从 {{oldVal}} 改为 {{newVal}}",
+			"setDueDate": "将截止日期设置为 {{newVal}}",
+			"removedDueDate": "移除了截止日期",
+			"changedStartDate": "将开始日期从 {{oldVal}} 改为 {{newVal}}",
+			"setStartDate": "将开始日期设置为 {{newVal}}",
+			"removedStartDate": "移除了开始日期",
+			"updatedDescription": "更新了描述",
+			"updatedTags": "更新了标签",
+			"updatedCustomFields": "更新了自定义字段",
+			"updatedField": "更新了 {{field}}",
+			"addedAttachment": "添加了附件",
+			"addedAttachmentNamed": "添加了附件：{{fileName}}",
+			"removedAttachment": "移除了附件",
+			"removedAttachmentNamed": "移除了附件：{{fileName}}",
+			"linkTypeBlocks": "阻塞",
+			"linkTypeRelatedTo": "相关于",
+			"linkTypeDuplicates": "重复于",
+			"addedTaskLink": "添加了任务关联（{{linkType}}）",
+			"removedTaskLink": "移除了任务关联",
+			"startedAiSession": "启动了一个 AI 会话",
+			"watchSession": "查看会话",
+			"madeChange": "进行了更改",
+			"descriptionChangeDiff": "描述更改差异"
+		},
+		"timeAgo": {
+			"justNow": "刚刚",
+			"minutes_one": "{{count}} 分钟前",
+			"minutes_other": "{{count}} 分钟前",
+			"hours_one": "{{count}} 小时前",
+			"hours_other": "{{count}} 小时前",
+			"days_one": "{{count}} 天前",
+			"days_other": "{{count}} 天前"
+		}
+	},
+	"board": {
+		"common": {
+			"none": "无"
+		},
+		"view": {
+			"noTasks": "暂无任务",
+			"loading": "正在加载…",
+			"viewMore": "查看更多",
+			"expandColumn": "展开列",
+			"collapseColumn": "折叠列"
+		},
+		"taskCard": {
+			"unassigned": "未分配",
+			"priorityLabel": "优先级",
+			"reporterTitle": "报告人",
+			"epicLabel": "史诗",
+			"noEpic": "无史诗",
+			"storyPointsTitle": "故事点"
+		},
+		"listGroup": {
+			"columnHeaders": {
+				"id": "编号",
+				"title": "标题"
+			},
+			"loading": "正在加载…",
+			"viewMore": "查看更多",
+			"startSprint": "开始冲刺",
+			"newSprint": "新建冲刺",
+			"noTasks": "暂无任务"
+		},
+		"taskRow": {
+			"columnHeaders": {
+				"type": "类型",
+				"importance": "重要程度",
+				"storyPoints": "故事点",
+				"status": "状态",
+				"assignee": "负责人",
+				"reporter": "报告人",
+				"startDate": "开始日期",
+				"dueDate": "截止日期",
+				"epic": "史诗",
+				"created": "创建时间"
+			},
+			"unassigned": "未分配",
+			"noEpic": "无史诗"
+		},
+		"addTaskRow": {
+			"addTask": "添加任务",
+			"placeholder": "任务标题…",
+			"cancel": "取消",
+			"create": "创建"
+		},
+		"taskTypeSelector": {
+			"noType": "—"
+		},
+		"backlog": {
+			"title": "产品待办列表",
+			"description": "所有未分配到冲刺的工作项。"
+		}
+	},
+	"layout": {
+		"shell": {
+			"newSprint": "新建冲刺",
+			"renameView": "重命名视图",
+			"deleteView": "删除视图",
+			"searchTasksPlaceholder": "搜索任务…",
+			"pluginNotAvailable": "插件不可用"
+		},
+		"viewSettings": {
+			"viewSettingsAriaLabel": "视图设置",
+			"title": "视图设置",
+			"chooseFields": "选择字段",
+			"back": "← 返回",
+			"clearFilters": "清除筛选",
+			"display": "显示",
+			"filters": "筛选",
+			"noSelection": "—",
+			"titleField": "标题",
+			"fieldsLabel": "字段",
+			"columnByLabel": "按列分组",
+			"swimlanesLabel": "泳道",
+			"sortByLabel": "排序方式",
+			"fieldSumLabel": "字段汇总",
+			"initialSizeLabel": "初始数量",
+			"perPageLabel": "每页数量",
+			"sprintsLabel": "冲刺",
+			"statusesLabel": "状态",
+			"assigneesLabel": "负责人",
+			"taskTypesLabel": "任务类型",
+			"reset": "重置",
+			"saving": "正在保存…",
+			"save": "保存",
+			"sprintFilter": {
+				"noSprints": "暂无冲刺",
+				"allSprints": "所有冲刺"
+			},
+			"statusFilter": {
+				"noStatuses": "暂无状态",
+				"allStatuses": "所有状态",
+				"clear": "清除",
+				"all": "全部"
+			},
+			"assigneeFilter": {
+				"allAssignees": "所有负责人",
+				"noMembers": "暂无成员",
+				"unassigned": "未分配"
+			},
+			"taskTypeFilter": {
+				"normalTypes": "普通类型",
+				"allNormalTypesDynamic": "所有普通类型（动态）",
+				"systemTypes": "系统类型",
+				"noTaskTypes": "暂无任务类型"
+			}
+		},
+		"roadmap": {
+			"taskColumnLabel": "任务",
+			"noTasksToDisplay": "没有可显示的任务",
+			"noDatesSet": "未设置日期",
+			"dateRangeTooltip": "{{start}} → {{end}}",
+			"startDateTooltip": "开始：{{date}}",
+			"dueDateTooltip": "截止：{{date}}",
+			"loading": "正在加载…",
+			"viewMore": "查看更多"
+		},
+		"newViewPopover": {
+			"addView": "添加视图",
+			"addViewAriaLabel": "添加视图",
+			"title": "新建视图",
+			"viewNameLabel": "视图名称",
+			"defaultName": "新建{{layout}}",
+			"layoutLabel": "布局",
+			"creating": "正在创建…",
+			"createView": "创建视图",
+			"layouts": {
+				"board": "看板",
+				"table": "表格",
+				"roadmap": "路线图",
+				"plugin": "插件"
+			}
+		},
+		"renameViewDialog": {
+			"title": "重命名视图",
+			"cancel": "取消",
+			"renaming": "正在重命名…",
+			"rename": "重命名"
+		},
+		"startSprintModal": {
+			"title": "开始冲刺",
+			"nameLabel": "名称",
+			"goalLabel": "目标",
+			"optional": "（可选）",
+			"goalPlaceholder": "此次冲刺应达成什么目标？",
+			"startDateLabel": "开始日期",
+			"endDateLabel": "结束日期",
+			"cancel": "取消",
+			"starting": "正在启动…",
+			"startSprint": "开始冲刺"
+		},
+		"timeline": {
+			"title": "时间线",
+			"description": "在路线图上展示史诗和长期规划。"
+		},
+		"sprintDetail": {
+			"notFound": "未找到冲刺或访问被拒绝。",
+			"statusActive": "进行中",
+			"statusPlanned": "已计划",
+			"statusCompleted": "已完成",
+			"description": "{{status}}的冲刺",
+			"descriptionWithStartDate": "{{status}}的冲刺 · 开始于 {{date}}",
+			"completeSprint": "完成冲刺",
+			"completeSprintModal": {
+				"title": "完成冲刺",
+				"willBeMovedTo_one": "{{count}} 个未完成任务将被移动到：",
+				"willBeMovedTo_other": "{{count}} 个未完成任务将被移动到：",
+				"noIncompleteTasks": "此冲刺中没有剩余的未完成任务。",
+				"productBacklog": "产品待办列表",
+				"unassignedHint": "任务将从所有冲刺中取消分配",
+				"cancel": "取消",
+				"completing": "正在完成…",
+				"completeSprint": "完成冲刺"
+			}
+		},
+		"conversation": {
+			"agentsFallback": "智能体"
+		}
+	},
+	"priority": {
+		"none": "无",
+		"low": "低",
+		"medium": "中",
+		"high": "高",
+		"critical": "紧急"
+	},
+	"viewUtils": {
+		"groups": {
+			"backlog": "待办列表",
+			"unassigned": "未分配",
+			"noReporter": "无报告人",
+			"noType": "无类型",
+			"none": "无",
+			"yes": "是",
+			"no": "否"
+		},
+		"columnBy": {
+			"status": "状态",
+			"sprint": "冲刺",
+			"assignee": "负责人",
+			"importance": "重要程度",
+			"type": "类型",
+			"reporter": "报告人"
+		},
+		"sortBy": {
+			"manual": "手动",
+			"importance": "重要程度",
+			"storyPoints": "故事点",
+			"title": "标题",
+			"created": "创建时间",
+			"startDate": "开始日期",
+			"dueDate": "截止日期"
+		},
+		"swimlanes": {
+			"none": "无",
+			"assignee": "负责人",
+			"importance": "重要程度",
+			"type": "类型"
+		},
+		"fieldSum": {
+			"count": "数量",
+			"storyPoints": "故事点"
+		},
+		"fields": {
+			"assignee": "负责人",
+			"status": "状态",
+			"importance": "重要程度",
+			"storyPoints": "故事点",
+			"type": "类型",
+			"epic": "史诗",
+			"reporter": "报告人",
+			"startDate": "开始日期",
+			"dueDate": "截止日期",
+			"created": "创建时间"
+		}
+	}
+}

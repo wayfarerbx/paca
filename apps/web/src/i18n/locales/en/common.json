@@ -1,0 +1,22 @@
+{
+	"dialog": {
+		"closeLabel": "Close",
+		"closeButton": "Close"
+	},
+	"sidebar": {
+		"title": "Sidebar",
+		"description": "Displays the mobile sidebar.",
+		"toggleLabel": "Toggle Sidebar"
+	},
+	"validation": {
+		"usernameRequired": "Username is required.",
+		"usernameMinLength": "Username must be at least {{min}} characters.",
+		"passwordRequired": "Password is required.",
+		"passwordMinLength": "Password must be at least {{min}} characters.",
+		"newPasswordRequired": "New password is required.",
+		"newPasswordMinLength": "New password must be at least {{min}} characters.",
+		"newPasswordMustDiffer": "New password must be different from current password.",
+		"confirmPasswordRequired": "Please confirm your new password.",
+		"passwordsDoNotMatch": "Passwords do not match."
+	}
+}

@@ -1,0 +1,151 @@
+{
+	"activityPane": {
+		"title": "활동",
+		"empty": "아직 활동이 없습니다",
+		"editingComment": "댓글 수정 중...",
+		"cancel": "취소",
+		"sendHint": "⌘↵ 로 전송",
+		"systemActor": "시스템",
+		"editing": "수정 중",
+		"edit": "수정",
+		"delete": "삭제",
+		"viewDiff": "차이점 보기",
+		"revert": "되돌리기",
+		"timeAgo": {
+			"justNow": "방금 전",
+			"minutes_one": "{{count}}분 전",
+			"minutes_other": "{{count}}분 전",
+			"hours_one": "{{count}}시간 전",
+			"hours_other": "{{count}}시간 전",
+			"days_one": "{{count}}일 전",
+			"days_other": "{{count}}일 전"
+		},
+		"errors": {
+			"revertFailed": "되돌리기에 실패했습니다. 다시 시도해 주세요."
+		}
+	},
+	"contentDiff": {
+		"emptyLine": "(빈 줄)",
+		"noDifferences": "텍스트 차이가 없습니다",
+		"changeDiff": "변경 내용 차이",
+		"removed": "삭제됨",
+		"added": "추가됨"
+	},
+	"home": {
+		"greeting": {
+			"morning": "좋은 아침이에요",
+			"afternoon": "안녕하세요",
+			"evening": "좋은 저녁이에요",
+			"fallbackName": "회원님"
+		},
+		"hero": {
+			"badge": "스크럼반 워크스페이스",
+			"subtitleWithProjects_one": "진행 중인 프로젝트가 {{count}}개 있습니다. 하던 작업을 이어서 진행하세요.",
+			"subtitleWithProjects_other": "진행 중인 프로젝트가 {{count}}개 있습니다. 하던 작업을 이어서 진행하세요.",
+			"subtitleEmpty": "워크스페이스가 준비되었습니다. 프로젝트를 만들고, 팀을 초대하고, 작업을 시작하세요.",
+			"newProject": "새 프로젝트"
+		},
+		"stats": {
+			"projects": {
+				"label": "프로젝트",
+				"subEmpty": "아직 프로젝트가 없습니다",
+				"subActive": "{{count}}개 진행 중"
+			},
+			"openTasks": {
+				"label": "열린 작업",
+				"sub": "모든 프로젝트 기준"
+			},
+			"teamMembers": {
+				"label": "팀 멤버",
+				"sub": "나 포함"
+			},
+			"aiAgents": {
+				"label": "AI 에이전트",
+				"sub": "설정된 에이전트 없음"
+			}
+		},
+		"projectsSection": {
+			"title": "프로젝트",
+			"countInWorkspace_one": "워크스페이스에 프로젝트 {{count}}개",
+			"countInWorkspace_other": "워크스페이스에 프로젝트 {{count}}개",
+			"newShort": "새로 만들기",
+			"newProjectCard": "새 프로젝트"
+		},
+		"projectCard": {
+			"public": "공개",
+			"noDescription": "설명 없음"
+		},
+		"gettingStarted": {
+			"title": "시작하기",
+			"progress": "{{completed}} / {{total}}",
+			"subtitle": "Paca의 모든 기능을 활용하려면 다음 단계를 완료하세요.",
+			"steps": {
+				"createProject": {
+					"title": "첫 프로젝트 만들기",
+					"description": "팀의 업무를 관리할 스크럼반 보드를 설정하세요."
+				},
+				"inviteTeam": {
+					"title": "팀 초대하기",
+					"description": "사람 협업자를 추가하고 역할을 배정하세요."
+				},
+				"configureAgent": {
+					"title": "AI 에이전트 설정하기",
+					"description": "작업을 자동으로 처리할 AI를 연결하세요."
+				},
+				"runSprint": {
+					"title": "첫 스프린트 실행하기",
+					"description": "계획 → 실행 → 점검 → 개선 사이클을 따라 작업을 진행하세요."
+				}
+			}
+		},
+		"quickActions": {
+			"title": "빠른 작업",
+			"newProject": {
+				"label": "새 프로젝트",
+				"description": "스크럼반 보드 만들기"
+			},
+			"inviteTeam": {
+				"label": "팀 초대",
+				"description": "멤버 또는 에이전트 추가"
+			},
+			"addAiAgent": {
+				"label": "AI 에이전트 추가",
+				"description": "자동화 설정"
+			}
+		},
+		"about": {
+			"title": "Paca 작동 방식",
+			"descriptionLead": "공유 스크럼반 보드에서 인간의 창의성과 AI의 속도를 결합하세요. 작업은",
+			"workflow": "계획 → 실행 → 점검 → 개선",
+			"descriptionTrail": "단계를 거치며, 사람인지 AI인지 누가 무엇을 했는지 완전히 투명하게 확인할 수 있습니다.",
+			"openSource": "오픈소스 · Apache-2.0"
+		},
+		"createDialog": {
+			"title": "새 프로젝트",
+			"description": "팀을 위한 스크럼반 워크스페이스를 만드세요. 생성 후 멤버를 초대하고 설정을 구성할 수 있습니다.",
+			"nameLabel": "프로젝트 이름 *",
+			"namePlaceholder": "예: Platform v3",
+			"prefixLabel": "작업 ID 접두사",
+			"prefixHint": "(예: PACA)",
+			"prefixPlaceholder": "PROJ",
+			"prefixExampleLead": "작업에는 다음과 같이 라벨이 지정됩니다",
+			"descriptionLabel": "설명",
+			"optionalHint": "(선택사항)",
+			"descriptionPlaceholder": "이 프로젝트는 어떤 프로젝트인가요?",
+			"publicProject": {
+				"label": "공개 프로젝트",
+				"publicHint": "링크가 있는 모든 사람이 이 프로젝트를 볼 수 있습니다. 익명 사용자는 읽기 전용 권한을 갖습니다.",
+				"privateHint": "팀 멤버만 이 프로젝트에 접근할 수 있습니다."
+			},
+			"cancel": "취소",
+			"submit": "프로젝트 생성",
+			"errors": {
+				"nameRequired": "프로젝트 이름을 입력해 주세요.",
+				"nameTaken": "이미 존재하는 프로젝트 이름입니다.",
+				"nameInvalid": "프로젝트 이름이 비어 있거나 올바르지 않습니다.",
+				"prefixInvalid": "접두사는 1~10자의 대문자/숫자여야 합니다(예: PACA).",
+				"generic": "문제가 발생했습니다. 다시 시도해 주세요."
+			}
+		}
+	}
+}

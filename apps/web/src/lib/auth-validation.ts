@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+
 /**
  * Shared validation constants and helpers for auth-related forms.
  *
@@ -16,13 +18,16 @@ export const MIN_USERNAME_LENGTH = 3;
  *
  * Returns `undefined` when the value is valid, or an error message otherwise.
  */
-export function validateUsername(value: string): string | undefined {
+export function validateUsername(
+	value: string,
+	t: TFunction<"common">,
+): string | undefined {
 	if (!value.trim()) {
-		return "Username is required.";
+		return t("validation.usernameRequired");
 	}
 
 	if (value.trim().length < MIN_USERNAME_LENGTH) {
-		return `Username must be at least ${MIN_USERNAME_LENGTH} characters.`;
+		return t("validation.usernameMinLength", { min: MIN_USERNAME_LENGTH });
 	}
 
 	return undefined;
@@ -34,13 +39,16 @@ export function validateUsername(value: string): string | undefined {
  *
  * Returns `undefined` when the value is valid, or an error message otherwise.
  */
-export function validatePassword(value: string): string | undefined {
+export function validatePassword(
+	value: string,
+	t: TFunction<"common">,
+): string | undefined {
 	if (!value) {
-		return "Password is required.";
+		return t("validation.passwordRequired");
 	}
 
 	if (value.length < MIN_PASSWORD_LENGTH) {
-		return `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
+		return t("validation.passwordMinLength", { min: MIN_PASSWORD_LENGTH });
 	}
 
 	return undefined;
@@ -57,18 +65,19 @@ export function validatePassword(value: string): string | undefined {
  */
 export function validateNewPassword(
 	value: string,
-	currentPassword?: string,
+	currentPassword: string | undefined,
+	t: TFunction<"common">,
 ): string | undefined {
 	if (!value) {
-		return "New password is required.";
+		return t("validation.newPasswordRequired");
 	}
 
 	if (value.length < MIN_PASSWORD_LENGTH) {
-		return `New password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
+		return t("validation.newPasswordMinLength", { min: MIN_PASSWORD_LENGTH });
 	}
 
 	if (currentPassword && value === currentPassword) {
-		return "New password must be different from current password.";
+		return t("validation.newPasswordMustDiffer");
 	}
 
 	return undefined;
@@ -82,13 +91,14 @@ export function validateNewPassword(
 export function validateConfirmPassword(
 	value: string,
 	newPassword: string,
+	t: TFunction<"common">,
 ): string | undefined {
 	if (!value) {
-		return "Please confirm your new password.";
+		return t("validation.confirmPasswordRequired");
 	}
 
 	if (newPassword !== value) {
-		return "Passwords do not match.";
+		return t("validation.passwordsDoNotMatch");
 	}
 
 	return undefined;

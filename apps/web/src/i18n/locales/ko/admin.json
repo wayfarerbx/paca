@@ -1,0 +1,264 @@
+{
+	"users": {
+		"header": {
+			"title": "사용자 관리",
+			"description": "사용자 계정과 할당된 역할을 확인하고 관리하세요.",
+			"newUser": "새 사용자"
+		},
+		"stats": {
+			"userCount_one": "사용자 {{count}}명",
+			"userCount_other": "사용자 {{count}}명",
+			"inSystem": "시스템 내",
+			"mustChangePassword": "비밀번호 변경 필요"
+		},
+		"empty": {
+			"title": "사용자를 찾을 수 없습니다",
+			"description": "시작하려면 첫 번째 사용자를 만드세요.",
+			"createUser": "사용자 생성"
+		},
+		"errors": {
+			"loadFailed": "사용자를 불러오지 못했습니다",
+			"tryAgain": "페이지를 새로고침한 후 다시 시도해 주세요."
+		},
+		"noPermission": {
+			"title": "사용자를 볼 권한이 없습니다",
+			"description": "위의 버튼을 사용하여 새 사용자를 만들 수는 있습니다."
+		},
+		"table": {
+			"columnUsername": "사용자 이름",
+			"columnFullName": "전체 이름",
+			"columnRole": "역할",
+			"columnCreated": "생성일",
+			"pwdResetBadge": "비밀번호 재설정",
+			"youBadge": "나",
+			"noFullName": "—",
+			"resetPasswordAction": "비밀번호 재설정",
+			"editAction": "사용자 수정",
+			"deleteAction": "사용자 삭제"
+		},
+		"formDialog": {
+			"createdTitle": "사용자가 생성되었습니다",
+			"createdDescriptionSuffix": "님이 생성되었습니다. 아래 임시 비밀번호를 공유해 주세요 — 사용자는 첫 로그인 시 비밀번호를 변경해야 합니다.",
+			"temporaryPasswordLabel": "임시 비밀번호",
+			"hidePassword": "비밀번호 숨기기",
+			"showPassword": "비밀번호 표시",
+			"copyPassword": "비밀번호 복사",
+			"passwordNotShownAgain": "이 비밀번호는 다시 표시되지 않습니다. 지금 꼭 복사해 두세요.",
+			"done": "완료",
+			"editTitle": "사용자 수정",
+			"createTitle": "사용자 생성",
+			"editDescription": "사용자의 표시 이름과 역할 배정을 업데이트하세요.",
+			"createDescription": "안전한 임시 비밀번호가 자동으로 생성됩니다. 사용자는 첫 로그인 시 비밀번호를 변경해야 합니다.",
+			"usernameLabel": "사용자 이름",
+			"usernamePlaceholder": "예: john.doe",
+			"fullNameLabel": "전체 이름",
+			"fullNamePlaceholder": "예: John Doe",
+			"roleLabel": "역할",
+			"roleOptionalHint": "(선택사항 — 기본값은 USER)",
+			"rolePlaceholder": "역할을 선택하세요…",
+			"cancel": "취소",
+			"saving": "저장 중…",
+			"creating": "생성 중…",
+			"saveChanges": "변경사항 저장",
+			"createUser": "사용자 생성",
+			"errors": {
+				"fullNameRequired": "전체 이름을 입력해 주세요.",
+				"usernameTaken": "이미 사용 중인 사용자 이름입니다.",
+				"userNotFound": "사용자를 찾을 수 없습니다. 이미 삭제되었을 수 있습니다.",
+				"forbidden": "이 작업을 수행할 권한이 없습니다.",
+				"internalError": "서버에서 문제가 발생했습니다. 다시 시도해 주세요.",
+				"generic": "문제가 발생했습니다."
+			}
+		},
+		"resetPasswordDialog": {
+			"title": "비밀번호 재설정",
+			"descriptionSuccessPrefix": "비밀번호:",
+			"descriptionSuccessSuffix": "님의 비밀번호가 재설정되었습니다. 아래 임시 비밀번호를 공유해 주세요 — 다시 표시되지 않습니다.",
+			"descriptionConfirmPrefix": "강력한 임시 비밀번호가 생성되어",
+			"descriptionConfirmSuffix": "님에게 할당됩니다. 다음 로그인 시 비밀번호를 변경해야 합니다.",
+			"temporaryPasswordLabel": "임시 비밀번호",
+			"hidePassword": "비밀번호 숨기기",
+			"showPassword": "비밀번호 표시",
+			"copyPassword": "비밀번호 복사",
+			"notShownAgain": "⚠ 이 비밀번호는 닫은 후 다시 표시되지 않습니다.",
+			"done": "완료",
+			"cancel": "취소",
+			"resetting": "재설정 중…",
+			"resetButton": "비밀번호 재설정",
+			"errors": {
+				"userNotFound": "이 사용자는 더 이상 존재하지 않습니다.",
+				"forbidden": "이 사용자의 비밀번호를 재설정할 권한이 없습니다.",
+				"internalError": "문제가 발생했습니다. 다시 시도해 주세요.",
+				"generic": "문제가 발생했습니다."
+			}
+		},
+		"deleteDialog": {
+			"title": "사용자 삭제",
+			"confirmTextPrefix": "정말로 삭제하시겠습니까",
+			"confirmTextSuffix": "? 해당 계정은 영구적으로 삭제됩니다.",
+			"cannotBeUndone": "이 작업은 되돌릴 수 없습니다.",
+			"cancel": "취소",
+			"deleting": "삭제 중…",
+			"confirmButton": "사용자 삭제",
+			"errors": {
+				"userNotFound": "이 사용자는 더 이상 존재하지 않습니다.",
+				"forbidden": "이 사용자를 삭제할 권한이 없습니다.",
+				"internalError": "문제가 발생했습니다. 다시 시도해 주세요.",
+				"generic": "문제가 발생했습니다."
+			}
+		}
+	},
+	"globalRoles": {
+		"header": {
+			"title": "전역 역할",
+			"description": "시스템 전체 역할과 사용자에게 부여되는 권한을 관리하세요.",
+			"newRole": "새 역할"
+		},
+		"stats": {
+			"roleCount_one": "역할 {{count}}개",
+			"roleCount_other": "역할 {{count}}개",
+			"defined": "정의됨",
+			"permissionGrants": "전체 역할에 부여된 권한"
+		},
+		"empty": {
+			"title": "아직 정의된 역할이 없습니다",
+			"description": "사용자 권한 관리를 시작하려면 첫 번째 역할을 만드세요.",
+			"createRole": "역할 생성"
+		},
+		"errors": {
+			"loadFailed": "역할을 불러오지 못했습니다",
+			"tryAgain": "페이지를 새로고침한 후 다시 시도해 주세요."
+		},
+		"noPermission": {
+			"title": "역할을 볼 권한이 없습니다",
+			"description": "위의 버튼을 사용하여 새 역할을 만들 수는 있습니다."
+		},
+		"table": {
+			"columnName": "이름",
+			"columnPermissions": "권한",
+			"columnCreated": "생성일",
+			"noPermissionsAssigned": "할당된 권한 없음",
+			"editAction": "역할 수정",
+			"deleteAction": "역할 삭제"
+		},
+		"formDialog": {
+			"editTitle": "역할 수정",
+			"createTitle": "역할 생성",
+			"editDescription": "역할 이름과 권한 부여 설정을 업데이트하세요.",
+			"createDescription": "새로운 시스템 전체 역할을 정의하고 권한을 설정하세요.",
+			"roleNameLabel": "역할 이름",
+			"roleNamePlaceholder": "예: SECURITY_ADMIN",
+			"permissionsLabel": "권한",
+			"enabledCount_one": "{{count}}개 활성화됨",
+			"enabledCount_other": "{{count}}개 활성화됨",
+			"cancel": "취소",
+			"saving": "저장 중…",
+			"saveChanges": "변경사항 저장",
+			"createRole": "역할 생성",
+			"errors": {
+				"roleNameRequired": "역할 이름을 입력해 주세요.",
+				"nameTaken": "이미 존재하는 역할 이름입니다.",
+				"nameInvalid": "역할 이름은 대문자, 숫자, 밑줄만 사용할 수 있습니다.",
+				"roleNotFound": "이 역할은 더 이상 존재하지 않습니다. 이미 삭제되었을 수 있습니다.",
+				"forbidden": "이 작업을 수행할 권한이 없습니다.",
+				"internalError": "서버에서 문제가 발생했습니다. 다시 시도해 주세요.",
+				"generic": "문제가 발생했습니다."
+			}
+		},
+		"deleteDialog": {
+			"title": "역할 삭제",
+			"confirmTextPrefix": "정말로 삭제하시겠습니까",
+			"confirmTextSuffix": "? 이 역할에 대한 모든 사용자 배정도 함께 제거됩니다.",
+			"cannotBeUndone": "이 작업은 되돌릴 수 없습니다.",
+			"cancel": "취소",
+			"deleting": "삭제 중…",
+			"confirmButton": "역할 삭제",
+			"errors": {
+				"roleNotFound": "이 역할은 더 이상 존재하지 않습니다.",
+				"hasUsersWarning": "하나 이상의 사용자에게 할당되어 있어 이 역할을 삭제할 수 없습니다.",
+				"forbidden": "이 역할을 삭제할 권한이 없습니다.",
+				"internalError": "문제가 발생했습니다. 다시 시도해 주세요.",
+				"generic": "문제가 발생했습니다."
+			}
+		},
+		"permissions": {
+			"globalRolesRead": {
+				"label": "전역 역할 조회",
+				"description": "전역 역할 정의 보기"
+			},
+			"globalRolesWrite": {
+				"label": "전역 역할 작성",
+				"description": "전역 역할 정의 생성 및 업데이트"
+			},
+			"globalRolesAssign": {
+				"label": "전역 역할 할당",
+				"description": "사용자에게 전역 역할 할당"
+			},
+			"usersRead": {
+				"label": "사용자 조회",
+				"description": "사용자 프로필 및 목록 보기"
+			},
+			"usersWrite": {
+				"label": "사용자 작성",
+				"description": "사용자 계정 생성 및 업데이트"
+			},
+			"usersDelete": {
+				"label": "사용자 삭제",
+				"description": "사용자 계정 제거"
+			},
+			"projectsRead": {
+				"label": "모든 프로젝트 조회",
+				"description": "워크스페이스의 모든 프로젝트 보기"
+			},
+			"projectsCreate": {
+				"label": "프로젝트 생성",
+				"description": "새 프로젝트 생성"
+			},
+			"projectsWrite": {
+				"label": "프로젝트 작성",
+				"description": "프로젝트 세부정보 업데이트"
+			},
+			"projectsDelete": {
+				"label": "프로젝트 삭제",
+				"description": "프로젝트 영구 삭제"
+			},
+			"projectMembersRead": {
+				"label": "프로젝트 멤버 조회",
+				"description": "모든 프로젝트의 멤버 보기"
+			},
+			"projectMembersWrite": {
+				"label": "프로젝트 멤버 작성",
+				"description": "모든 프로젝트에서 멤버 추가, 제거, 업데이트"
+			},
+			"projectRolesRead": {
+				"label": "프로젝트 역할 조회",
+				"description": "모든 프로젝트에 정의된 역할 보기"
+			},
+			"projectRolesWrite": {
+				"label": "프로젝트 역할 작성",
+				"description": "모든 프로젝트에서 역할 생성 및 업데이트"
+			}
+		},
+		"permissionGroups": {
+			"globalRoles": "전역 역할",
+			"users": "사용자",
+			"projects": "프로젝트"
+		}
+	},
+	"plugins": {
+		"title": "플러그인 설정",
+		"description": "모든 사용자에 대한 시스템 전체 플러그인 패널 순서와 표시 여부를 관리하세요.",
+		"tabs": {
+			"marketplace": "마켓플레이스",
+			"layout": "확장 지점 레이아웃"
+		},
+		"marketplace": {
+			"title": "마켓플레이스",
+			"description": "공개 paca-plugins 카탈로그에서 플러그인을 설치하거나 제거하세요."
+		},
+		"layout": {
+			"title": "확장 지점 레이아웃",
+			"description": "각 확장 지점 내에서 플러그인 패널을 드래그하여 순서를 변경하세요. 표시 여부를 전환하여 모든 사용자에게 패널을 보이거나 숨길 수 있습니다."
+		}
+	}
+}

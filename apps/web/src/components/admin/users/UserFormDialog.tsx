@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, Eye, EyeOff, KeyRound, UserRound } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +44,8 @@ export function UserFormDialog({
 	open,
 	onOpenChange,
 }: UserFormDialogProps) {
+	const { t } = useTranslation("admin");
+	const { t: tCommon } = useTranslation("common");
 	const queryClient = useQueryClient();
 	const isEdit = !!user;
 
@@ -85,7 +88,8 @@ export function UserFormDialog({
 
 	const mutation = useMutation({
 		mutationFn: async () => {
-			if (!fullName.trim()) throw new Error("Full name is required.");
+			if (!fullName.trim())
+				throw new Error(t("users.formDialog.errors.fullNameRequired"));
 
 			if (isEdit && user) {
 				return updateUser(user.id, {
@@ -94,7 +98,7 @@ export function UserFormDialog({
 				});
 			}
 
-			const usernameError = validateUsername(username);
+			const usernameError = validateUsername(username, tCommon);
 			if (usernameError) throw new Error(usernameError);
 
 			const password = generatePassword();
@@ -122,7 +126,7 @@ export function UserFormDialog({
 			setUsernameError(null);
 			const code = getApiErrorCode(err);
 			if (code === ApiErrorCode.UsernameTaken) {
-				setUsernameError("This username is already taken.");
+				setUsernameError(t("users.formDialog.errors.usernameTaken"));
 				return;
 			}
 			if (
@@ -133,15 +137,18 @@ export function UserFormDialog({
 				return;
 			}
 			const messages: Partial<Record<string, string>> = {
-				[ApiErrorCode.UserNotFound]:
-					"User not found. They may have already been deleted.",
-				[ApiErrorCode.Forbidden]:
-					"You don't have permission to perform this action.",
-				[ApiErrorCode.InternalError]:
-					"Something went wrong on the server. Please try again.",
+				[ApiErrorCode.UserNotFound]: t("users.formDialog.errors.userNotFound"),
+				[ApiErrorCode.Forbidden]: t("users.formDialog.errors.forbidden"),
+				[ApiErrorCode.InternalError]: t(
+					"users.formDialog.errors.internalError",
+				),
 			};
 			const message = err instanceof Error ? err.message : null;
-			setError((code && messages[code]) ?? message ?? "Something went wrong.");
+			setError(
+				(code && messages[code]) ??
+					message ??
+					t("users.formDialog.errors.generic"),
+			);
 		},
 	});
 
@@ -155,18 +162,19 @@ export function UserFormDialog({
 							<div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
 								<KeyRound className="size-4" />
 							</div>
-							<DialogTitle className="text-base">User created</DialogTitle>
+							<DialogTitle className="text-base">
+								{t("users.formDialog.createdTitle")}
+							</DialogTitle>
 						</div>
 						<DialogDescription className="mt-2">
-							<strong className="text-foreground">{username}</strong> has been
-							created. Share the temporary password below — the user will be
-							asked to change it on first login.
+							<strong className="text-foreground">{username}</strong>{" "}
+							{t("users.formDialog.createdDescriptionSuffix")}
 						</DialogDescription>
 					</DialogHeader>
 
 					<div className="flex flex-col gap-3 py-1">
 						<Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-							Temporary password
+							{t("users.formDialog.temporaryPasswordLabel")}
 						</Label>
 						<div className="flex items-center gap-2">
 							<div className="relative flex-1">
@@ -180,7 +188,11 @@ export function UserFormDialog({
 									type="button"
 									onClick={() => setShowPassword((v) => !v)}
 									className="absolute inset-y-0 right-2 flex items-center text-muted-foreground hover:text-foreground transition-colors"
-									aria-label={showPassword ? "Hide password" : "Show password"}
+									aria-label={
+										showPassword
+											? t("users.formDialog.hidePassword")
+											: t("users.formDialog.showPassword")
+									}
 								>
 									{showPassword ? (
 										<EyeOff className="size-4" />
@@ -193,7 +205,7 @@ export function UserFormDialog({
 								variant="outline"
 								size="icon"
 								onClick={handleCopy}
-								aria-label="Copy password"
+								aria-label={t("users.formDialog.copyPassword")}
 							>
 								{copied ? (
 									<Check className="size-4 text-emerald-500" />
@@ -203,12 +215,14 @@ export function UserFormDialog({
 							</Button>
 						</div>
 						<p className="text-xs text-muted-foreground">
-							This password will not be shown again. Make sure to copy it now.
+							{t("users.formDialog.passwordNotShownAgain")}
 						</p>
 					</div>
 
 					<DialogFooter>
-						<Button onClick={() => handleOpenChange(false)}>Done</Button>
+						<Button onClick={() => handleOpenChange(false)}>
+							{t("users.formDialog.done")}
+						</Button>
 					</DialogFooter>
 				</DialogContent>
 			</Dialog>
@@ -225,13 +239,15 @@ export function UserFormDialog({
 							<UserRound className="size-4" />
 						</div>
 						<DialogTitle className="text-base">
-							{isEdit ? "Edit User" : "Create User"}
+							{isEdit
+								? t("users.formDialog.editTitle")
+								: t("users.formDialog.createTitle")}
 						</DialogTitle>
 					</div>
 					<DialogDescription className="mt-2">
 						{isEdit
-							? "Update the user's display name and role assignment."
-							: "A secure temporary password will be generated automatically. The user will be required to change it on first login."}
+							? t("users.formDialog.editDescription")
+							: t("users.formDialog.createDescription")}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -242,11 +258,11 @@ export function UserFormDialog({
 								htmlFor="user-username"
 								className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
 							>
-								Username
+								{t("users.formDialog.usernameLabel")}
 							</Label>
 							<Input
 								id="user-username"
-								placeholder="e.g. john.doe"
+								placeholder={t("users.formDialog.usernamePlaceholder")}
 								value={username}
 								onChange={(e) => {
 									setUsername(e.target.value);
@@ -269,11 +285,11 @@ export function UserFormDialog({
 							htmlFor="user-fullname"
 							className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
 						>
-							Full Name
+							{t("users.formDialog.fullNameLabel")}
 						</Label>
 						<Input
 							id="user-fullname"
-							placeholder="e.g. John Doe"
+							placeholder={t("users.formDialog.fullNamePlaceholder")}
 							value={fullName}
 							onChange={(e) => setFullName(e.target.value)}
 							autoComplete="off"
@@ -285,14 +301,16 @@ export function UserFormDialog({
 							htmlFor="user-role"
 							className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
 						>
-							Role{" "}
+							{t("users.formDialog.roleLabel")}{" "}
 							<span className="normal-case font-normal text-muted-foreground/70">
-								(optional — defaults to USER)
+								{t("users.formDialog.roleOptionalHint")}
 							</span>
 						</Label>
 						<Select value={role} onValueChange={(v) => setRole(v ?? "")}>
 							<SelectTrigger id="user-role" className="w-full">
-								<SelectValue placeholder="Select a role…" />
+								<SelectValue
+									placeholder={t("users.formDialog.rolePlaceholder")}
+								/>
 							</SelectTrigger>
 							<SelectContent>
 								{roles.map((r) => (
@@ -314,7 +332,7 @@ export function UserFormDialog({
 
 				<DialogFooter>
 					<DialogClose render={<Button variant="outline" />}>
-						Cancel
+						{t("users.formDialog.cancel")}
 					</DialogClose>
 					<Button
 						onClick={() => mutation.mutate()}
@@ -322,11 +340,11 @@ export function UserFormDialog({
 					>
 						{mutation.isPending
 							? isEdit
-								? "Saving…"
-								: "Creating…"
+								? t("users.formDialog.saving")
+								: t("users.formDialog.creating")
 							: isEdit
-								? "Save changes"
-								: "Create user"}
+								? t("users.formDialog.saveChanges")
+								: t("users.formDialog.createUser")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

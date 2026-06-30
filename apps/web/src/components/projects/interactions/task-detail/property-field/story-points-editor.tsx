@@ -1,5 +1,6 @@
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 const FIBONACCI_SP = [0, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144];
 
@@ -23,6 +24,7 @@ export function StoryPointsEditor({
 	value: number | null;
 	onChange?: (value: number | null) => void;
 }) {
+	const { t } = useTranslation("projects");
 	const [local, setLocal] = useState<string>(
 		value != null ? String(value) : "",
 	);
@@ -65,7 +67,7 @@ export function StoryPointsEditor({
 				type="button"
 				onClick={stepDown}
 				disabled={value === null || value <= 0}
-				aria-label="Decrease story points"
+				aria-label={t("taskDetail.propertyField.storyPointsEditor.decrease")}
 				className="flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-all disabled:opacity-30 disabled:cursor-not-allowed"
 			>
 				<ChevronDown className="size-3.5" />
@@ -73,7 +75,7 @@ export function StoryPointsEditor({
 			<input
 				type="number"
 				min="0"
-				placeholder="—"
+				placeholder={t("taskDetail.common.dash")}
 				value={local}
 				onChange={(e) => setLocal(e.target.value)}
 				onBlur={(e) => commit(e.target.value)}
@@ -97,7 +99,7 @@ export function StoryPointsEditor({
 			<button
 				type="button"
 				onClick={stepUp}
-				aria-label="Increase story points"
+				aria-label={t("taskDetail.propertyField.storyPointsEditor.increase")}
 				className="flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-all"
 			>
 				<ChevronUp className="size-3.5" />

@@ -1,3 +1,4 @@
+import type { TFunction } from "i18next";
 import {
 	type FilterConfig,
 	resolveFilterConfig,
@@ -53,6 +54,7 @@ export interface ColumnGroupDef {
 export function getColumnGroupDefs(
 	columnBy: string | undefined,
 	ctx: ViewContext,
+	t: TFunction<"projects">,
 ): ColumnGroupDef[] {
 	if (!columnBy || columnBy === "status") {
 		return ctx.statuses
@@ -80,7 +82,11 @@ export function getColumnGroupDefs(
 			}));
 		return [
 			...sprintGroups,
-			{ key: "__backlog", label: "Backlog", fieldValue: null },
+			{
+				key: "__backlog",
+				label: t("viewUtils.groups.backlog"),
+				fieldValue: null,
+			},
 		];
 	}
 
@@ -91,7 +97,11 @@ export function getColumnGroupDefs(
 				label: m.full_name || m.username,
 				fieldValue: m.id,
 			})),
-			{ key: "__unassigned", label: "Unassigned", fieldValue: null },
+			{
+				key: "__unassigned",
+				label: t("viewUtils.groups.unassigned"),
+				fieldValue: null,
+			},
 		];
 	}
 
@@ -106,14 +116,18 @@ export function getColumnGroupDefs(
 					label: m.full_name || m.username,
 					fieldValue: m.id,
 				})),
-			{ key: "__none", label: "No Reporter", fieldValue: null },
+			{
+				key: "__none",
+				label: t("viewUtils.groups.noReporter"),
+				fieldValue: null,
+			},
 		];
 	}
 
 	if (columnBy === "importance") {
 		return PRIORITY_LEVELS.map((p) => ({
 			key: String(p.value),
-			label: p.label,
+			label: t(p.labelKey),
 			color: p.value > 0 ? p.color : undefined,
 			// fieldValue is the representative raw importance to assign on drop
 			fieldValue: IMPORTANCE_BUCKET_VALUES[p.value] ?? 0,
@@ -122,13 +136,13 @@ export function getColumnGroupDefs(
 
 	if (columnBy === "type") {
 		return [
-			...ctx.taskTypes.map((t) => ({
-				key: t.id,
-				label: t.name,
-				color: t.color ?? undefined,
-				fieldValue: t.id,
+			...ctx.taskTypes.map((tt) => ({
+				key: tt.id,
+				label: tt.name,
+				color: tt.color ?? undefined,
+				fieldValue: tt.id,
 			})),
-			{ key: "__none", label: "No Type", fieldValue: null },
+			{ key: "__none", label: t("viewUtils.groups.noType"), fieldValue: null },
 		];
 	}
 
@@ -142,13 +156,13 @@ export function getColumnGroupDefs(
 					label: opt,
 					fieldValue: opt,
 				})),
-				{ key: "__none", label: "None", fieldValue: null },
+				{ key: "__none", label: t("viewUtils.groups.none"), fieldValue: null },
 			];
 		}
 		if (cf.field_type === "boolean") {
 			return [
-				{ key: "true", label: "Yes", fieldValue: true },
-				{ key: "false", label: "No", fieldValue: false },
+				{ key: "true", label: t("viewUtils.groups.yes"), fieldValue: true },
+				{ key: "false", label: t("viewUtils.groups.no"), fieldValue: false },
 			];
 		}
 		// number / text / date → dynamic groups from task values (built at render time)
@@ -238,11 +252,12 @@ export function getTaskColumnKeys(
 export function getSwimlaneDefs(
 	swimlanes: string | undefined,
 	ctx: ViewContext,
+	t: TFunction<"projects">,
 ): ColumnGroupDef[] {
 	if (!swimlanes || swimlanes === "none") {
 		return [{ key: "__all", label: "", fieldValue: null }];
 	}
-	const defs = getColumnGroupDefs(swimlanes, ctx);
+	const defs = getColumnGroupDefs(swimlanes, ctx, t);
 	// Show Critical (highest bucket) first, None last
 	if (swimlanes === "importance") return [...defs].reverse();
 	return defs;
@@ -260,36 +275,36 @@ export function getTaskSwimlaneKey(
 
 // ── Option builders for ViewSettingsPanel dropdowns ──────────────────────────
 
-export const BUILTIN_COLUMN_BY: { key: string; label: string }[] = [
-	{ key: "status", label: "Status" },
-	{ key: "sprint", label: "Sprint" },
-	{ key: "assignee", label: "Assignee" },
-	{ key: "importance", label: "Importance" },
-	{ key: "type", label: "Type" },
-	{ key: "reporter", label: "Reporter" },
-];
+export const BUILTIN_COLUMN_BY = [
+	{ key: "status", labelKey: "viewUtils.columnBy.status" },
+	{ key: "sprint", labelKey: "viewUtils.columnBy.sprint" },
+	{ key: "assignee", labelKey: "viewUtils.columnBy.assignee" },
+	{ key: "importance", labelKey: "viewUtils.columnBy.importance" },
+	{ key: "type", labelKey: "viewUtils.columnBy.type" },
+	{ key: "reporter", labelKey: "viewUtils.columnBy.reporter" },
+] as const satisfies { key: string; labelKey: string }[];
 
-export const BUILTIN_SORT_BY: { key: string; label: string }[] = [
-	{ key: "manual", label: "Manual" },
-	{ key: "importance", label: "Importance" },
-	{ key: "story_points", label: "Story Points" },
-	{ key: "title", label: "Title" },
-	{ key: "created", label: "Created" },
-	{ key: "start_date", label: "Start Date" },
-	{ key: "due_date", label: "Due Date" },
-];
+export const BUILTIN_SORT_BY = [
+	{ key: "manual", labelKey: "viewUtils.sortBy.manual" },
+	{ key: "importance", labelKey: "viewUtils.sortBy.importance" },
+	{ key: "story_points", labelKey: "viewUtils.sortBy.storyPoints" },
+	{ key: "title", labelKey: "viewUtils.sortBy.title" },
+	{ key: "created", labelKey: "viewUtils.sortBy.created" },
+	{ key: "start_date", labelKey: "viewUtils.sortBy.startDate" },
+	{ key: "due_date", labelKey: "viewUtils.sortBy.dueDate" },
+] as const satisfies { key: string; labelKey: string }[];
 
-export const BUILTIN_SWIMLANES: { key: string; label: string }[] = [
-	{ key: "none", label: "None" },
-	{ key: "assignee", label: "Assignee" },
-	{ key: "importance", label: "Importance" },
-	{ key: "type", label: "Type" },
-];
+export const BUILTIN_SWIMLANES = [
+	{ key: "none", labelKey: "viewUtils.swimlanes.none" },
+	{ key: "assignee", labelKey: "viewUtils.swimlanes.assignee" },
+	{ key: "importance", labelKey: "viewUtils.swimlanes.importance" },
+	{ key: "type", labelKey: "viewUtils.swimlanes.type" },
+] as const satisfies { key: string; labelKey: string }[];
 
-export const FIELD_SUM_COUNT: { key: string; label: string } = {
+export const FIELD_SUM_COUNT = {
 	key: "count",
-	label: "Count",
-};
+	labelKey: "viewUtils.fieldSum.count",
+} as const satisfies { key: string; labelKey: string };
 
 /**
  * Per-layout pagination defaults, keyed by `ViewLayout`. `initial` is the page
@@ -328,18 +343,18 @@ export const PAGE_SIZE_OPTIONS: { key: string; label: string }[] = [
 ];
 
 /** All built-in fields available for the Field Picker. Title is excluded — it is always visible. */
-export const BUILTIN_FIELDS: { key: string; label: string }[] = [
-	{ key: "assignee", label: "Assignee" },
-	{ key: "status", label: "Status" },
-	{ key: "importance", label: "Importance" },
-	{ key: "story_points", label: "Story Points" },
-	{ key: "type", label: "Type" },
-	{ key: "epic", label: "Epic" },
-	{ key: "reporter", label: "Reporter" },
-	{ key: "start_date", label: "Start Date" },
-	{ key: "due_date", label: "Due Date" },
-	{ key: "created", label: "Created" },
-];
+export const BUILTIN_FIELDS = [
+	{ key: "assignee", labelKey: "viewUtils.fields.assignee" },
+	{ key: "status", labelKey: "viewUtils.fields.status" },
+	{ key: "importance", labelKey: "viewUtils.fields.importance" },
+	{ key: "story_points", labelKey: "viewUtils.fields.storyPoints" },
+	{ key: "type", labelKey: "viewUtils.fields.type" },
+	{ key: "epic", labelKey: "viewUtils.fields.epic" },
+	{ key: "reporter", labelKey: "viewUtils.fields.reporter" },
+	{ key: "start_date", labelKey: "viewUtils.fields.startDate" },
+	{ key: "due_date", labelKey: "viewUtils.fields.dueDate" },
+	{ key: "created", labelKey: "viewUtils.fields.created" },
+] as const satisfies { key: string; labelKey: string }[];
 
 /**
  * Default visible fields (excluding title, which is always shown).
@@ -354,56 +369,73 @@ export const DEFAULT_VISIBLE_FIELDS = [
 
 export function buildColumnByOptions(
 	customFields: CustomFieldDefinition[],
+	t: TFunction<"projects">,
 ): { key: string; label: string }[] {
 	const custom = customFields
 		.filter((cf) =>
 			["select", "multi_select", "boolean", "number"].includes(cf.field_type),
 		)
 		.map((cf) => ({ key: cf.field_key, label: cf.display_name }));
-	return [...BUILTIN_COLUMN_BY, ...custom];
+	return [
+		...BUILTIN_COLUMN_BY.map((b) => ({ key: b.key, label: t(b.labelKey) })),
+		...custom,
+	];
 }
 
 export function buildSortByOptions(
 	customFields: CustomFieldDefinition[],
+	t: TFunction<"projects">,
 ): { key: string; label: string }[] {
 	const custom = customFields
 		.filter((cf) => ["number", "date", "select"].includes(cf.field_type))
 		.map((cf) => ({ key: cf.field_key, label: cf.display_name }));
-	return [...BUILTIN_SORT_BY, ...custom];
+	return [
+		...BUILTIN_SORT_BY.map((b) => ({ key: b.key, label: t(b.labelKey) })),
+		...custom,
+	];
 }
 
 export function buildSwimlaneOptions(
 	customFields: CustomFieldDefinition[],
+	t: TFunction<"projects">,
 ): { key: string; label: string }[] {
 	const custom = customFields
 		.filter((cf) =>
 			["select", "multi_select", "boolean"].includes(cf.field_type),
 		)
 		.map((cf) => ({ key: cf.field_key, label: cf.display_name }));
-	return [...BUILTIN_SWIMLANES, ...custom];
+	return [
+		...BUILTIN_SWIMLANES.map((b) => ({ key: b.key, label: t(b.labelKey) })),
+		...custom,
+	];
 }
 
 export function buildFieldSumOptions(
 	customFields: CustomFieldDefinition[],
+	t: TFunction<"projects">,
 ): { key: string; label: string }[] {
 	const custom = customFields
 		.filter((cf) => cf.field_type === "number")
 		.map((cf) => ({ key: cf.field_key, label: cf.display_name }));
 	return [
-		FIELD_SUM_COUNT,
-		{ key: "story_points", label: "Story Points" },
+		{ key: FIELD_SUM_COUNT.key, label: t(FIELD_SUM_COUNT.labelKey) },
+		{ key: "story_points", label: t("viewUtils.fields.storyPoints") },
 		...custom,
 	];
 }
 
 export function buildAllFieldOptions(
 	customFields: CustomFieldDefinition[],
+	t: TFunction<"projects">,
 ): { key: string; label: string }[] {
 	const custom = customFields.map((cf) => ({
 		key: cf.field_key,
 		label: cf.display_name,
 	}));
-	return [...BUILTIN_FIELDS, ...custom];
+	return [
+		...BUILTIN_FIELDS.map((b) => ({ key: b.key, label: t(b.labelKey) })),
+		...custom,
+	];
 }
 
 // ── Task update payload builder for column drag ───────────────────────────────

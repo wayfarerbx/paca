@@ -38,6 +38,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -142,6 +143,7 @@ function DocsDocRow({
 	canWrite: boolean;
 	depth: number;
 }) {
+	const { t } = useTranslation("appShell");
 	const location = useRouterState({ select: (s) => s.location.pathname });
 	const navigate = useNavigate();
 	const qc = useQueryClient();
@@ -209,7 +211,7 @@ function DocsDocRow({
 				/>
 				{renaming ? (
 					<TreeInlineRename
-						initialValue={doc.title || "Untitled"}
+						initialValue={doc.title || t("docs.untitled")}
 						onConfirm={(title) => {
 							renameMutation.mutate(title);
 							setRenaming(false);
@@ -220,7 +222,7 @@ function DocsDocRow({
 					<span className="truncate leading-snug">
 						{doc.title || (
 							<span className="italic text-sidebar-foreground/40">
-								Untitled
+								{t("docs.untitled")}
 							</span>
 						)}
 					</span>
@@ -243,7 +245,7 @@ function DocsDocRow({
 							}}
 						>
 							<Pencil className="size-3.5 mr-2" />
-							Rename
+							{t("docs.rename")}
 						</DropdownMenuItem>
 						<DropdownMenuSeparator />
 						<DropdownMenuItem
@@ -254,7 +256,7 @@ function DocsDocRow({
 							}}
 						>
 							<Trash2 className="size-3.5 mr-2" />
-							Delete
+							{t("docs.delete")}
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
@@ -281,6 +283,7 @@ function DocsFolderNode({
 	onToggle: (id: string) => void;
 	depth: number;
 }) {
+	const { t } = useTranslation("appShell");
 	const qc = useQueryClient();
 	const [renaming, setRenaming] = useState(false);
 	const [addingDoc, setAddingDoc] = useState(false);
@@ -308,7 +311,10 @@ function DocsFolderNode({
 
 	const newDocMutation = useMutation({
 		mutationFn: () =>
-			createDocument(projectId, { title: "Untitled", folder_id: folder.id }),
+			createDocument(projectId, {
+				title: t("docs.untitled"),
+				folder_id: folder.id,
+			}),
 		onSuccess: (doc) => {
 			qc.invalidateQueries({ queryKey: docQueryKeys.all(projectId) });
 			setAddingDoc(false);
@@ -388,7 +394,7 @@ function DocsFolderNode({
 									}}
 								>
 									<Pencil className="size-3.5 mr-2" />
-									Rename
+									{t("docs.rename")}
 								</DropdownMenuItem>
 								<DropdownMenuSeparator />
 								<DropdownMenuItem
@@ -399,7 +405,7 @@ function DocsFolderNode({
 									}}
 								>
 									<Trash2 className="size-3.5 mr-2" />
-									Delete
+									{t("docs.delete")}
 								</DropdownMenuItem>
 							</DropdownMenuContent>
 						</DropdownMenu>
@@ -438,7 +444,7 @@ function DocsFolderNode({
 								className="text-xs text-sidebar-foreground/30 italic py-1"
 								style={{ paddingLeft: `${8 + (depth + 1) * 16 + 26}px` }}
 							>
-								Empty folder
+								{t("docs.emptyFolder")}
 							</div>
 						)}
 					{canWrite && (
@@ -446,7 +452,7 @@ function DocsFolderNode({
 							<DropdownMenu>
 								<DropdownMenuTrigger className="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-xs text-sidebar-foreground/35 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 transition-all duration-150">
 									<Plus className="size-3 shrink-0" />
-									<span>Add</span>
+									<span>{t("docs.add")}</span>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align="start" className="w-40">
 									<DropdownMenuItem
@@ -457,17 +463,19 @@ function DocsFolderNode({
 										disabled={newDocMutation.isPending}
 									>
 										<File className="size-3.5 mr-2" />
-										New Document
+										{t("docs.newDocument")}
 									</DropdownMenuItem>
 									<DropdownMenuItem
 										onClick={() => {
 											if (!isExpanded) onToggle(folder.id);
-											newSubfolderMutation.mutate("New Folder");
+											newSubfolderMutation.mutate(
+												t("docs.newFolderDefaultName"),
+											);
 										}}
 										disabled={newSubfolderMutation.isPending}
 									>
 										<FolderOpen className="size-3.5 mr-2" />
-										New Subfolder
+										{t("docs.newSubfolder")}
 									</DropdownMenuItem>
 								</DropdownMenuContent>
 							</DropdownMenu>
@@ -481,6 +489,7 @@ function DocsFolderNode({
 
 /** The full docs tree sidebar section — shown when in project context */
 function DocsSidebarSection({ projectId }: { projectId: string }) {
+	const { t } = useTranslation("appShell");
 	const qc = useQueryClient();
 	const navigate = useNavigate();
 	const location = useRouterState({ select: (s) => s.location.pathname });
@@ -556,7 +565,7 @@ function DocsSidebarSection({ projectId }: { projectId: string }) {
 	const rootOnlyDocs = rootDocs.filter((d) => !d.folder_id);
 
 	const newDocMutation = useMutation({
-		mutationFn: () => createDocument(projectId, { title: "Untitled" }),
+		mutationFn: () => createDocument(projectId, { title: t("docs.untitled") }),
 		onSuccess: (doc) => {
 			qc.invalidateQueries({ queryKey: docQueryKeys.all(projectId) });
 			navigate({
@@ -601,7 +610,7 @@ function DocsSidebarSection({ projectId }: { projectId: string }) {
 				<SidebarGroupContent>
 					<SidebarMenu>
 						<SidebarMenuItem>
-							<SidebarMenuButton tooltip="Documentation">
+							<SidebarMenuButton tooltip={t("docs.documentation")}>
 								<BookOpen className="size-4" />
 							</SidebarMenuButton>
 						</SidebarMenuItem>
@@ -618,7 +627,7 @@ function DocsSidebarSection({ projectId }: { projectId: string }) {
 				className="flex cursor-pointer items-center justify-between hover:text-sidebar-foreground transition-colors px-3"
 				onClick={toggleCollapse}
 			>
-				<span>Documentation</span>
+				<span>{t("docs.documentation")}</span>
 				<ChevronRight
 					className={cn(
 						"size-3.5 transition-transform duration-200 text-sidebar-foreground/40",
@@ -632,7 +641,7 @@ function DocsSidebarSection({ projectId }: { projectId: string }) {
 					<div className="py-1 space-y-0.5">
 						{isEmpty ? (
 							<div className="px-4 py-2 text-xs text-sidebar-foreground/40 italic">
-								No documents yet
+								{t("docs.noDocumentsYet")}
 							</div>
 						) : (
 							<>
@@ -664,7 +673,7 @@ function DocsSidebarSection({ projectId }: { projectId: string }) {
 								<DropdownMenu>
 									<DropdownMenuTrigger className="flex w-full items-center gap-1.5 rounded-md px-2 py-1 text-xs text-sidebar-foreground/35 hover:text-sidebar-foreground hover:bg-sidebar-accent/40 transition-all duration-150">
 										<Plus className="size-3 shrink-0" />
-										<span>Add</span>
+										<span>{t("docs.add")}</span>
 									</DropdownMenuTrigger>
 									<DropdownMenuContent align="start" className="w-40">
 										<DropdownMenuItem
@@ -672,14 +681,16 @@ function DocsSidebarSection({ projectId }: { projectId: string }) {
 											disabled={newDocMutation.isPending}
 										>
 											<File className="size-3.5 mr-2" />
-											New Document
+											{t("docs.newDocument")}
 										</DropdownMenuItem>
 										<DropdownMenuItem
-											onClick={() => newFolderMutation.mutate("New Folder")}
+											onClick={() =>
+												newFolderMutation.mutate(t("docs.newFolderDefaultName"))
+											}
 											disabled={newFolderMutation.isPending}
 										>
 											<FolderOpen className="size-3.5 mr-2" />
-											New Folder
+											{t("docs.newFolder")}
 										</DropdownMenuItem>
 									</DropdownMenuContent>
 								</DropdownMenu>
@@ -700,6 +711,7 @@ function ProjectSwitcher({
 	currentProjectId?: string;
 	canCreate: boolean;
 }) {
+	const { t } = useTranslation("appShell");
 	const [open, setOpen] = useState(false);
 	const { data: projectsResult } = useQuery(projectsQueryOptions());
 	const { data: currentProject } = useQuery({
@@ -708,7 +720,7 @@ function ProjectSwitcher({
 	});
 
 	const projects = projectsResult?.items ?? [];
-	const label = currentProject?.name ?? "Projects";
+	const label = currentProject?.name ?? t("projectSwitcher.projects");
 	const initials = currentProject?.name
 		? currentProject.name.slice(0, 2).toUpperCase()
 		: null;
@@ -750,7 +762,7 @@ function ProjectSwitcher({
 			<DropdownMenuContent align="start" sideOffset={6} className="w-60">
 				<DropdownMenuGroup>
 					<DropdownMenuLabel className="text-xs text-muted-foreground pb-1">
-						Your Projects
+						{t("projectSwitcher.yourProjects")}
 					</DropdownMenuLabel>
 				</DropdownMenuGroup>
 				<DropdownMenuSeparator />
@@ -783,7 +795,7 @@ function ProjectSwitcher({
 							<FolderKanban className="size-4 text-muted-foreground" />
 						</div>
 						<p className="text-xs text-muted-foreground mt-0.5">
-							No projects yet
+							{t("projectSwitcher.noProjectsYet")}
 						</p>
 					</div>
 				)}
@@ -791,7 +803,7 @@ function ProjectSwitcher({
 				{canCreate ? (
 					<DropdownMenuItem render={<Link to="/home" />}>
 						<Plus className="size-3.5" />
-						New project
+						{t("projectSwitcher.newProject")}
 					</DropdownMenuItem>
 				) : null}
 			</DropdownMenuContent>
@@ -841,24 +853,25 @@ function NavItem({
 
 // ── Project Nav ───────────────────────────────────────────────────────────────
 const PROJECT_NAV_ITEMS = [
-	{ segment: "agents", icon: Bot, label: "Agents" },
-	{ segment: "team", icon: Users, label: "Team" },
-	{ segment: "settings", icon: Settings, label: "Settings" },
+	{ segment: "agents", icon: Bot, labelKey: "nav.agents" },
+	{ segment: "team", icon: Users, labelKey: "nav.team" },
+	{ segment: "settings", icon: Settings, labelKey: "nav.settings" },
 ] as const;
 
 function ProjectNav() {
+	const { t } = useTranslation("appShell");
 	return (
 		<SidebarGroup>
 			<SidebarGroupContent>
 				<SidebarMenu>
 					<SidebarMenuItem>
 						<SidebarMenuButton
-							tooltip="All Projects"
+							tooltip={t("nav.allProjects")}
 							render={<Link to="/home" />}
 							className="text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60 transition-all"
 						>
 							<ArrowLeft className="size-4" />
-							<span>All Projects</span>
+							<span>{t("nav.allProjects")}</span>
 						</SidebarMenuButton>
 					</SidebarMenuItem>
 				</SidebarMenu>
@@ -876,6 +889,7 @@ function ProjectNavItems({
 	projectId: string;
 	isAnonymous?: boolean;
 }) {
+	const { t } = useTranslation("appShell");
 	const location = useRouterState({ select: (s) => s.location.pathname });
 
 	const [collapsed, setCollapsed] = useState(() => {
@@ -910,7 +924,7 @@ function ProjectNavItems({
 				className="flex cursor-pointer items-center justify-between hover:text-sidebar-foreground transition-colors"
 				onClick={toggle}
 			>
-				<span>Project</span>
+				<span>{t("nav.project")}</span>
 				<ChevronRight
 					className={cn(
 						"size-3.5 transition-transform duration-200 text-sidebar-foreground/40",
@@ -924,15 +938,16 @@ function ProjectNavItems({
 					<SidebarMenu>
 						{PROJECT_NAV_ITEMS.filter(
 							(item) => !isAnonymous || !ANON_HIDDEN_SEGMENTS.has(item.segment),
-						).map(({ segment, icon: Icon, label }) => {
+						).map(({ segment, icon: Icon, labelKey }) => {
 							const href = segment
 								? `/projects/${projectId}/${segment}`
 								: `/projects/${projectId}`;
 							const isActive = segment
 								? location.startsWith(href)
 								: location === href || location === `${href}/`;
+							const label = t(labelKey);
 							return (
-								<SidebarMenuItem key={label}>
+								<SidebarMenuItem key={labelKey}>
 									<SidebarMenuButton
 										isActive={isActive}
 										tooltip={label}
@@ -965,6 +980,7 @@ function ProjectInteractionsSection({
 	projectId: string;
 	isAnonymous?: boolean;
 }) {
+	const { t } = useTranslation("appShell");
 	const location = useRouterState({ select: (s) => s.location.pathname });
 	const { hasPermission } = usePermissions();
 	const qc = useQueryClient();
@@ -1094,7 +1110,7 @@ function ProjectInteractionsSection({
 				className="flex cursor-pointer items-center justify-between hover:text-sidebar-foreground transition-colors"
 				onClick={toggle}
 			>
-				<span>Interactions</span>
+				<span>{t("interactions.title")}</span>
 				<ChevronRight
 					className={cn(
 						"size-3.5 transition-transform duration-200 text-sidebar-foreground/40",
@@ -1110,7 +1126,7 @@ function ProjectInteractionsSection({
 						<SidebarMenuItem>
 							<SidebarMenuButton
 								isActive={isTimelineActive}
-								tooltip="Timeline"
+								tooltip={t("interactions.timeline")}
 								render={<Link to={timelineHref} />}
 								className={cn(
 									"relative transition-all duration-150",
@@ -1120,7 +1136,7 @@ function ProjectInteractionsSection({
 								)}
 							>
 								<GanttChart className="size-4" />
-								<span>Timeline</span>
+								<span>{t("interactions.timeline")}</span>
 							</SidebarMenuButton>
 						</SidebarMenuItem>
 						{/* Product Backlog — always shown */}
@@ -1131,7 +1147,7 @@ function ProjectInteractionsSection({
 						>
 							<SidebarMenuButton
 								isActive={isBacklogActive}
-								tooltip="Product Backlog"
+								tooltip={t("interactions.productBacklog")}
 								render={<Link to={backlogHref} />}
 								className={cn(
 									"relative transition-all duration-150",
@@ -1143,7 +1159,7 @@ function ProjectInteractionsSection({
 								)}
 							>
 								<BookOpen className="size-4" />
-								<span>Product Backlog</span>
+								<span>{t("interactions.productBacklog")}</span>
 							</SidebarMenuButton>
 						</SidebarMenuItem>
 						{/* Open sprints */}
@@ -1185,12 +1201,13 @@ function ProjectInteractionsSection({
 
 // ── Theme Switcher ─────────────────────────────────────────────────────────────
 const THEME_MODES = [
-	{ mode: "light" as ThemeMode, Icon: Sun, label: "Light" },
-	{ mode: "dark" as ThemeMode, Icon: Moon, label: "Dark" },
-	{ mode: "auto" as ThemeMode, Icon: Monitor, label: "Auto" },
+	{ mode: "light" as ThemeMode, Icon: Sun, labelKey: "theme.light" },
+	{ mode: "dark" as ThemeMode, Icon: Moon, labelKey: "theme.dark" },
+	{ mode: "auto" as ThemeMode, Icon: Monitor, labelKey: "theme.auto" },
 ] as const;
 
 function ThemeSwitcher() {
+	const { t } = useTranslation("appShell");
 	const { mode, set } = useThemeMode();
 	const cycle = () =>
 		set(mode === "light" ? "dark" : mode === "dark" ? "auto" : "light");
@@ -1202,7 +1219,7 @@ function ThemeSwitcher() {
 			<SidebarMenu className="hidden group-data-[collapsible=icon]:flex">
 				<SidebarMenuItem>
 					<SidebarMenuButton
-						tooltip={`Theme: ${mode} — click to cycle`}
+						tooltip={t("theme.cycleTooltip", { mode })}
 						onClick={cycle}
 					>
 						<CurrentIcon className="size-4" />
@@ -1213,15 +1230,15 @@ function ThemeSwitcher() {
 			{/* Expanded: segmented 3-way control */}
 			<div className="flex items-center justify-between px-2 py-1.5 group-data-[collapsible=icon]:hidden">
 				<span className="text-xs font-medium text-sidebar-foreground/50 tracking-wide">
-					Theme
+					{t("theme.label")}
 				</span>
 				<div className="flex items-center gap-0.5 rounded-md border border-sidebar-border bg-sidebar p-0.5">
-					{THEME_MODES.map(({ mode: m, Icon, label }) => (
+					{THEME_MODES.map(({ mode: m, Icon, labelKey }) => (
 						<button
 							key={m}
 							type="button"
 							onClick={() => set(m)}
-							title={label}
+							title={t(labelKey)}
 							className={cn(
 								"flex size-6 items-center justify-center rounded transition-all duration-150",
 								mode === m
@@ -1240,6 +1257,7 @@ function ThemeSwitcher() {
 
 // ── App Sidebar ────────────────────────────────────────────────────────────────
 export function AppSidebar() {
+	const { t } = useTranslation("appShell");
 	const { hasPermission } = usePermissions();
 	const { resolvedMode } = useThemeMode();
 	const { projectId } = useParams({ strict: false });
@@ -1273,7 +1291,7 @@ export function AppSidebar() {
 										? "/paca-logo-dark.svg"
 										: "/paca-logo.svg"
 								}
-								alt="Paca Logo"
+								alt={t("brand.logoAlt")}
 								className="size-8 shrink-0"
 							/>
 						</Link>
@@ -1284,7 +1302,7 @@ export function AppSidebar() {
 									? "/paca-logo-dark.svg"
 									: "/paca-logo.svg"
 							}
-							alt="Paca Logo"
+							alt={t("brand.logoAlt")}
 							className="size-8 shrink-0"
 						/>
 					)}
@@ -1328,7 +1346,7 @@ export function AppSidebar() {
 							<SidebarGroup>
 								<SidebarGroupContent>
 									<SidebarMenu>
-										<NavItem to="/home" icon={Home} label="Home" />
+										<NavItem to="/home" icon={Home} label={t("nav.home")} />
 									</SidebarMenu>
 								</SidebarGroupContent>
 							</SidebarGroup>
@@ -1340,24 +1358,30 @@ export function AppSidebar() {
 							<>
 								<SidebarSeparator />
 								<SidebarGroup>
-									<SidebarGroupLabel>Administration</SidebarGroupLabel>
+									<SidebarGroupLabel>
+										{t("nav.administration")}
+									</SidebarGroupLabel>
 									<SidebarGroupContent>
 										<SidebarMenu>
 											{canAccessGlobalRoles ? (
 												<NavItem
 													to="/admin/global-roles"
 													icon={Shield}
-													label="Global Roles"
+													label={t("nav.globalRoles")}
 												/>
 											) : null}
 											{canAccessUsers ? (
-												<NavItem to="/admin/users" icon={Users} label="Users" />
+												<NavItem
+													to="/admin/users"
+													icon={Users}
+													label={t("nav.users")}
+												/>
 											) : null}
 											{canAccessPlugins ? (
 												<NavItem
 													to="/admin/plugins"
 													icon={Puzzle}
-													label="Plugins"
+													label={t("nav.plugins")}
 												/>
 											) : null}
 										</SidebarMenu>
@@ -1369,7 +1393,7 @@ export function AppSidebar() {
 				)}
 			</SidebarContent>
 
-			{/* Footer: theme toggle + user menu */}
+			{/* Footer: theme toggle + user menu (language selector lives in the user menu) */}
 			<SidebarSeparator />
 			<SidebarFooter className="gap-1 pb-3">
 				<ThemeSwitcher />

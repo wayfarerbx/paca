@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { AlertCircle, Check, ChevronRight, MessageSquare } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { DocActivityPane } from "@/components/projects/docs/doc-activity-pane";
 import {
@@ -28,6 +29,7 @@ export const Route = createFileRoute(
 type RightPanel = "activity" | null;
 
 function DocEditorPage() {
+	const { t } = useTranslation("projects");
 	const { projectId, docId } = Route.useParams();
 	const { hasProjectPermission } = useProjectPermissions(projectId);
 	const canWrite = hasProjectPermission("docs.write");
@@ -103,10 +105,10 @@ function DocEditorPage() {
 				</div>
 				<div className="text-center">
 					<p className="text-base font-semibold text-foreground/80">
-						Document not found
+						{t("docs.editorPage.notFound.title")}
 					</p>
 					<p className="text-sm mt-1.5 text-muted-foreground/70">
-						This document may have been deleted or the link is invalid.
+						{t("docs.editorPage.notFound.description")}
 					</p>
 				</div>
 			</div>
@@ -139,15 +141,19 @@ function DocEditorPage() {
 				{/* Right: save status + panel toggle */}
 				<div className="flex items-center gap-2 shrink-0">
 					{dirty && !updateMutation.isPending && (
-						<span className="text-xs text-muted-foreground/50">Unsaved</span>
+						<span className="text-xs text-muted-foreground/50">
+							{t("docs.editorPage.unsaved")}
+						</span>
 					)}
 					{updateMutation.isPending && (
-						<span className="text-xs text-muted-foreground/60">Saving…</span>
+						<span className="text-xs text-muted-foreground/60">
+							{t("docs.editorPage.saving")}
+						</span>
 					)}
 					{!dirty && updateMutation.isSuccess && !updateMutation.isPending && (
 						<span className="text-xs text-muted-foreground/60 flex items-center gap-1">
 							<Check className="size-3 text-emerald-500" />
-							Saved
+							{t("docs.editorPage.saved")}
 						</span>
 					)}
 
@@ -158,7 +164,7 @@ function DocEditorPage() {
 							"size-7 text-muted-foreground/60 hover:text-foreground hover:bg-muted/60 transition-all duration-150",
 							rightPanel === "activity" && "bg-muted/40 text-foreground",
 						)}
-						title="Comments & activity"
+						title={t("docs.editorPage.commentsAndActivity")}
 						onClick={() => togglePanel("activity")}
 					>
 						<MessageSquare className="size-3.5" />

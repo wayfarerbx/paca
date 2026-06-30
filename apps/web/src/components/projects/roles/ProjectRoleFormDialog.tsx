@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Shield } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -46,6 +47,7 @@ export function ProjectRoleFormDialog({
 	open,
 	onOpenChange,
 }: ProjectRoleFormDialogProps) {
+	const { t } = useTranslation("projects");
 	const queryClient = useQueryClient();
 	const isEdit = !!role;
 
@@ -99,25 +101,26 @@ export function ProjectRoleFormDialog({
 			setNameError(null);
 			const code = getApiErrorCode(err);
 			if (code === ApiErrorCode.ProjectRoleNameTaken) {
-				setNameError("A role with this name already exists.");
+				setNameError(t("roles.formDialog.errors.nameTaken"));
 				return;
 			}
 			if (code === ApiErrorCode.ProjectRoleNameInvalid) {
-				setNameError(
-					"Role name must use uppercase letters, numbers, and underscores.",
-				);
+				setNameError(t("roles.formDialog.errors.nameInvalid"));
 				return;
 			}
 			const messages: Partial<Record<string, string>> = {
-				[ApiErrorCode.ProjectRoleNotFound]:
-					"This role no longer exists. It may have already been deleted.",
-				[ApiErrorCode.Forbidden]:
-					"You don't have permission to perform this action.",
-				[ApiErrorCode.InternalError]:
-					"Something went wrong on the server. Please try again.",
+				[ApiErrorCode.ProjectRoleNotFound]: t(
+					"roles.formDialog.errors.notFound",
+				),
+				[ApiErrorCode.Forbidden]: t("roles.formDialog.errors.forbidden"),
+				[ApiErrorCode.InternalError]: t(
+					"roles.formDialog.errors.internalError",
+				),
 			};
 			const fallback =
-				err instanceof Error ? err.message : "Something went wrong.";
+				err instanceof Error
+					? err.message
+					: t("roles.formDialog.errors.generic");
 			setError((code && messages[code]) ?? fallback);
 		},
 	});
@@ -142,13 +145,15 @@ export function ProjectRoleFormDialog({
 							<Shield className="size-4" />
 						</div>
 						<DialogTitle className="text-base">
-							{isEdit ? "Edit Role" : "New Role"}
+							{isEdit
+								? t("roles.formDialog.editTitle")
+								: t("roles.formDialog.createTitle")}
 						</DialogTitle>
 					</div>
 					<DialogDescription className="mt-2">
 						{isEdit
-							? "Update the role name and configure its permission grants."
-							: "Define a new project role and configure which permissions it grants to members."}
+							? t("roles.formDialog.editDescription")
+							: t("roles.formDialog.createDescription")}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -159,11 +164,11 @@ export function ProjectRoleFormDialog({
 							htmlFor="role-name"
 							className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
 						>
-							Role Name
+							{t("roles.formDialog.roleNameLabel")}
 						</Label>
 						<Input
 							id="role-name"
-							placeholder="e.g. PROJECT_REVIEWER"
+							placeholder={t("roles.formDialog.roleNamePlaceholder")}
 							value={name}
 							onChange={(e) => {
 								setName(e.target.value);
@@ -184,11 +189,11 @@ export function ProjectRoleFormDialog({
 					<div className="flex flex-col gap-2.5">
 						<div className="flex items-center justify-between">
 							<span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-								Permissions
+								{t("roles.formDialog.permissionsLabel")}
 							</span>
 							{enabledCount > 0 && (
 								<span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-									{enabledCount} enabled
+									{t("roles.formDialog.enabledCount", { count: enabledCount })}
 								</span>
 							)}
 						</div>
@@ -205,7 +210,7 @@ export function ProjectRoleFormDialog({
 										<div className="mb-3 flex items-center gap-1.5">
 											<Icon className="size-3.5 text-muted-foreground" />
 											<span className="text-xs font-semibold text-muted-foreground">
-												{group.label}
+												{t(group.labelKey)}
 											</span>
 										</div>
 										<div className="flex flex-col">
@@ -215,10 +220,10 @@ export function ProjectRoleFormDialog({
 													<div className="flex items-center justify-between py-1">
 														<div className="flex flex-col gap-0.5">
 															<span className="text-sm font-medium">
-																{permission.label}
+																{t(permission.labelKey)}
 															</span>
 															<span className="text-xs text-muted-foreground">
-																{permission.description}
+																{t(permission.descriptionKey)}
 															</span>
 														</div>
 														<Switch
@@ -249,7 +254,7 @@ export function ProjectRoleFormDialog({
 					<DialogClose
 						render={<Button variant="outline" disabled={mutation.isPending} />}
 					>
-						Cancel
+						{t("roles.formDialog.cancel")}
 					</DialogClose>
 					<Button
 						onClick={() => mutation.mutate()}
@@ -258,7 +263,9 @@ export function ProjectRoleFormDialog({
 						{mutation.isPending ? (
 							<Loader2 className="size-3.5 animate-spin" />
 						) : null}
-						{isEdit ? "Save changes" : "Create role"}
+						{isEdit
+							? t("roles.formDialog.saveChanges")
+							: t("roles.formDialog.createRole")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

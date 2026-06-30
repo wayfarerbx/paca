@@ -1,0 +1,22 @@
+{
+	"dialog": {
+		"closeLabel": "Đóng",
+		"closeButton": "Đóng"
+	},
+	"sidebar": {
+		"title": "Thanh bên",
+		"description": "Hiển thị thanh bên trên thiết bị di động.",
+		"toggleLabel": "Ẩn/hiện thanh bên"
+	},
+	"validation": {
+		"usernameRequired": "Vui lòng nhập tên đăng nhập.",
+		"usernameMinLength": "Tên đăng nhập phải có ít nhất {{min}} ký tự.",
+		"passwordRequired": "Vui lòng nhập mật khẩu.",
+		"passwordMinLength": "Mật khẩu phải có ít nhất {{min}} ký tự.",
+		"newPasswordRequired": "Vui lòng nhập mật khẩu mới.",
+		"newPasswordMinLength": "Mật khẩu mới phải có ít nhất {{min}} ký tự.",
+		"newPasswordMustDiffer": "Mật khẩu mới phải khác với mật khẩu hiện tại.",
+		"confirmPasswordRequired": "Vui lòng xác nhận mật khẩu mới.",
+		"passwordsDoNotMatch": "Mật khẩu xác nhận không khớp."
+	}
+}

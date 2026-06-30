@@ -1,0 +1,106 @@
+{
+	"page": {
+		"title": "My Profile",
+		"subtitle": "View and update your account information."
+	},
+	"fields": {
+		"fullName": "Full name",
+		"fullNamePlaceholder": "Enter your full name",
+		"notSet": "Not set",
+		"username": "Username"
+	},
+	"actions": {
+		"editProfile": "Edit profile",
+		"saveChanges": "Save changes",
+		"saving": "Saving…",
+		"cancel": "Cancel"
+	},
+	"errors": {
+		"updateFailed": "Failed to update profile. Please try again."
+	},
+	"joinedOn": "Joined {{date}}",
+	"changePassword": {
+		"title": "Change Password",
+		"description": "Update your account password.",
+		"descriptionMustChange": "You must set a new password before continuing.",
+		"temporaryPasswordNotice": "A temporary password was set for your account. Please change it now.",
+		"success": "Password changed successfully.",
+		"fields": {
+			"currentPassword": "Current password",
+			"newPassword": "New password",
+			"confirmPassword": "Confirm new password",
+			"passwordPlaceholder": "••••••••",
+			"newPasswordHint": "Use at least 8 characters and choose something different from your current password."
+		},
+		"aria": {
+			"showCurrentPassword": "Show current password",
+			"hideCurrentPassword": "Hide current password",
+			"showNewPassword": "Show new password",
+			"hideNewPassword": "Hide new password",
+			"showConfirmPassword": "Show confirm password",
+			"hideConfirmPassword": "Hide confirm password"
+		},
+		"actions": {
+			"submit": "Change password",
+			"updating": "Updating…"
+		},
+		"errors": {
+			"currentPasswordRequired": "Current password is required.",
+			"currentPasswordIncorrect": "Current password is incorrect.",
+			"sessionExpired": "Your session has expired. Please log in again.",
+			"serverError": "Something went wrong on the server. Please try again.",
+			"changeFailed": "Failed to change password."
+		}
+	},
+	"apiKeys": {
+		"title": "API Keys",
+		"subtitle": "API keys let you authenticate API requests without using your session cookies. Treat them like passwords — never share them.",
+		"empty": "No API keys yet. Create one to get started.",
+		"yourKeys": {
+			"title": "Your keys",
+			"description": "Keys are shown with only the first 8 characters for identification."
+		},
+		"table": {
+			"name": "Name",
+			"prefix": "Prefix",
+			"created": "Created",
+			"expires": "Expires",
+			"lastUsed": "Last used"
+		},
+		"actions": {
+			"newKey": "New key",
+			"cancel": "Cancel",
+			"creating": "Creating…",
+			"createKey": "Create key",
+			"done": "Done",
+			"revoking": "Revoking…",
+			"revokeKey": "Revoke key",
+			"revokeKeyAria": "Revoke key",
+			"copyKeyAria": "Copy key"
+		},
+		"createDialog": {
+			"title": "Create API key",
+			"description": "Give your key a descriptive name so you can identify it later.",
+			"nameLabel": "Name",
+			"namePlaceholder": "e.g. CI pipeline, Local dev",
+			"expiryLabel": "Expiration date",
+			"expiryOptional": "(optional)"
+		},
+		"revealDialog": {
+			"title": "API key created",
+			"description": "Copy your new key now. You won't be able to see it again.",
+			"copied": "Copied to clipboard!"
+		},
+		"revokeDialog": {
+			"title": "Revoke API key",
+			"confirmPrefix": "Are you sure you want to revoke",
+			"confirmSuffix": "? Any requests using this key will stop working immediately."
+		},
+		"errors": {
+			"nameRequired": "Name must not be empty.",
+			"nameTooLong": "Name must be 100 characters or fewer.",
+			"createFailed": "Failed to create key. Please try again.",
+			"copyFailed": "Copy failed. Please copy the key manually."
+		}
+	}
+}

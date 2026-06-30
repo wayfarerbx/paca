@@ -1,5 +1,6 @@
 import { GitBranch } from "lucide-react";
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	Dialog,
 	DialogContent,
@@ -15,6 +16,7 @@ interface ContentDiffProps {
 }
 
 function DiffLineRow({ line }: { line: DiffLine }) {
+	const { t } = useTranslation("shared");
 	return (
 		<div
 			className={cn(
@@ -32,7 +34,7 @@ function DiffLineRow({ line }: { line: DiffLine }) {
 			<span className="break-all whitespace-pre-wrap min-w-0">
 				{line.text || (
 					<span className="italic opacity-40">
-						{line.type === "unchanged" ? "(empty line)" : ""}
+						{line.type === "unchanged" ? t("contentDiff.emptyLine") : ""}
 					</span>
 				)}
 			</span>
@@ -41,6 +43,7 @@ function DiffLineRow({ line }: { line: DiffLine }) {
 }
 
 export function ContentDiff({ oldContent, newContent }: ContentDiffProps) {
+	const { t } = useTranslation("shared");
 	const lines = useMemo(
 		() => diffBlockNoteContent(oldContent, newContent),
 		[oldContent, newContent],
@@ -52,7 +55,7 @@ export function ContentDiff({ oldContent, newContent }: ContentDiffProps) {
 		return (
 			<div className="flex flex-col items-center py-8 text-muted-foreground/40">
 				<GitBranch className="size-5 mb-2" />
-				<p className="text-xs font-medium">No text differences</p>
+				<p className="text-xs font-medium">{t("contentDiff.noDifferences")}</p>
 			</div>
 		);
 	}
@@ -80,23 +83,27 @@ export function ContentDiffDialog({
 	onOpenChange,
 	oldContent,
 	newContent,
-	title = "Change diff",
+	title,
 }: ContentDiffDialogProps) {
+	const { t } = useTranslation("shared");
+	const resolvedTitle = title ?? t("contentDiff.changeDiff");
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-2xl max-h-[80vh] flex flex-col gap-0 p-0 overflow-hidden">
 				<DialogHeader className="px-5 py-4 border-b border-border/25 shrink-0">
 					<DialogTitle className="flex items-center gap-2 text-sm">
 						<GitBranch className="size-4 text-muted-foreground/60" />
-						{title}
+						{resolvedTitle}
 					</DialogTitle>
 				</DialogHeader>
 				<div className="flex items-center gap-4 px-5 py-2 border-b border-border/25 bg-muted/10 shrink-0">
 					<span className="flex items-center gap-1.5 text-xs text-red-600/80 dark:text-red-400/80">
-						<span className="font-mono font-bold">-</span> Removed
+						<span className="font-mono font-bold">-</span>{" "}
+						{t("contentDiff.removed")}
 					</span>
 					<span className="flex items-center gap-1.5 text-xs text-emerald-600/80 dark:text-emerald-400/80">
-						<span className="font-mono font-bold">+</span> Added
+						<span className="font-mono font-bold">+</span>{" "}
+						{t("contentDiff.added")}
 					</span>
 				</div>
 				<div className="flex-1 min-h-0 overflow-y-auto p-4">

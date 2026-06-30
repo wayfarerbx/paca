@@ -11,6 +11,7 @@ import {
 	X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -104,6 +105,7 @@ export function PropertiesPanel({
 	onUpdate,
 	onNavigateToTask,
 }: PropertiesPanelProps) {
+	const { t } = useTranslation("projects");
 	const [localCustomFields, setLocalCustomFields] =
 		useState<CustomFieldDef[]>(initialCustomFields);
 	const [addFieldOpen, setAddFieldOpen] = useState(false);
@@ -121,7 +123,7 @@ export function PropertiesPanel({
 	const sprintOptions: SelectOption[] = [
 		{
 			value: "__backlog__",
-			label: "Product Backlog",
+			label: t("taskDetail.properties.productBacklog"),
 			icon: <BookOpen className="size-3 shrink-0 opacity-60" />,
 		},
 		...sprints.map((s) => ({
@@ -141,7 +143,7 @@ export function PropertiesPanel({
 		<>
 			<div className="divide-y divide-border/20 rounded-xl border border-border/30 bg-card/50 px-4 py-0.5">
 				<PropertyField
-					label="Status"
+					label={t("taskDetail.properties.status")}
 					mode="select"
 					value={status?.id}
 					options={statusOptions}
@@ -152,7 +154,7 @@ export function PropertiesPanel({
 				/>
 
 				<PropertyField
-					label="Dates"
+					label={t("taskDetail.properties.dates")}
 					mode="date-range"
 					startDate={task.start_date}
 					dueDate={task.due_date}
@@ -161,18 +163,18 @@ export function PropertiesPanel({
 					canEdit={canEdit}
 				/>
 
-				<FieldRow label="Track Time">
+				<FieldRow label={t("taskDetail.properties.trackTime")}>
 					<button
 						type="button"
 						className="inline-flex items-center gap-1.5 text-sm text-muted-foreground/70 hover:text-foreground transition-colors duration-150 font-medium"
 					>
 						<Clock className="size-3.5 opacity-70" />
-						Add time
+						{t("taskDetail.properties.addTime")}
 					</button>
 				</FieldRow>
 
 				{(taskType || (canEdit && taskTypes.length > 0)) && (
-					<FieldRow label="Type">
+					<FieldRow label={t("taskDetail.properties.type")}>
 						<TaskTypeSelector
 							taskTypes={taskTypes}
 							value={taskType?.id}
@@ -182,7 +184,7 @@ export function PropertiesPanel({
 					</FieldRow>
 				)}
 
-				<FieldRow label="Relationships">
+				<FieldRow label={t("taskDetail.properties.relationships")}>
 					<button
 						type="button"
 						className="inline-flex items-center gap-1.5 text-sm text-muted-foreground/70 hover:text-foreground transition-colors duration-150 font-medium"
@@ -193,7 +195,7 @@ export function PropertiesPanel({
 				</FieldRow>
 
 				<PropertyField
-					label="Assignees"
+					label={t("taskDetail.properties.assignees")}
 					mode="user"
 					userValue={assigneeUserOption}
 					users={memberUserOptions}
@@ -202,7 +204,7 @@ export function PropertiesPanel({
 					showUnassigned
 				/>
 
-				<FieldRow label="Importance">
+				<FieldRow label={t("taskDetail.properties.importance")}>
 					{canEdit ? (
 						<div className="flex items-center gap-2 flex-wrap">
 							<DropdownMenu>
@@ -218,10 +220,10 @@ export function PropertiesPanel({
 													className="size-1.5 rounded-full shrink-0"
 													style={{ background: level.color }}
 												/>
-												{level.label}
+												{t(level.labelKey)}
 											</>
 										) : (
-											"None"
+											t("taskDetail.properties.none")
 										);
 									})()}
 								</DropdownMenuTrigger>
@@ -245,7 +247,7 @@ export function PropertiesPanel({
 													style={{ background: level.color }}
 												/>
 												<span style={{ color: level.color }}>
-													{level.label}
+													{t(level.labelKey)}
 												</span>
 												{currentBucket === level.value && (
 													<Check className="size-3.5 text-primary ml-auto" />
@@ -270,7 +272,7 @@ export function PropertiesPanel({
 										className="size-2 rounded-full shrink-0"
 										style={{ background: p.color }}
 									/>
-									<span style={{ color: p.color }}>{p.label}</span>
+									<span style={{ color: p.color }}>{t(p.labelKey)}</span>
 									{(task.importance ?? 0) > 0 && (
 										<span className="text-muted-foreground tabular-nums">
 											({task.importance})
@@ -282,7 +284,7 @@ export function PropertiesPanel({
 					)}
 				</FieldRow>
 
-				<FieldRow label="Story Points">
+				<FieldRow label={t("taskDetail.properties.storyPoints")}>
 					{canEdit ? (
 						<StoryPointsEditor
 							value={task.story_points ?? null}
@@ -290,21 +292,23 @@ export function PropertiesPanel({
 						/>
 					) : (
 						<span className="text-sm font-medium tabular-nums">
-							{task.story_points != null ? task.story_points : "—"}
+							{task.story_points != null
+								? task.story_points
+								: t("taskDetail.common.dash")}
 						</span>
 					)}
 				</FieldRow>
 
 				<PropertyField
-					label="Tags"
+					label={t("taskDetail.properties.tags")}
 					mode="tags"
 					tags={task.tags ?? []}
-					onTagsChange={(t) => onUpdate?.({ tags: t })}
+					onTagsChange={(tags) => onUpdate?.({ tags })}
 					canEdit={canEdit}
 				/>
 
 				<PropertyField
-					label="Reporter"
+					label={t("taskDetail.properties.reporter")}
 					mode="user"
 					userValue={reporterUserOption}
 					users={[]}
@@ -313,7 +317,7 @@ export function PropertiesPanel({
 				/>
 
 				<PropertyField
-					label="Sprint"
+					label={t("taskDetail.properties.sprint")}
 					mode="select"
 					value={task.sprint_id ?? "__backlog__"}
 					options={sprintOptions}
@@ -340,7 +344,7 @@ export function PropertiesPanel({
 						const hasActions =
 							(epic && onNavigateToTask) || (!!task.parent_task_id && canEdit);
 						return (
-							<FieldRow label="Epic">
+							<FieldRow label={t("taskDetail.properties.epic")}>
 								<DropdownMenu>
 									<DropdownMenuTrigger className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium hover:bg-muted/50 transition-colors duration-150 cursor-pointer -ml-2 max-w-52 truncate">
 										{epic ? (
@@ -352,7 +356,7 @@ export function PropertiesPanel({
 											</>
 										) : (
 											<span className="text-muted-foreground/50 italic">
-												None
+												{t("taskDetail.properties.none")}
 											</span>
 										)}
 									</DropdownMenuTrigger>
@@ -362,7 +366,7 @@ export function PropertiesPanel({
 												onClick={() => onNavigateToTask(epic.id)}
 											>
 												<ExternalLink className="size-3.5 mr-2 shrink-0" />
-												View epic
+												{t("taskDetail.properties.viewEpic")}
 											</DropdownMenuItem>
 										)}
 										{task.parent_task_id && canEdit && (
@@ -371,7 +375,7 @@ export function PropertiesPanel({
 												onClick={() => onUpdate?.({ parent_task_id: null })}
 											>
 												<X className="size-3.5 mr-2 shrink-0" />
-												Remove epic
+												{t("taskDetail.properties.removeEpic")}
 											</DropdownMenuItem>
 										)}
 										{hasActions && otherEpics.length > 0 && (
@@ -396,7 +400,7 @@ export function PropertiesPanel({
 					task.parent_task_id &&
 					parentTask &&
 					!epicTasks.find((e) => e.id === task.parent_task_id) && (
-						<FieldRow label="Parent">
+						<FieldRow label={t("taskDetail.properties.parent")}>
 							{(() => {
 								const parentType = taskTypes.find(
 									(tt) => tt.id === parentTask.task_type_id,
@@ -422,7 +426,7 @@ export function PropertiesPanel({
 													onClick={() => onNavigateToTask(parentTask.id)}
 												>
 													<ExternalLink className="size-3.5 mr-2 shrink-0" />
-													View parent
+													{t("taskDetail.properties.viewParent")}
 												</DropdownMenuItem>
 											)}
 											{canEdit && (
@@ -431,7 +435,7 @@ export function PropertiesPanel({
 													onClick={() => onUpdate?.({ parent_task_id: null })}
 												>
 													<X className="size-3.5 mr-2 shrink-0" />
-													Remove parent
+													{t("taskDetail.properties.removeParent")}
 												</DropdownMenuItem>
 											)}
 										</DropdownMenuContent>
@@ -469,7 +473,7 @@ export function PropertiesPanel({
 					className="mt-3 flex items-center gap-2 text-sm text-muted-foreground/60 hover:text-muted-foreground transition-colors duration-150 font-medium"
 				>
 					<Plus className="size-3.5" />
-					Add fields
+					{t("taskDetail.properties.addFields")}
 				</button>
 			)}
 

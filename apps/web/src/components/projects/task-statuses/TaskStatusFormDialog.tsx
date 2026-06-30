@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -62,6 +63,7 @@ export function TaskStatusFormDialog({
 	open,
 	onOpenChange,
 }: TaskStatusFormDialogProps) {
+	const { t } = useTranslation("projects");
 	const queryClient = useQueryClient();
 	const isEdit = !!status;
 
@@ -110,14 +112,14 @@ export function TaskStatusFormDialog({
 				code === ApiErrorCode.TaskStatusNameInvalid ||
 				code === ApiErrorCode.BadRequest
 			) {
-				setNameError("Status name is empty or invalid.");
+				setNameError(t("taskStatuses.formDialog.errors.nameInvalid"));
 				return;
 			}
 			if (code === ApiErrorCode.TaskStatusCategoryInvalid) {
-				setError("Invalid category selected.");
+				setError(t("taskStatuses.formDialog.errors.categoryInvalid"));
 				return;
 			}
-			setError("Failed to save status. Please try again.");
+			setError(t("taskStatuses.formDialog.errors.saveFailed"));
 		},
 	});
 
@@ -133,18 +135,24 @@ export function TaskStatusFormDialog({
 		>
 			<DialogContent className="sm:max-w-sm">
 				<DialogHeader>
-					<DialogTitle>{isEdit ? "Edit status" : "Create status"}</DialogTitle>
+					<DialogTitle>
+						{isEdit
+							? t("taskStatuses.formDialog.editTitle")
+							: t("taskStatuses.formDialog.createTitle")}
+					</DialogTitle>
 					<DialogDescription>
 						{isEdit
-							? "Update this workflow status."
-							: "Add a new status to the project workflow."}
+							? t("taskStatuses.formDialog.editDescription")
+							: t("taskStatuses.formDialog.createDescription")}
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="space-y-4 py-1">
 					{/* Name */}
 					<div className="space-y-1.5">
-						<Label htmlFor="status-name">Name</Label>
+						<Label htmlFor="status-name">
+							{t("taskStatuses.formDialog.nameLabel")}
+						</Label>
 						<Input
 							id="status-name"
 							value={name}
@@ -155,7 +163,7 @@ export function TaskStatusFormDialog({
 							onKeyDown={(e) => {
 								if (e.key === "Enter" && canSubmit) mutation.mutate();
 							}}
-							placeholder="e.g. In Review"
+							placeholder={t("taskStatuses.formDialog.namePlaceholder")}
 							autoFocus
 							className={
 								nameError
@@ -170,7 +178,9 @@ export function TaskStatusFormDialog({
 
 					{/* Category */}
 					<div className="space-y-1.5">
-						<Label htmlFor="status-category">Category</Label>
+						<Label htmlFor="status-category">
+							{t("taskStatuses.formDialog.categoryLabel")}
+						</Label>
 						<Select
 							value={category}
 							onValueChange={(v) => setCategory(v as StatusCategory)}
@@ -190,7 +200,7 @@ export function TaskStatusFormDialog({
 
 					{/* Color */}
 					<div className="space-y-1.5">
-						<Label>Color</Label>
+						<Label>{t("taskStatuses.formDialog.colorLabel")}</Label>
 						<div className="flex items-center gap-2 flex-wrap">
 							{COLOR_PRESETS.map((preset) => (
 								<button
@@ -207,7 +217,7 @@ export function TaskStatusFormDialog({
 								/>
 							))}
 							<label
-								title="Custom color"
+								title={t("taskStatuses.formDialog.customColorTitle")}
 								className={`relative size-6 rounded-full cursor-pointer border-2 transition-transform hover:scale-110 overflow-hidden shrink-0 ${
 									!COLOR_PRESETS.includes(color)
 										? "border-foreground scale-110"
@@ -247,7 +257,7 @@ export function TaskStatusFormDialog({
 							/>
 						}
 					>
-						Cancel
+						{t("taskStatuses.formDialog.cancel")}
 					</DialogClose>
 					<Button
 						size="sm"
@@ -257,7 +267,9 @@ export function TaskStatusFormDialog({
 						{mutation.isPending ? (
 							<Loader2 className="size-3.5 animate-spin" />
 						) : null}
-						{isEdit ? "Save changes" : "Create status"}
+						{isEdit
+							? t("taskStatuses.formDialog.saveChanges")
+							: t("taskStatuses.formDialog.createStatus")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

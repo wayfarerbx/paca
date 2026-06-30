@@ -1,5 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
 import { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	type ActivityEntry,
 	ActivityPane,
@@ -43,23 +45,26 @@ function getDocActivityChanges(content: unknown): DocActivityChange[] {
 	);
 }
 
-function describeDocActivity(entry: ActivityEntry): string {
+function describeDocActivity(
+	entry: ActivityEntry,
+	t: TFunction<"projects">,
+): string {
 	const activity = entry as DocActivity;
 	switch (activity.activity_type) {
 		case "doc.created":
-			return "created this document";
+			return t("docs.activity.created");
 		case "doc.updated": {
 			const changes = getDocActivityChanges(activity.content);
 			if (changes.length > 0) {
 				const fields = changes.map((c) => c.field).join(", ");
-				return `updated ${fields}`;
+				return t("docs.activity.updatedFields", { fields });
 			}
-			return "updated the document";
+			return t("docs.activity.updated");
 		}
 		case "doc.deleted":
-			return "deleted the document";
+			return t("docs.activity.deleted");
 		case "doc.moved":
-			return "moved the document";
+			return t("docs.activity.moved");
 		case "comment":
 			return "";
 		default:
@@ -78,6 +83,7 @@ export function DocActivityPane({
 	docId,
 	canEdit = true,
 }: DocActivityPaneProps) {
+	const { t } = useTranslation("projects");
 	const qc = useQueryClient();
 	const { data: currentUser } = useQuery(currentUserQueryOptions);
 	const { data: membersData } = useQuery(projectMembersQueryOptions(projectId));
@@ -120,19 +126,22 @@ export function DocActivityPane({
 		[projectId, docId, qc],
 	);
 
-	const getDiffContent = useCallback((entry: DocActivity) => {
-		if (entry.activity_type !== "doc.updated") return null;
-		const c = entry.content as Record<string, unknown> | null;
-		const changes = c?.changes as DocActivityChange[] | undefined;
-		if (!changes) return null;
-		const contentChange = changes.find((ch) => ch.field === "content");
-		if (!contentChange || contentChange.old === undefined) return null;
-		return {
-			old: contentChange.old,
-			new: contentChange.new,
-			title: "Content change diff",
-		};
-	}, []);
+	const getDiffContent = useCallback(
+		(entry: DocActivity) => {
+			if (entry.activity_type !== "doc.updated") return null;
+			const c = entry.content as Record<string, unknown> | null;
+			const changes = c?.changes as DocActivityChange[] | undefined;
+			if (!changes) return null;
+			const contentChange = changes.find((ch) => ch.field === "content");
+			if (!contentChange || contentChange.old === undefined) return null;
+			return {
+				old: contentChange.old,
+				new: contentChange.new,
+				title: t("docs.activity.contentChangeDiff"),
+			};
+		},
+		[t],
+	);
 
 	const isRevertable = useCallback((entry: DocActivity) => {
 		if (entry.activity_type !== "doc.updated") return false;
@@ -169,7 +178,7 @@ export function DocActivityPane({
 			onRevert={canEdit ? handleRevert : undefined}
 			getDiffContent={getDiffContent}
 			isRevertable={canEdit ? isRevertable : undefined}
-			describeActivity={describeDocActivity}
+			describeActivity={(entry) => describeDocActivity(entry, t)}
 			getCommentBlocks={(content) => {
 				if (Array.isArray(content)) return content;
 				if (content && typeof content === "object" && !("length" in content)) {

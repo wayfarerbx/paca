@@ -1,0 +1,264 @@
+{
+	"users": {
+		"header": {
+			"title": "ユーザー管理",
+			"description": "ユーザーアカウントと割り当てられたロールを確認・管理します。",
+			"newUser": "新規ユーザー"
+		},
+		"stats": {
+			"userCount_one": "{{count}}人のユーザー",
+			"userCount_other": "{{count}}人のユーザー",
+			"inSystem": "システム内",
+			"mustChangePassword": "パスワード変更が必要"
+		},
+		"empty": {
+			"title": "ユーザーが見つかりません",
+			"description": "最初のユーザーを作成して始めましょう。",
+			"createUser": "ユーザーを作成"
+		},
+		"errors": {
+			"loadFailed": "ユーザーの読み込みに失敗しました",
+			"tryAgain": "ページを更新してもう一度お試しください。"
+		},
+		"noPermission": {
+			"title": "ユーザーを表示する権限がありません",
+			"description": "上のボタンから新しいユーザーを作成することはできます。"
+		},
+		"table": {
+			"columnUsername": "ユーザー名",
+			"columnFullName": "氏名",
+			"columnRole": "ロール",
+			"columnCreated": "作成日",
+			"pwdResetBadge": "パスワード再設定",
+			"youBadge": "あなた",
+			"noFullName": "—",
+			"resetPasswordAction": "パスワードをリセット",
+			"editAction": "ユーザーを編集",
+			"deleteAction": "ユーザーを削除"
+		},
+		"formDialog": {
+			"createdTitle": "ユーザーを作成しました",
+			"createdDescriptionSuffix": "を作成しました。以下の仮パスワードを共有してください — ユーザーは初回ログイン時に変更を求められます。",
+			"temporaryPasswordLabel": "仮パスワード",
+			"hidePassword": "パスワードを非表示",
+			"showPassword": "パスワードを表示",
+			"copyPassword": "パスワードをコピー",
+			"passwordNotShownAgain": "このパスワードは再表示されません。今すぐコピーしてください。",
+			"done": "完了",
+			"editTitle": "ユーザーを編集",
+			"createTitle": "ユーザーを作成",
+			"editDescription": "ユーザーの表示名とロールの割り当てを更新します。",
+			"createDescription": "安全な仮パスワードが自動的に生成されます。ユーザーは初回ログイン時に変更を求められます。",
+			"usernameLabel": "ユーザー名",
+			"usernamePlaceholder": "例: john.doe",
+			"fullNameLabel": "氏名",
+			"fullNamePlaceholder": "例: John Doe",
+			"roleLabel": "ロール",
+			"roleOptionalHint": "（任意 — 既定はUSER）",
+			"rolePlaceholder": "ロールを選択…",
+			"cancel": "キャンセル",
+			"saving": "保存中…",
+			"creating": "作成中…",
+			"saveChanges": "変更を保存",
+			"createUser": "ユーザーを作成",
+			"errors": {
+				"fullNameRequired": "氏名を入力してください。",
+				"usernameTaken": "このユーザー名は既に使用されています。",
+				"userNotFound": "ユーザーが見つかりません。既に削除された可能性があります。",
+				"forbidden": "この操作を実行する権限がありません。",
+				"internalError": "サーバーで問題が発生しました。もう一度お試しください。",
+				"generic": "問題が発生しました。"
+			}
+		},
+		"resetPasswordDialog": {
+			"title": "パスワードをリセット",
+			"descriptionSuccessPrefix": "",
+			"descriptionSuccessSuffix": "さんのパスワードをリセットしました。以下の仮パスワードを共有してください — 再表示はされません。",
+			"descriptionConfirmPrefix": "強力な仮パスワードを生成し、",
+			"descriptionConfirmSuffix": "さんに割り当てます。次回ログイン時に変更が求められます。",
+			"temporaryPasswordLabel": "仮パスワード",
+			"hidePassword": "パスワードを非表示",
+			"showPassword": "パスワードを表示",
+			"copyPassword": "パスワードをコピー",
+			"notShownAgain": "⚠ このパスワードは閉じた後は再表示されません。",
+			"done": "完了",
+			"cancel": "キャンセル",
+			"resetting": "リセット中…",
+			"resetButton": "パスワードをリセット",
+			"errors": {
+				"userNotFound": "このユーザーは既に存在しません。",
+				"forbidden": "このユーザーのパスワードをリセットする権限がありません。",
+				"internalError": "問題が発生しました。もう一度お試しください。",
+				"generic": "問題が発生しました。"
+			}
+		},
+		"deleteDialog": {
+			"title": "ユーザーを削除",
+			"confirmTextPrefix": "本当に削除しますか",
+			"confirmTextSuffix": "？このアカウントは完全に削除されます。",
+			"cannotBeUndone": "この操作は取り消せません。",
+			"cancel": "キャンセル",
+			"deleting": "削除中…",
+			"confirmButton": "ユーザーを削除",
+			"errors": {
+				"userNotFound": "このユーザーは既に存在しません。",
+				"forbidden": "このユーザーを削除する権限がありません。",
+				"internalError": "問題が発生しました。もう一度お試しください。",
+				"generic": "問題が発生しました。"
+			}
+		}
+	},
+	"globalRoles": {
+		"header": {
+			"title": "グローバルロール",
+			"description": "システム全体のロールと、ユーザーに付与される権限を管理します。",
+			"newRole": "新規ロール"
+		},
+		"stats": {
+			"roleCount_one": "{{count}}個のロール",
+			"roleCount_other": "{{count}}個のロール",
+			"defined": "定義済み",
+			"permissionGrants": "全ロールでの権限付与数"
+		},
+		"empty": {
+			"title": "ロールがまだ定義されていません",
+			"description": "最初のロールを作成してユーザー権限の管理を始めましょう。",
+			"createRole": "ロールを作成"
+		},
+		"errors": {
+			"loadFailed": "ロールの読み込みに失敗しました",
+			"tryAgain": "ページを更新してもう一度お試しください。"
+		},
+		"noPermission": {
+			"title": "ロールを表示する権限がありません",
+			"description": "上のボタンから新しいロールを作成することはできます。"
+		},
+		"table": {
+			"columnName": "名前",
+			"columnPermissions": "権限",
+			"columnCreated": "作成日",
+			"noPermissionsAssigned": "権限が割り当てられていません",
+			"editAction": "ロールを編集",
+			"deleteAction": "ロールを削除"
+		},
+		"formDialog": {
+			"editTitle": "ロールを編集",
+			"createTitle": "ロールを作成",
+			"editDescription": "ロール名と権限の付与を更新します。",
+			"createDescription": "新しいシステム全体のロールを定義し、権限を設定します。",
+			"roleNameLabel": "ロール名",
+			"roleNamePlaceholder": "例: SECURITY_ADMIN",
+			"permissionsLabel": "権限",
+			"enabledCount_one": "{{count}}件有効",
+			"enabledCount_other": "{{count}}件有効",
+			"cancel": "キャンセル",
+			"saving": "保存中…",
+			"saveChanges": "変更を保存",
+			"createRole": "ロールを作成",
+			"errors": {
+				"roleNameRequired": "ロール名を入力してください。",
+				"nameTaken": "この名前のロールは既に存在します。",
+				"nameInvalid": "ロール名は大文字、数字、アンダースコアのみ使用できます。",
+				"roleNotFound": "このロールは既に存在しません。既に削除された可能性があります。",
+				"forbidden": "この操作を実行する権限がありません。",
+				"internalError": "サーバーで問題が発生しました。もう一度お試しください。",
+				"generic": "問題が発生しました。"
+			}
+		},
+		"deleteDialog": {
+			"title": "ロールを削除",
+			"confirmTextPrefix": "本当に削除しますか",
+			"confirmTextSuffix": "？このロールに割り当てられているすべてのユーザー割り当ても削除されます。",
+			"cannotBeUndone": "この操作は取り消せません。",
+			"cancel": "キャンセル",
+			"deleting": "削除中…",
+			"confirmButton": "ロールを削除",
+			"errors": {
+				"roleNotFound": "このロールは既に存在しません。",
+				"hasUsersWarning": "このロールは1人以上のユーザーに割り当てられているため削除できません。",
+				"forbidden": "このロールを削除する権限がありません。",
+				"internalError": "問題が発生しました。もう一度お試しください。",
+				"generic": "問題が発生しました。"
+			}
+		},
+		"permissions": {
+			"globalRolesRead": {
+				"label": "グローバルロールの閲覧",
+				"description": "グローバルロールの定義を表示します"
+			},
+			"globalRolesWrite": {
+				"label": "グローバルロールの編集",
+				"description": "グローバルロールの定義を作成・更新します"
+			},
+			"globalRolesAssign": {
+				"label": "グローバルロールの割り当て",
+				"description": "ユーザーにグローバルロールを割り当てます"
+			},
+			"usersRead": {
+				"label": "ユーザーの閲覧",
+				"description": "ユーザープロフィールと一覧を表示します"
+			},
+			"usersWrite": {
+				"label": "ユーザーの編集",
+				"description": "ユーザーアカウントを作成・更新します"
+			},
+			"usersDelete": {
+				"label": "ユーザーの削除",
+				"description": "ユーザーアカウントを削除します"
+			},
+			"projectsRead": {
+				"label": "全プロジェクトの閲覧",
+				"description": "ワークスペース内のすべてのプロジェクトを表示します"
+			},
+			"projectsCreate": {
+				"label": "プロジェクトの作成",
+				"description": "新しいプロジェクトを作成します"
+			},
+			"projectsWrite": {
+				"label": "プロジェクトの編集",
+				"description": "プロジェクトの詳細を更新します"
+			},
+			"projectsDelete": {
+				"label": "プロジェクトの削除",
+				"description": "プロジェクトを完全に削除します"
+			},
+			"projectMembersRead": {
+				"label": "プロジェクトメンバーの閲覧",
+				"description": "すべてのプロジェクトのメンバーを表示します"
+			},
+			"projectMembersWrite": {
+				"label": "プロジェクトメンバーの編集",
+				"description": "すべてのプロジェクトでメンバーの追加・削除・更新を行います"
+			},
+			"projectRolesRead": {
+				"label": "プロジェクトロールの閲覧",
+				"description": "すべてのプロジェクトで定義されたロールを表示します"
+			},
+			"projectRolesWrite": {
+				"label": "プロジェクトロールの編集",
+				"description": "すべてのプロジェクトでロールを作成・更新します"
+			}
+		},
+		"permissionGroups": {
+			"globalRoles": "グローバルロール",
+			"users": "ユーザー",
+			"projects": "プロジェクト"
+		}
+	},
+	"plugins": {
+		"title": "プラグイン設定",
+		"description": "全ユーザー向けのシステム全体のプラグインパネルの順序と表示設定を管理します。",
+		"tabs": {
+			"marketplace": "マーケットプレイス",
+			"layout": "拡張ポイントレイアウト"
+		},
+		"marketplace": {
+			"title": "マーケットプレイス",
+			"description": "公開のpaca-pluginsカタログからプラグインをインストール・アンインストールします。"
+		},
+		"layout": {
+			"title": "拡張ポイントレイアウト",
+			"description": "ドラッグして各拡張ポイント内のプラグインパネルを並べ替えます。表示設定を切り替えて、全ユーザーに対するパネルの表示・非表示を制御します。"
+		}
+	}
+}

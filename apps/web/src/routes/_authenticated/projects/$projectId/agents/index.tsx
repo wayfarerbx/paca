@@ -24,6 +24,7 @@ import {
 	Zap,
 } from "lucide-react";
 import { type ComponentType, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -103,6 +104,7 @@ function CreateAgentDialog({
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }) {
+	const { t } = useTranslation("projects");
 	const qc = useQueryClient();
 	const { data: roles = [] } = useQuery(projectRolesQueryOptions(projectId));
 	const { data: llmModels = {} } = useQuery(llmModelsQueryOptions);
@@ -246,12 +248,12 @@ function CreateAgentDialog({
 							</div>
 							<div>
 								<DialogTitle className="text-sm font-semibold">
-									Create AI Agent
+									{t("agents.createDialog.title")}
 								</DialogTitle>
 								<DialogDescription className="text-xs text-muted-foreground mt-0.5">
 									{step === 1
-										? "Set up your agent's identity and role"
-										: "Configure the AI model powering your agent"}
+										? t("agents.createDialog.step1Description")
+										: t("agents.createDialog.step2Description")}
 								</DialogDescription>
 							</div>
 						</div>
@@ -272,7 +274,7 @@ function CreateAgentDialog({
 								/>
 							</div>
 							<span className="text-xs text-muted-foreground font-medium ml-1">
-								{step} / 2
+								{t("agents.createDialog.stepIndicator", { step })}
 							</span>
 						</div>
 					</div>
@@ -284,7 +286,7 @@ function CreateAgentDialog({
 						{/* Preset grid */}
 						<div className="space-y-2">
 							<Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-								Start from a preset
+								{t("agents.createDialog.startFromPreset")}
 							</Label>
 							<div className="grid grid-cols-2 gap-2">
 								{AGENT_PRESETS.map((preset) => {
@@ -330,11 +332,12 @@ function CreateAgentDialog({
 						<div className="space-y-3">
 							<div className="space-y-1.5">
 								<Label htmlFor="agent-name">
-									Name <span className="text-destructive">*</span>
+									{t("agents.createDialog.nameLabel")}{" "}
+									<span className="text-destructive">*</span>
 								</Label>
 								<Input
 									id="agent-name"
-									placeholder="Dev Bot"
+									placeholder={t("agents.createDialog.namePlaceholder")}
 									value={name}
 									onChange={(e) => onNameChange(e.target.value)}
 									autoFocus
@@ -342,7 +345,8 @@ function CreateAgentDialog({
 							</div>
 							<div className="space-y-1.5">
 								<Label htmlFor="agent-handle">
-									Handle <span className="text-destructive">*</span>
+									{t("agents.createDialog.handleLabel")}{" "}
+									<span className="text-destructive">*</span>
 								</Label>
 								<div className="relative">
 									<span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground select-none">
@@ -357,7 +361,7 @@ function CreateAgentDialog({
 									/>
 								</div>
 								<p className="text-xs text-muted-foreground">
-									Auto-derived from name. Used for @mentions in comments.
+									{t("agents.createDialog.handleHint")}
 								</p>
 							</div>
 						</div>
@@ -365,11 +369,16 @@ function CreateAgentDialog({
 						{/* Project Role */}
 						<div className="space-y-1.5">
 							<Label>
-								Project Role <span className="text-destructive">*</span>
+								{t("agents.createDialog.projectRoleLabel")}{" "}
+								<span className="text-destructive">*</span>
 							</Label>
 							<Select value={roleId} onValueChange={(v) => v && setRoleId(v)}>
 								<SelectTrigger>
-									<SelectValue placeholder="Select a project role…">
+									<SelectValue
+										placeholder={t(
+											"agents.createDialog.projectRolePlaceholder",
+										)}
+									>
 										{roles.find((r) => r.id === roleId)?.role_name}
 									</SelectValue>
 								</SelectTrigger>
@@ -382,7 +391,7 @@ function CreateAgentDialog({
 								</SelectContent>
 							</Select>
 							<p className="text-xs text-muted-foreground">
-								Controls what the agent can read and modify in this project.
+								{t("agents.createDialog.projectRoleHint")}
 							</p>
 						</div>
 					</div>
@@ -396,12 +405,12 @@ function CreateAgentDialog({
 							<div className="flex items-center gap-1.5">
 								<Cpu className="size-3.5 text-muted-foreground" />
 								<span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-									Model
+									{t("agents.createDialog.modelSection")}
 								</span>
 							</div>
 							<div className="grid grid-cols-2 gap-3">
 								<div className="space-y-1.5">
-									<Label>Provider</Label>
+									<Label>{t("agents.createDialog.providerLabel")}</Label>
 									<Select
 										value={providerSelect}
 										onValueChange={handleProviderChange}
@@ -416,7 +425,9 @@ function CreateAgentDialog({
 												</SelectItem>
 											))}
 											<SelectSeparator />
-											<SelectItem value={CUSTOM}>Custom…</SelectItem>
+											<SelectItem value={CUSTOM}>
+												{t("agents.createDialog.customOption")}
+											</SelectItem>
 										</SelectContent>
 									</Select>
 									{providerSelect === CUSTOM && (
@@ -428,7 +439,7 @@ function CreateAgentDialog({
 									)}
 								</div>
 								<div className="space-y-1.5">
-									<Label>Model</Label>
+									<Label>{t("agents.createDialog.modelLabel")}</Label>
 									{providerSelect === CUSTOM ? (
 										<Input
 											placeholder="my-model-name"
@@ -451,7 +462,9 @@ function CreateAgentDialog({
 														</SelectItem>
 													))}
 													<SelectSeparator />
-													<SelectItem value={CUSTOM}>Custom…</SelectItem>
+													<SelectItem value={CUSTOM}>
+														{t("agents.createDialog.customOption")}
+													</SelectItem>
 												</SelectContent>
 											</Select>
 											{modelSelect === CUSTOM && (
@@ -472,7 +485,8 @@ function CreateAgentDialog({
 							<Label htmlFor="agent-api-key">
 								<span className="flex items-center gap-1.5">
 									<Lock className="size-3 text-muted-foreground" />
-									API Key <span className="text-destructive">*</span>
+									{t("agents.createDialog.apiKeyLabel")}{" "}
+									<span className="text-destructive">*</span>
 								</span>
 							</Label>
 							<div className="relative">
@@ -490,7 +504,11 @@ function CreateAgentDialog({
 									type="button"
 									onClick={() => setShowApiKey((s) => !s)}
 									className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
-									aria-label={showApiKey ? "Hide API key" : "Show API key"}
+									aria-label={
+										showApiKey
+											? t("agents.createDialog.hideApiKey")
+											: t("agents.createDialog.showApiKey")
+									}
 								>
 									{showApiKey ? (
 										<EyeOff className="size-4" />
@@ -501,14 +519,15 @@ function CreateAgentDialog({
 							</div>
 							<p className="text-xs text-muted-foreground flex items-center gap-1.5">
 								<span className="size-1.5 shrink-0 rounded-full bg-emerald-500 inline-block" />
-								Stored encrypted — never exposed in API responses.
+								{t("agents.createDialog.apiKeyHint")}
 							</p>
 						</div>
 
 						{/* Base URL */}
 						<div className="space-y-1.5">
 							<Label htmlFor="agent-base-url">
-								Base URL <span className="text-destructive">*</span>
+								{t("agents.createDialog.baseUrlLabel")}{" "}
+								<span className="text-destructive">*</span>
 							</Label>
 							<Input
 								id="agent-base-url"
@@ -522,20 +541,22 @@ function CreateAgentDialog({
 						<div className="space-y-1.5">
 							<div className="flex items-center justify-between">
 								<Label htmlFor="agent-system-prompt">
-									System Prompt{" "}
+									{t("agents.createDialog.systemPromptLabel")}{" "}
 									<span className="text-muted-foreground font-normal text-xs">
-										(optional)
+										{t("agents.createDialog.optional")}
 									</span>
 								</Label>
 								{systemPrompt.length > 0 && (
 									<span className="text-xs text-muted-foreground">
-										{systemPrompt.length} chars
+										{t("agents.createDialog.charsCount", {
+											count: systemPrompt.length,
+										})}
 									</span>
 								)}
 							</div>
 							<Textarea
 								id="agent-system-prompt"
-								placeholder="You are a senior software engineer…"
+								placeholder={t("agents.createDialog.systemPromptPlaceholder")}
 								value={systemPrompt}
 								onChange={(e) => setSystemPrompt(e.target.value)}
 								rows={4}
@@ -545,7 +566,7 @@ function CreateAgentDialog({
 
 						{createMutation.isError && (
 							<p className="text-sm text-destructive rounded-md bg-destructive/10 px-3 py-2">
-								Failed to create agent. Please try again.
+								{t("agents.createDialog.createFailed")}
 							</p>
 						)}
 					</div>
@@ -560,14 +581,14 @@ function CreateAgentDialog({
 								onClick={() => handleClose(false)}
 								className="text-muted-foreground"
 							>
-								Cancel
+								{t("agents.createDialog.cancel")}
 							</Button>
 							<Button
 								size="sm"
 								onClick={() => setStep(2)}
 								disabled={!step1Valid}
 							>
-								Continue
+								{t("agents.createDialog.continue")}
 								<ChevronRight className="size-4 ml-1" />
 							</Button>
 						</>
@@ -580,7 +601,7 @@ function CreateAgentDialog({
 								className="text-muted-foreground"
 							>
 								<ChevronLeft className="size-4 mr-1" />
-								Back
+								{t("agents.createDialog.back")}
 							</Button>
 							<Button
 								size="sm"
@@ -590,12 +611,12 @@ function CreateAgentDialog({
 								{createMutation.isPending ? (
 									<>
 										<Loader2 className="size-4 mr-1.5 animate-spin" />
-										Creating…
+										{t("agents.createDialog.creating")}
 									</>
 								) : (
 									<>
 										<Sparkles className="size-4 mr-1.5" />
-										Create Agent
+										{t("agents.createDialog.createAgent")}
 									</>
 								)}
 							</Button>
@@ -618,6 +639,7 @@ function AgentCard({
 	projectId: string;
 	canWrite: boolean;
 }) {
+	const { t } = useTranslation("projects");
 	const qc = useQueryClient();
 	const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -676,7 +698,7 @@ function AgentCard({
 										}
 									>
 										<Settings className="size-3.5 mr-2" />
-										Configure
+										{t("agents.card.configure")}
 									</DropdownMenuItem>
 									<DropdownMenuSeparator />
 									<DropdownMenuItem
@@ -684,7 +706,7 @@ function AgentCard({
 										onClick={() => setConfirmDelete(true)}
 									>
 										<Trash2 className="size-3.5 mr-2" />
-										Delete
+										{t("agents.card.delete")}
 									</DropdownMenuItem>
 								</DropdownMenuContent>
 							</DropdownMenu>
@@ -701,7 +723,7 @@ function AgentCard({
 					{agent.can_clone_repos && (
 						<span className="flex items-center gap-1">
 							<GitBranch className="size-3" />
-							Repos
+							{t("agents.card.repos")}
 						</span>
 					)}
 				</div>
@@ -712,7 +734,7 @@ function AgentCard({
 					params={{ projectId, agentId: agent.id }}
 					className="mt-1 flex items-center gap-1 text-xs font-medium text-primary hover:underline"
 				>
-					Configure & view activity
+					{t("agents.card.configureAndViewActivity")}
 					<ChevronRight className="size-3" />
 				</Link>
 			</div>
@@ -721,10 +743,11 @@ function AgentCard({
 			<Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
 				<DialogContent className="max-w-sm">
 					<DialogHeader>
-						<DialogTitle>Delete {agent.name}?</DialogTitle>
+						<DialogTitle>
+							{t("agents.card.deleteDialog.title", { name: agent.name })}
+						</DialogTitle>
 						<DialogDescription>
-							This permanently deletes the agent and removes it from the
-							project. Running conversations will be stopped.
+							{t("agents.card.deleteDialog.description")}
 						</DialogDescription>
 					</DialogHeader>
 					<DialogFooter>
@@ -733,7 +756,7 @@ function AgentCard({
 							onClick={() => setConfirmDelete(false)}
 							disabled={deleteMutation.isPending}
 						>
-							Cancel
+							{t("agents.card.deleteDialog.cancel")}
 						</Button>
 						<Button
 							variant="destructive"
@@ -743,7 +766,7 @@ function AgentCard({
 							{deleteMutation.isPending ? (
 								<Loader2 className="size-4 animate-spin" />
 							) : (
-								"Delete"
+								t("agents.card.deleteDialog.delete")
 							)}
 						</Button>
 					</DialogFooter>
@@ -756,6 +779,7 @@ function AgentCard({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 function AgentsPage() {
+	const { t } = useTranslation("projects");
 	const { projectId } = Route.useParams();
 	const { hasProjectPermission } = useProjectPermissions(projectId);
 	const canWrite = hasProjectPermission("agents.write");
@@ -783,16 +807,18 @@ function AgentsPage() {
 							<Sparkles className="size-4 text-primary" />
 						</div>
 						<div>
-							<h1 className="text-lg font-semibold">AI Agents</h1>
+							<h1 className="text-lg font-semibold">
+								{t("agents.page.title")}
+							</h1>
 							<p className="text-xs text-muted-foreground mt-0.5">
-								Autonomous agents that work on tasks and chat with your team
+								{t("agents.page.subtitle")}
 							</p>
 						</div>
 					</div>
 					{canWrite && (
 						<Button size="sm" onClick={() => setCreateOpen(true)}>
 							<Plus className="size-4 mr-1.5" />
-							New Agent
+							{t("agents.page.newAgent")}
 						</Button>
 					)}
 				</div>
@@ -813,16 +839,17 @@ function AgentsPage() {
 							<Bot className="size-8 text-muted-foreground/50" />
 						</div>
 						<div>
-							<p className="font-medium text-sm">No agents yet</p>
+							<p className="font-medium text-sm">
+								{t("agents.page.empty.title")}
+							</p>
 							<p className="text-xs text-muted-foreground mt-1 max-w-xs">
-								Add an AI agent to automate tasks, review code, write
-								documentation, and more.
+								{t("agents.page.empty.description")}
 							</p>
 						</div>
 						{canWrite && (
 							<Button size="sm" onClick={() => setCreateOpen(true)}>
 								<Plus className="size-4 mr-1.5" />
-								Create your first agent
+								{t("agents.page.empty.createFirstAgent")}
 							</Button>
 						)}
 					</div>
@@ -845,8 +872,9 @@ function AgentsPage() {
 				<div className="border-t border-border/50 px-6 py-4 shrink-0">
 					<p className="text-xs text-muted-foreground flex items-center gap-1.5">
 						<MessageSquare className="size-3.5" />
-						Click <strong>Configure &amp; view activity</strong> on any agent to
-						chat, view conversations, and manage MCP servers and skills.
+						{t("agents.page.chatShortcutPrefix")}{" "}
+						<strong>{t("agents.card.configureAndViewActivity")}</strong>{" "}
+						{t("agents.page.chatShortcutSuffix")}
 					</p>
 				</div>
 			)}

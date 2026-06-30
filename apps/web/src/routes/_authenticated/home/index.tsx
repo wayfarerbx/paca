@@ -15,6 +15,7 @@ import {
 	Zap,
 } from "lucide-react";
 import { type ComponentType, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -73,6 +74,7 @@ function CreateProjectDialog({
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }) {
+	const { t } = useTranslation("shared");
 	const queryClient = useQueryClient();
 	const [name, setName] = useState("");
 	const [description, setDescription] = useState("");
@@ -114,25 +116,23 @@ function CreateProjectDialog({
 			setPrefixError(null);
 			setError(null);
 			if ((err as Error).message === "name_required") {
-				setNameError("Project name is required.");
+				setNameError(t("home.createDialog.errors.nameRequired"));
 				return;
 			}
 			const code = getApiErrorCode(err);
 			if (code === ApiErrorCode.ProjectNameTaken) {
-				setNameError("A project with this name already exists.");
+				setNameError(t("home.createDialog.errors.nameTaken"));
 				return;
 			}
 			if (code === ApiErrorCode.ProjectNameInvalid) {
-				setNameError("Project name is empty or invalid.");
+				setNameError(t("home.createDialog.errors.nameInvalid"));
 				return;
 			}
 			if (code === ApiErrorCode.ProjectPrefixInvalid) {
-				setPrefixError(
-					"Prefix must be 1–10 uppercase letters/digits (e.g. PACA).",
-				);
+				setPrefixError(t("home.createDialog.errors.prefixInvalid"));
 				return;
 			}
-			setError("Something went wrong. Please try again.");
+			setError(t("home.createDialog.errors.generic"));
 		},
 	});
 
@@ -149,15 +149,18 @@ function CreateProjectDialog({
 					<div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 mb-2">
 						<FolderKanban className="size-5 text-primary" />
 					</div>
-					<DialogTitle className="font-[Syne]">New project</DialogTitle>
+					<DialogTitle className="font-[Syne]">
+						{t("home.createDialog.title")}
+					</DialogTitle>
 					<DialogDescription>
-						Create a scrumban workspace for your team. You can invite members
-						and configure settings after creation.
+						{t("home.createDialog.description")}
 					</DialogDescription>
 				</DialogHeader>
 				<div className="space-y-4">
 					<div className="space-y-1.5">
-						<Label htmlFor="project-name">Project name *</Label>
+						<Label htmlFor="project-name">
+							{t("home.createDialog.nameLabel")}
+						</Label>
 						<Input
 							id="project-name"
 							value={name}
@@ -169,7 +172,7 @@ function CreateProjectDialog({
 									setPrefix(suggestPrefix(val));
 								}
 							}}
-							placeholder="e.g. Platform v3"
+							placeholder={t("home.createDialog.namePlaceholder")}
 							autoFocus
 							className={
 								nameError
@@ -186,9 +189,9 @@ function CreateProjectDialog({
 					</div>
 					<div className="space-y-1.5">
 						<Label htmlFor="project-prefix">
-							Task ID prefix{" "}
+							{t("home.createDialog.prefixLabel")}{" "}
 							<span className="text-muted-foreground font-normal">
-								(e.g. PACA)
+								{t("home.createDialog.prefixHint")}
 							</span>
 						</Label>
 						<div className="flex items-center gap-2">
@@ -205,7 +208,7 @@ function CreateProjectDialog({
 									setPrefixTouched(true);
 									setPrefixError(null);
 								}}
-								placeholder="PROJ"
+								placeholder={t("home.createDialog.prefixPlaceholder")}
 								className={cn(
 									"font-[JetBrains_Mono,monospace] uppercase w-32",
 									prefixError
@@ -216,7 +219,7 @@ function CreateProjectDialog({
 							/>
 							{prefix ? (
 								<span className="text-xs text-muted-foreground">
-									Tasks will be labelled{" "}
+									{t("home.createDialog.prefixExampleLead")}{" "}
 									<span className="font-[JetBrains_Mono,monospace] font-semibold text-foreground">
 										{prefix}-1
 									</span>
@@ -234,16 +237,16 @@ function CreateProjectDialog({
 					</div>
 					<div className="space-y-1.5">
 						<Label htmlFor="project-description">
-							Description{" "}
+							{t("home.createDialog.descriptionLabel")}{" "}
 							<span className="text-muted-foreground font-normal">
-								(optional)
+								{t("home.createDialog.optionalHint")}
 							</span>
 						</Label>
 						<Textarea
 							id="project-description"
 							value={description}
 							onChange={(e) => setDescription(e.target.value)}
-							placeholder="What is this project about?"
+							placeholder={t("home.createDialog.descriptionPlaceholder")}
 							rows={3}
 							className="resize-none"
 						/>
@@ -262,12 +265,12 @@ function CreateProjectDialog({
 									htmlFor="is-public"
 									className="font-medium cursor-pointer"
 								>
-									Public project
+									{t("home.createDialog.publicProject.label")}
 								</Label>
 								<p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
 									{isPublic
-										? "Anyone with the link can view this project. Anonymous users have read-only access."
-										: "Only team members can access this project."}
+										? t("home.createDialog.publicProject.publicHint")
+										: t("home.createDialog.publicProject.privateHint")}
 								</p>
 							</div>
 						</div>
@@ -293,7 +296,7 @@ function CreateProjectDialog({
 							/>
 						}
 					>
-						Cancel
+						{t("home.createDialog.cancel")}
 					</DialogClose>
 					<Button
 						size="sm"
@@ -306,7 +309,7 @@ function CreateProjectDialog({
 						) : (
 							<Plus className="size-3.5" />
 						)}
-						Create project
+						{t("home.createDialog.submit")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>
@@ -317,6 +320,7 @@ function CreateProjectDialog({
 // ── Project Card ──────────────────────────────────────────────────────────────
 
 function ProjectCard({ project }: { project: Project }) {
+	const { t } = useTranslation("shared");
 	const initials = project.name
 		.split(/\s+/)
 		.filter(Boolean)
@@ -351,7 +355,7 @@ function ProjectCard({ project }: { project: Project }) {
 								className="gap-1 px-1.5 py-0 text-xs font-medium border border-border/60 shrink-0"
 							>
 								<Globe className="size-3" />
-								Public
+								{t("home.projectCard.public")}
 							</Badge>
 						)}
 					</div>
@@ -361,7 +365,7 @@ function ProjectCard({ project }: { project: Project }) {
 						</p>
 					) : (
 						<p className="mt-0.5 text-xs text-muted-foreground/40 italic">
-							No description
+							{t("home.projectCard.noDescription")}
 						</p>
 					)}
 				</div>
@@ -414,29 +418,30 @@ function StatCard({
 const GETTING_STARTED = [
 	{
 		step: 1,
-		title: "Create your first project",
-		description: "Set up a scrumban board to manage your team's work.",
+		titleKey: "home.gettingStarted.steps.createProject.title",
+		descriptionKey: "home.gettingStarted.steps.createProject.description",
 	},
 	{
 		step: 2,
-		title: "Invite your team",
-		description: "Add human collaborators and assign roles.",
+		titleKey: "home.gettingStarted.steps.inviteTeam.title",
+		descriptionKey: "home.gettingStarted.steps.inviteTeam.description",
 	},
 	{
 		step: 3,
-		title: "Configure an AI agent",
-		description: "Connect an AI to handle tasks autonomously.",
+		titleKey: "home.gettingStarted.steps.configureAgent.title",
+		descriptionKey: "home.gettingStarted.steps.configureAgent.description",
 	},
 	{
 		step: 4,
-		title: "Run your first sprint",
-		description: "Move tasks through the Plan → Act → Check → Adapt cycle.",
+		titleKey: "home.gettingStarted.steps.runSprint.title",
+		descriptionKey: "home.gettingStarted.steps.runSprint.description",
 	},
 ] as const;
 
 // ── Home Page ─────────────────────────────────────────────────────────────────
 
 function HomePage() {
+	const { t } = useTranslation("shared");
 	const { data: user } = useQuery(currentUserQueryOptions);
 	const { data: projectsResult } = useQuery(projectsQueryOptions());
 	const { hasPermission } = usePermissions();
@@ -449,12 +454,13 @@ function HomePage() {
 
 	const greeting = (() => {
 		const hour = new Date().getHours();
-		if (hour < 12) return "Good morning";
-		if (hour < 18) return "Good afternoon";
-		return "Good evening";
+		if (hour < 12) return t("home.greeting.morning");
+		if (hour < 18) return t("home.greeting.afternoon");
+		return t("home.greeting.evening");
 	})();
 
-	const displayName = user?.full_name || user?.username || "there";
+	const displayName =
+		user?.full_name || user?.username || t("home.greeting.fallbackName");
 
 	return (
 		<div className="flex flex-col">
@@ -479,7 +485,7 @@ function HomePage() {
 								variant="secondary"
 								className="gap-1.5 px-2.5 py-0.5 text-xs font-semibold border border-border/60"
 							>
-								Scrumban workspace
+								{t("home.hero.badge")}
 							</Badge>
 						</div>
 						<h1 className="font-[Syne] text-3xl font-bold tracking-tight leading-tight">
@@ -496,8 +502,8 @@ function HomePage() {
 						</h1>
 						<p className="mt-2 max-w-lg text-sm text-muted-foreground leading-relaxed">
 							{projectCount > 0
-								? `You have ${projectCount} active ${projectCount === 1 ? "project" : "projects"}. Pick up where you left off.`
-								: "Your workspace is ready. Create a project, invite your team, and start shipping."}
+								? t("home.hero.subtitleWithProjects", { count: projectCount })
+								: t("home.hero.subtitleEmpty")}
 						</p>
 					</div>
 					<div className="flex shrink-0 items-center gap-2">
@@ -508,7 +514,7 @@ function HomePage() {
 								onClick={() => setCreateOpen(true)}
 							>
 								<Plus className="size-3.5" />
-								New Project
+								{t("home.hero.newProject")}
 							</Button>
 						) : null}
 					</div>
@@ -520,32 +526,34 @@ function HomePage() {
 				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 					<StatCard
 						icon={FolderKanban}
-						label="Projects"
+						label={t("home.stats.projects.label")}
 						value={projectCount}
 						sub={
-							projectCount === 0 ? "No projects yet" : `${projectCount} active`
+							projectCount === 0
+								? t("home.stats.projects.subEmpty")
+								: t("home.stats.projects.subActive", { count: projectCount })
 						}
 						iconClass="bg-primary/10 text-primary"
 					/>
 					<StatCard
 						icon={Layers}
-						label="Open Tasks"
+						label={t("home.stats.openTasks.label")}
 						value={0}
-						sub="Across all projects"
+						sub={t("home.stats.openTasks.sub")}
 						iconClass="bg-primary/10 text-primary"
 					/>
 					<StatCard
 						icon={Users}
-						label="Team Members"
+						label={t("home.stats.teamMembers.label")}
 						value={1}
-						sub="Including you"
+						sub={t("home.stats.teamMembers.sub")}
 						iconClass="bg-muted text-muted-foreground"
 					/>
 					<StatCard
 						icon={Bot}
-						label="AI Agents"
+						label={t("home.stats.aiAgents.label")}
 						value={0}
-						sub="None configured"
+						sub={t("home.stats.aiAgents.sub")}
 						iconClass="bg-muted text-muted-foreground"
 					/>
 				</div>
@@ -556,11 +564,12 @@ function HomePage() {
 						<div className="flex items-center justify-between mb-4">
 							<div>
 								<h2 className="font-[Syne] text-base font-bold tracking-tight">
-									Projects
+									{t("home.projectsSection.title")}
 								</h2>
 								<p className="text-xs text-muted-foreground mt-0.5">
-									{projectCount} {projectCount === 1 ? "project" : "projects"}{" "}
-									in your workspace
+									{t("home.projectsSection.countInWorkspace", {
+										count: projectCount,
+									})}
 								</p>
 							</div>
 							{canCreate ? (
@@ -571,7 +580,7 @@ function HomePage() {
 									onClick={() => setCreateOpen(true)}
 								>
 									<Plus className="size-3.5" />
-									New
+									{t("home.projectsSection.newShort")}
 								</Button>
 							) : null}
 						</div>
@@ -589,7 +598,9 @@ function HomePage() {
 									<div className="flex size-9 items-center justify-center rounded-xl border border-dashed border-current transition-colors">
 										<Plus className="size-4" />
 									</div>
-									<span className="text-xs font-medium">New project</span>
+									<span className="text-xs font-medium">
+										{t("home.projectsSection.newProjectCard")}
+									</span>
 								</button>
 							) : null}
 						</div>
@@ -601,22 +612,25 @@ function HomePage() {
 							<CardHeader className="pb-1">
 								<div className="flex items-center justify-between">
 									<CardTitle className="font-[Syne] text-base font-semibold">
-										Get started
+										{t("home.gettingStarted.title")}
 									</CardTitle>
 									<Badge
 										variant="outline"
 										className="text-xs font-mono tabular-nums border-border/70"
 									>
-										0 / 4
+										{t("home.gettingStarted.progress", {
+											completed: 0,
+											total: 4,
+										})}
 									</Badge>
 								</div>
 								<p className="text-xs text-muted-foreground">
-									Complete these steps to unlock the full power of Paca.
+									{t("home.gettingStarted.subtitle")}
 								</p>
 							</CardHeader>
 							<CardContent className="pt-3">
 								<ol className="space-y-1">
-									{GETTING_STARTED.map(({ step, title, description }) => {
+									{GETTING_STARTED.map(({ step, titleKey, descriptionKey }) => {
 										const isActionable = step === 1 && canCreate;
 										const isLocked = step > 1;
 										const inner = (
@@ -625,9 +639,9 @@ function HomePage() {
 													{step}
 												</div>
 												<div className="min-w-0 flex-1">
-													<p className="text-sm font-medium">{title}</p>
+													<p className="text-sm font-medium">{t(titleKey)}</p>
 													<p className="mt-0.5 text-xs text-muted-foreground">
-														{description}
+														{t(descriptionKey)}
 													</p>
 												</div>
 												<ArrowRight
@@ -674,7 +688,7 @@ function HomePage() {
 							<Card className="border-border/60">
 								<CardHeader className="pb-2">
 									<CardTitle className="font-[Syne] text-base font-semibold">
-										Quick actions
+										{t("home.quickActions.title")}
 									</CardTitle>
 								</CardHeader>
 								<CardContent className="pt-0">
@@ -684,22 +698,28 @@ function HomePage() {
 												? [
 														{
 															icon: FolderKanban,
-															label: "New Project",
-															description: "Create a scrumban board",
+															label: t("home.quickActions.newProject.label"),
+															description: t(
+																"home.quickActions.newProject.description",
+															),
 															onClick: () => setCreateOpen(true),
 														},
 													]
 												: []),
 											{
 												icon: Users,
-												label: "Invite Team",
-												description: "Add members or agents",
+												label: t("home.quickActions.inviteTeam.label"),
+												description: t(
+													"home.quickActions.inviteTeam.description",
+												),
 												onClick: undefined,
 											},
 											{
 												icon: Bot,
-												label: "Add AI Agent",
-												description: "Configure automation",
+												label: t("home.quickActions.addAiAgent.label"),
+												description: t(
+													"home.quickActions.addAiAgent.description",
+												),
 												onClick: undefined,
 											},
 										].map(({ icon: Icon, label, description, onClick }) => (
@@ -751,16 +771,15 @@ function HomePage() {
 									<div className="mb-2 flex items-center gap-2">
 										<Zap className="size-3.5 text-primary" />
 										<p className="font-[Syne] text-xs font-bold uppercase tracking-widest text-primary">
-											How Paca works
+											{t("home.about.title")}
 										</p>
 									</div>
 									<p className="text-sm leading-relaxed text-foreground/80">
-										Combine human creativity with AI speed on a shared scrumban
-										board. Tasks flow through{" "}
+										{t("home.about.descriptionLead")}{" "}
 										<span className="font-semibold text-foreground">
-											Plan → Act → Check → Adapt
+											{t("home.about.workflow")}
 										</span>{" "}
-										with full transparency over who — human or AI — did what.
+										{t("home.about.descriptionTrail")}
 									</p>
 									<Separator className="my-3 opacity-50" />
 									<div className="flex items-center gap-2">
@@ -771,7 +790,7 @@ function HomePage() {
 											rel="noopener noreferrer"
 											className="text-xs text-muted-foreground transition-colors hover:text-foreground"
 										>
-											Open source · Apache-2.0
+											{t("home.about.openSource")}
 										</a>
 									</div>
 								</CardContent>

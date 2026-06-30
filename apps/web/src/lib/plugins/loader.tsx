@@ -6,6 +6,7 @@ import {
 	type ReactNode,
 	Suspense,
 } from "react";
+import { useTranslation } from "react-i18next";
 import type { PluginRegistration } from "@/lib/plugin-api";
 
 // ── Module Federation dynamic import ─────────────────────────────────────────
@@ -202,16 +203,7 @@ class PluginErrorBoundary extends Component<
 
 	render() {
 		if (this.state.hasError) {
-			return (
-				this.props.fallback ?? (
-					<div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-						<AlertCircle className="size-3.5 shrink-0" />
-						<span>
-							Plugin <strong>{this.props.pluginName}</strong> failed to load
-						</span>
-					</div>
-				)
-			);
+			return this.props.fallback ?? null;
 		}
 		return this.props.children;
 	}
@@ -237,15 +229,26 @@ export function RemoteComponent({
 	componentProps,
 	fallback,
 }: RemoteComponentProps) {
+	const { t } = useTranslation("errors");
 	const LazyComponent = getRemoteComponent(
 		registration.remoteEntryUrl,
 		registration.component,
 	);
 
+	const defaultFallback = (
+		<div className="flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+			<AlertCircle className="size-3.5 shrink-0" />
+			<span>
+				{t("pluginLoadFailedPrefix")} <strong>{registration.pluginName}</strong>{" "}
+				{t("pluginLoadFailedSuffix")}
+			</span>
+		</div>
+	);
+
 	return (
 		<PluginErrorBoundary
 			pluginName={registration.pluginName}
-			fallback={fallback}
+			fallback={fallback ?? defaultFallback}
 		>
 			<Suspense fallback={null}>
 				<LazyComponent {...(componentProps ?? {})} />

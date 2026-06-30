@@ -1,0 +1,22 @@
+{
+	"dialog": {
+		"closeLabel": "关闭",
+		"closeButton": "关闭"
+	},
+	"sidebar": {
+		"title": "侧边栏",
+		"description": "显示移动端侧边栏。",
+		"toggleLabel": "切换侧边栏"
+	},
+	"validation": {
+		"usernameRequired": "用户名不能为空。",
+		"usernameMinLength": "用户名长度至少为 {{min}} 个字符。",
+		"passwordRequired": "密码不能为空。",
+		"passwordMinLength": "密码长度至少为 {{min}} 个字符。",
+		"newPasswordRequired": "新密码不能为空。",
+		"newPasswordMinLength": "新密码长度至少为 {{min}} 个字符。",
+		"newPasswordMustDiffer": "新密码不能与当前密码相同。",
+		"confirmPasswordRequired": "请确认您的新密码。",
+		"passwordsDoNotMatch": "两次输入的密码不一致。"
+	}
+}

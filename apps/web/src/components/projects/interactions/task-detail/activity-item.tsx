@@ -1,3 +1,5 @@
+import type { TFunction } from "i18next";
+import { useTranslation } from "react-i18next";
 import {
 	CommentDisplay,
 	isBlocksContent,
@@ -18,131 +20,163 @@ type FieldChange = {
 	new?: unknown;
 };
 
-function label(value: unknown): string {
-	if (value === null || value === undefined || value === "") return "none";
-	if (Array.isArray(value)) return value.length > 0 ? value.join(", ") : "none";
+function label(value: unknown, t: TFunction<"projects">): string {
+	if (value === null || value === undefined || value === "")
+		return t("taskDetail.activity.none");
+	if (Array.isArray(value))
+		return value.length > 0 ? value.join(", ") : t("taskDetail.activity.none");
 	return String(value);
 }
 
 export function describeTaskChange(
 	change: FieldChange,
 	names: ActivityNameMaps,
+	t: TFunction<"projects">,
 ): string {
-	const oldVal = label(change.old);
-	const newVal = label(change.new);
+	const oldVal = label(change.old, t);
+	const newVal = label(change.new, t);
 	const hasOld =
 		change.old !== null && change.old !== undefined && change.old !== "";
 	const hasNew =
 		change.new !== null && change.new !== undefined && change.new !== "";
 
 	const resolveMember = (id: unknown) =>
-		(id && names.members[String(id)]) || (id ? String(id).slice(0, 8) : "none");
+		(id && names.members[String(id)]) ||
+		(id ? String(id).slice(0, 8) : t("taskDetail.activity.none"));
 	const resolveSprint = (id: unknown) =>
-		(id && names.sprints[String(id)]) || (id ? String(id).slice(0, 8) : "none");
+		(id && names.sprints[String(id)]) ||
+		(id ? String(id).slice(0, 8) : t("taskDetail.activity.none"));
 
 	switch (change.field) {
 		case "status":
 			if (hasOld && hasNew)
-				return `changed status from "${oldVal}" to "${newVal}"`;
-			if (hasNew) return `set status to "${newVal}"`;
-			return `cleared status`;
+				return t("taskDetail.activity.changedStatus", { oldVal, newVal });
+			if (hasNew) return t("taskDetail.activity.setStatus", { newVal });
+			return t("taskDetail.activity.clearedStatus");
 		case "task_type":
 			if (hasOld && hasNew)
-				return `changed type from "${oldVal}" to "${newVal}"`;
-			if (hasNew) return `set type to "${newVal}"`;
-			return `cleared type`;
+				return t("taskDetail.activity.changedType", { oldVal, newVal });
+			if (hasNew) return t("taskDetail.activity.setType", { newVal });
+			return t("taskDetail.activity.clearedType");
 		case "title":
-			if (hasOld) return `renamed from "${oldVal}" to "${newVal}"`;
-			return `set title to "${newVal}"`;
+			if (hasOld) return t("taskDetail.activity.renamed", { oldVal, newVal });
+			return t("taskDetail.activity.setTitle", { newVal });
 		case "importance":
-			if (hasOld) return `changed priority from ${oldVal} to ${newVal}`;
-			return `set priority to ${newVal}`;
+			if (hasOld)
+				return t("taskDetail.activity.changedPriority", { oldVal, newVal });
+			return t("taskDetail.activity.setPriority", { newVal });
 		case "assignee": {
 			const oldName = resolveMember(change.old);
 			const newName = resolveMember(change.new);
 			if (hasOld && hasNew)
-				return `changed assignee from ${oldName} to ${newName}`;
-			if (hasNew) return `assigned to ${newName}`;
-			return `removed assignee ${oldName}`;
+				return t("taskDetail.activity.changedAssignee", {
+					oldName,
+					newName,
+				});
+			if (hasNew) return t("taskDetail.activity.assignedTo", { newName });
+			return t("taskDetail.activity.removedAssignee", { oldName });
 		}
 		case "reporter": {
 			const oldName = resolveMember(change.old);
 			const newName = resolveMember(change.new);
 			if (hasOld && hasNew)
-				return `changed reporter from ${oldName} to ${newName}`;
-			if (hasNew) return `set reporter to ${newName}`;
-			return `removed reporter ${oldName}`;
+				return t("taskDetail.activity.changedReporter", {
+					oldName,
+					newName,
+				});
+			if (hasNew) return t("taskDetail.activity.setReporter", { newName });
+			return t("taskDetail.activity.removedReporter", { oldName });
 		}
 		case "sprint": {
 			const oldSprint = resolveSprint(change.old);
 			const newSprint = resolveSprint(change.new);
 			if (hasOld && hasNew)
-				return `moved from sprint "${oldSprint}" to "${newSprint}"`;
-			if (hasNew) return `added to sprint "${newSprint}"`;
-			return `removed from sprint "${oldSprint}"`;
+				return t("taskDetail.activity.movedSprint", {
+					oldSprint,
+					newSprint,
+				});
+			if (hasNew) return t("taskDetail.activity.addedToSprint", { newSprint });
+			return t("taskDetail.activity.removedFromSprint", { oldSprint });
 		}
 		case "parent_task":
-			if (hasNew) return `set parent task`;
-			return `removed parent task`;
+			if (hasNew) return t("taskDetail.activity.setParentTask");
+			return t("taskDetail.activity.removedParentTask");
 		case "due_date":
 			if (hasOld && hasNew)
-				return `changed due date from ${oldVal} to ${newVal}`;
-			if (hasNew) return `set due date to ${newVal}`;
-			return `removed due date`;
+				return t("taskDetail.activity.changedDueDate", { oldVal, newVal });
+			if (hasNew) return t("taskDetail.activity.setDueDate", { newVal });
+			return t("taskDetail.activity.removedDueDate");
 		case "start_date":
 			if (hasOld && hasNew)
-				return `changed start date from ${oldVal} to ${newVal}`;
-			if (hasNew) return `set start date to ${newVal}`;
-			return `removed start date`;
+				return t("taskDetail.activity.changedStartDate", {
+					oldVal,
+					newVal,
+				});
+			if (hasNew) return t("taskDetail.activity.setStartDate", { newVal });
+			return t("taskDetail.activity.removedStartDate");
 		case "description":
-			return `updated description`;
+			return t("taskDetail.activity.updatedDescription");
 		case "tags":
-			return `updated tags`;
+			return t("taskDetail.activity.updatedTags");
 		case "custom_fields":
-			return `updated custom fields`;
+			return t("taskDetail.activity.updatedCustomFields");
 		default:
-			return `updated ${change.field.replace(/_/g, " ")}`;
+			return t("taskDetail.activity.updatedField", {
+				field: change.field.replace(/_/g, " "),
+			});
 	}
 }
 
 function activityDescription(
 	entry: ActivityEntry,
 	names: ActivityNameMaps,
+	t: TFunction<"projects">,
 ): string {
 	const c = entry.content ?? {};
 	const content = c as Record<string, unknown>;
 	switch (entry.activity_type) {
 		case "task.created":
-			return "created this task";
+			return t("taskDetail.activity.created");
 		case "task.deleted":
-			return "deleted this task";
+			return t("taskDetail.activity.deleted");
 		case "task.updated": {
 			const changes = content.changes as FieldChange[] | undefined;
 			if (changes && changes.length === 1) {
-				return describeTaskChange(changes[0], names);
+				return describeTaskChange(changes[0], names, t);
 			}
 			if (changes && changes.length > 1) {
-				return changes.map((ch) => describeTaskChange(ch, names)).join("; ");
+				return changes.map((ch) => describeTaskChange(ch, names, t)).join("; ");
 			}
-			return "updated this task";
+			return t("taskDetail.activity.updated");
 		}
 		case "task.attachment.added":
-			return `added attachment${content.file_name ? `: ${content.file_name}` : ""}`;
+			return content.file_name
+				? t("taskDetail.activity.addedAttachmentNamed", {
+						fileName: content.file_name,
+					})
+				: t("taskDetail.activity.addedAttachment");
 		case "task.attachment.removed":
-			return `removed attachment${content.file_name ? `: ${content.file_name}` : ""}`;
+			return content.file_name
+				? t("taskDetail.activity.removedAttachmentNamed", {
+						fileName: content.file_name,
+					})
+				: t("taskDetail.activity.removedAttachment");
 		case "task.link.added": {
 			const linkType =
 				content.link_type === "blocks"
-					? "blocks"
+					? t("taskDetail.activity.linkTypeBlocks")
 					: content.link_type === "relates_to"
-						? "related to"
-						: "duplicates";
-			return `added task link (${linkType})`;
+						? t("taskDetail.activity.linkTypeRelatedTo")
+						: t("taskDetail.activity.linkTypeDuplicates");
+			return t("taskDetail.activity.addedTaskLink", { linkType });
 		}
 		case "task.link.removed":
-			return "removed task link";
+			return t("taskDetail.activity.removedTaskLink");
 		default:
-			return (content._description as string | undefined) ?? "made a change";
+			return (
+				(content._description as string | undefined) ??
+				t("taskDetail.activity.madeChange")
+			);
 	}
 }
 
@@ -153,8 +187,10 @@ export function ActivityItem({
 	entry: ActivityEntry;
 	names?: ActivityNameMaps;
 }) {
+	const { t } = useTranslation("projects");
 	const isComment = entry.activity_type === "comment";
-	const displayName = entry.actor_name || entry.actor_username || "System";
+	const displayName =
+		entry.actor_name || entry.actor_username || t("taskDetail.activity.system");
 	const initial = displayName.slice(0, 1).toUpperCase();
 
 	const commentBlocks = isComment
@@ -183,7 +219,7 @@ export function ActivityItem({
 								{displayName}
 							</span>
 							<span className="text-xs text-muted-foreground/50">
-								{timeAgo(entry.created_at)}
+								{timeAgo(entry.created_at, t)}
 							</span>
 						</div>
 						{commentBlocks && commentBlocks.length > 0 ? (
@@ -202,10 +238,10 @@ export function ActivityItem({
 							{displayName}
 						</span>
 						<span className="text-sm text-muted-foreground/70">
-							{activityDescription(entry, names)}
+							{activityDescription(entry, names, t)}
 						</span>
 						<span className="text-xs text-muted-foreground/45">
-							{timeAgo(entry.created_at)}
+							{timeAgo(entry.created_at, t)}
 						</span>
 					</div>
 				)}

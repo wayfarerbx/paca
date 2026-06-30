@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
 	type Sprint,
@@ -95,6 +96,7 @@ export function BoardView({
 	onCollapseChange,
 	columnPagination,
 }: BoardViewProps) {
+	const { t } = useTranslation("projects");
 	const qc = useQueryClient();
 	const [draggingId, setDraggingId] = useState<string | null>(null);
 	const [overColumnKey, setOverColumnKey] = useState<string | null>(null);
@@ -163,14 +165,14 @@ export function BoardView({
 
 	// Static column definitions (all possible values)
 	const columnDefs = useMemo(
-		() => getColumnGroupDefs(columnBy, viewCtx),
-		[columnBy, viewCtx],
+		() => getColumnGroupDefs(columnBy, viewCtx, t),
+		[columnBy, viewCtx, t],
 	);
 
 	// Swimlane definitions
 	const swimlaneDefs = useMemo(
-		() => getSwimlaneDefs(swimlaneBy, viewCtx),
-		[swimlaneBy, viewCtx],
+		() => getSwimlaneDefs(swimlaneBy, viewCtx, t),
+		[swimlaneBy, viewCtx, t],
 	);
 
 	// ── Column tasks helper ───────────────────────────────────────────────────
@@ -425,20 +427,24 @@ export function BoardView({
 			// Build columns from unique task values (for number/text fields)
 			const seen = new Set<string>();
 			const dynamic: ColumnGroupDef[] = [];
-			for (const t of tasks) {
-				for (const k of getTaskColumnKeys(t, columnBy, viewCtx)) {
+			for (const tk of tasks) {
+				for (const k of getTaskColumnKeys(tk, columnBy, viewCtx)) {
 					if (!seen.has(k)) {
 						seen.add(k);
 						dynamic.push({
 							key: k,
-							label: k === "__none" ? "None" : k,
+							label: k === "__none" ? t("board.common.none") : k,
 							fieldValue: k,
 						});
 					}
 				}
 			}
 			if (!seen.has("__none")) {
-				dynamic.push({ key: "__none", label: "None", fieldValue: null });
+				dynamic.push({
+					key: "__none",
+					label: t("board.common.none"),
+					fieldValue: null,
+				});
 			}
 			defs = dynamic;
 		}
@@ -457,6 +463,7 @@ export function BoardView({
 		isStatusGrouping,
 		viewConfig?.filters?.statuses,
 		statuses,
+		t,
 	]);
 
 	// ── Helpers ───────────────────────────────────────────────────────────────
@@ -499,7 +506,7 @@ export function BoardView({
 			>
 				{laneTasks.length === 0 && !columnPagination?.[colDef.key]?.hasMore && (
 					<div className="flex flex-1 flex-col items-center justify-center py-6 text-muted-foreground/30">
-						<p className="text-sm">No tasks</p>
+						<p className="text-sm">{t("board.view.noTasks")}</p>
 					</div>
 				)}
 				{laneTasks.map((task, index) => (
@@ -558,7 +565,9 @@ export function BoardView({
 							disabled={pg.isLoadingMore}
 							className="mt-1 w-full rounded-lg border border-dashed border-border/40 py-1.5 text-xs font-medium text-muted-foreground/70 hover:border-primary/40 hover:text-primary transition-all duration-150 disabled:opacity-50"
 						>
-							{pg.isLoadingMore ? "Loading…" : "View more"}
+							{pg.isLoadingMore
+								? t("board.view.loading")
+								: t("board.view.viewMore")}
 						</button>
 					);
 				})()}
@@ -629,7 +638,11 @@ export function BoardView({
 					type="button"
 					onClick={() => toggleCollapse(colDef.key)}
 					className="flex size-5 shrink-0 items-center justify-center rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted/60"
-					title={isCollapsed ? "Expand column" : "Collapse column"}
+					title={
+						isCollapsed
+							? t("board.view.expandColumn")
+							: t("board.view.collapseColumn")
+					}
 				>
 					{isCollapsed ? (
 						<ChevronRight className="size-3 text-muted-foreground" />
@@ -676,7 +689,7 @@ export function BoardView({
 											type="button"
 											onClick={() => toggleCollapse(colDef.key)}
 											className="flex size-7 shrink-0 items-center justify-center rounded-lg hover:bg-muted/60 transition-colors"
-											title="Expand column"
+											title={t("board.view.expandColumn")}
 										>
 											<ChevronRight className="size-3.5 text-muted-foreground" />
 										</button>
@@ -779,7 +792,7 @@ export function BoardView({
 								type="button"
 								onClick={() => toggleCollapse(colDef.key)}
 								className="flex size-7 shrink-0 items-center justify-center rounded-lg hover:bg-muted/60 transition-colors"
-								title="Expand column"
+								title={t("board.view.expandColumn")}
 							>
 								<ChevronRight className="size-3.5 text-muted-foreground" />
 							</button>

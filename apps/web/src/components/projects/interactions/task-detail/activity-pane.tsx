@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Bot } from "lucide-react";
 import { useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { ActivityPane } from "@/components/shared/activity-pane";
 import { textToBlocks } from "@/components/shared/comment-blocknote";
 import { currentUserQueryOptions } from "@/lib/auth-api";
@@ -38,6 +39,7 @@ export function TaskActivityPane({
 	taskId,
 	canEdit = true,
 }: TaskActivityPaneProps) {
+	const { t } = useTranslation("projects");
 	const qc = useQueryClient();
 	const { data: membersData } = useQuery(projectMembersQueryOptions(projectId));
 	const { data: sprintsData } = useQuery(sprintsQueryOptions(projectId));
@@ -67,45 +69,57 @@ export function TaskActivityPane({
 			const c = entry.content ?? {};
 			switch (entry.activity_type) {
 				case "task.created":
-					return "created this task";
+					return t("taskDetail.activity.created");
 				case "task.deleted":
-					return "deleted this task";
+					return t("taskDetail.activity.deleted");
 				case "task.updated": {
 					const changes = (c as Record<string, unknown>).changes as
 						| FieldChange[]
 						| undefined;
 					if (changes && changes.length === 1) {
-						return describeTaskChange(changes[0], nameMaps);
+						return describeTaskChange(changes[0], nameMaps, t);
 					}
 					if (changes && changes.length > 1) {
 						return changes
-							.map((ch) => describeTaskChange(ch, nameMaps))
+							.map((ch) => describeTaskChange(ch, nameMaps, t))
 							.join("; ");
 					}
-					return "updated this task";
+					return t("taskDetail.activity.updated");
 				}
-				case "task.attachment.added":
-					return `added attachment${(c as Record<string, unknown>).file_name ? `: ${(c as Record<string, unknown>).file_name}` : ""}`;
-				case "task.attachment.removed":
-					return `removed attachment${(c as Record<string, unknown>).file_name ? `: ${(c as Record<string, unknown>).file_name}` : ""}`;
+				case "task.attachment.added": {
+					const fileName = (c as Record<string, unknown>).file_name as
+						| string
+						| undefined;
+					return fileName
+						? t("taskDetail.activity.addedAttachmentNamed", { fileName })
+						: t("taskDetail.activity.addedAttachment");
+				}
+				case "task.attachment.removed": {
+					const fileName = (c as Record<string, unknown>).file_name as
+						| string
+						| undefined;
+					return fileName
+						? t("taskDetail.activity.removedAttachmentNamed", { fileName })
+						: t("taskDetail.activity.removedAttachment");
+				}
 				case "task.link.added": {
 					const linkType =
 						(c as Record<string, unknown>).link_type === "blocks"
-							? "blocks"
+							? t("taskDetail.activity.linkTypeBlocks")
 							: (c as Record<string, unknown>).link_type === "relates_to"
-								? "related to"
-								: "duplicates";
-					return `added task link (${linkType})`;
+								? t("taskDetail.activity.linkTypeRelatedTo")
+								: t("taskDetail.activity.linkTypeDuplicates");
+					return t("taskDetail.activity.addedTaskLink", { linkType });
 				}
 				case "task.link.removed":
-					return "removed task link";
+					return t("taskDetail.activity.removedTaskLink");
 				case "agent.session.started": {
 					const convId = (c as Record<string, unknown>).conversation_id as
 						| string
 						| undefined;
 					return (
 						<span className="flex items-center gap-1.5 flex-wrap">
-							<span>started an AI session</span>
+							<span>{t("taskDetail.activity.startedAiSession")}</span>
 							{convId && (
 								<Link
 									to="/projects/$projectId/conversations/$conversationId"
@@ -115,7 +129,7 @@ export function TaskActivityPane({
 									className="inline-flex items-center gap-1 text-xs font-medium text-primary/80 hover:text-primary underline-offset-2 hover:underline transition-colors"
 								>
 									<Bot className="size-3" />
-									Watch session
+									{t("taskDetail.activity.watchSession")}
 								</Link>
 							)}
 						</span>
@@ -125,11 +139,11 @@ export function TaskActivityPane({
 					return (
 						((c as Record<string, unknown>)._description as
 							| string
-							| undefined) ?? "made a change"
+							| undefined) ?? t("taskDetail.activity.madeChange")
 					);
 			}
 		},
-		[nameMaps, projectId],
+		[nameMaps, projectId, t],
 	);
 
 	const queryKey = [
@@ -228,21 +242,24 @@ export function TaskActivityPane({
 		[projectId, taskId, statusesData, taskTypesData, qc],
 	);
 
-	const getDiffContent = useCallback((entry: Activity) => {
-		if (entry.activity_type !== "task.updated") return null;
-		const c = entry.content as Record<string, unknown> | null;
-		const changes = c?.changes as
-			| Array<{ field: string; old?: unknown; new?: unknown }>
-			| undefined;
-		if (!changes) return null;
-		const descChange = changes.find((ch) => ch.field === "description");
-		if (!descChange || descChange.old === undefined) return null;
-		return {
-			old: descChange.old,
-			new: descChange.new,
-			title: "Description change diff",
-		};
-	}, []);
+	const getDiffContent = useCallback(
+		(entry: Activity) => {
+			if (entry.activity_type !== "task.updated") return null;
+			const c = entry.content as Record<string, unknown> | null;
+			const changes = c?.changes as
+				| Array<{ field: string; old?: unknown; new?: unknown }>
+				| undefined;
+			if (!changes) return null;
+			const descChange = changes.find((ch) => ch.field === "description");
+			if (!descChange || descChange.old === undefined) return null;
+			return {
+				old: descChange.old,
+				new: descChange.new,
+				title: t("taskDetail.activity.descriptionChangeDiff"),
+			};
+		},
+		[t],
+	);
 
 	const isRevertable = useCallback((entry: Activity) => {
 		if (entry.activity_type !== "task.updated") return false;

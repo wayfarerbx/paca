@@ -1,0 +1,22 @@
+{
+	"dialog": {
+		"closeLabel": "닫기",
+		"closeButton": "닫기"
+	},
+	"sidebar": {
+		"title": "사이드바",
+		"description": "모바일 사이드바를 표시합니다.",
+		"toggleLabel": "사이드바 전환"
+	},
+	"validation": {
+		"usernameRequired": "사용자 이름을 입력해 주세요.",
+		"usernameMinLength": "사용자 이름은 최소 {{min}}자 이상이어야 합니다.",
+		"passwordRequired": "비밀번호를 입력해 주세요.",
+		"passwordMinLength": "비밀번호는 최소 {{min}}자 이상이어야 합니다.",
+		"newPasswordRequired": "새 비밀번호를 입력해 주세요.",
+		"newPasswordMinLength": "새 비밀번호는 최소 {{min}}자 이상이어야 합니다.",
+		"newPasswordMustDiffer": "새 비밀번호는 현재 비밀번호와 달라야 합니다.",
+		"confirmPasswordRequired": "새 비밀번호를 다시 입력해 주세요.",
+		"passwordsDoNotMatch": "비밀번호가 일치하지 않습니다."
+	}
+}

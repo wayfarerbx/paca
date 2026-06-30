@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +33,7 @@ export function DeleteTaskStatusDialog({
 	open,
 	onOpenChange,
 }: DeleteTaskStatusDialogProps) {
+	const { t } = useTranslation("projects");
 	const queryClient = useQueryClient();
 	const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +51,7 @@ export function DeleteTaskStatusDialog({
 				onOpenChange(false);
 				return;
 			}
-			setError("Failed to delete status. Please try again.");
+			setError(t("taskStatuses.deleteDialog.deleteFailed"));
 		},
 	});
 
@@ -66,14 +68,13 @@ export function DeleteTaskStatusDialog({
 					<div className="flex size-10 items-center justify-center rounded-full bg-destructive/10 mb-2">
 						<Trash2 className="size-5 text-destructive" />
 					</div>
-					<DialogTitle>Delete status</DialogTitle>
+					<DialogTitle>{t("taskStatuses.deleteDialog.title")}</DialogTitle>
 					<DialogDescription>
-						Delete{" "}
+						{t("taskStatuses.deleteDialog.confirmTextPrefix")}{" "}
 						<span className="font-semibold text-foreground">
 							&ldquo;{status.name}&rdquo;
 						</span>
-						? Tasks using this status will lose their status. This action cannot
-						be undone.
+						{t("taskStatuses.deleteDialog.confirmTextSuffix")}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -93,7 +94,7 @@ export function DeleteTaskStatusDialog({
 							/>
 						}
 					>
-						Cancel
+						{t("taskStatuses.deleteDialog.cancel")}
 					</DialogClose>
 					<Button
 						variant="destructive"
@@ -106,7 +107,7 @@ export function DeleteTaskStatusDialog({
 						) : (
 							<Trash2 className="size-3.5" />
 						)}
-						Delete status
+						{t("taskStatuses.deleteDialog.deleteStatus")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

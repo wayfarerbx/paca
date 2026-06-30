@@ -11,6 +11,7 @@ import {
 	Zap,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -122,6 +123,7 @@ function PluginCard({
 	onUninstall: (name: string) => void;
 	onUpgrade: (pluginName: string) => void;
 }) {
+	const { t } = useTranslation("plugins");
 	const { artifacts } = plugin;
 	const hasBackend = !!artifacts.backend_tar_gz_url;
 	const hasFrontend = !!artifacts.frontend_tar_gz_url;
@@ -156,11 +158,15 @@ function PluginCard({
 						<Badge variant="outline" className="text-xs">
 							{plugin.version}
 						</Badge>
-						{isInstalled ? <Badge className="text-xs">Installed</Badge> : null}
+						{isInstalled ? (
+							<Badge className="text-xs">
+								{t("marketplace.card.installed")}
+							</Badge>
+						) : null}
 						{upgradeAvailable ? (
 							<Badge variant="secondary" className="text-xs gap-1">
 								<ArrowUpCircle className="size-3" />
-								Update available
+								{t("marketplace.card.updateAvailable")}
 							</Badge>
 						) : null}
 					</div>
@@ -181,23 +187,26 @@ function PluginCard({
 					{hasBackend && (
 						<FeatureBadge
 							icon={<Server className="size-3" />}
-							label="Backend"
+							label={t("marketplace.card.features.backend")}
 						/>
 					)}
 					{hasFrontend && (
 						<FeatureBadge
 							icon={<LayoutTemplate className="size-3" />}
-							label="Frontend"
+							label={t("marketplace.card.features.frontend")}
 						/>
 					)}
 					{hasMigrations && (
 						<FeatureBadge
 							icon={<Database className="size-3" />}
-							label="Migrations"
+							label={t("marketplace.card.features.migrations")}
 						/>
 					)}
 					{hasMCP && (
-						<FeatureBadge icon={<Zap className="size-3" />} label="MCP" />
+						<FeatureBadge
+							icon={<Zap className="size-3" />}
+							label={t("marketplace.card.features.mcp")}
+						/>
 					)}
 				</div>
 
@@ -210,7 +219,7 @@ function PluginCard({
 							className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
 						>
 							<ExternalLink className="size-3.5" />
-							Source
+							{t("marketplace.card.source")}
 						</a>
 					) : (
 						<span /> // Spacer for alignment
@@ -226,8 +235,10 @@ function PluginCard({
 								>
 									<ArrowUpCircle className="size-4" />
 									{isUpgrading
-										? "Upgrading..."
-										: `Upgrade to ${plugin.version}`}
+										? t("marketplace.card.upgrading")
+										: t("marketplace.card.upgradeTo", {
+												version: plugin.version,
+											})}
 								</Button>
 							) : null}
 							<Button
@@ -237,7 +248,9 @@ function PluginCard({
 								onClick={() => onUninstall(plugin.name)}
 							>
 								<Trash2 className="size-4" />
-								{isUninstalling ? "Uninstalling..." : "Uninstall"}
+								{isUninstalling
+									? t("marketplace.card.uninstalling")
+									: t("marketplace.card.uninstall")}
 							</Button>
 						</div>
 					) : (
@@ -247,7 +260,9 @@ function PluginCard({
 							onClick={() => onInstall(plugin.name)}
 						>
 							<Download className="size-4" />
-							{isInstalling ? "Installing..." : "Install"}
+							{isInstalling
+								? t("marketplace.card.installing")
+								: t("marketplace.card.install")}
 						</Button>
 					)}
 				</div>
@@ -257,6 +272,7 @@ function PluginCard({
 }
 
 export function PluginMarketplacePanel() {
+	const { t } = useTranslation("plugins");
 	const qc = useQueryClient();
 	const [query, setQuery] = useState("");
 
@@ -303,7 +319,7 @@ export function PluginMarketplacePanel() {
 	if (isLoading) {
 		return (
 			<div className="text-sm text-muted-foreground py-6">
-				Loading marketplace...
+				{t("marketplace.loading")}
 			</div>
 		);
 	}
@@ -315,14 +331,14 @@ export function PluginMarketplacePanel() {
 				<Input
 					value={query}
 					onChange={(e) => setQuery(e.target.value)}
-					placeholder="Search plugins"
+					placeholder={t("marketplace.searchPlaceholder")}
 					className="pl-9"
 				/>
 			</div>
 
 			{filtered.length === 0 ? (
 				<div className="text-sm text-muted-foreground py-6">
-					No marketplace plugins found.
+					{t("marketplace.empty")}
 				</div>
 			) : (
 				<div className="grid grid-cols-1 gap-3">

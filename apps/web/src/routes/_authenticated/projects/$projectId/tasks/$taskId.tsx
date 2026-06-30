@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AlertCircle, ArrowLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { TaskDetailModal } from "@/components/projects/interactions/task-detail-modal";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -95,6 +96,7 @@ function TaskDetailSkeleton() {
 }
 
 function TaskDetailPage() {
+	const { t } = useTranslation("projects");
 	const { projectId, taskId } = Route.useParams();
 
 	const { hasProjectPermission } = useProjectPermissions(projectId);
@@ -122,11 +124,9 @@ function TaskDetailPage() {
 				<AlertCircle className="size-10" />
 				<div className="text-center">
 					<p className="text-base font-medium text-foreground/70">
-						Task not found
+						{t("taskDetail.notFound.title")}
 					</p>
-					<p className="text-sm mt-1">
-						This task may have been deleted or the link is invalid.
-					</p>
+					<p className="text-sm mt-1">{t("taskDetail.notFound.description")}</p>
 				</div>
 				<Link
 					to="/projects/$projectId"
@@ -134,7 +134,7 @@ function TaskDetailPage() {
 					className="flex items-center gap-1.5 rounded-lg border border-border/60 px-4 py-2 text-sm font-medium text-foreground/70 hover:bg-muted/50 transition-colors mt-2"
 				>
 					<ArrowLeft className="size-4" />
-					Back to project
+					{t("taskDetail.notFound.backToProject")}
 				</Link>
 			</div>
 		);
@@ -150,7 +150,7 @@ function TaskDetailPage() {
 					className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
 				>
 					<ArrowLeft className="size-3.5" />
-					{project?.name ?? "Project"}
+					{project?.name ?? t("taskDetail.notFound.projectFallback")}
 				</Link>
 			</div>
 

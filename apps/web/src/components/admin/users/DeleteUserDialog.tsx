@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +27,7 @@ export function DeleteUserDialog({
 	open,
 	onOpenChange,
 }: DeleteUserDialogProps) {
+	const { t } = useTranslation("admin");
 	const queryClient = useQueryClient();
 	const [error, setError] = useState<string | null>(null);
 
@@ -40,13 +42,18 @@ export function DeleteUserDialog({
 		onError: (err: unknown) => {
 			const code = getApiErrorCode(err);
 			const messages: Partial<Record<string, string>> = {
-				[ApiErrorCode.UserNotFound]: "This user no longer exists.",
-				[ApiErrorCode.Forbidden]:
-					"You don't have permission to delete this user.",
-				[ApiErrorCode.InternalError]: "Something went wrong. Please try again.",
+				[ApiErrorCode.UserNotFound]: t(
+					"users.deleteDialog.errors.userNotFound",
+				),
+				[ApiErrorCode.Forbidden]: t("users.deleteDialog.errors.forbidden"),
+				[ApiErrorCode.InternalError]: t(
+					"users.deleteDialog.errors.internalError",
+				),
 			};
 			const fallback =
-				err instanceof Error ? err.message : "Something went wrong.";
+				err instanceof Error
+					? err.message
+					: t("users.deleteDialog.errors.generic");
 			setError((code && messages[code]) ?? fallback);
 		},
 	});
@@ -64,17 +71,17 @@ export function DeleteUserDialog({
 					<div className="mb-1 flex size-9 items-center justify-center rounded-lg bg-destructive/10">
 						<Trash2 className="size-4 text-destructive" />
 					</div>
-					<DialogTitle>Delete user</DialogTitle>
+					<DialogTitle>{t("users.deleteDialog.title")}</DialogTitle>
 					<DialogDescription className="mt-1 space-y-1">
 						<span>
-							Are you sure you want to delete{" "}
+							{t("users.deleteDialog.confirmTextPrefix")}{" "}
 							<span className="font-mono font-semibold text-foreground">
 								{user.username}
 							</span>
-							? Their account will be permanently removed.
+							{t("users.deleteDialog.confirmTextSuffix")}
 						</span>{" "}
 						<span className="font-medium text-foreground">
-							This action cannot be undone.
+							{t("users.deleteDialog.cannotBeUndone")}
 						</span>
 					</DialogDescription>
 				</DialogHeader>
@@ -86,14 +93,16 @@ export function DeleteUserDialog({
 				) : null}
 				<DialogFooter>
 					<DialogClose render={<Button variant="outline" />}>
-						Cancel
+						{t("users.deleteDialog.cancel")}
 					</DialogClose>
 					<Button
 						variant="destructive"
 						onClick={() => mutation.mutate()}
 						disabled={mutation.isPending}
 					>
-						{mutation.isPending ? "Deleting…" : "Delete user"}
+						{mutation.isPending
+							? t("users.deleteDialog.deleting")
+							: t("users.deleteDialog.confirmButton")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,14 +34,20 @@ const initialTouchedState: TouchedState = {
 	confirmPassword: false,
 };
 
-function validateCurrentPassword(value: string) {
+function validateCurrentPassword(
+	value: string,
+	t: TFunction<"profile">,
+	tCommon: TFunction<"common">,
+) {
 	if (!value) {
-		return "Current password is required.";
+		return t("changePassword.errors.currentPasswordRequired");
 	}
-	return validatePassword(value);
+	return validatePassword(value, tCommon);
 }
 
 export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
+	const { t } = useTranslation("profile");
+	const { t: tCommon } = useTranslation("common");
 	const queryClient = useQueryClient();
 	const [currentPassword, setCurrentPassword] = useState("");
 	const [newPassword, setNewPassword] = useState("");
@@ -55,11 +63,17 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
 	const [success, setSuccess] = useState(false);
 
 	const currentPasswordError =
-		currentPasswordServerError ?? validateCurrentPassword(currentPassword);
-	const newPasswordError = validateNewPassword(newPassword, currentPassword);
+		currentPasswordServerError ??
+		validateCurrentPassword(currentPassword, t, tCommon);
+	const newPasswordError = validateNewPassword(
+		newPassword,
+		currentPassword,
+		tCommon,
+	);
 	const confirmPasswordError = validateConfirmPassword(
 		confirmPassword,
 		newPassword,
+		tCommon,
 	);
 	const hasValidationErrors = Boolean(
 		currentPasswordError || newPasswordError || confirmPasswordError,
@@ -119,14 +133,18 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
 		onError: (err: unknown) => {
 			const code = getApiErrorCode(err);
 			const messages: Partial<Record<string, string>> = {
-				[ApiErrorCode.InvalidCurrentPassword]: "Current password is incorrect.",
-				[ApiErrorCode.Unauthenticated]:
-					"Your session has expired. Please log in again.",
-				[ApiErrorCode.InternalError]:
-					"Something went wrong on the server. Please try again.",
+				[ApiErrorCode.InvalidCurrentPassword]: t(
+					"changePassword.errors.currentPasswordIncorrect",
+				),
+				[ApiErrorCode.Unauthenticated]: t(
+					"changePassword.errors.sessionExpired",
+				),
+				[ApiErrorCode.InternalError]: t("changePassword.errors.serverError"),
 			};
 			const fallback =
-				err instanceof Error ? err.message : "Failed to change password.";
+				err instanceof Error
+					? err.message
+					: t("changePassword.errors.changeFailed");
 
 			if (code === ApiErrorCode.InvalidCurrentPassword) {
 				setCurrentPasswordServerError(messages[code] ?? fallback);
@@ -167,7 +185,7 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
 					htmlFor="current-password"
 					className="text-xs font-semibold uppercase tracking-wide text-(--sea-ink)"
 				>
-					Current password
+					{t("changePassword.fields.currentPassword")}
 				</Label>
 				<div className="relative">
 					<Input
@@ -179,7 +197,7 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
 						}
 						onBlur={() => setFieldTouched("currentPassword")}
 						autoComplete="current-password"
-						placeholder="••••••••"
+						placeholder={t("changePassword.fields.passwordPlaceholder")}
 						aria-invalid={touched.currentPassword && !!currentPasswordError}
 						aria-describedby={
 							touched.currentPassword && currentPasswordError
@@ -199,8 +217,8 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
 						className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-(--sea-ink-soft) transition-colors hover:text-(--sea-ink)"
 						aria-label={
 							showCurrentPassword
-								? "Hide current password"
-								: "Show current password"
+								? t("changePassword.aria.hideCurrentPassword")
+								: t("changePassword.aria.showCurrentPassword")
 						}
 					>
 						{showCurrentPassword ? (
@@ -226,7 +244,7 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
 					htmlFor="new-password"
 					className="text-xs font-semibold uppercase tracking-wide text-(--sea-ink)"
 				>
-					New password
+					{t("changePassword.fields.newPassword")}
 				</Label>
 				<div className="relative">
 					<Input
@@ -236,7 +254,7 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
 						onChange={(e) => handleFieldChange("newPassword", e.target.value)}
 						onBlur={() => setFieldTouched("newPassword")}
 						autoComplete="new-password"
-						placeholder="••••••••"
+						placeholder={t("changePassword.fields.passwordPlaceholder")}
 						aria-invalid={touched.newPassword && !!newPasswordError}
 						aria-describedby={
 							touched.newPassword && newPasswordError
@@ -255,7 +273,9 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
 						onClick={() => setShowNewPassword((current) => !current)}
 						className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-(--sea-ink-soft) transition-colors hover:text-(--sea-ink)"
 						aria-label={
-							showNewPassword ? "Hide new password" : "Show new password"
+							showNewPassword
+								? t("changePassword.aria.hideNewPassword")
+								: t("changePassword.aria.showNewPassword")
 						}
 					>
 						{showNewPassword ? (
@@ -275,8 +295,7 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
 					</p>
 				) : (
 					<p className="mt-1 text-xs text-(--sea-ink-soft)">
-						Use at least 8 characters and choose something different from your
-						current password.
+						{t("changePassword.fields.newPasswordHint")}
 					</p>
 				)}
 			</div>
@@ -286,7 +305,7 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
 					htmlFor="confirm-password"
 					className="text-xs font-semibold uppercase tracking-wide text-(--sea-ink)"
 				>
-					Confirm new password
+					{t("changePassword.fields.confirmPassword")}
 				</Label>
 				<div className="relative">
 					<Input
@@ -298,7 +317,7 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
 						}
 						onBlur={() => setFieldTouched("confirmPassword")}
 						autoComplete="new-password"
-						placeholder="••••••••"
+						placeholder={t("changePassword.fields.passwordPlaceholder")}
 						aria-invalid={touched.confirmPassword && !!confirmPasswordError}
 						aria-describedby={
 							touched.confirmPassword && confirmPasswordError
@@ -318,8 +337,8 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
 						className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-(--sea-ink-soft) transition-colors hover:text-(--sea-ink)"
 						aria-label={
 							showConfirmPassword
-								? "Hide confirm password"
-								: "Show confirm password"
+								? t("changePassword.aria.hideConfirmPassword")
+								: t("changePassword.aria.showConfirmPassword")
 						}
 					>
 						{showConfirmPassword ? (
@@ -344,7 +363,7 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
 				<p className="text-sm text-destructive">{formError}</p>
 			) : null}
 			{success ? (
-				<p className="text-sm text-primary">Password changed successfully.</p>
+				<p className="text-sm text-primary">{t("changePassword.success")}</p>
 			) : null}
 
 			<button
@@ -355,7 +374,9 @@ export function ChangePasswordForm({ onSuccess }: ChangePasswordFormProps) {
 				)}
 				disabled={mutation.isPending || hasValidationErrors}
 			>
-				{mutation.isPending ? "Updating…" : "Change password"}
+				{mutation.isPending
+					? t("changePassword.actions.updating")
+					: t("changePassword.actions.submit")}
 			</button>
 		</form>
 	);

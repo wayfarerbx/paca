@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { TaskType } from "@/lib/project-api";
 import { TaskTypeSelector } from "./task-type-selector";
@@ -19,9 +20,12 @@ export function AddTaskRow({
 	taskTypes,
 	onAdd,
 	variant = "list",
-	label = "Add task",
-	placeholder = "Task title…",
+	label,
+	placeholder,
 }: AddTaskRowProps) {
+	const { t } = useTranslation("projects");
+	const resolvedLabel = label ?? t("board.addTaskRow.addTask");
+	const resolvedPlaceholder = placeholder ?? t("board.addTaskRow.placeholder");
 	const [open, setOpen] = useState(false);
 	const [value, setValue] = useState("");
 	const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
@@ -69,7 +73,7 @@ export function AddTaskRow({
 				onClick={cancel}
 				className="flex items-center gap-1.5 rounded-lg bg-muted/40 text-muted-foreground/80 hover:bg-muted/60 hover:text-foreground px-2.5 py-1.5 text-xs font-semibold transition-all duration-150"
 			>
-				Cancel
+				{t("board.addTaskRow.cancel")}
 			</button>
 			<button
 				type="button"
@@ -77,7 +81,7 @@ export function AddTaskRow({
 				disabled={!value.trim()}
 				className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 shadow-sm disabled:opacity-40 transition-all duration-150"
 			>
-				Create
+				{t("board.addTaskRow.create")}
 			</button>
 		</>
 	);
@@ -93,7 +97,7 @@ export function AddTaskRow({
 					className="flex w-full items-center gap-1.5 rounded-lg bg-primary/8 text-primary/80 hover:bg-primary/15 hover:text-primary px-2.5 py-1.5 text-sm font-semibold transition-all duration-150"
 				>
 					<Plus className="size-3" />
-					{label}
+					{resolvedLabel}
 				</button>
 			);
 		}
@@ -104,7 +108,7 @@ export function AddTaskRow({
 				className="flex items-center gap-1.5 px-4 py-2.5 text-sm text-muted-foreground/70 hover:text-foreground hover:bg-muted/30 transition-all duration-150 w-full"
 			>
 				<Plus className="size-3" />
-				{label}
+				{resolvedLabel}
 			</button>
 		);
 	}
@@ -125,7 +129,7 @@ export function AddTaskRow({
 						if (e.key === "Enter") submit();
 						if (e.key === "Escape") cancel();
 					}}
-					placeholder={placeholder}
+					placeholder={resolvedPlaceholder}
 					className="w-full rounded-lg border border-border/30 bg-muted/15 px-3 py-2 text-sm font-medium outline-none placeholder:text-muted-foreground/50 focus:border-primary/40 focus:ring-2 focus:ring-primary/15 transition-all duration-150"
 				/>
 				<div className="mt-2 flex items-center gap-1.5 justify-end">
@@ -149,7 +153,7 @@ export function AddTaskRow({
 						if (e.key === "Enter") submit();
 						if (e.key === "Escape") cancel();
 					}}
-					placeholder={placeholder}
+					placeholder={resolvedPlaceholder}
 					className="flex-1 bg-transparent text-sm font-medium outline-none placeholder:text-muted-foreground/50"
 				/>
 				{actionButtons}

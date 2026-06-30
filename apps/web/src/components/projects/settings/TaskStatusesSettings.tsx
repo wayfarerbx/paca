@@ -8,6 +8,7 @@ import {
 	Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { DeleteTaskStatusDialog } from "@/components/projects/task-statuses/DeleteTaskStatusDialog";
 import { TaskStatusFormDialog } from "@/components/projects/task-statuses/TaskStatusFormDialog";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,7 @@ export function TaskStatusesSettings({
 	projectId: string;
 	canWrite: boolean;
 }) {
+	const { t } = useTranslation("projects");
 	const { data: statuses, isLoading } = useQuery(
 		taskStatusesQueryOptions(projectId),
 	);
@@ -96,7 +98,7 @@ export function TaskStatusesSettings({
 		},
 		onError: () => {
 			setLocalOrder(null);
-			setReorderError("Failed to save the new order. Please try again.");
+			setReorderError(t("settings.taskStatuses.reorderFailed"));
 		},
 	});
 
@@ -131,9 +133,11 @@ export function TaskStatusesSettings({
 		<div className="rounded-xl border border-border/60 bg-card p-6">
 			<div className="flex items-center justify-between mb-1">
 				<div>
-					<h3 className="font-[Syne] text-base font-semibold">Task Statuses</h3>
+					<h3 className="font-[Syne] text-base font-semibold">
+						{t("settings.taskStatuses.title")}
+					</h3>
 					<p className="text-xs text-muted-foreground mt-0.5">
-						Define the workflow statuses tasks move through in this project.
+						{t("settings.taskStatuses.description")}
 					</p>
 				</div>
 				{canWrite ? (
@@ -144,7 +148,7 @@ export function TaskStatusesSettings({
 						onClick={() => setCreateOpen(true)}
 					>
 						<Plus className="size-3.5" />
-						New status
+						{t("settings.taskStatuses.newStatus")}
 					</Button>
 				) : null}
 			</div>
@@ -178,9 +182,11 @@ export function TaskStatusesSettings({
 						<LayoutList className="size-6" />
 					</div>
 					<div>
-						<p className="text-sm font-medium">No statuses defined</p>
+						<p className="text-sm font-medium">
+							{t("settings.taskStatuses.empty.title")}
+						</p>
 						<p className="mt-1 text-xs text-muted-foreground">
-							Create statuses to define the workflow for tasks in this project.
+							{t("settings.taskStatuses.empty.description")}
 						</p>
 					</div>
 					{canWrite ? (
@@ -190,7 +196,7 @@ export function TaskStatusesSettings({
 							onClick={() => setCreateOpen(true)}
 						>
 							<Plus className="size-4" />
-							Create status
+							{t("settings.taskStatuses.empty.createStatus")}
 						</Button>
 					) : null}
 				</div>
@@ -204,13 +210,13 @@ export function TaskStatusesSettings({
 									#
 								</TableHead>
 								<TableHead className="px-5 text-xs font-semibold uppercase tracking-wide">
-									Name
+									{t("settings.taskStatuses.table.name")}
 								</TableHead>
 								<TableHead className="w-36 px-5 text-xs font-semibold uppercase tracking-wide">
-									Category
+									{t("settings.taskStatuses.table.category")}
 								</TableHead>
 								<TableHead className="px-5 text-xs font-semibold uppercase tracking-wide">
-									Default
+									{t("settings.taskStatuses.table.default")}
 								</TableHead>
 								<TableHead className="w-20 px-5 text-xs font-semibold uppercase tracking-wide" />
 							</TableRow>
@@ -272,7 +278,7 @@ export function TaskStatusesSettings({
 										{status.is_default ? (
 											<span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
 												<Star className="size-3 fill-current" />
-												Default
+												{t("settings.taskStatuses.default")}
 											</span>
 										) : null}
 									</TableCell>
@@ -285,8 +291,8 @@ export function TaskStatusesSettings({
 														size="icon-sm"
 														onClick={() => setDefaultMutation.mutate(status.id)}
 														disabled={setDefaultMutation.isPending}
-														title="Set as default status"
-														aria-label="Set as default status"
+														title={t("settings.taskStatuses.setAsDefault")}
+														aria-label={t("settings.taskStatuses.setAsDefault")}
 													>
 														<Star className="size-3.5" />
 													</Button>
@@ -295,7 +301,7 @@ export function TaskStatusesSettings({
 													variant="ghost"
 													size="icon-sm"
 													onClick={() => setEditStatus(status)}
-													title="Edit status"
+													title={t("settings.taskStatuses.editStatus")}
 												>
 													<Edit2 className="size-3.5" />
 												</Button>
@@ -304,7 +310,7 @@ export function TaskStatusesSettings({
 													size="icon-sm"
 													className="text-destructive hover:text-destructive hover:bg-destructive/10"
 													onClick={() => setDeleteStatus(status)}
-													title="Delete status"
+													title={t("settings.taskStatuses.deleteStatus")}
 												>
 													<Trash2 className="size-3.5" />
 												</Button>

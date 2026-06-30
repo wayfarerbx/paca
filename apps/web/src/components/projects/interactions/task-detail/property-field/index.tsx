@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { FieldRow, FieldValue } from "../primitives";
 import { CheckboxEditor } from "./checkbox-editor";
 import { CustomFieldEditor } from "./custom-field-editor";
@@ -53,6 +54,7 @@ export function PropertyField({
 	onCustomChange,
 	customOptions = [],
 }: PropertyFieldProps) {
+	const { t } = useTranslation("projects");
 	if (hidden) return null;
 
 	function renderContent(): ReactNode {
@@ -92,7 +94,7 @@ export function PropertyField({
 				if (!canEdit) {
 					return (
 						<span className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-muted/25 px-2.5 py-1.5 text-xs text-muted-foreground font-medium">
-							{dateValue ?? "Empty"}
+							{dateValue ?? t("taskDetail.common.empty")}
 						</span>
 					);
 				}

@@ -1,0 +1,106 @@
+{
+	"page": {
+		"title": "Mi perfil",
+		"subtitle": "Consulta y actualiza la información de tu cuenta."
+	},
+	"fields": {
+		"fullName": "Nombre completo",
+		"fullNamePlaceholder": "Introduce tu nombre completo",
+		"notSet": "No definido",
+		"username": "Nombre de usuario"
+	},
+	"actions": {
+		"editProfile": "Editar perfil",
+		"saveChanges": "Guardar cambios",
+		"saving": "Guardando…",
+		"cancel": "Cancelar"
+	},
+	"errors": {
+		"updateFailed": "No se pudo actualizar el perfil. Inténtalo de nuevo."
+	},
+	"joinedOn": "Se unió el {{date}}",
+	"changePassword": {
+		"title": "Cambiar contraseña",
+		"description": "Actualiza la contraseña de tu cuenta.",
+		"descriptionMustChange": "Debes establecer una nueva contraseña antes de continuar.",
+		"temporaryPasswordNotice": "Se estableció una contraseña temporal para tu cuenta. Cámbiala ahora.",
+		"success": "Contraseña cambiada correctamente.",
+		"fields": {
+			"currentPassword": "Contraseña actual",
+			"newPassword": "Nueva contraseña",
+			"confirmPassword": "Confirmar nueva contraseña",
+			"passwordPlaceholder": "••••••••",
+			"newPasswordHint": "Usa al menos 8 caracteres y elige algo diferente de tu contraseña actual."
+		},
+		"aria": {
+			"showCurrentPassword": "Mostrar contraseña actual",
+			"hideCurrentPassword": "Ocultar contraseña actual",
+			"showNewPassword": "Mostrar nueva contraseña",
+			"hideNewPassword": "Ocultar nueva contraseña",
+			"showConfirmPassword": "Mostrar confirmación de contraseña",
+			"hideConfirmPassword": "Ocultar confirmación de contraseña"
+		},
+		"actions": {
+			"submit": "Cambiar contraseña",
+			"updating": "Actualizando…"
+		},
+		"errors": {
+			"currentPasswordRequired": "La contraseña actual es obligatoria.",
+			"currentPasswordIncorrect": "La contraseña actual es incorrecta.",
+			"sessionExpired": "Tu sesión ha expirado. Vuelve a iniciar sesión.",
+			"serverError": "Algo salió mal en el servidor. Inténtalo de nuevo.",
+			"changeFailed": "No se pudo cambiar la contraseña."
+		}
+	},
+	"apiKeys": {
+		"title": "Claves de API",
+		"subtitle": "Las claves de API te permiten autenticar solicitudes de API sin usar las cookies de tu sesión. Trátalas como contraseñas — nunca las compartas.",
+		"empty": "Aún no hay claves de API. Crea una para empezar.",
+		"yourKeys": {
+			"title": "Tus claves",
+			"description": "Las claves se muestran solo con los primeros 8 caracteres para identificarlas."
+		},
+		"table": {
+			"name": "Nombre",
+			"prefix": "Prefijo",
+			"created": "Creada",
+			"expires": "Caduca",
+			"lastUsed": "Último uso"
+		},
+		"actions": {
+			"newKey": "Nueva clave",
+			"cancel": "Cancelar",
+			"creating": "Creando…",
+			"createKey": "Crear clave",
+			"done": "Hecho",
+			"revoking": "Revocando…",
+			"revokeKey": "Revocar clave",
+			"revokeKeyAria": "Revocar clave",
+			"copyKeyAria": "Copiar clave"
+		},
+		"createDialog": {
+			"title": "Crear clave de API",
+			"description": "Dale a tu clave un nombre descriptivo para poder identificarla más tarde.",
+			"nameLabel": "Nombre",
+			"namePlaceholder": "p. ej. Pipeline de CI, Desarrollo local",
+			"expiryLabel": "Fecha de caducidad",
+			"expiryOptional": "(opcional)"
+		},
+		"revealDialog": {
+			"title": "Clave de API creada",
+			"description": "Copia tu nueva clave ahora. No podrás volver a verla.",
+			"copied": "¡Copiado al portapapeles!"
+		},
+		"revokeDialog": {
+			"title": "Revocar clave de API",
+			"confirmPrefix": "¿Seguro que quieres revocar",
+			"confirmSuffix": "? Cualquier solicitud que use esta clave dejará de funcionar de inmediato."
+		},
+		"errors": {
+			"nameRequired": "El nombre no puede estar vacío.",
+			"nameTooLong": "El nombre debe tener 100 caracteres o menos.",
+			"createFailed": "No se pudo crear la clave. Inténtalo de nuevo.",
+			"copyFailed": "Error al copiar. Copia la clave manualmente."
+		}
+	}
+}

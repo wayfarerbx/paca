@@ -1,0 +1,22 @@
+{
+	"dialog": {
+		"closeLabel": "Cerrar",
+		"closeButton": "Cerrar"
+	},
+	"sidebar": {
+		"title": "Barra lateral",
+		"description": "Muestra la barra lateral en dispositivos móviles.",
+		"toggleLabel": "Mostrar/ocultar barra lateral"
+	},
+	"validation": {
+		"usernameRequired": "El nombre de usuario es obligatorio.",
+		"usernameMinLength": "El nombre de usuario debe tener al menos {{min}} caracteres.",
+		"passwordRequired": "La contraseña es obligatoria.",
+		"passwordMinLength": "La contraseña debe tener al menos {{min}} caracteres.",
+		"newPasswordRequired": "La nueva contraseña es obligatoria.",
+		"newPasswordMinLength": "La nueva contraseña debe tener al menos {{min}} caracteres.",
+		"newPasswordMustDiffer": "La nueva contraseña debe ser diferente de la contraseña actual.",
+		"confirmPasswordRequired": "Confirma tu nueva contraseña.",
+		"passwordsDoNotMatch": "Las contraseñas no coinciden."
+	}
+}

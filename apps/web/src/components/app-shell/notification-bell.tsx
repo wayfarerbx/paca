@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import type { TFunction } from "i18next";
 import { Bell } from "lucide-react";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
 	Popover,
@@ -16,25 +18,35 @@ import {
 	notificationsQueryOptions,
 } from "@/lib/notification-api";
 
-function timeAgo(date: string): string {
+function timeAgo(date: string, t: TFunction<"appShell">): string {
 	const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-	if (seconds < 60) return "just now";
+	if (seconds < 60) return t("notifications.timeAgo.justNow");
 	const minutes = Math.floor(seconds / 60);
-	if (minutes < 60) return `${minutes}m ago`;
+	if (minutes < 60)
+		return t("notifications.timeAgo.minutes", { count: minutes });
 	const hours = Math.floor(minutes / 60);
-	if (hours < 24) return `${hours}h ago`;
+	if (hours < 24) return t("notifications.timeAgo.hours", { count: hours });
 	const days = Math.floor(hours / 24);
-	return `${days}d ago`;
+	return t("notifications.timeAgo.days", { count: days });
 }
 
-function notificationText(n: Notification): string {
+function notificationText(n: Notification, t: TFunction<"appShell">): string {
 	if (n.type === "assigned") {
-		return `${n.actor_full_name} assigned you to task #${n.task_number} — ${n.task_title}`;
+		return t("notifications.text.assigned", {
+			actor: n.actor_full_name,
+			taskNumber: n.task_number,
+			taskTitle: n.task_title,
+		});
 	}
-	return `${n.actor_full_name} mentioned you in #${n.task_number} — ${n.task_title}`;
+	return t("notifications.text.mentioned", {
+		actor: n.actor_full_name,
+		taskNumber: n.task_number,
+		taskTitle: n.task_title,
+	});
 }
 
 export function NotificationBell() {
+	const { t } = useTranslation("appShell");
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const { data } = useQuery(notificationsQueryOptions);
@@ -76,7 +88,7 @@ export function NotificationBell() {
 		<Popover>
 			<PopoverTrigger
 				className="relative inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-				aria-label="Notifications"
+				aria-label={t("notifications.title")}
 			>
 				<Bell className="h-4 w-4" />
 				{unreadCount > 0 && (
@@ -87,21 +99,23 @@ export function NotificationBell() {
 			</PopoverTrigger>
 			<PopoverContent align="end" sideOffset={8} className="w-80 p-0 shadow-lg">
 				<div className="flex items-center justify-between px-4 py-3 border-b">
-					<span className="text-sm font-semibold">Notifications</span>
+					<span className="text-sm font-semibold">
+						{t("notifications.title")}
+					</span>
 					{unreadCount > 0 && (
 						<button
 							type="button"
 							onClick={() => markAllRead()}
 							className="text-xs text-muted-foreground hover:text-foreground transition-colors"
 						>
-							Mark all as read
+							{t("notifications.markAllAsRead")}
 						</button>
 					)}
 				</div>
 				{notifications.length === 0 ? (
 					<div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
 						<Bell className="h-8 w-8 mb-2 opacity-30" />
-						<p className="text-sm">No notifications yet</p>
+						<p className="text-sm">{t("notifications.empty")}</p>
 					</div>
 				) : (
 					<ScrollArea className="max-h-96">
@@ -118,10 +132,10 @@ export function NotificationBell() {
 										)}
 										<div className={!n.read_at ? "" : "pl-5"}>
 											<p className="text-sm leading-snug">
-												{notificationText(n)}
+												{notificationText(n, t)}
 											</p>
 											<p className="mt-0.5 text-xs text-muted-foreground">
-												{n.project_name} · {timeAgo(n.created_at)}
+												{n.project_name} · {timeAgo(n.created_at, t)}
 											</p>
 										</div>
 									</button>

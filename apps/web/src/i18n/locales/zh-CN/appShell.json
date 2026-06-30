@@ -1,0 +1,79 @@
+{
+	"language": {
+		"label": "语言",
+		"toggleTooltip": "语言：{{language}} — 点击切换"
+	},
+	"brand": {
+		"logoAlt": "Paca 标志"
+	},
+	"theme": {
+		"label": "主题",
+		"light": "浅色",
+		"dark": "深色",
+		"auto": "自动",
+		"cycleTooltip": "主题：{{mode}} — 点击切换",
+		"modeAutoTooltip": "主题模式：自动（跟随系统）。点击切换为浅色模式。",
+		"modeTooltip": "主题模式：{{mode}}。点击切换模式。"
+	},
+	"nav": {
+		"home": "首页",
+		"administration": "系统管理",
+		"globalRoles": "全局角色",
+		"users": "用户",
+		"plugins": "插件",
+		"allProjects": "所有项目",
+		"project": "项目",
+		"agents": "智能体",
+		"team": "团队",
+		"settings": "设置"
+	},
+	"projectSwitcher": {
+		"projects": "项目",
+		"yourProjects": "我的项目",
+		"noProjectsYet": "暂无项目",
+		"newProject": "新建项目"
+	},
+	"interactions": {
+		"title": "互动",
+		"timeline": "时间线",
+		"productBacklog": "产品待办列表"
+	},
+	"docs": {
+		"documentation": "文档",
+		"noDocumentsYet": "暂无文档",
+		"emptyFolder": "空文件夹",
+		"add": "添加",
+		"newDocument": "新建文档",
+		"newFolder": "新建文件夹",
+		"newFolderDefaultName": "新建文件夹",
+		"newSubfolder": "新建子文件夹",
+		"rename": "重命名",
+		"delete": "删除",
+		"untitled": "无标题"
+	},
+	"notifications": {
+		"title": "通知",
+		"empty": "暂无通知",
+		"markAllAsRead": "全部标记为已读",
+		"text": {
+			"assigned": "{{actor}} 将任务 #{{taskNumber}} — {{taskTitle}} 分配给了您",
+			"mentioned": "{{actor}} 在 #{{taskNumber}} — {{taskTitle}} 中提到了您"
+		},
+		"timeAgo": {
+			"justNow": "刚刚",
+			"minutes_one": "{{count}} 分钟前",
+			"minutes_other": "{{count}} 分钟前",
+			"hours_one": "{{count}} 小时前",
+			"hours_other": "{{count}} 小时前",
+			"days_one": "{{count}} 天前",
+			"days_other": "{{count}} 天前"
+		}
+	},
+	"userMenu": {
+		"signIn": "登录",
+		"myProfile": "个人资料",
+		"apiKeys": "API 密钥",
+		"logOut": "退出登录",
+		"loggingOut": "正在退出登录…"
+	}
+}

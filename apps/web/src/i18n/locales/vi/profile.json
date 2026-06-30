@@ -1,0 +1,106 @@
+{
+	"page": {
+		"title": "Hồ sơ của tôi",
+		"subtitle": "Xem và cập nhật thông tin tài khoản của bạn."
+	},
+	"fields": {
+		"fullName": "Họ và tên",
+		"fullNamePlaceholder": "Nhập họ và tên của bạn",
+		"notSet": "Chưa đặt",
+		"username": "Tên đăng nhập"
+	},
+	"actions": {
+		"editProfile": "Chỉnh sửa hồ sơ",
+		"saveChanges": "Lưu thay đổi",
+		"saving": "Đang lưu…",
+		"cancel": "Hủy"
+	},
+	"errors": {
+		"updateFailed": "Cập nhật hồ sơ thất bại. Vui lòng thử lại."
+	},
+	"joinedOn": "Tham gia {{date}}",
+	"changePassword": {
+		"title": "Đổi mật khẩu",
+		"description": "Cập nhật mật khẩu tài khoản của bạn.",
+		"descriptionMustChange": "Bạn phải đặt mật khẩu mới trước khi tiếp tục.",
+		"temporaryPasswordNotice": "Một mật khẩu tạm thời đã được đặt cho tài khoản của bạn. Vui lòng đổi mật khẩu ngay bây giờ.",
+		"success": "Đổi mật khẩu thành công.",
+		"fields": {
+			"currentPassword": "Mật khẩu hiện tại",
+			"newPassword": "Mật khẩu mới",
+			"confirmPassword": "Xác nhận mật khẩu mới",
+			"passwordPlaceholder": "••••••••",
+			"newPasswordHint": "Sử dụng ít nhất 8 ký tự và chọn mật khẩu khác với mật khẩu hiện tại của bạn."
+		},
+		"aria": {
+			"showCurrentPassword": "Hiện mật khẩu hiện tại",
+			"hideCurrentPassword": "Ẩn mật khẩu hiện tại",
+			"showNewPassword": "Hiện mật khẩu mới",
+			"hideNewPassword": "Ẩn mật khẩu mới",
+			"showConfirmPassword": "Hiện mật khẩu xác nhận",
+			"hideConfirmPassword": "Ẩn mật khẩu xác nhận"
+		},
+		"actions": {
+			"submit": "Đổi mật khẩu",
+			"updating": "Đang cập nhật…"
+		},
+		"errors": {
+			"currentPasswordRequired": "Vui lòng nhập mật khẩu hiện tại.",
+			"currentPasswordIncorrect": "Mật khẩu hiện tại không đúng.",
+			"sessionExpired": "Phiên đăng nhập của bạn đã hết hạn. Vui lòng đăng nhập lại.",
+			"serverError": "Đã xảy ra lỗi trên máy chủ. Vui lòng thử lại.",
+			"changeFailed": "Đổi mật khẩu thất bại."
+		}
+	},
+	"apiKeys": {
+		"title": "Khóa API",
+		"subtitle": "Khóa API cho phép bạn xác thực các yêu cầu API mà không cần dùng cookie phiên đăng nhập. Hãy bảo mật chúng như mật khẩu — không bao giờ chia sẻ chúng.",
+		"empty": "Chưa có khóa API nào. Tạo một khóa để bắt đầu.",
+		"yourKeys": {
+			"title": "Khóa của bạn",
+			"description": "Các khóa chỉ hiển thị 8 ký tự đầu để nhận diện."
+		},
+		"table": {
+			"name": "Tên",
+			"prefix": "Tiền tố",
+			"created": "Ngày tạo",
+			"expires": "Hết hạn",
+			"lastUsed": "Sử dụng lần cuối"
+		},
+		"actions": {
+			"newKey": "Khóa mới",
+			"cancel": "Hủy",
+			"creating": "Đang tạo…",
+			"createKey": "Tạo khóa",
+			"done": "Xong",
+			"revoking": "Đang thu hồi…",
+			"revokeKey": "Thu hồi khóa",
+			"revokeKeyAria": "Thu hồi khóa",
+			"copyKeyAria": "Sao chép khóa"
+		},
+		"createDialog": {
+			"title": "Tạo khóa API",
+			"description": "Đặt tên gợi nhớ cho khóa để bạn có thể nhận diện sau này.",
+			"nameLabel": "Tên",
+			"namePlaceholder": "vd: CI pipeline, Local dev",
+			"expiryLabel": "Ngày hết hạn",
+			"expiryOptional": "(tùy chọn)"
+		},
+		"revealDialog": {
+			"title": "Đã tạo khóa API",
+			"description": "Hãy sao chép khóa mới của bạn ngay bây giờ. Bạn sẽ không thể xem lại khóa này.",
+			"copied": "Đã sao chép vào bộ nhớ tạm!"
+		},
+		"revokeDialog": {
+			"title": "Thu hồi khóa API",
+			"confirmPrefix": "Bạn có chắc chắn muốn thu hồi",
+			"confirmSuffix": "? Mọi yêu cầu sử dụng khóa này sẽ ngừng hoạt động ngay lập tức."
+		},
+		"errors": {
+			"nameRequired": "Tên không được để trống.",
+			"nameTooLong": "Tên phải có tối đa 100 ký tự.",
+			"createFailed": "Tạo khóa thất bại. Vui lòng thử lại.",
+			"copyFailed": "Sao chép thất bại. Vui lòng sao chép khóa thủ công."
+		}
+	}
+}

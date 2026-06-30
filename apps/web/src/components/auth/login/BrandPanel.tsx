@@ -1,25 +1,28 @@
 import { BookOpen, Bot, Puzzle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { GitHubIcon } from "@/components/icons/github-icon";
 
 const FEATURES = [
 	{
 		icon: Bot,
-		title: "Sandboxed AI Agents",
-		desc: "Each agent runs in an isolated container — picking tasks from the board without touching your host environment.",
+		titleKey: "brand.features.sandboxedAgents.title",
+		descKey: "brand.features.sandboxedAgents.desc",
 	},
 	{
 		icon: BookOpen,
-		title: "BDD & SDD Hub",
-		desc: "Co-author Gherkin scenarios and System Design Docs with your whole team — humans and AI alike.",
+		titleKey: "brand.features.bddSddHub.title",
+		descKey: "brand.features.bddSddHub.desc",
 	},
 	{
 		icon: Puzzle,
-		title: "Plugin Marketplace",
-		desc: "Browse and install plugins from the UI. Customize everything via config and WASM plugins.",
+		titleKey: "brand.features.pluginMarketplace.title",
+		descKey: "brand.features.pluginMarketplace.desc",
 	},
 ] as const;
 
 export function BrandPanel() {
+	const { t } = useTranslation("auth");
+
 	return (
 		<div className="relative hidden flex-col justify-between overflow-hidden rounded-l-xl bg-[#0a0a0a] p-10 lg:flex">
 			{/* Lime ambient glow — top */}
@@ -35,7 +38,7 @@ export function BrandPanel() {
 					<div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/6 shadow-sm shadow-black/40">
 						<img
 							src="/paca-logo-dark.svg"
-							alt="Paca logo"
+							alt={t("brand.logoAlt")}
 							width={127}
 							height={175}
 							className="h-auto w-5 brightness-0 invert"
@@ -45,33 +48,34 @@ export function BrandPanel() {
 						paca
 					</span>
 					<span className="rounded-full border border-white/20 bg-white/8 px-2 py-0.5 text-xs font-semibold uppercase tracking-widest text-white/60">
-						OSS
+						{t("brand.ossBadge")}
 					</span>
 				</div>
 
 				<h2 className="display-title mb-3 text-3xl font-bold leading-tight text-balance text-white">
-					One team, one board,{" "}
-					<span className="text-[#9ed957]">human and AI.</span>
+					{t("brand.headingPrefix")}{" "}
+					<span className="text-[#9ed957]">{t("brand.headingHighlight")}</span>
 				</h2>
 				<p className="mb-8 text-sm leading-relaxed text-white/55">
-					Open-source project management where AI agents and humans collaborate
-					as equal Scrum teammates — self-hosted, fully customizable.
+					{t("brand.tagline")}
 				</p>
 
 				{/* Feature cards */}
 				<ul className="space-y-2.5">
-					{FEATURES.map(({ icon: Icon, title, desc }) => (
+					{FEATURES.map(({ icon: Icon, titleKey, descKey }) => (
 						<li
-							key={title}
+							key={titleKey}
 							className="flex items-start gap-3.5 rounded-xl border border-white/8 bg-white/4 px-4 py-3.5 transition-colors hover:border-white/[0.14] hover:bg-white/[0.07]"
 						>
 							<div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-[rgba(158,217,87,0.12)] ring-1 ring-[rgba(158,217,87,0.2)]">
 								<Icon className="size-3.5 text-(--palm)" />
 							</div>
 							<div>
-								<p className="text-sm font-semibold text-white/90">{title}</p>
+								<p className="text-sm font-semibold text-white/90">
+									{t(titleKey)}
+								</p>
 								<p className="mt-0.5 text-xs leading-relaxed text-white/50">
-									{desc}
+									{t(descKey)}
 								</p>
 							</div>
 						</li>
@@ -92,9 +96,9 @@ export function BrandPanel() {
 						className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/6 px-3.5 py-2 text-xs font-medium text-white! transition-all hover:border-white/25 hover:bg-white/12 hover:text-white!"
 					>
 						<GitHubIcon className="size-3.5" />
-						View on GitHub
+						{t("brand.viewOnGitHub")}
 					</a>
-					<p className="text-xs text-white/30">Apache-2.0 · Open Source</p>
+					<p className="text-xs text-white/30">{t("brand.licenseLine")}</p>
 				</div>
 			</div>
 		</div>

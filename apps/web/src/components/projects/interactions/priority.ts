@@ -1,14 +1,21 @@
+export type PriorityLabelKey =
+	| "priority.none"
+	| "priority.low"
+	| "priority.medium"
+	| "priority.high"
+	| "priority.critical";
+
 export interface PriorityMeta {
-	label: string;
+	labelKey: PriorityLabelKey;
 	color: string;
 }
 
 export const PRIORITY_LABELS: Record<number, PriorityMeta> = {
-	0: { label: "None", color: "oklch(var(--muted-foreground))" },
-	1: { label: "Low", color: "#60a5fa" },
-	2: { label: "Medium", color: "#f59e0b" },
-	3: { label: "High", color: "#f97316" },
-	4: { label: "Critical", color: "#ef4444" },
+	0: { labelKey: "priority.none", color: "oklch(var(--muted-foreground))" },
+	1: { labelKey: "priority.low", color: "#60a5fa" },
+	2: { labelKey: "priority.medium", color: "#f59e0b" },
+	3: { labelKey: "priority.high", color: "#f97316" },
+	4: { labelKey: "priority.critical", color: "#ef4444" },
 };
 
 export const PRIORITY_LEVELS = Object.entries(PRIORITY_LABELS).map(

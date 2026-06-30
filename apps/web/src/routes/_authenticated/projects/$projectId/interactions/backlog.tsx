@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 import { InteractionLayout } from "@/components/projects/interactions/interaction-layout";
 import { useProjectPermissions } from "@/hooks/use-project-permissions";
@@ -12,6 +13,7 @@ export const Route = createFileRoute(
 function BacklogPage() {
 	const { projectId } = Route.useParams();
 	const { hasProjectPermission } = useProjectPermissions(projectId);
+	const { t } = useTranslation("projects");
 
 	const canCreate = hasProjectPermission("tasks.write");
 	const canEdit = hasProjectPermission("tasks.write");
@@ -21,8 +23,8 @@ function BacklogPage() {
 		<InteractionLayout
 			projectId={projectId}
 			interactionKey={`backlog:${projectId}`}
-			title="Product Backlog"
-			description="All work items not assigned to a sprint."
+			title={t("board.backlog.title")}
+			description={t("board.backlog.description")}
 			canCreate={canCreate}
 			canEdit={canEdit}
 			canManageViews={canManageViews}

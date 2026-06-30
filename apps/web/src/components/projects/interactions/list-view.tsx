@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { Sprint, Task, ViewConfig } from "@/lib/interaction-api";
 import type {
@@ -95,6 +96,7 @@ export function ListView({
 	onCollapseChange,
 	columnPagination,
 }: ListViewProps) {
+	const { t } = useTranslation("projects");
 	const columnBy = viewConfig?.column_by ?? "status";
 	const swimlaneBy = viewConfig?.swimlanes;
 	const fieldSum = viewConfig?.field_sum;
@@ -111,8 +113,8 @@ export function ListView({
 	);
 
 	const groupDefs = useMemo(
-		() => getColumnGroupDefs(columnBy, viewCtx),
-		[columnBy, viewCtx],
+		() => getColumnGroupDefs(columnBy, viewCtx, t),
+		[columnBy, viewCtx, t],
 	);
 
 	const effectiveGroupDefs = useMemo((): ColumnGroupDef[] => {
@@ -122,20 +124,24 @@ export function ListView({
 		} else {
 			const seen = new Set<string>();
 			const dynamic: ColumnGroupDef[] = [];
-			for (const t of tasks) {
-				for (const k of getTaskColumnKeys(t, columnBy, viewCtx)) {
+			for (const tk of tasks) {
+				for (const k of getTaskColumnKeys(tk, columnBy, viewCtx)) {
 					if (!seen.has(k)) {
 						seen.add(k);
 						dynamic.push({
 							key: k,
-							label: k === "__none" ? "None" : k,
+							label: k === "__none" ? t("board.common.none") : k,
 							fieldValue: k,
 						});
 					}
 				}
 			}
 			if (!seen.has("__none")) {
-				dynamic.push({ key: "__none", label: "None", fieldValue: null });
+				dynamic.push({
+					key: "__none",
+					label: t("board.common.none"),
+					fieldValue: null,
+				});
 			}
 			defs = dynamic;
 		}
@@ -154,11 +160,12 @@ export function ListView({
 		isStatusGrouping,
 		viewConfig?.filters?.statuses,
 		statuses,
+		t,
 	]);
 
 	const swimlaneDefs = useMemo(
-		() => getSwimlaneDefs(swimlaneBy, viewCtx),
-		[swimlaneBy, viewCtx],
+		() => getSwimlaneDefs(swimlaneBy, viewCtx, t),
+		[swimlaneBy, viewCtx, t],
 	);
 
 	const getGroupTasks = (groupKey: string): Task[] =>

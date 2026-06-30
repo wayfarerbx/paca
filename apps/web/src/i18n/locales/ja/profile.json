@@ -1,0 +1,106 @@
+{
+	"page": {
+		"title": "マイプロフィール",
+		"subtitle": "アカウント情報の確認と更新を行います。"
+	},
+	"fields": {
+		"fullName": "氏名",
+		"fullNamePlaceholder": "氏名を入力してください",
+		"notSet": "未設定",
+		"username": "ユーザー名"
+	},
+	"actions": {
+		"editProfile": "プロフィールを編集",
+		"saveChanges": "変更を保存",
+		"saving": "保存中…",
+		"cancel": "キャンセル"
+	},
+	"errors": {
+		"updateFailed": "プロフィールの更新に失敗しました。もう一度お試しください。"
+	},
+	"joinedOn": "{{date}}に参加",
+	"changePassword": {
+		"title": "パスワードを変更",
+		"description": "アカウントのパスワードを更新します。",
+		"descriptionMustChange": "続行する前に新しいパスワードを設定してください。",
+		"temporaryPasswordNotice": "アカウントに仮パスワードが設定されています。今すぐ変更してください。",
+		"success": "パスワードを変更しました。",
+		"fields": {
+			"currentPassword": "現在のパスワード",
+			"newPassword": "新しいパスワード",
+			"confirmPassword": "新しいパスワード（確認）",
+			"passwordPlaceholder": "••••••••",
+			"newPasswordHint": "8文字以上で、現在のパスワードとは異なるものを設定してください。"
+		},
+		"aria": {
+			"showCurrentPassword": "現在のパスワードを表示",
+			"hideCurrentPassword": "現在のパスワードを非表示",
+			"showNewPassword": "新しいパスワードを表示",
+			"hideNewPassword": "新しいパスワードを非表示",
+			"showConfirmPassword": "確認用パスワードを表示",
+			"hideConfirmPassword": "確認用パスワードを非表示"
+		},
+		"actions": {
+			"submit": "パスワードを変更",
+			"updating": "更新中…"
+		},
+		"errors": {
+			"currentPasswordRequired": "現在のパスワードを入力してください。",
+			"currentPasswordIncorrect": "現在のパスワードが正しくありません。",
+			"sessionExpired": "セッションの有効期限が切れました。再度ログインしてください。",
+			"serverError": "サーバーで問題が発生しました。もう一度お試しください。",
+			"changeFailed": "パスワードの変更に失敗しました。"
+		}
+	},
+	"apiKeys": {
+		"title": "APIキー",
+		"subtitle": "APIキーを使用すると、セッションCookieを使わずにAPIリクエストを認証できます。パスワードと同様に厳重に管理し、決して他人と共有しないでください。",
+		"empty": "APIキーはまだありません。作成して始めましょう。",
+		"yourKeys": {
+			"title": "あなたのキー",
+			"description": "キーは識別用に先頭8文字のみ表示されます。"
+		},
+		"table": {
+			"name": "名前",
+			"prefix": "プレフィックス",
+			"created": "作成日",
+			"expires": "有効期限",
+			"lastUsed": "最終使用日"
+		},
+		"actions": {
+			"newKey": "新規キー",
+			"cancel": "キャンセル",
+			"creating": "作成中…",
+			"createKey": "キーを作成",
+			"done": "完了",
+			"revoking": "失効処理中…",
+			"revokeKey": "キーを失効",
+			"revokeKeyAria": "キーを失効",
+			"copyKeyAria": "キーをコピー"
+		},
+		"createDialog": {
+			"title": "APIキーを作成",
+			"description": "後で識別しやすいように、わかりやすい名前を付けてください。",
+			"nameLabel": "名前",
+			"namePlaceholder": "例: CIパイプライン、ローカル開発",
+			"expiryLabel": "有効期限",
+			"expiryOptional": "（任意）"
+		},
+		"revealDialog": {
+			"title": "APIキーを作成しました",
+			"description": "今すぐ新しいキーをコピーしてください。次回からは表示できません。",
+			"copied": "クリップボードにコピーしました！"
+		},
+		"revokeDialog": {
+			"title": "APIキーを失効",
+			"confirmPrefix": "本当に失効しますか",
+			"confirmSuffix": "？このキーを使用しているリクエストはすぐに使用できなくなります。"
+		},
+		"errors": {
+			"nameRequired": "名前を空にすることはできません。",
+			"nameTooLong": "名前は100文字以内で入力してください。",
+			"createFailed": "キーの作成に失敗しました。もう一度お試しください。",
+			"copyFailed": "コピーに失敗しました。キーを手動でコピーしてください。"
+		}
+	}
+}

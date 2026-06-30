@@ -1,0 +1,264 @@
+{
+	"users": {
+		"header": {
+			"title": "Quản lý người dùng",
+			"description": "Xem và quản lý tài khoản người dùng cùng vai trò được gán cho họ.",
+			"newUser": "Người dùng mới"
+		},
+		"stats": {
+			"userCount_one": "{{count}} người dùng",
+			"userCount_other": "{{count}} người dùng",
+			"inSystem": "trong hệ thống",
+			"mustChangePassword": "phải đổi mật khẩu"
+		},
+		"empty": {
+			"title": "Không tìm thấy người dùng nào",
+			"description": "Tạo người dùng đầu tiên của bạn để bắt đầu.",
+			"createUser": "Tạo người dùng"
+		},
+		"errors": {
+			"loadFailed": "Tải danh sách người dùng thất bại",
+			"tryAgain": "Vui lòng tải lại trang và thử lại."
+		},
+		"noPermission": {
+			"title": "Bạn không có quyền xem người dùng",
+			"description": "Bạn vẫn có thể tạo người dùng mới bằng nút phía trên."
+		},
+		"table": {
+			"columnUsername": "Tên đăng nhập",
+			"columnFullName": "Họ và tên",
+			"columnRole": "Vai trò",
+			"columnCreated": "Ngày tạo",
+			"pwdResetBadge": "đặt lại mật khẩu",
+			"youBadge": "bạn",
+			"noFullName": "—",
+			"resetPasswordAction": "Đặt lại mật khẩu",
+			"editAction": "Chỉnh sửa người dùng",
+			"deleteAction": "Xóa người dùng"
+		},
+		"formDialog": {
+			"createdTitle": "Đã tạo người dùng",
+			"createdDescriptionSuffix": "đã được tạo. Hãy chia sẻ mật khẩu tạm thời bên dưới — người dùng sẽ được yêu cầu đổi mật khẩu trong lần đăng nhập đầu tiên.",
+			"temporaryPasswordLabel": "Mật khẩu tạm thời",
+			"hidePassword": "Ẩn mật khẩu",
+			"showPassword": "Hiện mật khẩu",
+			"copyPassword": "Sao chép mật khẩu",
+			"passwordNotShownAgain": "Mật khẩu này sẽ không hiển thị lại. Hãy sao chép ngay bây giờ.",
+			"done": "Xong",
+			"editTitle": "Chỉnh sửa người dùng",
+			"createTitle": "Tạo người dùng",
+			"editDescription": "Cập nhật tên hiển thị và vai trò được gán của người dùng.",
+			"createDescription": "Một mật khẩu tạm thời an toàn sẽ được tạo tự động. Người dùng sẽ phải đổi mật khẩu trong lần đăng nhập đầu tiên.",
+			"usernameLabel": "Tên đăng nhập",
+			"usernamePlaceholder": "vd: john.doe",
+			"fullNameLabel": "Họ và tên",
+			"fullNamePlaceholder": "vd: John Doe",
+			"roleLabel": "Vai trò",
+			"roleOptionalHint": "(tùy chọn — mặc định là USER)",
+			"rolePlaceholder": "Chọn một vai trò…",
+			"cancel": "Hủy",
+			"saving": "Đang lưu…",
+			"creating": "Đang tạo…",
+			"saveChanges": "Lưu thay đổi",
+			"createUser": "Tạo người dùng",
+			"errors": {
+				"fullNameRequired": "Vui lòng nhập họ và tên.",
+				"usernameTaken": "Tên đăng nhập này đã được sử dụng.",
+				"userNotFound": "Không tìm thấy người dùng. Có thể người dùng đã bị xóa.",
+				"forbidden": "Bạn không có quyền thực hiện thao tác này.",
+				"internalError": "Đã xảy ra lỗi trên máy chủ. Vui lòng thử lại.",
+				"generic": "Đã xảy ra lỗi."
+			}
+		},
+		"resetPasswordDialog": {
+			"title": "Đặt lại mật khẩu",
+			"descriptionSuccessPrefix": "Mật khẩu của",
+			"descriptionSuccessSuffix": "đã được đặt lại. Hãy chia sẻ mật khẩu tạm thời bên dưới — mật khẩu này sẽ không hiển thị lại.",
+			"descriptionConfirmPrefix": "Một mật khẩu tạm thời mạnh sẽ được tạo và gán cho",
+			"descriptionConfirmSuffix": "Họ sẽ phải đổi mật khẩu trong lần đăng nhập tiếp theo.",
+			"temporaryPasswordLabel": "Mật khẩu tạm thời",
+			"hidePassword": "Ẩn mật khẩu",
+			"showPassword": "Hiện mật khẩu",
+			"copyPassword": "Sao chép mật khẩu",
+			"notShownAgain": "⚠ Mật khẩu này sẽ không hiển thị lại sau khi đóng.",
+			"done": "Xong",
+			"cancel": "Hủy",
+			"resetting": "Đang đặt lại…",
+			"resetButton": "Đặt lại mật khẩu",
+			"errors": {
+				"userNotFound": "Người dùng này không còn tồn tại.",
+				"forbidden": "Bạn không có quyền đặt lại mật khẩu của người dùng này.",
+				"internalError": "Đã xảy ra lỗi. Vui lòng thử lại.",
+				"generic": "Đã xảy ra lỗi."
+			}
+		},
+		"deleteDialog": {
+			"title": "Xóa người dùng",
+			"confirmTextPrefix": "Bạn có chắc chắn muốn xóa",
+			"confirmTextSuffix": "? Tài khoản của họ sẽ bị xóa vĩnh viễn.",
+			"cannotBeUndone": "Hành động này không thể hoàn tác.",
+			"cancel": "Hủy",
+			"deleting": "Đang xóa…",
+			"confirmButton": "Xóa người dùng",
+			"errors": {
+				"userNotFound": "Người dùng này không còn tồn tại.",
+				"forbidden": "Bạn không có quyền xóa người dùng này.",
+				"internalError": "Đã xảy ra lỗi. Vui lòng thử lại.",
+				"generic": "Đã xảy ra lỗi."
+			}
+		}
+	},
+	"globalRoles": {
+		"header": {
+			"title": "Vai trò toàn cục",
+			"description": "Quản lý các vai trò trên toàn hệ thống và quyền hạn mà chúng cấp cho người dùng.",
+			"newRole": "Vai trò mới"
+		},
+		"stats": {
+			"roleCount_one": "{{count}} vai trò",
+			"roleCount_other": "{{count}} vai trò",
+			"defined": "đã định nghĩa",
+			"permissionGrants": "quyền hạn được cấp trên tất cả vai trò"
+		},
+		"empty": {
+			"title": "Chưa có vai trò nào được định nghĩa",
+			"description": "Tạo vai trò đầu tiên của bạn để bắt đầu quản lý quyền hạn người dùng.",
+			"createRole": "Tạo vai trò"
+		},
+		"errors": {
+			"loadFailed": "Tải danh sách vai trò thất bại",
+			"tryAgain": "Vui lòng tải lại trang và thử lại."
+		},
+		"noPermission": {
+			"title": "Bạn không có quyền xem vai trò",
+			"description": "Bạn vẫn có thể tạo vai trò mới bằng nút phía trên."
+		},
+		"table": {
+			"columnName": "Tên",
+			"columnPermissions": "Quyền hạn",
+			"columnCreated": "Ngày tạo",
+			"noPermissionsAssigned": "Chưa gán quyền hạn nào",
+			"editAction": "Chỉnh sửa vai trò",
+			"deleteAction": "Xóa vai trò"
+		},
+		"formDialog": {
+			"editTitle": "Chỉnh sửa vai trò",
+			"createTitle": "Tạo vai trò",
+			"editDescription": "Cập nhật tên vai trò và các quyền hạn được cấp.",
+			"createDescription": "Định nghĩa một vai trò mới trên toàn hệ thống và cấu hình quyền hạn của vai trò đó.",
+			"roleNameLabel": "Tên vai trò",
+			"roleNamePlaceholder": "vd: SECURITY_ADMIN",
+			"permissionsLabel": "Quyền hạn",
+			"enabledCount_one": "{{count}} đã bật",
+			"enabledCount_other": "{{count}} đã bật",
+			"cancel": "Hủy",
+			"saving": "Đang lưu…",
+			"saveChanges": "Lưu thay đổi",
+			"createRole": "Tạo vai trò",
+			"errors": {
+				"roleNameRequired": "Vui lòng nhập tên vai trò.",
+				"nameTaken": "Đã tồn tại một vai trò với tên này.",
+				"nameInvalid": "Tên vai trò chỉ được chứa chữ in hoa, số và dấu gạch dưới.",
+				"roleNotFound": "Vai trò này không còn tồn tại. Có thể vai trò đã bị xóa.",
+				"forbidden": "Bạn không có quyền thực hiện thao tác này.",
+				"internalError": "Đã xảy ra lỗi trên máy chủ. Vui lòng thử lại.",
+				"generic": "Đã xảy ra lỗi."
+			}
+		},
+		"deleteDialog": {
+			"title": "Xóa vai trò",
+			"confirmTextPrefix": "Bạn có chắc chắn muốn xóa",
+			"confirmTextSuffix": "? Thao tác này cũng sẽ xóa tất cả các gán vai trò cho người dùng.",
+			"cannotBeUndone": "Hành động này không thể hoàn tác.",
+			"cancel": "Hủy",
+			"deleting": "Đang xóa…",
+			"confirmButton": "Xóa vai trò",
+			"errors": {
+				"roleNotFound": "Vai trò này không còn tồn tại.",
+				"hasUsersWarning": "Không thể xóa vai trò này vì vẫn còn được gán cho một hoặc nhiều người dùng.",
+				"forbidden": "Bạn không có quyền xóa vai trò này.",
+				"internalError": "Đã xảy ra lỗi. Vui lòng thử lại.",
+				"generic": "Đã xảy ra lỗi."
+			}
+		},
+		"permissions": {
+			"globalRolesRead": {
+				"label": "Xem vai trò toàn cục",
+				"description": "Xem định nghĩa các vai trò toàn cục"
+			},
+			"globalRolesWrite": {
+				"label": "Sửa vai trò toàn cục",
+				"description": "Tạo và cập nhật định nghĩa vai trò toàn cục"
+			},
+			"globalRolesAssign": {
+				"label": "Gán vai trò toàn cục",
+				"description": "Gán vai trò toàn cục cho người dùng"
+			},
+			"usersRead": {
+				"label": "Xem người dùng",
+				"description": "Xem hồ sơ và danh sách người dùng"
+			},
+			"usersWrite": {
+				"label": "Sửa người dùng",
+				"description": "Tạo và cập nhật tài khoản người dùng"
+			},
+			"usersDelete": {
+				"label": "Xóa người dùng",
+				"description": "Xóa tài khoản người dùng"
+			},
+			"projectsRead": {
+				"label": "Xem tất cả dự án",
+				"description": "Xem tất cả dự án trong không gian làm việc"
+			},
+			"projectsCreate": {
+				"label": "Tạo dự án",
+				"description": "Tạo dự án mới"
+			},
+			"projectsWrite": {
+				"label": "Sửa dự án",
+				"description": "Cập nhật thông tin dự án"
+			},
+			"projectsDelete": {
+				"label": "Xóa dự án",
+				"description": "Xóa vĩnh viễn dự án"
+			},
+			"projectMembersRead": {
+				"label": "Xem thành viên dự án",
+				"description": "Xem thành viên của bất kỳ dự án nào"
+			},
+			"projectMembersWrite": {
+				"label": "Sửa thành viên dự án",
+				"description": "Thêm, xóa và cập nhật thành viên trong bất kỳ dự án nào"
+			},
+			"projectRolesRead": {
+				"label": "Xem vai trò dự án",
+				"description": "Xem các vai trò được định nghĩa trong bất kỳ dự án nào"
+			},
+			"projectRolesWrite": {
+				"label": "Sửa vai trò dự án",
+				"description": "Tạo và cập nhật vai trò trong bất kỳ dự án nào"
+			}
+		},
+		"permissionGroups": {
+			"globalRoles": "Vai trò toàn cục",
+			"users": "Người dùng",
+			"projects": "Dự án"
+		}
+	},
+	"plugins": {
+		"title": "Cài đặt Plugin",
+		"description": "Quản lý thứ tự và khả năng hiển thị bảng plugin trên toàn hệ thống cho tất cả người dùng.",
+		"tabs": {
+			"marketplace": "Chợ Plugin",
+			"layout": "Bố cục điểm mở rộng"
+		},
+		"marketplace": {
+			"title": "Chợ Plugin",
+			"description": "Cài đặt hoặc gỡ cài đặt plugin từ danh mục công khai paca-plugins."
+		},
+		"layout": {
+			"title": "Bố cục điểm mở rộng",
+			"description": "Kéo để sắp xếp lại các bảng plugin trong từng điểm mở rộng. Bật/tắt khả năng hiển thị để hiện hoặc ẩn bảng cho tất cả người dùng."
+		}
+	}
+}

@@ -1,4 +1,5 @@
 import { Edit2, KeyRound, Lock, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,22 +37,24 @@ export function UsersTable({
 	onDelete,
 	onResetPassword,
 }: UsersTableProps) {
+	const { t } = useTranslation("admin");
+
 	return (
 		<div className="overflow-x-auto rounded-xl border">
 			<Table>
 				<TableHeader>
 					<TableRow className="bg-muted/40 hover:bg-muted/40">
 						<TableHead className="w-44 px-5 text-xs font-semibold uppercase tracking-wide">
-							Username
+							{t("users.table.columnUsername")}
 						</TableHead>
 						<TableHead className="px-5 text-xs font-semibold uppercase tracking-wide">
-							Full Name
+							{t("users.table.columnFullName")}
 						</TableHead>
 						<TableHead className="w-36 px-5 text-xs font-semibold uppercase tracking-wide">
-							Role
+							{t("users.table.columnRole")}
 						</TableHead>
 						<TableHead className="w-32 px-5 text-xs font-semibold uppercase tracking-wide">
-							Created
+							{t("users.table.columnCreated")}
 						</TableHead>
 						{canWrite ? (
 							<TableHead className="w-28 px-5 text-xs font-semibold uppercase tracking-wide" />
@@ -71,19 +74,21 @@ export function UsersTable({
 										</span>
 										{user.must_change_password ? (
 											<span className="inline-flex items-center rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-												pwd reset
+												{t("users.table.pwdResetBadge")}
 											</span>
 										) : null}
 										{isSelf ? (
 											<span className="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
-												you
+												{t("users.table.youBadge")}
 											</span>
 										) : null}
 									</div>
 								</TableCell>
 								<TableCell className="px-5 text-sm">
 									{user.full_name || (
-										<span className="italic text-muted-foreground/60">—</span>
+										<span className="italic text-muted-foreground/60">
+											{t("users.table.noFullName")}
+										</span>
 									)}
 								</TableCell>
 								<TableCell className="px-5">
@@ -101,7 +106,7 @@ export function UsersTable({
 												variant="ghost"
 												size="icon-sm"
 												onClick={() => onResetPassword(user)}
-												title="Reset password"
+												title={t("users.table.resetPasswordAction")}
 											>
 												<KeyRound className="size-3.5" />
 											</Button>
@@ -109,7 +114,7 @@ export function UsersTable({
 												variant="ghost"
 												size="icon-sm"
 												onClick={() => onEdit(user)}
-												title="Edit user"
+												title={t("users.table.editAction")}
 											>
 												<Edit2 className="size-3.5" />
 											</Button>
@@ -119,7 +124,7 @@ export function UsersTable({
 													size="icon-sm"
 													className="text-destructive hover:text-destructive hover:bg-destructive/10"
 													onClick={() => onDelete(user)}
-													title="Delete user"
+													title={t("users.table.deleteAction")}
 												>
 													<Trash2 className="size-3.5" />
 												</Button>

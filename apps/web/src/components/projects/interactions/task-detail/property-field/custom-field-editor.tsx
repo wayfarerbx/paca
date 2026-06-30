@@ -1,4 +1,5 @@
 import { CalendarDays } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { FieldValue } from "../primitives";
 import { CheckboxEditor } from "./checkbox-editor";
 import { SingleDateEditor } from "./date-editor";
@@ -21,6 +22,7 @@ export function CustomFieldEditor({
 	options?: string[];
 	onChange?: (value: unknown) => void;
 }) {
+	const { t } = useTranslation("projects");
 	switch (customType) {
 		case "Text":
 			return (
@@ -47,7 +49,8 @@ export function CustomFieldEditor({
 				return (
 					<span className="inline-flex items-center gap-1.5 rounded-lg border border-border/25 bg-muted/25 px-2.5 py-1.5 text-xs text-muted-foreground font-medium">
 						<CalendarDays className="size-3 shrink-0 opacity-70" />
-						{displayDate(rawValue as string | null) ?? "Empty"}
+						{displayDate(rawValue as string | null) ??
+							t("taskDetail.common.empty")}
 					</span>
 				);
 			}

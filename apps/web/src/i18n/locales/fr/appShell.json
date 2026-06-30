@@ -1,0 +1,79 @@
+{
+	"language": {
+		"label": "Langue",
+		"toggleTooltip": "Langue : {{language}} — cliquez pour changer"
+	},
+	"brand": {
+		"logoAlt": "Logo Paca"
+	},
+	"theme": {
+		"label": "Thème",
+		"light": "Clair",
+		"dark": "Sombre",
+		"auto": "Auto",
+		"cycleTooltip": "Thème : {{mode}} — cliquez pour changer",
+		"modeAutoTooltip": "Mode de thème : auto (système). Cliquez pour passer en mode clair.",
+		"modeTooltip": "Mode de thème : {{mode}}. Cliquez pour changer de mode."
+	},
+	"nav": {
+		"home": "Accueil",
+		"administration": "Administration",
+		"globalRoles": "Rôles globaux",
+		"users": "Utilisateurs",
+		"plugins": "Plugins",
+		"allProjects": "Tous les projets",
+		"project": "Projet",
+		"agents": "Agents",
+		"team": "Équipe",
+		"settings": "Paramètres"
+	},
+	"projectSwitcher": {
+		"projects": "Projets",
+		"yourProjects": "Vos projets",
+		"noProjectsYet": "Aucun projet pour le moment",
+		"newProject": "Nouveau projet"
+	},
+	"interactions": {
+		"title": "Interactions",
+		"timeline": "Chronologie",
+		"productBacklog": "Backlog produit"
+	},
+	"docs": {
+		"documentation": "Documentation",
+		"noDocumentsYet": "Aucun document pour le moment",
+		"emptyFolder": "Dossier vide",
+		"add": "Ajouter",
+		"newDocument": "Nouveau document",
+		"newFolder": "Nouveau dossier",
+		"newFolderDefaultName": "Nouveau dossier",
+		"newSubfolder": "Nouveau sous-dossier",
+		"rename": "Renommer",
+		"delete": "Supprimer",
+		"untitled": "Sans titre"
+	},
+	"notifications": {
+		"title": "Notifications",
+		"empty": "Aucune notification pour le moment",
+		"markAllAsRead": "Tout marquer comme lu",
+		"text": {
+			"assigned": "{{actor}} vous a assigné à la tâche #{{taskNumber}} — {{taskTitle}}",
+			"mentioned": "{{actor}} vous a mentionné dans #{{taskNumber}} — {{taskTitle}}"
+		},
+		"timeAgo": {
+			"justNow": "à l'instant",
+			"minutes_one": "il y a {{count}} min",
+			"minutes_other": "il y a {{count}} min",
+			"hours_one": "il y a {{count}} h",
+			"hours_other": "il y a {{count}} h",
+			"days_one": "il y a {{count}} j",
+			"days_other": "il y a {{count}} j"
+		}
+	},
+	"userMenu": {
+		"signIn": "Se connecter",
+		"myProfile": "Mon profil",
+		"apiKeys": "Clés API",
+		"logOut": "Se déconnecter",
+		"loggingOut": "Déconnexion en cours…"
+	}
+}

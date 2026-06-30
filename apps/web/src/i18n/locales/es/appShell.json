@@ -1,0 +1,79 @@
+{
+	"language": {
+		"label": "Idioma",
+		"toggleTooltip": "Idioma: {{language}} — haz clic para cambiar"
+	},
+	"brand": {
+		"logoAlt": "Logo de Paca"
+	},
+	"theme": {
+		"label": "Tema",
+		"light": "Claro",
+		"dark": "Oscuro",
+		"auto": "Automático",
+		"cycleTooltip": "Tema: {{mode}} — haz clic para cambiar",
+		"modeAutoTooltip": "Modo de tema: automático (sistema). Haz clic para cambiar al modo claro.",
+		"modeTooltip": "Modo de tema: {{mode}}. Haz clic para cambiar de modo."
+	},
+	"nav": {
+		"home": "Inicio",
+		"administration": "Administración",
+		"globalRoles": "Roles globales",
+		"users": "Usuarios",
+		"plugins": "Plugins",
+		"allProjects": "Todos los proyectos",
+		"project": "Proyecto",
+		"agents": "Agentes",
+		"team": "Equipo",
+		"settings": "Configuración"
+	},
+	"projectSwitcher": {
+		"projects": "Proyectos",
+		"yourProjects": "Tus proyectos",
+		"noProjectsYet": "Aún no hay proyectos",
+		"newProject": "Nuevo proyecto"
+	},
+	"interactions": {
+		"title": "Interacciones",
+		"timeline": "Cronología",
+		"productBacklog": "Backlog del producto"
+	},
+	"docs": {
+		"documentation": "Documentación",
+		"noDocumentsYet": "Aún no hay documentos",
+		"emptyFolder": "Carpeta vacía",
+		"add": "Añadir",
+		"newDocument": "Nuevo documento",
+		"newFolder": "Nueva carpeta",
+		"newFolderDefaultName": "Nueva carpeta",
+		"newSubfolder": "Nueva subcarpeta",
+		"rename": "Cambiar nombre",
+		"delete": "Eliminar",
+		"untitled": "Sin título"
+	},
+	"notifications": {
+		"title": "Notificaciones",
+		"empty": "Aún no hay notificaciones",
+		"markAllAsRead": "Marcar todas como leídas",
+		"text": {
+			"assigned": "{{actor}} te asignó la tarea #{{taskNumber}} — {{taskTitle}}",
+			"mentioned": "{{actor}} te mencionó en #{{taskNumber}} — {{taskTitle}}"
+		},
+		"timeAgo": {
+			"justNow": "justo ahora",
+			"minutes_one": "hace {{count}} min",
+			"minutes_other": "hace {{count}} min",
+			"hours_one": "hace {{count}} h",
+			"hours_other": "hace {{count}} h",
+			"days_one": "hace {{count}} d",
+			"days_other": "hace {{count}} d"
+		}
+	},
+	"userMenu": {
+		"signIn": "Iniciar sesión",
+		"myProfile": "Mi perfil",
+		"apiKeys": "Claves de API",
+		"logOut": "Cerrar sesión",
+		"loggingOut": "Cerrando sesión…"
+	}
+}

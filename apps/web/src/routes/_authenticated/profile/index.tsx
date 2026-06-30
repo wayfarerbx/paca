@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { CalendarDays, User } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ChangePasswordCard } from "@/components/profile/ChangePasswordCard";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +23,7 @@ import { apiClient } from "@/lib/api-client";
 import type { SuccessEnvelope } from "@/lib/api-error";
 import type { User as UserType } from "@/lib/auth-api";
 import { currentUserQueryOptions } from "@/lib/auth-api";
+import { formatDate } from "@/lib/format-date";
 
 export const Route = createFileRoute("/_authenticated/profile/")({
 	component: ProfilePage,
@@ -48,15 +50,8 @@ function getInitials(name: string): string {
 		.slice(0, 2);
 }
 
-function formatDate(iso: string) {
-	return new Date(iso).toLocaleDateString("en-US", {
-		year: "numeric",
-		month: "long",
-		day: "numeric",
-	});
-}
-
 function ProfilePage() {
+	const { t } = useTranslation("profile");
 	const queryClient = useQueryClient();
 	const { data: user } = useQuery(currentUserQueryOptions);
 
@@ -77,7 +72,7 @@ function ProfilePage() {
 			setServerError(null);
 		},
 		onError: () => {
-			setServerError("Failed to update profile. Please try again.");
+			setServerError(t("errors.updateFailed"));
 		},
 	});
 
@@ -173,10 +168,10 @@ function ProfilePage() {
 			<div>
 				<div className="flex items-center gap-2">
 					<User className="size-5 text-primary" />
-					<h1 className="text-xl font-semibold">My Profile</h1>
+					<h1 className="text-xl font-semibold">{t("page.title")}</h1>
 				</div>
 				<p className="mt-1 text-sm text-muted-foreground">
-					View and update your account information.
+					{t("page.subtitle")}
 				</p>
 			</div>
 
@@ -202,7 +197,7 @@ function ProfilePage() {
 								</Badge>
 								<span className="flex items-center gap-1 text-xs text-muted-foreground">
 									<CalendarDays className="size-3" />
-									Joined {formatDate(user.created_at)}
+									{t("joinedOn", { date: formatDate(user.created_at) })}
 								</span>
 							</div>
 						</div>
@@ -215,20 +210,20 @@ function ProfilePage() {
 					<div className="flex flex-col gap-4">
 						{/* Full name field */}
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="full-name">Full name</Label>
+							<Label htmlFor="full-name">{t("fields.fullName")}</Label>
 							{editing ? (
 								<Input
 									id="full-name"
 									value={fullName}
 									onChange={(e) => setFullName(e.target.value)}
-									placeholder="Enter your full name"
+									placeholder={t("fields.fullNamePlaceholder")}
 									autoFocus
 								/>
 							) : (
 								<p className="text-sm py-1.5">
 									{user.full_name || (
 										<span className="text-muted-foreground italic">
-											Not set
+											{t("fields.notSet")}
 										</span>
 									)}
 								</p>
@@ -237,7 +232,7 @@ function ProfilePage() {
 
 						{/* Username (read-only) */}
 						<div className="flex flex-col gap-1.5">
-							<Label>Username</Label>
+							<Label>{t("fields.username")}</Label>
 							<p className="text-sm py-1.5 text-muted-foreground">
 								@{user.username}
 							</p>
@@ -257,7 +252,9 @@ function ProfilePage() {
 								onClick={() => mutation.mutate()}
 								disabled={mutation.isPending || !fullName.trim()}
 							>
-								{mutation.isPending ? "Saving…" : "Save changes"}
+								{mutation.isPending
+									? t("actions.saving")
+									: t("actions.saveChanges")}
 							</Button>
 							<Button
 								size="sm"
@@ -265,12 +262,12 @@ function ProfilePage() {
 								onClick={handleCancel}
 								disabled={mutation.isPending}
 							>
-								Cancel
+								{t("actions.cancel")}
 							</Button>
 						</div>
 					) : (
 						<Button size="sm" variant="outline" onClick={handleEdit}>
-							Edit profile
+							{t("actions.editProfile")}
 						</Button>
 					)}
 				</CardFooter>

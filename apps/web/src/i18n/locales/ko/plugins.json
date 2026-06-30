@@ -1,0 +1,38 @@
+{
+	"marketplace": {
+		"loading": "마켓플레이스를 불러오는 중...",
+		"searchPlaceholder": "플러그인 검색",
+		"empty": "마켓플레이스에서 플러그인을 찾을 수 없습니다.",
+		"card": {
+			"installed": "설치됨",
+			"updateAvailable": "업데이트 가능",
+			"source": "출처",
+			"upgrading": "업그레이드 중...",
+			"upgradeTo": "{{version}}(으)로 업그레이드",
+			"uninstalling": "제거 중...",
+			"uninstall": "제거",
+			"installing": "설치 중...",
+			"install": "설치",
+			"features": {
+				"backend": "백엔드",
+				"frontend": "프론트엔드",
+				"migrations": "마이그레이션",
+				"mcp": "MCP"
+			}
+		}
+	},
+	"preferences": {
+		"empty": "확장 지점이 있는 플러그인이 설치되어 있지 않습니다.",
+		"actions": {
+			"show": "표시",
+			"hide": "숨기기"
+		},
+		"extensionPoints": {
+			"sidebarGeneral": "사이드바 — 일반",
+			"sidebarProject": "사이드바 — 프로젝트",
+			"taskDetail": "작업 상세",
+			"projectSettingsTab": "프로젝트 설정 탭",
+			"customView": "커스텀 뷰"
+		}
+	}
+}

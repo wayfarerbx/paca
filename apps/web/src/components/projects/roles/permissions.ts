@@ -11,123 +11,143 @@ import {
 
 export interface KnownPermission {
 	key: string;
-	label: string;
-	description: string;
+	labelKey: string;
+	descriptionKey: string;
 	domain: string;
 }
 
-export const PROJECT_KNOWN_PERMISSIONS: KnownPermission[] = [
+export const PROJECT_KNOWN_PERMISSIONS = [
 	// projects
 	{
 		key: "projects.read",
-		label: "Read Project",
-		description: "View project details and settings",
+		labelKey: "roles.permissions.projectsRead.label",
+		descriptionKey: "roles.permissions.projectsRead.description",
 		domain: "projects",
 	},
 	{
 		key: "projects.write",
-		label: "Edit Project",
-		description: "Update project name, description, and settings",
+		labelKey: "roles.permissions.projectsWrite.label",
+		descriptionKey: "roles.permissions.projectsWrite.description",
 		domain: "projects",
 	},
 	{
 		key: "projects.delete",
-		label: "Delete Project",
-		description: "Permanently delete this project",
+		labelKey: "roles.permissions.projectsDelete.label",
+		descriptionKey: "roles.permissions.projectsDelete.description",
 		domain: "projects",
 	},
 	// project members
 	{
 		key: "project.members.read",
-		label: "View Members",
-		description: "List and view project members",
+		labelKey: "roles.permissions.membersRead.label",
+		descriptionKey: "roles.permissions.membersRead.description",
 		domain: "project.members",
 	},
 	{
 		key: "project.members.write",
-		label: "Manage Members",
-		description: "Add, remove, and reassign project members",
+		labelKey: "roles.permissions.membersWrite.label",
+		descriptionKey: "roles.permissions.membersWrite.description",
 		domain: "project.members",
 	},
 	// project roles
 	{
 		key: "project.roles.read",
-		label: "View Roles",
-		description: "List and view project role definitions",
+		labelKey: "roles.permissions.rolesRead.label",
+		descriptionKey: "roles.permissions.rolesRead.description",
 		domain: "project.roles",
 	},
 	{
 		key: "project.roles.write",
-		label: "Manage Roles",
-		description: "Create, edit, and delete project roles",
+		labelKey: "roles.permissions.rolesWrite.label",
+		descriptionKey: "roles.permissions.rolesWrite.description",
 		domain: "project.roles",
 	},
 	// tasks
 	{
 		key: "tasks.read",
-		label: "View Tasks",
-		description: "Browse and read tasks in the project",
+		labelKey: "roles.permissions.tasksRead.label",
+		descriptionKey: "roles.permissions.tasksRead.description",
 		domain: "tasks",
 	},
 	{
 		key: "tasks.write",
-		label: "Edit Tasks",
-		description: "Create, update, and move tasks",
+		labelKey: "roles.permissions.tasksWrite.label",
+		descriptionKey: "roles.permissions.tasksWrite.description",
 		domain: "tasks",
 	},
 	// sprints
 	{
 		key: "sprints.read",
-		label: "View Sprints",
-		description: "Browse sprint boards and backlogs",
+		labelKey: "roles.permissions.sprintsRead.label",
+		descriptionKey: "roles.permissions.sprintsRead.description",
 		domain: "sprints",
 	},
 	{
 		key: "sprints.write",
-		label: "Manage Sprints",
-		description: "Create, update, and close sprints",
+		labelKey: "roles.permissions.sprintsWrite.label",
+		descriptionKey: "roles.permissions.sprintsWrite.description",
 		domain: "sprints",
 	},
 	// docs
 	{
 		key: "docs.read",
-		label: "View Documents",
-		description: "Browse and read documents in the project",
+		labelKey: "roles.permissions.docsRead.label",
+		descriptionKey: "roles.permissions.docsRead.description",
 		domain: "docs",
 	},
 	{
 		key: "docs.write",
-		label: "Edit Documents",
-		description: "Create, update, and delete documents and folders",
+		labelKey: "roles.permissions.docsWrite.label",
+		descriptionKey: "roles.permissions.docsWrite.description",
 		domain: "docs",
 	},
 	// agents
 	{
 		key: "agents.read",
-		label: "View Agents",
-		description: "Browse AI agents and view their configuration",
+		labelKey: "roles.permissions.agentsRead.label",
+		descriptionKey: "roles.permissions.agentsRead.description",
 		domain: "agents",
 	},
 	{
 		key: "agents.write",
-		label: "Manage Agents",
-		description: "Create, configure, and delete AI agents",
+		labelKey: "roles.permissions.agentsWrite.label",
+		descriptionKey: "roles.permissions.agentsWrite.description",
 		domain: "agents",
 	},
-];
+] as const satisfies KnownPermission[];
 
 export interface PermissionGroup {
 	domain: string;
-	label: string;
+	labelKey: string;
 	Icon: LucideIcon;
 }
 
-export const PROJECT_PERMISSION_GROUPS: PermissionGroup[] = [
-	{ domain: "projects", label: "Project", Icon: Settings },
-	{ domain: "project.members", label: "Members", Icon: Users },
-	{ domain: "project.roles", label: "Roles", Icon: Shield },
-	{ domain: "tasks", label: "Tasks", Icon: ListTodo },
-	{ domain: "sprints", label: "Sprints", Icon: Layers },
-	{ domain: "docs", label: "Documents", Icon: BookOpen },
-	{ domain: "agents", label: "AI Agents", Icon: Bot },
-];
+export const PROJECT_PERMISSION_GROUPS = [
+	{
+		domain: "projects",
+		labelKey: "roles.permissionGroups.project",
+		Icon: Settings,
+	},
+	{
+		domain: "project.members",
+		labelKey: "roles.permissionGroups.members",
+		Icon: Users,
+	},
+	{
+		domain: "project.roles",
+		labelKey: "roles.permissionGroups.roles",
+		Icon: Shield,
+	},
+	{ domain: "tasks", labelKey: "roles.permissionGroups.tasks", Icon: ListTodo },
+	{
+		domain: "sprints",
+		labelKey: "roles.permissionGroups.sprints",
+		Icon: Layers,
+	},
+	{
+		domain: "docs",
+		labelKey: "roles.permissionGroups.documents",
+		Icon: BookOpen,
+	},
+	{ domain: "agents", labelKey: "roles.permissionGroups.aiAgents", Icon: Bot },
+] as const satisfies PermissionGroup[];

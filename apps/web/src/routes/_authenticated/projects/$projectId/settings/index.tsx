@@ -9,6 +9,7 @@ import {
 	Tag,
 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { CustomFieldsSettings } from "@/components/projects/settings/CustomFieldsSettings";
 import { DangerZone } from "@/components/projects/settings/DangerZone";
 import { GeneralSettings } from "@/components/projects/settings/GeneralSettings";
@@ -49,15 +50,36 @@ export const Route = createFileRoute(
 // ── Settings Page ─────────────────────────────────────────────────────────────
 
 const NAV_ITEMS = [
-	{ id: "general", label: "General", icon: Settings },
-	{ id: "roles", label: "Roles", icon: Shield },
-	{ id: "task-statuses", label: "Task Statuses", icon: LayoutList },
-	{ id: "task-types", label: "Task Types", icon: Tag },
-	{ id: "custom-fields", label: "Custom Fields", icon: Plus },
-	{ id: "danger", label: "Danger Zone", icon: AlertTriangle },
+	{
+		id: "general",
+		labelKey: "project.settingsPage.nav.general",
+		icon: Settings,
+	},
+	{ id: "roles", labelKey: "project.settingsPage.nav.roles", icon: Shield },
+	{
+		id: "task-statuses",
+		labelKey: "project.settingsPage.nav.taskStatuses",
+		icon: LayoutList,
+	},
+	{
+		id: "task-types",
+		labelKey: "project.settingsPage.nav.taskTypes",
+		icon: Tag,
+	},
+	{
+		id: "custom-fields",
+		labelKey: "project.settingsPage.nav.customFields",
+		icon: Plus,
+	},
+	{
+		id: "danger",
+		labelKey: "project.settingsPage.nav.dangerZone",
+		icon: AlertTriangle,
+	},
 ] as const;
 
 function SettingsPage() {
+	const { t } = useTranslation("projects");
 	const { projectId } = Route.useParams();
 	const { data: project } = useQuery(projectQueryOptions(projectId));
 	const { hasPermission } = usePermissions();
@@ -136,11 +158,11 @@ function SettingsPage() {
 					<div className="flex items-center gap-2.5 mb-1">
 						<Settings className="size-4 text-muted-foreground" />
 						<h1 className="font-[Syne] text-2xl font-bold tracking-tight">
-							Settings
+							{t("project.settingsPage.title")}
 						</h1>
 					</div>
 					<p className="text-sm text-muted-foreground">
-						{project?.name} · Configure project settings, roles, and permissions
+						{project?.name} · {t("project.settingsPage.subtitle")}
 					</p>
 				</div>
 			</div>
@@ -151,9 +173,9 @@ function SettingsPage() {
 					{/* Sidebar nav — hidden on small screens */}
 					<aside className="hidden lg:flex flex-col gap-1 w-48 shrink-0 sticky top-8">
 						<p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 px-3 mb-1">
-							Settings
+							{t("project.settingsPage.title")}
 						</p>
-						{visibleNavItems.map(({ id, label, icon: Icon }) => (
+						{visibleNavItems.map(({ id, labelKey, icon: Icon }) => (
 							<button
 								key={id}
 								type="button"
@@ -165,12 +187,12 @@ function SettingsPage() {
 								} ${id === "danger" ? "mt-2 text-destructive/70 hover:text-destructive hover:bg-destructive/8" : ""}`}
 							>
 								<Icon className="size-3.5 shrink-0" />
-								{label}
+								{t(labelKey)}
 							</button>
 						))}
 						{pluginTabs.length > 0 && (
 							<p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground/60 px-3 mt-4 mb-1">
-								Plugins
+								{t("project.settingsPage.nav.plugins")}
 							</p>
 						)}
 						{pluginTabs.map((reg) => (
@@ -195,7 +217,7 @@ function SettingsPage() {
 					<div className="flex-1 min-w-0">
 						{/* Mobile section picker */}
 						<div className="flex gap-1 mb-6 lg:hidden flex-wrap">
-							{visibleNavItems.map(({ id, label, icon: Icon }) => (
+							{visibleNavItems.map(({ id, labelKey, icon: Icon }) => (
 								<button
 									key={id}
 									type="button"
@@ -207,7 +229,7 @@ function SettingsPage() {
 									}`}
 								>
 									<Icon className="size-3 shrink-0" />
-									{label}
+									{t(labelKey)}
 								</button>
 							))}
 							{pluginTabs.map((reg) => (

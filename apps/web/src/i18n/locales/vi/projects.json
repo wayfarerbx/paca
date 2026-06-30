@@ -1,0 +1,1058 @@
+{
+	"project": {
+		"notFound": "Không tìm thấy dự án hoặc bạn không có quyền truy cập.",
+		"settingsPage": {
+			"title": "Cài đặt",
+			"subtitle": "Cấu hình cài đặt dự án, vai trò và quyền hạn",
+			"nav": {
+				"general": "Chung",
+				"roles": "Vai trò",
+				"taskStatuses": "Trạng thái nhiệm vụ",
+				"taskTypes": "Loại nhiệm vụ",
+				"customFields": "Trường tùy chỉnh",
+				"dangerZone": "Khu vực nguy hiểm",
+				"plugins": "Plugin"
+			}
+		}
+	},
+	"agents": {
+		"createDialog": {
+			"title": "Tạo AI Agent",
+			"step1Description": "Thiết lập danh tính và vai trò của agent",
+			"step2Description": "Cấu hình mô hình AI vận hành agent của bạn",
+			"stepIndicator": "{{step}} / 2",
+			"startFromPreset": "Bắt đầu từ một mẫu có sẵn",
+			"nameLabel": "Tên",
+			"handleLabel": "Handle",
+			"handleHint": "Tự động tạo từ tên. Dùng để @nhắc đến trong bình luận.",
+			"projectRoleLabel": "Vai trò dự án",
+			"projectRolePlaceholder": "Chọn một vai trò dự án…",
+			"projectRoleHint": "Kiểm soát những gì agent có thể đọc và sửa đổi trong dự án này.",
+			"modelSection": "Mô hình",
+			"providerLabel": "Nhà cung cấp",
+			"modelLabel": "Mô hình",
+			"customOption": "Tùy chỉnh…",
+			"apiKeyLabel": "Khóa API",
+			"hideApiKey": "Ẩn khóa API",
+			"showApiKey": "Hiện khóa API",
+			"apiKeyHint": "Được lưu trữ mã hóa — không bao giờ lộ ra trong phản hồi API.",
+			"baseUrlLabel": "URL cơ sở",
+			"systemPromptLabel": "System Prompt",
+			"optional": "(tùy chọn)",
+			"charsCount": "{{count}} ký tự",
+			"createFailed": "Tạo agent thất bại. Vui lòng thử lại.",
+			"cancel": "Hủy",
+			"continue": "Tiếp tục",
+			"back": "Quay lại",
+			"creating": "Đang tạo…",
+			"createAgent": "Tạo Agent",
+			"namePlaceholder": "Dev Bot",
+			"systemPromptPlaceholder": "Bạn là một kỹ sư phần mềm cấp cao…"
+		},
+		"card": {
+			"configure": "Cấu hình",
+			"delete": "Xóa",
+			"repos": "Kho mã",
+			"configureAndViewActivity": "Cấu hình & xem hoạt động",
+			"deleteDialog": {
+				"title": "Xóa {{name}}?",
+				"description": "Thao tác này sẽ xóa vĩnh viễn agent và loại bỏ nó khỏi dự án. Các cuộc trò chuyện đang chạy sẽ bị dừng.",
+				"cancel": "Hủy",
+				"delete": "Xóa"
+			}
+		},
+		"page": {
+			"title": "AI Agent",
+			"subtitle": "Agent tự động xử lý nhiệm vụ và trò chuyện với đội nhóm của bạn",
+			"newAgent": "Agent mới",
+			"empty": {
+				"title": "Chưa có agent nào",
+				"description": "Thêm một AI agent để tự động hóa nhiệm vụ, review code, viết tài liệu và nhiều hơn nữa.",
+				"createFirstAgent": "Tạo agent đầu tiên của bạn"
+			},
+			"chatShortcutPrefix": "Nhấp",
+			"chatShortcutSuffix": "vào bất kỳ agent nào để trò chuyện, xem các cuộc hội thoại và quản lý máy chủ MCP cùng skill."
+		},
+		"detail": {
+			"tabs": {
+				"overview": "Tổng quan",
+				"mcpServers": "Máy chủ MCP",
+				"skills": "Skill",
+				"conversations": "Hội thoại"
+			},
+			"overview": {
+				"nameLabel": "Tên",
+				"llmConfiguration": "Cấu hình LLM",
+				"providerLabel": "Nhà cung cấp",
+				"modelLabel": "Mô hình",
+				"customOption": "Tùy chỉnh…",
+				"apiKeyUpdateLabel": "Cập nhật khóa API",
+				"apiKeyUpdateHint": "(để trống để giữ khóa hiện tại)",
+				"baseUrlLabel": "URL cơ sở",
+				"triggerPrompts": {
+					"title": "Trigger prompt tự động thêm",
+					"hint": "Tự động thêm vào system prompt khi chạy, tùy theo cách agent được gọi.",
+					"taskAssignment": "Giao nhiệm vụ / bình luận nhiệm vụ",
+					"docCommentMention": "@nhắc đến trong bình luận tài liệu",
+					"directChat": "Trò chuyện trực tiếp",
+					"writeDescription": "Viết mô tả nhiệm vụ bằng AI"
+				},
+				"capabilities": "Khả năng",
+				"cloneRepositories": "Clone kho mã",
+				"cloneRepositoriesHint": "Cho phép agent git clone kho mã về máy cục bộ",
+				"gitCommitterIdentity": "Danh tính committer Git",
+				"gitCommitterHint": "Tên và email dùng cho các commit do agent này thực hiện.",
+				"committerNameLabel": "Tên committer",
+				"committerEmailLabel": "Email committer",
+				"saveChanges": "Lưu thay đổi",
+				"saved": "Đã lưu",
+				"saveFailed": "Lưu thất bại. Vui lòng thử lại.",
+				"systemPromptLabel": "System Prompt"
+			},
+			"mcp": {
+				"serverCount_one": "{{count}} máy chủ đã cấu hình",
+				"serverCount_other": "{{count}} máy chủ đã cấu hình",
+				"addServer": "Thêm máy chủ",
+				"empty": {
+					"title": "Chưa thêm máy chủ MCP nào",
+					"addFirstServer": "Thêm máy chủ đầu tiên của bạn"
+				},
+				"addDialog": {
+					"title": "Thêm máy chủ MCP",
+					"description": "Kết nối một máy chủ MCP để mở rộng khả năng của agent.",
+					"serverNameLabel": "Tên máy chủ",
+					"transportLabel": "Phương thức truyền tải",
+					"commandLabel": "Lệnh",
+					"argsLabel": "Tham số",
+					"argsHint": "(cách nhau bằng dấu cách)",
+					"urlLabel": "URL",
+					"cancel": "Hủy",
+					"addServer": "Thêm máy chủ"
+				}
+			},
+			"skills": {
+				"skillCount_one": "{{count}} skill đã gắn",
+				"skillCount_other": "{{count}} skill đã gắn",
+				"addSkill": "Thêm skill",
+				"empty": {
+					"title": "Chưa có skill nào",
+					"addFirstSkill": "Thêm skill đầu tiên"
+				},
+				"addDialog": {
+					"title": "Thêm Skill",
+					"description": "Cung cấp cho agent các hướng dẫn hoặc khả năng chuyên biệt.",
+					"skillNameLabel": "Tên skill",
+					"sourceLabel": "Nguồn",
+					"sourceInline": "Trực tiếp (viết nội dung tại đây)",
+					"sourceMarketplace": "Chợ Plugin",
+					"sourceGithubUrl": "URL GitHub",
+					"skillContentLabel": "Nội dung skill (Markdown)",
+					"urlLabel": "URL",
+					"cancel": "Hủy",
+					"addSkill": "Thêm skill"
+				}
+			},
+			"conversations": {
+				"triggerChat": "Trò chuyện",
+				"triggerWriteDescription": "Viết mô tả",
+				"triggerTask": "Nhiệm vụ",
+				"iterations_one": "{{count}} lượt lặp",
+				"iterations_other": "{{count}} lượt lặp",
+				"prOpened": "PR đã mở",
+				"watch": "Theo dõi",
+				"empty": {
+					"title": "Chưa có hội thoại nào",
+					"description": "Hội thoại bắt đầu khi một nhiệm vụ được giao cho agent này hoặc khi có ai đó nhắn tin cho nó."
+				}
+			}
+		},
+		"conversationView": {
+			"thinking": "Đang suy nghĩ…",
+			"observation": "quan sát",
+			"toolLabel": "công cụ: {{toolName}}",
+			"stop": "Dừng",
+			"notFound": "Không tìm thấy hội thoại",
+			"chatSession": "Phiên trò chuyện",
+			"taskSession": "Phiên nhiệm vụ",
+			"pr": "PR",
+			"noMessages": "Chưa có tin nhắn nào"
+		}
+	},
+	"docs": {
+		"editorPage": {
+			"notFound": {
+				"title": "Không tìm thấy tài liệu",
+				"description": "Tài liệu này có thể đã bị xóa hoặc liên kết không hợp lệ."
+			},
+			"unsaved": "Chưa lưu",
+			"saving": "Đang lưu…",
+			"saved": "Đã lưu",
+			"commentsAndActivity": "Bình luận & hoạt động"
+		},
+		"activity": {
+			"created": "đã tạo tài liệu này",
+			"updated": "đã cập nhật tài liệu",
+			"updatedFields": "đã cập nhật {{fields}}",
+			"deleted": "đã xóa tài liệu",
+			"moved": "đã di chuyển tài liệu",
+			"contentChangeDiff": "Thay đổi nội dung"
+		}
+	},
+	"roles": {
+		"deleteDialog": {
+			"title": "Xóa vai trò",
+			"confirmTextPrefix": "Bạn có chắc chắn muốn xóa",
+			"confirmTextSuffix": "? Các thành viên hiện được gán vai trò này sẽ mất quyền truy cập. Hành động này không thể hoàn tác.",
+			"cancel": "Hủy",
+			"deleteRole": "Xóa vai trò",
+			"errors": {
+				"notFound": "Vai trò này không còn tồn tại.",
+				"hasMembers": "Không thể xóa vai trò này vì vẫn còn được gán cho một hoặc nhiều thành viên.",
+				"forbidden": "Bạn không có quyền xóa vai trò này.",
+				"internalError": "Đã xảy ra lỗi. Vui lòng thử lại.",
+				"generic": "Đã xảy ra lỗi."
+			}
+		},
+		"formDialog": {
+			"editTitle": "Chỉnh sửa vai trò",
+			"createTitle": "Vai trò mới",
+			"editDescription": "Cập nhật tên vai trò và cấu hình quyền hạn được cấp.",
+			"createDescription": "Định nghĩa một vai trò dự án mới và cấu hình quyền hạn mà nó cấp cho thành viên.",
+			"roleNameLabel": "Tên vai trò",
+			"roleNamePlaceholder": "vd: PROJECT_REVIEWER",
+			"permissionsLabel": "Quyền hạn",
+			"enabledCount_one": "{{count}} đã bật",
+			"enabledCount_other": "{{count}} đã bật",
+			"cancel": "Hủy",
+			"saveChanges": "Lưu thay đổi",
+			"createRole": "Tạo vai trò",
+			"errors": {
+				"nameTaken": "Đã tồn tại một vai trò với tên này.",
+				"nameInvalid": "Tên vai trò phải dùng chữ in hoa, số và dấu gạch dưới.",
+				"notFound": "Vai trò này không còn tồn tại. Có thể vai trò đã bị xóa.",
+				"forbidden": "Bạn không có quyền thực hiện thao tác này.",
+				"internalError": "Đã xảy ra lỗi trên máy chủ. Vui lòng thử lại.",
+				"generic": "Đã xảy ra lỗi."
+			}
+		},
+		"permissions": {
+			"projectsRead": {
+				"label": "Xem dự án",
+				"description": "Xem chi tiết và cài đặt dự án"
+			},
+			"projectsWrite": {
+				"label": "Sửa dự án",
+				"description": "Cập nhật tên, mô tả và cài đặt dự án"
+			},
+			"projectsDelete": {
+				"label": "Xóa dự án",
+				"description": "Xóa vĩnh viễn dự án này"
+			},
+			"membersRead": {
+				"label": "Xem thành viên",
+				"description": "Liệt kê và xem thành viên dự án"
+			},
+			"membersWrite": {
+				"label": "Quản lý thành viên",
+				"description": "Thêm, xóa và gán lại thành viên dự án"
+			},
+			"rolesRead": {
+				"label": "Xem vai trò",
+				"description": "Liệt kê và xem định nghĩa vai trò dự án"
+			},
+			"rolesWrite": {
+				"label": "Quản lý vai trò",
+				"description": "Tạo, sửa và xóa vai trò dự án"
+			},
+			"tasksRead": {
+				"label": "Xem nhiệm vụ",
+				"description": "Duyệt và đọc nhiệm vụ trong dự án"
+			},
+			"tasksWrite": {
+				"label": "Sửa nhiệm vụ",
+				"description": "Tạo, cập nhật và di chuyển nhiệm vụ"
+			},
+			"sprintsRead": {
+				"label": "Xem sprint",
+				"description": "Duyệt bảng sprint và backlog"
+			},
+			"sprintsWrite": {
+				"label": "Quản lý sprint",
+				"description": "Tạo, cập nhật và đóng sprint"
+			},
+			"docsRead": {
+				"label": "Xem tài liệu",
+				"description": "Duyệt và đọc tài liệu trong dự án"
+			},
+			"docsWrite": {
+				"label": "Sửa tài liệu",
+				"description": "Tạo, cập nhật và xóa tài liệu và thư mục"
+			},
+			"agentsRead": {
+				"label": "Xem agent",
+				"description": "Duyệt AI agent và xem cấu hình của chúng"
+			},
+			"agentsWrite": {
+				"label": "Quản lý agent",
+				"description": "Tạo, cấu hình và xóa AI agent"
+			}
+		},
+		"permissionGroups": {
+			"project": "Dự án",
+			"members": "Thành viên",
+			"roles": "Vai trò",
+			"tasks": "Nhiệm vụ",
+			"sprints": "Sprint",
+			"documents": "Tài liệu",
+			"aiAgents": "AI Agent"
+		}
+	},
+	"settings": {
+		"general": {
+			"title": "Chung",
+			"projectNameLabel": "Tên dự án",
+			"projectNamePlaceholder": "Dự án tuyệt vời của tôi",
+			"taskIdPrefixLabel": "Tiền tố mã nhiệm vụ",
+			"taskIdPrefixHint": "vd: PACA → PACA-1, PACA-2…",
+			"taskIdPrefixPlaceholder": "PROJ",
+			"descriptionLabel": "Mô tả",
+			"descriptionPlaceholder": "Mô tả dự án này nói về điều gì…",
+			"publicProjectLabel": "Dự án công khai",
+			"publicProjectHintPublic": "Bất kỳ ai có liên kết đều có thể xem dự án này. Người dùng ẩn danh chỉ có quyền xem.",
+			"publicProjectHintPrivate": "Chỉ thành viên đội nhóm mới có thể truy cập dự án này.",
+			"saveChanges": "Lưu thay đổi",
+			"saved": "Đã lưu ✓",
+			"noPermission": "Bạn không có quyền chỉnh sửa dự án này.",
+			"errors": {
+				"nameTaken": "Đã tồn tại một dự án với tên này.",
+				"nameInvalid": "Tên dự án trống hoặc không hợp lệ.",
+				"prefixInvalid": "Tiền tố phải gồm 1–10 chữ in hoa/chữ số (vd: PACA).",
+				"updateFailed": "Cập nhật dự án thất bại. Vui lòng thử lại."
+			}
+		},
+		"roles": {
+			"title": "Vai trò dự án",
+			"description": "Quản lý vai trò và quyền hạn cho thành viên của dự án này.",
+			"newRole": "Vai trò mới",
+			"noPermissionsAssigned": "Chưa gán quyền hạn nào",
+			"editRole": "Chỉnh sửa vai trò",
+			"deleteRole": "Xóa vai trò",
+			"rolesDefined_one": "vai trò đã định nghĩa",
+			"rolesDefined_other": "vai trò đã định nghĩa",
+			"permissionGrants": "quyền hạn được cấp trên tất cả vai trò",
+			"empty": {
+				"title": "Chưa có vai trò nào được định nghĩa",
+				"description": "Tạo vai trò đầu tiên của bạn để bắt đầu gán quyền hạn cho thành viên.",
+				"createRole": "Tạo vai trò"
+			},
+			"table": {
+				"name": "Tên",
+				"permissions": "Quyền hạn",
+				"created": "Ngày tạo"
+			},
+			"systemRolesNote": "Vai trò hệ thống là mẫu dùng chung và không thể chỉnh sửa hoặc xóa."
+		},
+		"taskStatuses": {
+			"title": "Trạng thái nhiệm vụ",
+			"description": "Định nghĩa các trạng thái quy trình mà nhiệm vụ sẽ đi qua trong dự án này.",
+			"newStatus": "Trạng thái mới",
+			"reorderFailed": "Lưu thứ tự mới thất bại. Vui lòng thử lại.",
+			"empty": {
+				"title": "Chưa có trạng thái nào được định nghĩa",
+				"description": "Tạo trạng thái để định nghĩa quy trình cho nhiệm vụ trong dự án này.",
+				"createStatus": "Tạo trạng thái"
+			},
+			"table": {
+				"name": "Tên",
+				"category": "Danh mục",
+				"default": "Mặc định"
+			},
+			"default": "Mặc định",
+			"setAsDefault": "Đặt làm trạng thái mặc định",
+			"editStatus": "Chỉnh sửa trạng thái",
+			"deleteStatus": "Xóa trạng thái"
+		},
+		"taskTypes": {
+			"title": "Loại nhiệm vụ",
+			"description": "Phân loại nhiệm vụ bằng các loại tùy chỉnh (vd: Bug, Feature, Story).",
+			"newType": "Loại mới",
+			"empty": {
+				"title": "Chưa có loại nhiệm vụ nào được định nghĩa",
+				"description": "Tạo các loại để phân loại nhiệm vụ theo dạng — vd: Bug, Feature, Story.",
+				"createType": "Tạo loại"
+			},
+			"table": {
+				"icon": "Biểu tượng",
+				"name": "Tên",
+				"description": "Mô tả",
+				"default": "Mặc định"
+			},
+			"default": "Mặc định",
+			"setAsDefault": "Đặt làm loại mặc định",
+			"editType": "Chỉnh sửa loại",
+			"deleteType": "Xóa loại"
+		},
+		"customFields": {
+			"title": "Trường tùy chỉnh",
+			"description": "Định nghĩa các trường nhiệm vụ tùy chỉnh cấp dự án để mở rộng nhiệm vụ với dữ liệu bổ sung đặc thù cho quy trình của bạn.",
+			"newField": "Trường tùy chỉnh mới",
+			"empty": {
+				"title": "Chưa có trường tùy chỉnh nào",
+				"description": "Trường tùy chỉnh cho phép bạn lưu trữ dữ liệu đặc thù cho quy trình của bạn — sprint, mức độ nghiêm trọng, nhãn phát hành và nhiều hơn nữa.",
+				"createFirstField": "Tạo trường đầu tiên"
+			},
+			"table": {
+				"displayName": "Tên hiển thị",
+				"fieldKey": "Khóa trường",
+				"type": "Loại",
+				"required": "Bắt buộc"
+			},
+			"yes": "Có",
+			"no": "Không",
+			"editField": "Chỉnh sửa trường",
+			"deleteField": "Xóa trường",
+			"cancel": "Hủy",
+			"saveChanges": "Lưu thay đổi",
+			"displayNameLabel": "Tên hiển thị",
+			"displayNamePlaceholder": "vd: Nhãn phát hành",
+			"fieldKeyLabel": "Khóa trường",
+			"fieldKeyHint": "Dùng làm định danh trong API và khi xuất dữ liệu.",
+			"fieldKeyImmutableHint": "Khóa trường không thể thay đổi sau khi tạo.",
+			"fieldTypeLabel": "Loại trường",
+			"fieldTypeImmutableHint": "Loại trường không thể thay đổi sau khi tạo.",
+			"optionsLabel": "Tùy chọn",
+			"addOptionPlaceholder": "Thêm tùy chọn…",
+			"addOption": "Thêm",
+			"requiredLabel": "Bắt buộc",
+			"requiredHint": "Người dùng phải điền trường này khi tạo hoặc chỉnh sửa nhiệm vụ.",
+			"fieldTypes": {
+				"text": "Văn bản",
+				"number": "Số",
+				"date": "Ngày",
+				"checkbox": "Checkbox",
+				"select": "Chọn",
+				"multiSelect": "Chọn nhiều",
+				"url": "URL"
+			},
+			"createDialog": {
+				"title": "Tạo trường tùy chỉnh",
+				"description": "Định nghĩa một trường mới để lưu trữ dữ liệu bổ sung trên nhiệm vụ trong dự án này.",
+				"createField": "Tạo trường",
+				"errors": {
+					"keyTaken": "Đã tồn tại một trường với khóa này trong dự án.",
+					"keyInvalid": "Khóa trường trống hoặc không hợp lệ.",
+					"nameInvalid": "Tên hiển thị trống hoặc không hợp lệ.",
+					"createFailed": "Tạo trường thất bại. Vui lòng thử lại."
+				}
+			},
+			"editDialog": {
+				"title": "Chỉnh sửa trường tùy chỉnh",
+				"description": "Cập nhật cài đặt trường.",
+				"errors": {
+					"nameInvalid": "Tên hiển thị trống hoặc không hợp lệ.",
+					"saveFailed": "Lưu thay đổi thất bại. Vui lòng thử lại."
+				}
+			},
+			"deleteDialog": {
+				"title": "Xóa trường tùy chỉnh",
+				"confirmTextPrefix": "Xóa",
+				"confirmTextSuffix": "? Dữ liệu nhiệm vụ lưu trong trường này sẽ bị mất. Hành động này không thể hoàn tác.",
+				"deleteFailed": "Xóa trường thất bại. Vui lòng thử lại.",
+				"deleteField": "Xóa trường"
+			}
+		},
+		"dangerZone": {
+			"title": "Khu vực nguy hiểm",
+			"deleteProjectTitle": "Xóa dự án này",
+			"deleteProjectDescription": "Xóa vĩnh viễn dự án và toàn bộ dữ liệu của nó. Hành động này không thể hoàn tác.",
+			"deleteProjectButton": "Xóa dự án",
+			"deleteDialog": {
+				"title": "Xóa dự án",
+				"confirmTextPrefix": "Thao tác này sẽ xóa vĩnh viễn",
+				"confirmTextSuffix": "và toàn bộ dữ liệu của nó, bao gồm thành viên, vai trò và tương tác. Hành động này không thể hoàn tác.",
+				"typeToConfirmPrefix": "Nhập",
+				"typeToConfirmSuffix": "để xác nhận",
+				"deleteFailed": "Xóa dự án thất bại. Vui lòng thử lại.",
+				"cancel": "Hủy",
+				"deletePermanently": "Xóa vĩnh viễn"
+			}
+		}
+	},
+	"taskStatuses": {
+		"deleteDialog": {
+			"title": "Xóa trạng thái",
+			"confirmTextPrefix": "Xóa",
+			"confirmTextSuffix": "? Nhiệm vụ đang dùng trạng thái này sẽ mất trạng thái của chúng. Hành động này không thể hoàn tác.",
+			"deleteFailed": "Xóa trạng thái thất bại. Vui lòng thử lại.",
+			"cancel": "Hủy",
+			"deleteStatus": "Xóa trạng thái"
+		},
+		"formDialog": {
+			"editTitle": "Chỉnh sửa trạng thái",
+			"createTitle": "Tạo trạng thái",
+			"editDescription": "Cập nhật trạng thái quy trình này.",
+			"createDescription": "Thêm một trạng thái mới vào quy trình của dự án.",
+			"nameLabel": "Tên",
+			"namePlaceholder": "vd: Đang review",
+			"categoryLabel": "Danh mục",
+			"colorLabel": "Màu sắc",
+			"customColorTitle": "Màu tùy chỉnh",
+			"cancel": "Hủy",
+			"saveChanges": "Lưu thay đổi",
+			"createStatus": "Tạo trạng thái",
+			"errors": {
+				"nameInvalid": "Tên trạng thái trống hoặc không hợp lệ.",
+				"categoryInvalid": "Danh mục đã chọn không hợp lệ.",
+				"saveFailed": "Lưu trạng thái thất bại. Vui lòng thử lại."
+			}
+		}
+	},
+	"team": {
+		"title": "Đội nhóm",
+		"subtitle": "Quản lý thành viên và vai trò của dự án",
+		"addMember": "Thêm thành viên",
+		"memberCount_one": "{{count}} thành viên",
+		"memberCount_other": "{{count}} thành viên",
+		"empty": {
+			"title": "Chưa có thành viên nào",
+			"description": "Thêm đồng đội hoặc AI agent vào dự án này để bắt đầu.",
+			"addFirstMember": "Thêm thành viên đầu tiên"
+		},
+		"addMemberDialog": {
+			"title": "Thêm thành viên",
+			"description": "Chọn một người dùng và gán vai trò cho họ trong dự án này.",
+			"userLabel": "Người dùng",
+			"change": "Thay đổi",
+			"searchPlaceholder": "Tìm theo tên hoặc tên đăng nhập…",
+			"noUsersMatch": "Không có người dùng nào khớp với tìm kiếm của bạn.",
+			"noUsersAvailable": "Không có người dùng nào để thêm.",
+			"roleLabel": "Vai trò",
+			"rolePlaceholder": "Chọn một vai trò…",
+			"cancel": "Hủy",
+			"addMember": "Thêm thành viên",
+			"errors": {
+				"addFailed": "Thêm thành viên thất bại. Vui lòng thử lại."
+			}
+		},
+		"roleChip": {
+			"changeRole": "Đổi vai trò",
+			"changeFailed": "Đổi vai trò thất bại."
+		},
+		"memberRow": {
+			"removeMember": "Xóa thành viên"
+		},
+		"removeDialog": {
+			"title": "Xóa thành viên",
+			"removePrefix": "Xóa",
+			"fromInfix": "khỏi",
+			"confirmSuffix": "? Họ sẽ mất quyền truy cập ngay lập tức.",
+			"removeFailed": "Xóa thành viên thất bại. Vui lòng thử lại.",
+			"cancel": "Hủy",
+			"remove": "Xóa"
+		}
+	},
+	"aiChat": {
+		"chatWithAgent": "Trò chuyện với AI Agent",
+		"newConversation": "Hội thoại mới",
+		"agentLabel": "Agent",
+		"noAgentsConfigured": "Chưa có agent nào được cấu hình cho dự án này.",
+		"selectAgentPlaceholder": "Chọn một agent…",
+		"messageLabel": "Tin nhắn",
+		"messageHint": "(Enter để gửi, Shift+Enter để xuống dòng)",
+		"messagePlaceholder": "Bạn muốn agent hỗ trợ điều gì?",
+		"send": "Gửi"
+	},
+	"taskTypes": {
+		"deleteDialog": {
+			"title": "Xóa loại nhiệm vụ",
+			"confirmTextPrefix": "Xóa",
+			"confirmTextSuffix": "? Nhiệm vụ đang dùng loại này sẽ mất gán loại của chúng. Hành động này không thể hoàn tác.",
+			"deleteFailed": "Xóa loại nhiệm vụ thất bại. Vui lòng thử lại.",
+			"cancel": "Hủy",
+			"deleteType": "Xóa loại"
+		},
+		"formDialog": {
+			"editTitle": "Chỉnh sửa loại nhiệm vụ",
+			"createTitle": "Tạo loại nhiệm vụ",
+			"editDescription": "Cập nhật loại nhiệm vụ này.",
+			"createDescription": "Thêm một loại mới để phân loại nhiệm vụ trong dự án này.",
+			"nameLabel": "Tên",
+			"namePlaceholder": "vd: Bug, Feature, Story",
+			"iconLabel": "Biểu tượng",
+			"optional": "(tùy chọn)",
+			"clear": "Xóa",
+			"colorLabel": "Màu sắc",
+			"customColorTitle": "Màu tùy chỉnh",
+			"descriptionLabel": "Mô tả",
+			"descriptionPlaceholder": "Mô tả khi nào nên dùng loại này…",
+			"cancel": "Hủy",
+			"saveChanges": "Lưu thay đổi",
+			"createType": "Tạo loại",
+			"errors": {
+				"nameInvalid": "Tên loại trống hoặc không hợp lệ.",
+				"saveFailed": "Lưu loại nhiệm vụ thất bại. Vui lòng thử lại."
+			}
+		}
+	},
+	"taskDetail": {
+		"common": {
+			"empty": "Trống",
+			"dash": "—",
+			"unassigned": "Chưa giao"
+		},
+		"notFound": {
+			"title": "Không tìm thấy nhiệm vụ",
+			"description": "Nhiệm vụ này có thể đã bị xóa hoặc liên kết không hợp lệ.",
+			"ariaLabel": "Chi tiết nhiệm vụ",
+			"backToProject": "Quay lại dự án",
+			"projectFallback": "Dự án"
+		},
+		"header": {
+			"created": "Đã tạo {{date}}",
+			"copied": "Đã sao chép!",
+			"share": "Chia sẻ",
+			"taskActions": "Thao tác nhiệm vụ",
+			"delete": "Xóa",
+			"closeTaskDetail": "Đóng chi tiết nhiệm vụ",
+			"deleteDialog": {
+				"title": "Xóa nhiệm vụ?",
+				"description": "Thao tác này sẽ xóa vĩnh viễn \"{{title}}\" và toàn bộ dữ liệu của nó. Hành động này không thể hoàn tác.",
+				"cancel": "Hủy",
+				"delete": "Xóa"
+			}
+		},
+		"properties": {
+			"title": "Thuộc tính",
+			"status": "Trạng thái",
+			"dates": "Ngày tháng",
+			"trackTime": "Theo dõi thời gian",
+			"addTime": "Thêm thời gian",
+			"type": "Loại",
+			"relationships": "Liên kết",
+			"assignees": "Người được giao",
+			"importance": "Mức độ quan trọng",
+			"none": "Không có",
+			"storyPoints": "Story Points",
+			"tags": "Thẻ",
+			"reporter": "Người báo cáo",
+			"sprint": "Sprint",
+			"productBacklog": "Product Backlog",
+			"epic": "Epic",
+			"viewEpic": "Xem epic",
+			"removeEpic": "Gỡ epic",
+			"parent": "Nhiệm vụ cha",
+			"viewParent": "Xem nhiệm vụ cha",
+			"removeParent": "Gỡ nhiệm vụ cha",
+			"addFields": "Thêm trường"
+		},
+		"description": {
+			"title": "Mô tả",
+			"writeWithAI": "Viết bằng AI",
+			"writeWithAIDialog": {
+				"title": "Viết bằng AI",
+				"description": "Chọn một agent để viết mô tả nhiệm vụ.",
+				"noAgents": "Chưa có agent nào được cấu hình cho dự án này.",
+				"cancel": "Hủy",
+				"starting": "Đang bắt đầu...",
+				"writeButton": "Viết mô tả"
+			}
+		},
+		"subtasks": {
+			"title": "Nhiệm vụ con",
+			"addButton": "Thêm nhiệm vụ con",
+			"titlePlaceholder": "Tiêu đề nhiệm vụ con…",
+			"empty": "Chưa có nhiệm vụ con nào"
+		},
+		"links": {
+			"title": "Nhiệm vụ liên kết",
+			"addButton": "Thêm liên kết",
+			"openTask": "Mở nhiệm vụ",
+			"removeLink": "Gỡ liên kết",
+			"empty": "Không có nhiệm vụ liên kết"
+		},
+		"attachments": {
+			"title": "Tệp đính kèm",
+			"uploadLabel": "Tải lên tệp đính kèm",
+			"dropZoneTitle": "Thả tệp của bạn vào đây để tải lên",
+			"dropZoneSubtitle": "hoặc nhấp để chọn",
+			"previewLabel": "Xem trước {{fileName}}",
+			"downloadLabel": "Tải xuống {{fileName}}",
+			"deleteLabel": "Xóa {{fileName}}",
+			"unitBytes_one": "{{count}} B",
+			"unitBytes_other": "{{count}} B",
+			"unitKilobytes": "{{value}} KB",
+			"unitMegabytes": "{{value}} MB"
+		},
+		"addFieldDialog": {
+			"title": "Tạo trường tùy chỉnh",
+			"displayNameLabel": "Tên hiển thị",
+			"displayNamePlaceholder": "vd: Nhãn phát hành",
+			"fieldKeyLabel": "Khóa trường",
+			"fieldKeyPlaceholder": "release_tag",
+			"fieldTypeLabel": "Loại trường",
+			"requiredLabel": "Bắt buộc",
+			"cancel": "Hủy",
+			"creating": "Đang tạo…",
+			"createField": "Tạo trường",
+			"fieldTypes": {
+				"text": "Văn bản",
+				"number": "Số",
+				"date": "Ngày",
+				"checkbox": "Checkbox",
+				"select": "Chọn"
+			}
+		},
+		"addTaskLinkModal": {
+			"title": "Liên kết nhiệm vụ",
+			"relationship": "Quan hệ",
+			"searchPlaceholder": "Tìm nhiệm vụ theo tiêu đề hoặc số...",
+			"loadingTasks": "Đang tải nhiệm vụ…",
+			"noTasksFound": "Không tìm thấy nhiệm vụ nào",
+			"linkTypes": {
+				"blocks": {
+					"label": "Chặn",
+					"description": "Nhiệm vụ này phải hoàn thành trước nhiệm vụ kia"
+				},
+				"isBlockedBy": {
+					"label": "Bị chặn bởi",
+					"description": "Nhiệm vụ này không thể bắt đầu cho đến khi nhiệm vụ kia hoàn thành"
+				},
+				"relatesTo": {
+					"label": "Liên quan đến",
+					"description": "Các nhiệm vụ này có liên quan nhưng không phụ thuộc nhau"
+				},
+				"duplicates": {
+					"label": "Trùng lặp",
+					"description": "Nhiệm vụ này là bản trùng lặp của nhiệm vụ kia"
+				}
+			}
+		},
+		"propertyField": {
+			"dateEditor": {
+				"datePlaceholder": "Ngày",
+				"clearDate": "Xóa ngày",
+				"startDate": "Ngày bắt đầu",
+				"dueDate": "Ngày đến hạn"
+			},
+			"storyPointsEditor": {
+				"decrease": "Giảm story points",
+				"increase": "Tăng story points"
+			},
+			"tagsEditor": {
+				"addTag": "Thêm thẻ",
+				"addTagPlaceholder": "Thêm thẻ..."
+			}
+		},
+		"panel": {
+			"priority": "Độ ưu tiên",
+			"assignee": "Người được giao",
+			"assigned": "Đã giao",
+			"sprint": "Sprint",
+			"created": "Đã tạo",
+			"updated": "Đã cập nhật"
+		},
+		"activity": {
+			"none": "không có",
+			"system": "Hệ thống",
+			"created": "đã tạo nhiệm vụ này",
+			"deleted": "đã xóa nhiệm vụ này",
+			"updated": "đã cập nhật nhiệm vụ này",
+			"changedStatus": "đã đổi trạng thái từ \"{{oldVal}}\" thành \"{{newVal}}\"",
+			"setStatus": "đã đặt trạng thái thành \"{{newVal}}\"",
+			"clearedStatus": "đã xóa trạng thái",
+			"changedType": "đã đổi loại từ \"{{oldVal}}\" thành \"{{newVal}}\"",
+			"setType": "đã đặt loại thành \"{{newVal}}\"",
+			"clearedType": "đã xóa loại",
+			"renamed": "đã đổi tên từ \"{{oldVal}}\" thành \"{{newVal}}\"",
+			"setTitle": "đã đặt tiêu đề thành \"{{newVal}}\"",
+			"changedPriority": "đã đổi độ ưu tiên từ {{oldVal}} thành {{newVal}}",
+			"setPriority": "đã đặt độ ưu tiên thành {{newVal}}",
+			"changedAssignee": "đã đổi người được giao từ {{oldName}} thành {{newName}}",
+			"assignedTo": "đã giao cho {{newName}}",
+			"removedAssignee": "đã gỡ người được giao {{oldName}}",
+			"changedReporter": "đã đổi người báo cáo từ {{oldName}} thành {{newName}}",
+			"setReporter": "đã đặt người báo cáo thành {{newName}}",
+			"removedReporter": "đã gỡ người báo cáo {{oldName}}",
+			"movedSprint": "đã chuyển từ sprint \"{{oldSprint}}\" sang \"{{newSprint}}\"",
+			"addedToSprint": "đã thêm vào sprint \"{{newSprint}}\"",
+			"removedFromSprint": "đã gỡ khỏi sprint \"{{oldSprint}}\"",
+			"setParentTask": "đã đặt nhiệm vụ cha",
+			"removedParentTask": "đã gỡ nhiệm vụ cha",
+			"changedDueDate": "đã đổi ngày đến hạn từ {{oldVal}} thành {{newVal}}",
+			"setDueDate": "đã đặt ngày đến hạn thành {{newVal}}",
+			"removedDueDate": "đã gỡ ngày đến hạn",
+			"changedStartDate": "đã đổi ngày bắt đầu từ {{oldVal}} thành {{newVal}}",
+			"setStartDate": "đã đặt ngày bắt đầu thành {{newVal}}",
+			"removedStartDate": "đã gỡ ngày bắt đầu",
+			"updatedDescription": "đã cập nhật mô tả",
+			"updatedTags": "đã cập nhật thẻ",
+			"updatedCustomFields": "đã cập nhật trường tùy chỉnh",
+			"updatedField": "đã cập nhật {{field}}",
+			"addedAttachment": "đã thêm tệp đính kèm",
+			"addedAttachmentNamed": "đã thêm tệp đính kèm: {{fileName}}",
+			"removedAttachment": "đã gỡ tệp đính kèm",
+			"removedAttachmentNamed": "đã gỡ tệp đính kèm: {{fileName}}",
+			"linkTypeBlocks": "chặn",
+			"linkTypeRelatedTo": "liên quan đến",
+			"linkTypeDuplicates": "trùng lặp",
+			"addedTaskLink": "đã thêm liên kết nhiệm vụ ({{linkType}})",
+			"removedTaskLink": "đã gỡ liên kết nhiệm vụ",
+			"startedAiSession": "đã bắt đầu một phiên AI",
+			"watchSession": "Theo dõi phiên",
+			"madeChange": "đã thực hiện một thay đổi",
+			"descriptionChangeDiff": "Thay đổi mô tả"
+		},
+		"timeAgo": {
+			"justNow": "vừa xong",
+			"minutes_one": "{{count}} phút trước",
+			"minutes_other": "{{count}} phút trước",
+			"hours_one": "{{count}} giờ trước",
+			"hours_other": "{{count}} giờ trước",
+			"days_one": "{{count}} ngày trước",
+			"days_other": "{{count}} ngày trước"
+		}
+	},
+	"board": {
+		"common": {
+			"none": "Không có"
+		},
+		"view": {
+			"noTasks": "Không có nhiệm vụ",
+			"loading": "Đang tải…",
+			"viewMore": "Xem thêm",
+			"expandColumn": "Mở rộng cột",
+			"collapseColumn": "Thu gọn cột"
+		},
+		"taskCard": {
+			"unassigned": "Chưa giao",
+			"priorityLabel": "Độ ưu tiên",
+			"reporterTitle": "Người báo cáo",
+			"epicLabel": "Epic",
+			"noEpic": "Không có Epic",
+			"storyPointsTitle": "Story Points"
+		},
+		"listGroup": {
+			"columnHeaders": {
+				"id": "ID",
+				"title": "Tiêu đề"
+			},
+			"loading": "Đang tải…",
+			"viewMore": "Xem thêm",
+			"startSprint": "Bắt đầu sprint",
+			"newSprint": "Sprint mới",
+			"noTasks": "Không có nhiệm vụ"
+		},
+		"taskRow": {
+			"columnHeaders": {
+				"type": "Loại",
+				"importance": "Mức độ quan trọng",
+				"storyPoints": "SP",
+				"status": "Trạng thái",
+				"assignee": "Người được giao",
+				"reporter": "Người báo cáo",
+				"startDate": "Ngày bắt đầu",
+				"dueDate": "Ngày đến hạn",
+				"epic": "Epic",
+				"created": "Đã tạo"
+			},
+			"unassigned": "Chưa giao",
+			"noEpic": "Không có Epic"
+		},
+		"addTaskRow": {
+			"addTask": "Thêm nhiệm vụ",
+			"placeholder": "Tiêu đề nhiệm vụ…",
+			"cancel": "Hủy",
+			"create": "Tạo"
+		},
+		"taskTypeSelector": {
+			"noType": "—"
+		},
+		"backlog": {
+			"title": "Product Backlog",
+			"description": "Tất cả công việc chưa được gán vào sprint nào."
+		}
+	},
+	"layout": {
+		"shell": {
+			"newSprint": "Sprint mới",
+			"renameView": "Đổi tên chế độ xem",
+			"deleteView": "Xóa chế độ xem",
+			"searchTasksPlaceholder": "Tìm kiếm nhiệm vụ…",
+			"pluginNotAvailable": "Plugin không khả dụng"
+		},
+		"viewSettings": {
+			"viewSettingsAriaLabel": "Cài đặt chế độ xem",
+			"title": "Cài đặt chế độ xem",
+			"chooseFields": "Chọn trường",
+			"back": "← Quay lại",
+			"clearFilters": "Xóa bộ lọc",
+			"display": "Hiển thị",
+			"filters": "Bộ lọc",
+			"noSelection": "—",
+			"titleField": "Tiêu đề",
+			"fieldsLabel": "Trường",
+			"columnByLabel": "Cột theo",
+			"swimlanesLabel": "Swimlane",
+			"sortByLabel": "Sắp xếp theo",
+			"fieldSumLabel": "Tổng trường",
+			"initialSizeLabel": "Kích thước ban đầu",
+			"perPageLabel": "Mỗi trang",
+			"sprintsLabel": "Sprint",
+			"statusesLabel": "Trạng thái",
+			"assigneesLabel": "Người được giao",
+			"taskTypesLabel": "Loại nhiệm vụ",
+			"reset": "Đặt lại",
+			"saving": "Đang lưu…",
+			"save": "Lưu",
+			"sprintFilter": {
+				"noSprints": "Không có sprint",
+				"allSprints": "Tất cả sprint"
+			},
+			"statusFilter": {
+				"noStatuses": "Không có trạng thái",
+				"allStatuses": "Tất cả trạng thái",
+				"clear": "Xóa",
+				"all": "Tất cả"
+			},
+			"assigneeFilter": {
+				"allAssignees": "Tất cả người được giao",
+				"noMembers": "Không có thành viên",
+				"unassigned": "Chưa giao"
+			},
+			"taskTypeFilter": {
+				"normalTypes": "Loại thông thường",
+				"allNormalTypesDynamic": "Tất cả loại thông thường (động)",
+				"systemTypes": "Loại hệ thống",
+				"noTaskTypes": "Không có loại nhiệm vụ"
+			}
+		},
+		"roadmap": {
+			"taskColumnLabel": "Nhiệm vụ",
+			"noTasksToDisplay": "Không có nhiệm vụ để hiển thị",
+			"noDatesSet": "Chưa đặt ngày",
+			"dateRangeTooltip": "{{start}} → {{end}}",
+			"startDateTooltip": "Bắt đầu: {{date}}",
+			"dueDateTooltip": "Đến hạn: {{date}}",
+			"loading": "Đang tải…",
+			"viewMore": "Xem thêm"
+		},
+		"newViewPopover": {
+			"addView": "Thêm chế độ xem",
+			"addViewAriaLabel": "Thêm chế độ xem",
+			"title": "Chế độ xem mới",
+			"viewNameLabel": "Tên chế độ xem",
+			"defaultName": "{{layout}} mới",
+			"layoutLabel": "Bố cục",
+			"creating": "Đang tạo…",
+			"createView": "Tạo chế độ xem",
+			"layouts": {
+				"board": "Bảng",
+				"table": "Bảng dữ liệu",
+				"roadmap": "Lộ trình",
+				"plugin": "Plugin"
+			}
+		},
+		"renameViewDialog": {
+			"title": "Đổi tên chế độ xem",
+			"cancel": "Hủy",
+			"renaming": "Đang đổi tên…",
+			"rename": "Đổi tên"
+		},
+		"startSprintModal": {
+			"title": "Bắt đầu sprint",
+			"nameLabel": "Tên",
+			"goalLabel": "Mục tiêu",
+			"optional": "(tùy chọn)",
+			"goalPlaceholder": "Sprint này nên đạt được điều gì?",
+			"startDateLabel": "Ngày bắt đầu",
+			"endDateLabel": "Ngày kết thúc",
+			"cancel": "Hủy",
+			"starting": "Đang bắt đầu…",
+			"startSprint": "Bắt đầu sprint"
+		},
+		"timeline": {
+			"title": "Dòng thời gian",
+			"description": "Epic và kế hoạch dài hạn trên một lộ trình."
+		},
+		"sprintDetail": {
+			"notFound": "Không tìm thấy sprint hoặc bạn không có quyền truy cập.",
+			"statusActive": "Đang hoạt động",
+			"statusPlanned": "Đã lên kế hoạch",
+			"statusCompleted": "Đã hoàn thành",
+			"description": "Sprint {{status}}",
+			"descriptionWithStartDate": "Sprint {{status}} · bắt đầu {{date}}",
+			"completeSprint": "Hoàn thành sprint",
+			"completeSprintModal": {
+				"title": "Hoàn thành sprint",
+				"willBeMovedTo_one": "{{count}} nhiệm vụ chưa hoàn thành sẽ được chuyển đến:",
+				"willBeMovedTo_other": "{{count}} nhiệm vụ chưa hoàn thành sẽ được chuyển đến:",
+				"noIncompleteTasks": "Không còn nhiệm vụ chưa hoàn thành nào trong sprint này.",
+				"productBacklog": "Product Backlog",
+				"unassignedHint": "Nhiệm vụ sẽ được gỡ khỏi mọi sprint",
+				"cancel": "Hủy",
+				"completing": "Đang hoàn thành…",
+				"completeSprint": "Hoàn thành sprint"
+			}
+		},
+		"conversation": {
+			"agentsFallback": "Agent"
+		}
+	},
+	"priority": {
+		"none": "Không có",
+		"low": "Thấp",
+		"medium": "Trung bình",
+		"high": "Cao",
+		"critical": "Khẩn cấp"
+	},
+	"viewUtils": {
+		"groups": {
+			"backlog": "Backlog",
+			"unassigned": "Chưa giao",
+			"noReporter": "Không có người báo cáo",
+			"noType": "Không có loại",
+			"none": "Không có",
+			"yes": "Có",
+			"no": "Không"
+		},
+		"columnBy": {
+			"status": "Trạng thái",
+			"sprint": "Sprint",
+			"assignee": "Người được giao",
+			"importance": "Mức độ quan trọng",
+			"type": "Loại",
+			"reporter": "Người báo cáo"
+		},
+		"sortBy": {
+			"manual": "Thủ công",
+			"importance": "Mức độ quan trọng",
+			"storyPoints": "Story Points",
+			"title": "Tiêu đề",
+			"created": "Đã tạo",
+			"startDate": "Ngày bắt đầu",
+			"dueDate": "Ngày đến hạn"
+		},
+		"swimlanes": {
+			"none": "Không có",
+			"assignee": "Người được giao",
+			"importance": "Mức độ quan trọng",
+			"type": "Loại"
+		},
+		"fieldSum": {
+			"count": "Số lượng",
+			"storyPoints": "Story Points"
+		},
+		"fields": {
+			"assignee": "Người được giao",
+			"status": "Trạng thái",
+			"importance": "Mức độ quan trọng",
+			"storyPoints": "Story Points",
+			"type": "Loại",
+			"epic": "Epic",
+			"reporter": "Người báo cáo",
+			"startDate": "Ngày bắt đầu",
+			"dueDate": "Ngày đến hạn",
+			"created": "Đã tạo"
+		}
+	}
+}

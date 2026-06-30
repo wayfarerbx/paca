@@ -1,0 +1,38 @@
+{
+	"marketplace": {
+		"loading": "正在加载插件市场...",
+		"searchPlaceholder": "搜索插件",
+		"empty": "未找到任何插件市场插件。",
+		"card": {
+			"installed": "已安装",
+			"updateAvailable": "有可用更新",
+			"source": "来源",
+			"upgrading": "正在升级...",
+			"upgradeTo": "升级到 {{version}}",
+			"uninstalling": "正在卸载...",
+			"uninstall": "卸载",
+			"installing": "正在安装...",
+			"install": "安装",
+			"features": {
+				"backend": "后端",
+				"frontend": "前端",
+				"migrations": "数据库迁移",
+				"mcp": "MCP"
+			}
+		}
+	},
+	"preferences": {
+		"empty": "尚未安装任何带扩展点的插件。",
+		"actions": {
+			"show": "显示",
+			"hide": "隐藏"
+		},
+		"extensionPoints": {
+			"sidebarGeneral": "侧边栏 — 通用",
+			"sidebarProject": "侧边栏 — 项目",
+			"taskDetail": "任务详情",
+			"projectSettingsTab": "项目设置标签页",
+			"customView": "自定义视图"
+		}
+	}
+}

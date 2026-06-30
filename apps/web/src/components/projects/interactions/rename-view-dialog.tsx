@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +27,7 @@ export function RenameViewDialog({
 	onSubmit,
 	isPending,
 }: RenameViewDialogProps) {
+	const { t } = useTranslation("projects");
 	const [name, setName] = useState(view?.name ?? "");
 
 	useEffect(() => {
@@ -42,7 +44,7 @@ export function RenameViewDialog({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-xs">
 				<DialogHeader>
-					<DialogTitle>Rename view</DialogTitle>
+					<DialogTitle>{t("layout.renameViewDialog.title")}</DialogTitle>
 				</DialogHeader>
 				<input
 					value={name}
@@ -52,14 +54,16 @@ export function RenameViewDialog({
 				/>
 				<DialogFooter>
 					<DialogClose render={<Button variant="outline" size="sm" />}>
-						Cancel
+						{t("layout.renameViewDialog.cancel")}
 					</DialogClose>
 					<Button
 						size="sm"
 						disabled={!name.trim() || isPending}
 						onClick={submit}
 					>
-						{isPending ? "Renaming…" : "Rename"}
+						{isPending
+							? t("layout.renameViewDialog.renaming")
+							: t("layout.renameViewDialog.rename")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

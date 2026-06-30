@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { getTaskTypeIconComponent } from "@/components/projects/task-types/task-type-icons";
 import {
 	DropdownMenu,
@@ -24,6 +25,7 @@ export function TaskTypeSelector({
 	canEdit = true,
 	align = "start",
 }: TaskTypeSelectorProps) {
+	const { t } = useTranslation("projects");
 	const taskType = taskTypes.find((tt) => tt.id === value);
 	const Icon = taskType ? getTaskTypeIconComponent(taskType.icon) : null;
 
@@ -43,7 +45,9 @@ export function TaskTypeSelector({
 			<span className="truncate">{taskType.name}</span>
 		</>
 	) : (
-		<span className="text-muted-foreground/50">—</span>
+		<span className="text-muted-foreground/50">
+			{t("board.taskTypeSelector.noType")}
+		</span>
 	);
 
 	if (!canEdit || taskTypes.length === 0) {

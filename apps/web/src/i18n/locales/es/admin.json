@@ -1,0 +1,264 @@
+{
+	"users": {
+		"header": {
+			"title": "Gestión de usuarios",
+			"description": "Consulta y administra las cuentas de usuario y sus roles asignados.",
+			"newUser": "Nuevo usuario"
+		},
+		"stats": {
+			"userCount_one": "{{count}} usuario",
+			"userCount_other": "{{count}} usuarios",
+			"inSystem": "en el sistema",
+			"mustChangePassword": "debe cambiar la contraseña"
+		},
+		"empty": {
+			"title": "No se encontraron usuarios",
+			"description": "Crea tu primer usuario para empezar.",
+			"createUser": "Crear usuario"
+		},
+		"errors": {
+			"loadFailed": "No se pudieron cargar los usuarios",
+			"tryAgain": "Actualiza la página e inténtalo de nuevo."
+		},
+		"noPermission": {
+			"title": "No tienes permiso para ver los usuarios",
+			"description": "Aún puedes crear nuevos usuarios con el botón de arriba."
+		},
+		"table": {
+			"columnUsername": "Nombre de usuario",
+			"columnFullName": "Nombre completo",
+			"columnRole": "Rol",
+			"columnCreated": "Creado",
+			"pwdResetBadge": "restablecer contraseña",
+			"youBadge": "tú",
+			"noFullName": "—",
+			"resetPasswordAction": "Restablecer contraseña",
+			"editAction": "Editar usuario",
+			"deleteAction": "Eliminar usuario"
+		},
+		"formDialog": {
+			"createdTitle": "Usuario creado",
+			"createdDescriptionSuffix": "ha sido creado. Comparte la contraseña temporal a continuación — se le pedirá al usuario que la cambie en su primer inicio de sesión.",
+			"temporaryPasswordLabel": "Contraseña temporal",
+			"hidePassword": "Ocultar contraseña",
+			"showPassword": "Mostrar contraseña",
+			"copyPassword": "Copiar contraseña",
+			"passwordNotShownAgain": "Esta contraseña no se volverá a mostrar. Asegúrate de copiarla ahora.",
+			"done": "Hecho",
+			"editTitle": "Editar usuario",
+			"createTitle": "Crear usuario",
+			"editDescription": "Actualiza el nombre visible y la asignación de rol del usuario.",
+			"createDescription": "Se generará automáticamente una contraseña temporal segura. Se requerirá que el usuario la cambie en su primer inicio de sesión.",
+			"usernameLabel": "Nombre de usuario",
+			"usernamePlaceholder": "p. ej. john.doe",
+			"fullNameLabel": "Nombre completo",
+			"fullNamePlaceholder": "p. ej. John Doe",
+			"roleLabel": "Rol",
+			"roleOptionalHint": "(opcional — por defecto USER)",
+			"rolePlaceholder": "Selecciona un rol…",
+			"cancel": "Cancelar",
+			"saving": "Guardando…",
+			"creating": "Creando…",
+			"saveChanges": "Guardar cambios",
+			"createUser": "Crear usuario",
+			"errors": {
+				"fullNameRequired": "El nombre completo es obligatorio.",
+				"usernameTaken": "Este nombre de usuario ya está en uso.",
+				"userNotFound": "Usuario no encontrado. Puede que ya haya sido eliminado.",
+				"forbidden": "No tienes permiso para realizar esta acción.",
+				"internalError": "Algo salió mal en el servidor. Inténtalo de nuevo.",
+				"generic": "Algo salió mal."
+			}
+		},
+		"resetPasswordDialog": {
+			"title": "Restablecer contraseña",
+			"descriptionSuccessPrefix": "La contraseña de",
+			"descriptionSuccessSuffix": "se ha restablecido. Comparte la contraseña temporal a continuación — no se volverá a mostrar.",
+			"descriptionConfirmPrefix": "Se generará una contraseña temporal segura y se asignará a",
+			"descriptionConfirmSuffix": "Se le pedirá que la cambie en su próximo inicio de sesión.",
+			"temporaryPasswordLabel": "Contraseña temporal",
+			"hidePassword": "Ocultar contraseña",
+			"showPassword": "Mostrar contraseña",
+			"copyPassword": "Copiar contraseña",
+			"notShownAgain": "⚠ Esta contraseña no se volverá a mostrar después de cerrar.",
+			"done": "Hecho",
+			"cancel": "Cancelar",
+			"resetting": "Restableciendo…",
+			"resetButton": "Restablecer contraseña",
+			"errors": {
+				"userNotFound": "Este usuario ya no existe.",
+				"forbidden": "No tienes permiso para restablecer la contraseña de este usuario.",
+				"internalError": "Algo salió mal. Inténtalo de nuevo.",
+				"generic": "Algo salió mal."
+			}
+		},
+		"deleteDialog": {
+			"title": "Eliminar usuario",
+			"confirmTextPrefix": "¿Seguro que quieres eliminar a",
+			"confirmTextSuffix": "? Su cuenta se eliminará de forma permanente.",
+			"cannotBeUndone": "Esta acción no se puede deshacer.",
+			"cancel": "Cancelar",
+			"deleting": "Eliminando…",
+			"confirmButton": "Eliminar usuario",
+			"errors": {
+				"userNotFound": "Este usuario ya no existe.",
+				"forbidden": "No tienes permiso para eliminar a este usuario.",
+				"internalError": "Algo salió mal. Inténtalo de nuevo.",
+				"generic": "Algo salió mal."
+			}
+		}
+	},
+	"globalRoles": {
+		"header": {
+			"title": "Roles globales",
+			"description": "Administra los roles a nivel de sistema y los permisos que otorgan a los usuarios.",
+			"newRole": "Nuevo rol"
+		},
+		"stats": {
+			"roleCount_one": "{{count}} rol",
+			"roleCount_other": "{{count}} roles",
+			"defined": "definidos",
+			"permissionGrants": "permisos otorgados en todos los roles"
+		},
+		"empty": {
+			"title": "Aún no hay roles definidos",
+			"description": "Crea tu primer rol para empezar a gestionar los permisos de los usuarios.",
+			"createRole": "Crear rol"
+		},
+		"errors": {
+			"loadFailed": "No se pudieron cargar los roles",
+			"tryAgain": "Actualiza la página e inténtalo de nuevo."
+		},
+		"noPermission": {
+			"title": "No tienes permiso para ver los roles",
+			"description": "Aún puedes crear nuevos roles con el botón de arriba."
+		},
+		"table": {
+			"columnName": "Nombre",
+			"columnPermissions": "Permisos",
+			"columnCreated": "Creado",
+			"noPermissionsAssigned": "Sin permisos asignados",
+			"editAction": "Editar rol",
+			"deleteAction": "Eliminar rol"
+		},
+		"formDialog": {
+			"editTitle": "Editar rol",
+			"createTitle": "Crear rol",
+			"editDescription": "Actualiza el nombre del rol y los permisos que otorga.",
+			"createDescription": "Define un nuevo rol a nivel de sistema y configura sus permisos.",
+			"roleNameLabel": "Nombre del rol",
+			"roleNamePlaceholder": "p. ej. SECURITY_ADMIN",
+			"permissionsLabel": "Permisos",
+			"enabledCount_one": "{{count}} habilitado",
+			"enabledCount_other": "{{count}} habilitados",
+			"cancel": "Cancelar",
+			"saving": "Guardando…",
+			"saveChanges": "Guardar cambios",
+			"createRole": "Crear rol",
+			"errors": {
+				"roleNameRequired": "El nombre del rol es obligatorio.",
+				"nameTaken": "Ya existe un rol con este nombre.",
+				"nameInvalid": "El nombre del rol solo puede contener letras mayúsculas, números y guiones bajos.",
+				"roleNotFound": "Este rol ya no existe. Puede que ya haya sido eliminado.",
+				"forbidden": "No tienes permiso para realizar esta acción.",
+				"internalError": "Algo salió mal en el servidor. Inténtalo de nuevo.",
+				"generic": "Algo salió mal."
+			}
+		},
+		"deleteDialog": {
+			"title": "Eliminar rol",
+			"confirmTextPrefix": "¿Seguro que quieres eliminar",
+			"confirmTextSuffix": "? Esto también eliminará todas las asignaciones de usuarios para este rol.",
+			"cannotBeUndone": "Esta acción no se puede deshacer.",
+			"cancel": "Cancelar",
+			"deleting": "Eliminando…",
+			"confirmButton": "Eliminar rol",
+			"errors": {
+				"roleNotFound": "Este rol ya no existe.",
+				"hasUsersWarning": "Este rol no se puede eliminar porque todavía está asignado a uno o más usuarios.",
+				"forbidden": "No tienes permiso para eliminar este rol.",
+				"internalError": "Algo salió mal. Inténtalo de nuevo.",
+				"generic": "Algo salió mal."
+			}
+		},
+		"permissions": {
+			"globalRolesRead": {
+				"label": "Leer roles globales",
+				"description": "Ver las definiciones de roles globales"
+			},
+			"globalRolesWrite": {
+				"label": "Escribir roles globales",
+				"description": "Crear y actualizar definiciones de roles globales"
+			},
+			"globalRolesAssign": {
+				"label": "Asignar roles globales",
+				"description": "Asignar roles globales a usuarios"
+			},
+			"usersRead": {
+				"label": "Leer usuarios",
+				"description": "Ver perfiles de usuario y el listado"
+			},
+			"usersWrite": {
+				"label": "Escribir usuarios",
+				"description": "Crear y actualizar cuentas de usuario"
+			},
+			"usersDelete": {
+				"label": "Eliminar usuarios",
+				"description": "Eliminar cuentas de usuario"
+			},
+			"projectsRead": {
+				"label": "Leer todos los proyectos",
+				"description": "Ver todos los proyectos del espacio de trabajo"
+			},
+			"projectsCreate": {
+				"label": "Crear proyectos",
+				"description": "Crear nuevos proyectos"
+			},
+			"projectsWrite": {
+				"label": "Escribir proyectos",
+				"description": "Actualizar los detalles del proyecto"
+			},
+			"projectsDelete": {
+				"label": "Eliminar proyectos",
+				"description": "Eliminar proyectos de forma permanente"
+			},
+			"projectMembersRead": {
+				"label": "Leer miembros del proyecto",
+				"description": "Ver los miembros de cualquier proyecto"
+			},
+			"projectMembersWrite": {
+				"label": "Escribir miembros del proyecto",
+				"description": "Añadir, eliminar y actualizar miembros en cualquier proyecto"
+			},
+			"projectRolesRead": {
+				"label": "Leer roles del proyecto",
+				"description": "Ver los roles definidos en cualquier proyecto"
+			},
+			"projectRolesWrite": {
+				"label": "Escribir roles del proyecto",
+				"description": "Crear y actualizar roles en cualquier proyecto"
+			}
+		},
+		"permissionGroups": {
+			"globalRoles": "Roles globales",
+			"users": "Usuarios",
+			"projects": "Proyectos"
+		}
+	},
+	"plugins": {
+		"title": "Configuración de plugins",
+		"description": "Administra el orden y la visibilidad de los paneles de plugins a nivel de sistema para todos los usuarios.",
+		"tabs": {
+			"marketplace": "Mercado",
+			"layout": "Diseño de puntos de extensión"
+		},
+		"marketplace": {
+			"title": "Mercado",
+			"description": "Instala o desinstala plugins desde el catálogo público de paca-plugins."
+		},
+		"layout": {
+			"title": "Diseño de puntos de extensión",
+			"description": "Arrastra para reordenar los paneles de plugins dentro de cada punto de extensión. Activa o desactiva la visibilidad para mostrar u ocultar paneles para todos los usuarios."
+		}
+	}
+}

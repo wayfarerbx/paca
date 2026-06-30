@@ -1,4 +1,5 @@
 import { Shield, Users } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { Separator } from "@/components/ui/separator";
 
@@ -11,6 +12,8 @@ export function UsersStats({
 	total,
 	mustChangePasswordCount,
 }: UsersStatsProps) {
+	const { t } = useTranslation("admin");
+
 	return (
 		<div className="flex items-center gap-5 rounded-xl border bg-muted/20 px-5 py-3">
 			<div className="flex items-center gap-2">
@@ -18,7 +21,8 @@ export function UsersStats({
 				<span className="text-sm">
 					<span className="font-semibold tabular-nums">{total}</span>
 					<span className="ml-1.5 text-muted-foreground">
-						{total === 1 ? "user" : "users"} in system
+						{t("users.stats.userCount", { count: total })}{" "}
+						{t("users.stats.inSystem")}
 					</span>
 				</span>
 			</div>
@@ -32,7 +36,7 @@ export function UsersStats({
 								{mustChangePasswordCount}
 							</span>
 							<span className="ml-1.5 text-muted-foreground">
-								must change password
+								{t("users.stats.mustChangePassword")}
 							</span>
 						</span>
 					</div>

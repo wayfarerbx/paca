@@ -1,0 +1,106 @@
+{
+	"page": {
+		"title": "내 프로필",
+		"subtitle": "계정 정보를 확인하고 수정하세요."
+	},
+	"fields": {
+		"fullName": "전체 이름",
+		"fullNamePlaceholder": "전체 이름을 입력하세요",
+		"notSet": "설정되지 않음",
+		"username": "사용자 이름"
+	},
+	"actions": {
+		"editProfile": "프로필 수정",
+		"saveChanges": "변경사항 저장",
+		"saving": "저장 중…",
+		"cancel": "취소"
+	},
+	"errors": {
+		"updateFailed": "프로필 업데이트에 실패했습니다. 다시 시도해 주세요."
+	},
+	"joinedOn": "{{date}}에 가입",
+	"changePassword": {
+		"title": "비밀번호 변경",
+		"description": "계정 비밀번호를 업데이트하세요.",
+		"descriptionMustChange": "계속하려면 새 비밀번호를 설정해야 합니다.",
+		"temporaryPasswordNotice": "계정에 임시 비밀번호가 설정되었습니다. 지금 변경해 주세요.",
+		"success": "비밀번호가 성공적으로 변경되었습니다.",
+		"fields": {
+			"currentPassword": "현재 비밀번호",
+			"newPassword": "새 비밀번호",
+			"confirmPassword": "새 비밀번호 확인",
+			"passwordPlaceholder": "••••••••",
+			"newPasswordHint": "최소 8자 이상이며 현재 비밀번호와 다른 것을 사용하세요."
+		},
+		"aria": {
+			"showCurrentPassword": "현재 비밀번호 표시",
+			"hideCurrentPassword": "현재 비밀번호 숨기기",
+			"showNewPassword": "새 비밀번호 표시",
+			"hideNewPassword": "새 비밀번호 숨기기",
+			"showConfirmPassword": "비밀번호 확인 표시",
+			"hideConfirmPassword": "비밀번호 확인 숨기기"
+		},
+		"actions": {
+			"submit": "비밀번호 변경",
+			"updating": "업데이트 중…"
+		},
+		"errors": {
+			"currentPasswordRequired": "현재 비밀번호를 입력해 주세요.",
+			"currentPasswordIncorrect": "현재 비밀번호가 올바르지 않습니다.",
+			"sessionExpired": "세션이 만료되었습니다. 다시 로그인해 주세요.",
+			"serverError": "서버에서 문제가 발생했습니다. 다시 시도해 주세요.",
+			"changeFailed": "비밀번호 변경에 실패했습니다."
+		}
+	},
+	"apiKeys": {
+		"title": "API 키",
+		"subtitle": "API 키를 사용하면 세션 쿠키 없이도 API 요청을 인증할 수 있습니다. 비밀번호처럼 취급하고 절대 공유하지 마세요.",
+		"empty": "아직 API 키가 없습니다. 시작하려면 키를 생성하세요.",
+		"yourKeys": {
+			"title": "내 키",
+			"description": "키는 식별을 위해 처음 8자만 표시됩니다."
+		},
+		"table": {
+			"name": "이름",
+			"prefix": "접두사",
+			"created": "생성일",
+			"expires": "만료일",
+			"lastUsed": "마지막 사용"
+		},
+		"actions": {
+			"newKey": "새 키",
+			"cancel": "취소",
+			"creating": "생성 중…",
+			"createKey": "키 생성",
+			"done": "완료",
+			"revoking": "취소 중…",
+			"revokeKey": "키 취소",
+			"revokeKeyAria": "키 취소",
+			"copyKeyAria": "키 복사"
+		},
+		"createDialog": {
+			"title": "API 키 생성",
+			"description": "나중에 알아볼 수 있도록 키에 설명이 포함된 이름을 지정하세요.",
+			"nameLabel": "이름",
+			"namePlaceholder": "예: CI 파이프라인, 로컬 개발",
+			"expiryLabel": "만료일",
+			"expiryOptional": "(선택사항)"
+		},
+		"revealDialog": {
+			"title": "API 키가 생성되었습니다",
+			"description": "지금 새 키를 복사하세요. 다시 확인할 수 없습니다.",
+			"copied": "클립보드에 복사되었습니다!"
+		},
+		"revokeDialog": {
+			"title": "API 키 취소",
+			"confirmPrefix": "정말로 취소하시겠습니까",
+			"confirmSuffix": "? 이 키를 사용하는 모든 요청이 즉시 작동을 멈춥니다."
+		},
+		"errors": {
+			"nameRequired": "이름을 입력해야 합니다.",
+			"nameTooLong": "이름은 100자 이하여야 합니다.",
+			"createFailed": "키 생성에 실패했습니다. 다시 시도해 주세요.",
+			"copyFailed": "복사에 실패했습니다. 키를 직접 복사해 주세요."
+		}
+	}
+}

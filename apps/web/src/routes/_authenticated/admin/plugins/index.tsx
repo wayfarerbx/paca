@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { Puzzle } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { PluginMarketplacePanel } from "@/components/plugins/PluginMarketplacePanel";
 import { PluginPreferencesPanel } from "@/components/plugins/PluginPreferencesPanel";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/_authenticated/admin/plugins/")({
 });
 
 function PluginSettingsPage() {
+	const { t } = useTranslation("admin");
 	const [tab, setTab] = useState<"marketplace" | "layout">("marketplace");
 
 	return (
@@ -37,10 +39,10 @@ function PluginSettingsPage() {
 			<div>
 				<div className="flex items-center gap-2">
 					<Puzzle className="size-5 text-primary" />
-					<h1 className="text-xl font-semibold">Plugin Settings</h1>
+					<h1 className="text-xl font-semibold">{t("plugins.title")}</h1>
 				</div>
 				<p className="mt-1 text-sm text-muted-foreground">
-					Manage system-wide plugin panel ordering and visibility for all users.
+					{t("plugins.description")}
 				</p>
 			</div>
 
@@ -53,7 +55,7 @@ function PluginSettingsPage() {
 					variant={tab === "marketplace" ? "secondary" : "ghost"}
 					onClick={() => setTab("marketplace")}
 				>
-					Marketplace
+					{t("plugins.tabs.marketplace")}
 				</Button>
 				<Button
 					type="button"
@@ -61,16 +63,18 @@ function PluginSettingsPage() {
 					variant={tab === "layout" ? "secondary" : "ghost"}
 					onClick={() => setTab("layout")}
 				>
-					Extension Point Layout
+					{t("plugins.tabs.layout")}
 				</Button>
 			</div>
 
 			{tab === "marketplace" ? (
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-base">Marketplace</CardTitle>
+						<CardTitle className="text-base">
+							{t("plugins.marketplace.title")}
+						</CardTitle>
 						<CardDescription>
-							Install or uninstall plugins from the public paca-plugins catalog.
+							{t("plugins.marketplace.description")}
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -82,11 +86,10 @@ function PluginSettingsPage() {
 			{tab === "layout" ? (
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-base">Extension Point Layout</CardTitle>
-						<CardDescription>
-							Drag to reorder plugin panels within each extension point. Toggle
-							visibility to show or hide panels for all users.
-						</CardDescription>
+						<CardTitle className="text-base">
+							{t("plugins.layout.title")}
+						</CardTitle>
+						<CardDescription>{t("plugins.layout.description")}</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<PluginPreferencesPanel />

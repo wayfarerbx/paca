@@ -1,0 +1,1058 @@
+{
+	"project": {
+		"notFound": "Project not found or access denied.",
+		"settingsPage": {
+			"title": "Settings",
+			"subtitle": "Configure project settings, roles, and permissions",
+			"nav": {
+				"general": "General",
+				"roles": "Roles",
+				"taskStatuses": "Task Statuses",
+				"taskTypes": "Task Types",
+				"customFields": "Custom Fields",
+				"dangerZone": "Danger Zone",
+				"plugins": "Plugins"
+			}
+		}
+	},
+	"agents": {
+		"createDialog": {
+			"title": "Create AI Agent",
+			"step1Description": "Set up your agent's identity and role",
+			"step2Description": "Configure the AI model powering your agent",
+			"stepIndicator": "{{step}} / 2",
+			"startFromPreset": "Start from a preset",
+			"nameLabel": "Name",
+			"handleLabel": "Handle",
+			"handleHint": "Auto-derived from name. Used for @mentions in comments.",
+			"projectRoleLabel": "Project Role",
+			"projectRolePlaceholder": "Select a project role…",
+			"projectRoleHint": "Controls what the agent can read and modify in this project.",
+			"modelSection": "Model",
+			"providerLabel": "Provider",
+			"modelLabel": "Model",
+			"customOption": "Custom…",
+			"apiKeyLabel": "API Key",
+			"hideApiKey": "Hide API key",
+			"showApiKey": "Show API key",
+			"apiKeyHint": "Stored encrypted — never exposed in API responses.",
+			"baseUrlLabel": "Base URL",
+			"systemPromptLabel": "System Prompt",
+			"optional": "(optional)",
+			"charsCount": "{{count}} chars",
+			"createFailed": "Failed to create agent. Please try again.",
+			"cancel": "Cancel",
+			"continue": "Continue",
+			"back": "Back",
+			"creating": "Creating…",
+			"createAgent": "Create Agent",
+			"namePlaceholder": "Dev Bot",
+			"systemPromptPlaceholder": "You are a senior software engineer…"
+		},
+		"card": {
+			"configure": "Configure",
+			"delete": "Delete",
+			"repos": "Repos",
+			"configureAndViewActivity": "Configure & view activity",
+			"deleteDialog": {
+				"title": "Delete {{name}}?",
+				"description": "This permanently deletes the agent and removes it from the project. Running conversations will be stopped.",
+				"cancel": "Cancel",
+				"delete": "Delete"
+			}
+		},
+		"page": {
+			"title": "AI Agents",
+			"subtitle": "Autonomous agents that work on tasks and chat with your team",
+			"newAgent": "New Agent",
+			"empty": {
+				"title": "No agents yet",
+				"description": "Add an AI agent to automate tasks, review code, write documentation, and more.",
+				"createFirstAgent": "Create your first agent"
+			},
+			"chatShortcutPrefix": "Click",
+			"chatShortcutSuffix": "on any agent to chat, view conversations, and manage MCP servers and skills."
+		},
+		"detail": {
+			"tabs": {
+				"overview": "Overview",
+				"mcpServers": "MCP Servers",
+				"skills": "Skills",
+				"conversations": "Conversations"
+			},
+			"overview": {
+				"nameLabel": "Name",
+				"llmConfiguration": "LLM Configuration",
+				"providerLabel": "Provider",
+				"modelLabel": "Model",
+				"customOption": "Custom…",
+				"apiKeyUpdateLabel": "API Key Update",
+				"apiKeyUpdateHint": "(leave blank to keep current)",
+				"baseUrlLabel": "Base URL",
+				"triggerPrompts": {
+					"title": "Auto-appended trigger prompts",
+					"hint": "Automatically appended to the system prompt at runtime based on how the agent is invoked.",
+					"taskAssignment": "Task assignment / task comment",
+					"docCommentMention": "Documentation comment @mention",
+					"directChat": "Direct chat",
+					"writeDescription": "Write task description with AI"
+				},
+				"capabilities": "Capabilities",
+				"cloneRepositories": "Clone repositories",
+				"cloneRepositoriesHint": "Allow agent to git clone repos locally",
+				"gitCommitterIdentity": "Git committer identity",
+				"gitCommitterHint": "Name and email used for commits made by this agent.",
+				"committerNameLabel": "Committer name",
+				"committerEmailLabel": "Committer email",
+				"saveChanges": "Save changes",
+				"saved": "Saved",
+				"saveFailed": "Failed to save. Please try again.",
+				"systemPromptLabel": "System Prompt"
+			},
+			"mcp": {
+				"serverCount_one": "{{count}} server configured",
+				"serverCount_other": "{{count}} servers configured",
+				"addServer": "Add server",
+				"empty": {
+					"title": "No MCP servers added",
+					"addFirstServer": "Add your first server"
+				},
+				"addDialog": {
+					"title": "Add MCP Server",
+					"description": "Connect an MCP server to extend the agent's capabilities.",
+					"serverNameLabel": "Server name",
+					"transportLabel": "Transport",
+					"commandLabel": "Command",
+					"argsLabel": "Args",
+					"argsHint": "(space-separated)",
+					"urlLabel": "URL",
+					"cancel": "Cancel",
+					"addServer": "Add server"
+				}
+			},
+			"skills": {
+				"skillCount_one": "{{count}} skill attached",
+				"skillCount_other": "{{count}} skills attached",
+				"addSkill": "Add skill",
+				"empty": {
+					"title": "No skills yet",
+					"addFirstSkill": "Add first skill"
+				},
+				"addDialog": {
+					"title": "Add Skill",
+					"description": "Give the agent specialised instructions or capabilities.",
+					"skillNameLabel": "Skill name",
+					"sourceLabel": "Source",
+					"sourceInline": "Inline (write content here)",
+					"sourceMarketplace": "Marketplace",
+					"sourceGithubUrl": "GitHub URL",
+					"skillContentLabel": "Skill content (Markdown)",
+					"urlLabel": "URL",
+					"cancel": "Cancel",
+					"addSkill": "Add skill"
+				}
+			},
+			"conversations": {
+				"triggerChat": "Chat",
+				"triggerWriteDescription": "Write description",
+				"triggerTask": "Task",
+				"iterations_one": "{{count}} iteration",
+				"iterations_other": "{{count}} iterations",
+				"prOpened": "PR opened",
+				"watch": "Watch",
+				"empty": {
+					"title": "No conversations yet",
+					"description": "Conversations start when a task is assigned to this agent or someone messages it."
+				}
+			}
+		},
+		"conversationView": {
+			"thinking": "Thinking…",
+			"observation": "observation",
+			"toolLabel": "tool: {{toolName}}",
+			"stop": "Stop",
+			"notFound": "Conversation not found",
+			"chatSession": "Chat session",
+			"taskSession": "Task session",
+			"pr": "PR",
+			"noMessages": "No messages yet"
+		}
+	},
+	"docs": {
+		"editorPage": {
+			"notFound": {
+				"title": "Document not found",
+				"description": "This document may have been deleted or the link is invalid."
+			},
+			"unsaved": "Unsaved",
+			"saving": "Saving…",
+			"saved": "Saved",
+			"commentsAndActivity": "Comments & activity"
+		},
+		"activity": {
+			"created": "created this document",
+			"updated": "updated the document",
+			"updatedFields": "updated {{fields}}",
+			"deleted": "deleted the document",
+			"moved": "moved the document",
+			"contentChangeDiff": "Content change diff"
+		}
+	},
+	"roles": {
+		"deleteDialog": {
+			"title": "Delete role",
+			"confirmTextPrefix": "Are you sure you want to delete",
+			"confirmTextSuffix": "? Any members currently assigned this role will lose their access. This action cannot be undone.",
+			"cancel": "Cancel",
+			"deleteRole": "Delete role",
+			"errors": {
+				"notFound": "This role no longer exists.",
+				"hasMembers": "This role cannot be deleted because it is still assigned to one or more members.",
+				"forbidden": "You don't have permission to delete this role.",
+				"internalError": "Something went wrong. Please try again.",
+				"generic": "Something went wrong."
+			}
+		},
+		"formDialog": {
+			"editTitle": "Edit Role",
+			"createTitle": "New Role",
+			"editDescription": "Update the role name and configure its permission grants.",
+			"createDescription": "Define a new project role and configure which permissions it grants to members.",
+			"roleNameLabel": "Role Name",
+			"roleNamePlaceholder": "e.g. PROJECT_REVIEWER",
+			"permissionsLabel": "Permissions",
+			"enabledCount_one": "{{count}} enabled",
+			"enabledCount_other": "{{count}} enabled",
+			"cancel": "Cancel",
+			"saveChanges": "Save changes",
+			"createRole": "Create role",
+			"errors": {
+				"nameTaken": "A role with this name already exists.",
+				"nameInvalid": "Role name must use uppercase letters, numbers, and underscores.",
+				"notFound": "This role no longer exists. It may have already been deleted.",
+				"forbidden": "You don't have permission to perform this action.",
+				"internalError": "Something went wrong on the server. Please try again.",
+				"generic": "Something went wrong."
+			}
+		},
+		"permissions": {
+			"projectsRead": {
+				"label": "Read Project",
+				"description": "View project details and settings"
+			},
+			"projectsWrite": {
+				"label": "Edit Project",
+				"description": "Update project name, description, and settings"
+			},
+			"projectsDelete": {
+				"label": "Delete Project",
+				"description": "Permanently delete this project"
+			},
+			"membersRead": {
+				"label": "View Members",
+				"description": "List and view project members"
+			},
+			"membersWrite": {
+				"label": "Manage Members",
+				"description": "Add, remove, and reassign project members"
+			},
+			"rolesRead": {
+				"label": "View Roles",
+				"description": "List and view project role definitions"
+			},
+			"rolesWrite": {
+				"label": "Manage Roles",
+				"description": "Create, edit, and delete project roles"
+			},
+			"tasksRead": {
+				"label": "View Tasks",
+				"description": "Browse and read tasks in the project"
+			},
+			"tasksWrite": {
+				"label": "Edit Tasks",
+				"description": "Create, update, and move tasks"
+			},
+			"sprintsRead": {
+				"label": "View Sprints",
+				"description": "Browse sprint boards and backlogs"
+			},
+			"sprintsWrite": {
+				"label": "Manage Sprints",
+				"description": "Create, update, and close sprints"
+			},
+			"docsRead": {
+				"label": "View Documents",
+				"description": "Browse and read documents in the project"
+			},
+			"docsWrite": {
+				"label": "Edit Documents",
+				"description": "Create, update, and delete documents and folders"
+			},
+			"agentsRead": {
+				"label": "View Agents",
+				"description": "Browse AI agents and view their configuration"
+			},
+			"agentsWrite": {
+				"label": "Manage Agents",
+				"description": "Create, configure, and delete AI agents"
+			}
+		},
+		"permissionGroups": {
+			"project": "Project",
+			"members": "Members",
+			"roles": "Roles",
+			"tasks": "Tasks",
+			"sprints": "Sprints",
+			"documents": "Documents",
+			"aiAgents": "AI Agents"
+		}
+	},
+	"settings": {
+		"general": {
+			"title": "General",
+			"projectNameLabel": "Project name",
+			"projectNamePlaceholder": "My awesome project",
+			"taskIdPrefixLabel": "Task ID prefix",
+			"taskIdPrefixHint": "e.g. PACA → PACA-1, PACA-2…",
+			"taskIdPrefixPlaceholder": "PROJ",
+			"descriptionLabel": "Description",
+			"descriptionPlaceholder": "Describe what this project is about…",
+			"publicProjectLabel": "Public project",
+			"publicProjectHintPublic": "Anyone with the link can view this project. Anonymous users have read-only access.",
+			"publicProjectHintPrivate": "Only team members can access this project.",
+			"saveChanges": "Save changes",
+			"saved": "Saved ✓",
+			"noPermission": "You don't have permission to edit this project.",
+			"errors": {
+				"nameTaken": "A project with this name already exists.",
+				"nameInvalid": "Project name is empty or invalid.",
+				"prefixInvalid": "Prefix must be 1–10 uppercase letters/digits (e.g. PACA).",
+				"updateFailed": "Failed to update project. Please try again."
+			}
+		},
+		"roles": {
+			"title": "Project Roles",
+			"description": "Manage roles and permissions for members of this project.",
+			"newRole": "New role",
+			"noPermissionsAssigned": "No permissions assigned",
+			"editRole": "Edit role",
+			"deleteRole": "Delete role",
+			"rolesDefined_one": "role defined",
+			"rolesDefined_other": "roles defined",
+			"permissionGrants": "permission grants across all roles",
+			"empty": {
+				"title": "No roles defined yet",
+				"description": "Create your first role to start assigning permissions to members.",
+				"createRole": "Create role"
+			},
+			"table": {
+				"name": "Name",
+				"permissions": "Permissions",
+				"created": "Created"
+			},
+			"systemRolesNote": "System roles are shared templates and cannot be edited or deleted."
+		},
+		"taskStatuses": {
+			"title": "Task Statuses",
+			"description": "Define the workflow statuses tasks move through in this project.",
+			"newStatus": "New status",
+			"reorderFailed": "Failed to save the new order. Please try again.",
+			"empty": {
+				"title": "No statuses defined",
+				"description": "Create statuses to define the workflow for tasks in this project.",
+				"createStatus": "Create status"
+			},
+			"table": {
+				"name": "Name",
+				"category": "Category",
+				"default": "Default"
+			},
+			"default": "Default",
+			"setAsDefault": "Set as default status",
+			"editStatus": "Edit status",
+			"deleteStatus": "Delete status"
+		},
+		"taskTypes": {
+			"title": "Task Types",
+			"description": "Categorise tasks with custom types (e.g. Bug, Feature, Story).",
+			"newType": "New type",
+			"empty": {
+				"title": "No task types defined",
+				"description": "Create types to categorise tasks by kind — e.g. Bug, Feature, Story.",
+				"createType": "Create type"
+			},
+			"table": {
+				"icon": "Icon",
+				"name": "Name",
+				"description": "Description",
+				"default": "Default"
+			},
+			"default": "Default",
+			"setAsDefault": "Set as default type",
+			"editType": "Edit type",
+			"deleteType": "Delete type"
+		},
+		"customFields": {
+			"title": "Custom Fields",
+			"description": "Define project-level custom task fields that extend tasks with additional data specific to your workflow.",
+			"newField": "New custom field",
+			"empty": {
+				"title": "No custom fields yet",
+				"description": "Custom fields let you capture data specific to your workflow — sprints, severity levels, release tags, and more.",
+				"createFirstField": "Create first field"
+			},
+			"table": {
+				"displayName": "Display Name",
+				"fieldKey": "Field Key",
+				"type": "Type",
+				"required": "Required"
+			},
+			"yes": "Yes",
+			"no": "No",
+			"editField": "Edit field",
+			"deleteField": "Delete field",
+			"cancel": "Cancel",
+			"saveChanges": "Save changes",
+			"displayNameLabel": "Display name",
+			"displayNamePlaceholder": "e.g. Release Tag",
+			"fieldKeyLabel": "Field key",
+			"fieldKeyHint": "Used as the identifier in the API and data exports.",
+			"fieldKeyImmutableHint": "Field key cannot be changed after creation.",
+			"fieldTypeLabel": "Field type",
+			"fieldTypeImmutableHint": "Field type cannot be changed after creation.",
+			"optionsLabel": "Options",
+			"addOptionPlaceholder": "Add option…",
+			"addOption": "Add",
+			"requiredLabel": "Required",
+			"requiredHint": "Users must fill this field when creating or editing a task.",
+			"fieldTypes": {
+				"text": "Text",
+				"number": "Number",
+				"date": "Date",
+				"checkbox": "Checkbox",
+				"select": "Select",
+				"multiSelect": "Multi-Select",
+				"url": "URL"
+			},
+			"createDialog": {
+				"title": "Create custom field",
+				"description": "Define a new field to capture additional data on tasks in this project.",
+				"createField": "Create field",
+				"errors": {
+					"keyTaken": "A field with this key already exists in the project.",
+					"keyInvalid": "Field key is empty or invalid.",
+					"nameInvalid": "Display name is empty or invalid.",
+					"createFailed": "Failed to create field. Please try again."
+				}
+			},
+			"editDialog": {
+				"title": "Edit custom field",
+				"description": "Update the field settings.",
+				"errors": {
+					"nameInvalid": "Display name is empty or invalid.",
+					"saveFailed": "Failed to save changes. Please try again."
+				}
+			},
+			"deleteDialog": {
+				"title": "Delete custom field",
+				"confirmTextPrefix": "Delete",
+				"confirmTextSuffix": "? Task data stored in this field will be lost. This action cannot be undone.",
+				"deleteFailed": "Failed to delete field. Please try again.",
+				"deleteField": "Delete field"
+			}
+		},
+		"dangerZone": {
+			"title": "Danger Zone",
+			"deleteProjectTitle": "Delete this project",
+			"deleteProjectDescription": "Permanently delete the project and all its data. This action cannot be undone.",
+			"deleteProjectButton": "Delete project",
+			"deleteDialog": {
+				"title": "Delete project",
+				"confirmTextPrefix": "This will permanently delete",
+				"confirmTextSuffix": "and all its data, including members, roles, and interactions. This action cannot be undone.",
+				"typeToConfirmPrefix": "Type",
+				"typeToConfirmSuffix": "to confirm",
+				"deleteFailed": "Failed to delete project. Please try again.",
+				"cancel": "Cancel",
+				"deletePermanently": "Delete permanently"
+			}
+		}
+	},
+	"taskStatuses": {
+		"deleteDialog": {
+			"title": "Delete status",
+			"confirmTextPrefix": "Delete",
+			"confirmTextSuffix": "? Tasks using this status will lose their status. This action cannot be undone.",
+			"deleteFailed": "Failed to delete status. Please try again.",
+			"cancel": "Cancel",
+			"deleteStatus": "Delete status"
+		},
+		"formDialog": {
+			"editTitle": "Edit status",
+			"createTitle": "Create status",
+			"editDescription": "Update this workflow status.",
+			"createDescription": "Add a new status to the project workflow.",
+			"nameLabel": "Name",
+			"namePlaceholder": "e.g. In Review",
+			"categoryLabel": "Category",
+			"colorLabel": "Color",
+			"customColorTitle": "Custom color",
+			"cancel": "Cancel",
+			"saveChanges": "Save changes",
+			"createStatus": "Create status",
+			"errors": {
+				"nameInvalid": "Status name is empty or invalid.",
+				"categoryInvalid": "Invalid category selected.",
+				"saveFailed": "Failed to save status. Please try again."
+			}
+		}
+	},
+	"team": {
+		"title": "Team",
+		"subtitle": "Manage project members and roles",
+		"addMember": "Add Member",
+		"memberCount_one": "{{count}} member",
+		"memberCount_other": "{{count}} members",
+		"empty": {
+			"title": "No members yet",
+			"description": "Add teammates or AI agents to this project to get started.",
+			"addFirstMember": "Add first member"
+		},
+		"addMemberDialog": {
+			"title": "Add member",
+			"description": "Select a user and assign them a role in this project.",
+			"userLabel": "User",
+			"change": "Change",
+			"searchPlaceholder": "Search by name or username…",
+			"noUsersMatch": "No users match your search.",
+			"noUsersAvailable": "No users available to add.",
+			"roleLabel": "Role",
+			"rolePlaceholder": "Select a role…",
+			"cancel": "Cancel",
+			"addMember": "Add member",
+			"errors": {
+				"addFailed": "Failed to add member. Please try again."
+			}
+		},
+		"roleChip": {
+			"changeRole": "Change role",
+			"changeFailed": "Failed to change role."
+		},
+		"memberRow": {
+			"removeMember": "Remove member"
+		},
+		"removeDialog": {
+			"title": "Remove member",
+			"removePrefix": "Remove",
+			"fromInfix": "from",
+			"confirmSuffix": "? They will lose access immediately.",
+			"removeFailed": "Failed to remove member. Please try again.",
+			"cancel": "Cancel",
+			"remove": "Remove"
+		}
+	},
+	"aiChat": {
+		"chatWithAgent": "Chat with AI Agent",
+		"newConversation": "New conversation",
+		"agentLabel": "Agent",
+		"noAgentsConfigured": "No agents configured for this project.",
+		"selectAgentPlaceholder": "Select an agent…",
+		"messageLabel": "Message",
+		"messageHint": "(Enter to send, Shift+Enter for newline)",
+		"messagePlaceholder": "What would you like the agent to help with?",
+		"send": "Send"
+	},
+	"taskTypes": {
+		"deleteDialog": {
+			"title": "Delete task type",
+			"confirmTextPrefix": "Delete",
+			"confirmTextSuffix": "? Tasks using this type will lose their type assignment. This action cannot be undone.",
+			"deleteFailed": "Failed to delete task type. Please try again.",
+			"cancel": "Cancel",
+			"deleteType": "Delete type"
+		},
+		"formDialog": {
+			"editTitle": "Edit task type",
+			"createTitle": "Create task type",
+			"editDescription": "Update this task type.",
+			"createDescription": "Add a new type to categorise tasks in this project.",
+			"nameLabel": "Name",
+			"namePlaceholder": "e.g. Bug, Feature, Story",
+			"iconLabel": "Icon",
+			"optional": "(optional)",
+			"clear": "Clear",
+			"colorLabel": "Color",
+			"customColorTitle": "Custom color",
+			"descriptionLabel": "Description",
+			"descriptionPlaceholder": "Describe when to use this type…",
+			"cancel": "Cancel",
+			"saveChanges": "Save changes",
+			"createType": "Create type",
+			"errors": {
+				"nameInvalid": "Type name is empty or invalid.",
+				"saveFailed": "Failed to save task type. Please try again."
+			}
+		}
+	},
+	"taskDetail": {
+		"common": {
+			"empty": "Empty",
+			"dash": "—",
+			"unassigned": "Unassigned"
+		},
+		"notFound": {
+			"title": "Task not found",
+			"description": "This task may have been deleted or the link is invalid.",
+			"ariaLabel": "Task detail",
+			"backToProject": "Back to project",
+			"projectFallback": "Project"
+		},
+		"header": {
+			"created": "Created {{date}}",
+			"copied": "Copied!",
+			"share": "Share",
+			"taskActions": "Task actions",
+			"delete": "Delete",
+			"closeTaskDetail": "Close task detail",
+			"deleteDialog": {
+				"title": "Delete task?",
+				"description": "This permanently deletes \"{{title}}\" and all of its data. This action cannot be undone.",
+				"cancel": "Cancel",
+				"delete": "Delete"
+			}
+		},
+		"properties": {
+			"title": "Properties",
+			"status": "Status",
+			"dates": "Dates",
+			"trackTime": "Track Time",
+			"addTime": "Add time",
+			"type": "Type",
+			"relationships": "Relationships",
+			"assignees": "Assignees",
+			"importance": "Importance",
+			"none": "None",
+			"storyPoints": "Story Points",
+			"tags": "Tags",
+			"reporter": "Reporter",
+			"sprint": "Sprint",
+			"productBacklog": "Product Backlog",
+			"epic": "Epic",
+			"viewEpic": "View epic",
+			"removeEpic": "Remove epic",
+			"parent": "Parent",
+			"viewParent": "View parent",
+			"removeParent": "Remove parent",
+			"addFields": "Add fields"
+		},
+		"description": {
+			"title": "Description",
+			"writeWithAI": "Write with AI",
+			"writeWithAIDialog": {
+				"title": "Write with AI",
+				"description": "Select an agent to write the task description.",
+				"noAgents": "No agents configured for this project.",
+				"cancel": "Cancel",
+				"starting": "Starting...",
+				"writeButton": "Write description"
+			}
+		},
+		"subtasks": {
+			"title": "Subtasks",
+			"addButton": "Add subtask",
+			"titlePlaceholder": "Subtask title…",
+			"empty": "No subtasks yet"
+		},
+		"links": {
+			"title": "Linked Tasks",
+			"addButton": "Add Link",
+			"openTask": "Open task",
+			"removeLink": "Remove link",
+			"empty": "No linked tasks"
+		},
+		"attachments": {
+			"title": "Attachments",
+			"uploadLabel": "Upload attachment",
+			"dropZoneTitle": "Drop your files here to upload",
+			"dropZoneSubtitle": "or click to browse",
+			"previewLabel": "Preview {{fileName}}",
+			"downloadLabel": "Download {{fileName}}",
+			"deleteLabel": "Delete {{fileName}}",
+			"unitBytes_one": "{{count}} B",
+			"unitBytes_other": "{{count}} B",
+			"unitKilobytes": "{{value}} KB",
+			"unitMegabytes": "{{value}} MB"
+		},
+		"addFieldDialog": {
+			"title": "Create custom field",
+			"displayNameLabel": "Display name",
+			"displayNamePlaceholder": "e.g. Release Tag",
+			"fieldKeyLabel": "Field key",
+			"fieldKeyPlaceholder": "release_tag",
+			"fieldTypeLabel": "Field type",
+			"requiredLabel": "Required",
+			"cancel": "Cancel",
+			"creating": "Creating…",
+			"createField": "Create field",
+			"fieldTypes": {
+				"text": "Text",
+				"number": "Number",
+				"date": "Date",
+				"checkbox": "Checkbox",
+				"select": "Select"
+			}
+		},
+		"addTaskLinkModal": {
+			"title": "Link task",
+			"relationship": "Relationship",
+			"searchPlaceholder": "Search tasks by title or number...",
+			"loadingTasks": "Loading tasks…",
+			"noTasksFound": "No tasks found",
+			"linkTypes": {
+				"blocks": {
+					"label": "Blocks",
+					"description": "This task must be completed before the other"
+				},
+				"isBlockedBy": {
+					"label": "Is blocked by",
+					"description": "This task cannot start until the other is done"
+				},
+				"relatesTo": {
+					"label": "Relates to",
+					"description": "These tasks are related but not dependent"
+				},
+				"duplicates": {
+					"label": "Duplicates",
+					"description": "This task is a duplicate of the other"
+				}
+			}
+		},
+		"propertyField": {
+			"dateEditor": {
+				"datePlaceholder": "Date",
+				"clearDate": "Clear date",
+				"startDate": "Start date",
+				"dueDate": "Due date"
+			},
+			"storyPointsEditor": {
+				"decrease": "Decrease story points",
+				"increase": "Increase story points"
+			},
+			"tagsEditor": {
+				"addTag": "Add tag",
+				"addTagPlaceholder": "Add tag..."
+			}
+		},
+		"panel": {
+			"priority": "Priority",
+			"assignee": "Assignee",
+			"assigned": "Assigned",
+			"sprint": "Sprint",
+			"created": "Created",
+			"updated": "Updated"
+		},
+		"activity": {
+			"none": "none",
+			"system": "System",
+			"created": "created this task",
+			"deleted": "deleted this task",
+			"updated": "updated this task",
+			"changedStatus": "changed status from \"{{oldVal}}\" to \"{{newVal}}\"",
+			"setStatus": "set status to \"{{newVal}}\"",
+			"clearedStatus": "cleared status",
+			"changedType": "changed type from \"{{oldVal}}\" to \"{{newVal}}\"",
+			"setType": "set type to \"{{newVal}}\"",
+			"clearedType": "cleared type",
+			"renamed": "renamed from \"{{oldVal}}\" to \"{{newVal}}\"",
+			"setTitle": "set title to \"{{newVal}}\"",
+			"changedPriority": "changed priority from {{oldVal}} to {{newVal}}",
+			"setPriority": "set priority to {{newVal}}",
+			"changedAssignee": "changed assignee from {{oldName}} to {{newName}}",
+			"assignedTo": "assigned to {{newName}}",
+			"removedAssignee": "removed assignee {{oldName}}",
+			"changedReporter": "changed reporter from {{oldName}} to {{newName}}",
+			"setReporter": "set reporter to {{newName}}",
+			"removedReporter": "removed reporter {{oldName}}",
+			"movedSprint": "moved from sprint \"{{oldSprint}}\" to \"{{newSprint}}\"",
+			"addedToSprint": "added to sprint \"{{newSprint}}\"",
+			"removedFromSprint": "removed from sprint \"{{oldSprint}}\"",
+			"setParentTask": "set parent task",
+			"removedParentTask": "removed parent task",
+			"changedDueDate": "changed due date from {{oldVal}} to {{newVal}}",
+			"setDueDate": "set due date to {{newVal}}",
+			"removedDueDate": "removed due date",
+			"changedStartDate": "changed start date from {{oldVal}} to {{newVal}}",
+			"setStartDate": "set start date to {{newVal}}",
+			"removedStartDate": "removed start date",
+			"updatedDescription": "updated description",
+			"updatedTags": "updated tags",
+			"updatedCustomFields": "updated custom fields",
+			"updatedField": "updated {{field}}",
+			"addedAttachment": "added attachment",
+			"addedAttachmentNamed": "added attachment: {{fileName}}",
+			"removedAttachment": "removed attachment",
+			"removedAttachmentNamed": "removed attachment: {{fileName}}",
+			"linkTypeBlocks": "blocks",
+			"linkTypeRelatedTo": "related to",
+			"linkTypeDuplicates": "duplicates",
+			"addedTaskLink": "added task link ({{linkType}})",
+			"removedTaskLink": "removed task link",
+			"startedAiSession": "started an AI session",
+			"watchSession": "Watch session",
+			"madeChange": "made a change",
+			"descriptionChangeDiff": "Description change diff"
+		},
+		"timeAgo": {
+			"justNow": "just now",
+			"minutes_one": "{{count}}m ago",
+			"minutes_other": "{{count}}m ago",
+			"hours_one": "{{count}}h ago",
+			"hours_other": "{{count}}h ago",
+			"days_one": "{{count}}d ago",
+			"days_other": "{{count}}d ago"
+		}
+	},
+	"board": {
+		"common": {
+			"none": "None"
+		},
+		"view": {
+			"noTasks": "No tasks",
+			"loading": "Loading…",
+			"viewMore": "View more",
+			"expandColumn": "Expand column",
+			"collapseColumn": "Collapse column"
+		},
+		"taskCard": {
+			"unassigned": "Unassigned",
+			"priorityLabel": "Priority",
+			"reporterTitle": "Reporter",
+			"epicLabel": "Epic",
+			"noEpic": "No Epic",
+			"storyPointsTitle": "Story Points"
+		},
+		"listGroup": {
+			"columnHeaders": {
+				"id": "ID",
+				"title": "Title"
+			},
+			"loading": "Loading…",
+			"viewMore": "View more",
+			"startSprint": "Start sprint",
+			"newSprint": "New sprint",
+			"noTasks": "No tasks"
+		},
+		"taskRow": {
+			"columnHeaders": {
+				"type": "Type",
+				"importance": "Importance",
+				"storyPoints": "SP",
+				"status": "Status",
+				"assignee": "Assignee",
+				"reporter": "Reporter",
+				"startDate": "Start Date",
+				"dueDate": "Due Date",
+				"epic": "Epic",
+				"created": "Created"
+			},
+			"unassigned": "Unassigned",
+			"noEpic": "No Epic"
+		},
+		"addTaskRow": {
+			"addTask": "Add task",
+			"placeholder": "Task title…",
+			"cancel": "Cancel",
+			"create": "Create"
+		},
+		"taskTypeSelector": {
+			"noType": "—"
+		},
+		"backlog": {
+			"title": "Product Backlog",
+			"description": "All work items not assigned to a sprint."
+		}
+	},
+	"layout": {
+		"shell": {
+			"newSprint": "New sprint",
+			"renameView": "Rename view",
+			"deleteView": "Delete view",
+			"searchTasksPlaceholder": "Search tasks…",
+			"pluginNotAvailable": "Plugin not available"
+		},
+		"viewSettings": {
+			"viewSettingsAriaLabel": "View settings",
+			"title": "View settings",
+			"chooseFields": "Choose fields",
+			"back": "← Back",
+			"clearFilters": "Clear filters",
+			"display": "Display",
+			"filters": "Filters",
+			"noSelection": "—",
+			"titleField": "Title",
+			"fieldsLabel": "Fields",
+			"columnByLabel": "Column by",
+			"swimlanesLabel": "Swimlanes",
+			"sortByLabel": "Sort by",
+			"fieldSumLabel": "Field sum",
+			"initialSizeLabel": "Initial size",
+			"perPageLabel": "Per page",
+			"sprintsLabel": "Sprints",
+			"statusesLabel": "Statuses",
+			"assigneesLabel": "Assignees",
+			"taskTypesLabel": "Task types",
+			"reset": "Reset",
+			"saving": "Saving…",
+			"save": "Save",
+			"sprintFilter": {
+				"noSprints": "No sprints",
+				"allSprints": "All sprints"
+			},
+			"statusFilter": {
+				"noStatuses": "No statuses",
+				"allStatuses": "All statuses",
+				"clear": "Clear",
+				"all": "All"
+			},
+			"assigneeFilter": {
+				"allAssignees": "All assignees",
+				"noMembers": "No members",
+				"unassigned": "Unassigned"
+			},
+			"taskTypeFilter": {
+				"normalTypes": "Normal types",
+				"allNormalTypesDynamic": "All normal types (dynamic)",
+				"systemTypes": "System types",
+				"noTaskTypes": "No task types"
+			}
+		},
+		"roadmap": {
+			"taskColumnLabel": "Task",
+			"noTasksToDisplay": "No tasks to display",
+			"noDatesSet": "No dates set",
+			"dateRangeTooltip": "{{start}} → {{end}}",
+			"startDateTooltip": "Start: {{date}}",
+			"dueDateTooltip": "Due: {{date}}",
+			"loading": "Loading…",
+			"viewMore": "View more"
+		},
+		"newViewPopover": {
+			"addView": "Add view",
+			"addViewAriaLabel": "Add view",
+			"title": "New view",
+			"viewNameLabel": "View name",
+			"defaultName": "New {{layout}}",
+			"layoutLabel": "Layout",
+			"creating": "Creating…",
+			"createView": "Create view",
+			"layouts": {
+				"board": "Board",
+				"table": "Table",
+				"roadmap": "Roadmap",
+				"plugin": "Plugin"
+			}
+		},
+		"renameViewDialog": {
+			"title": "Rename view",
+			"cancel": "Cancel",
+			"renaming": "Renaming…",
+			"rename": "Rename"
+		},
+		"startSprintModal": {
+			"title": "Start sprint",
+			"nameLabel": "Name",
+			"goalLabel": "Goal",
+			"optional": "(optional)",
+			"goalPlaceholder": "What should this sprint achieve?",
+			"startDateLabel": "Start date",
+			"endDateLabel": "End date",
+			"cancel": "Cancel",
+			"starting": "Starting…",
+			"startSprint": "Start sprint"
+		},
+		"timeline": {
+			"title": "Timeline",
+			"description": "Epics and long-horizon planning on a roadmap."
+		},
+		"sprintDetail": {
+			"notFound": "Sprint not found or access denied.",
+			"statusActive": "Active",
+			"statusPlanned": "Planned",
+			"statusCompleted": "Completed",
+			"description": "{{status}} sprint",
+			"descriptionWithStartDate": "{{status}} sprint · started {{date}}",
+			"completeSprint": "Complete sprint",
+			"completeSprintModal": {
+				"title": "Complete sprint",
+				"willBeMovedTo_one": "{{count}} incomplete task will be moved to:",
+				"willBeMovedTo_other": "{{count}} incomplete tasks will be moved to:",
+				"noIncompleteTasks": "No incomplete tasks remain in this sprint.",
+				"productBacklog": "Product Backlog",
+				"unassignedHint": "Tasks will be unassigned from any sprint",
+				"cancel": "Cancel",
+				"completing": "Completing…",
+				"completeSprint": "Complete sprint"
+			}
+		},
+		"conversation": {
+			"agentsFallback": "Agents"
+		}
+	},
+	"priority": {
+		"none": "None",
+		"low": "Low",
+		"medium": "Medium",
+		"high": "High",
+		"critical": "Critical"
+	},
+	"viewUtils": {
+		"groups": {
+			"backlog": "Backlog",
+			"unassigned": "Unassigned",
+			"noReporter": "No Reporter",
+			"noType": "No Type",
+			"none": "None",
+			"yes": "Yes",
+			"no": "No"
+		},
+		"columnBy": {
+			"status": "Status",
+			"sprint": "Sprint",
+			"assignee": "Assignee",
+			"importance": "Importance",
+			"type": "Type",
+			"reporter": "Reporter"
+		},
+		"sortBy": {
+			"manual": "Manual",
+			"importance": "Importance",
+			"storyPoints": "Story Points",
+			"title": "Title",
+			"created": "Created",
+			"startDate": "Start Date",
+			"dueDate": "Due Date"
+		},
+		"swimlanes": {
+			"none": "None",
+			"assignee": "Assignee",
+			"importance": "Importance",
+			"type": "Type"
+		},
+		"fieldSum": {
+			"count": "Count",
+			"storyPoints": "Story Points"
+		},
+		"fields": {
+			"assignee": "Assignee",
+			"status": "Status",
+			"importance": "Importance",
+			"storyPoints": "Story Points",
+			"type": "Type",
+			"epic": "Epic",
+			"reporter": "Reporter",
+			"startDate": "Start Date",
+			"dueDate": "Due Date",
+			"created": "Created"
+		}
+	}
+}

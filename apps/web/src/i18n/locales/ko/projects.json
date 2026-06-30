@@ -1,0 +1,1058 @@
+{
+	"project": {
+		"notFound": "프로젝트를 찾을 수 없거나 접근 권한이 없습니다.",
+		"settingsPage": {
+			"title": "설정",
+			"subtitle": "프로젝트 설정, 역할, 권한을 구성하세요",
+			"nav": {
+				"general": "일반",
+				"roles": "역할",
+				"taskStatuses": "작업 상태",
+				"taskTypes": "작업 유형",
+				"customFields": "커스텀 필드",
+				"dangerZone": "위험 구역",
+				"plugins": "플러그인"
+			}
+		}
+	},
+	"agents": {
+		"createDialog": {
+			"title": "AI 에이전트 생성",
+			"step1Description": "에이전트의 정체성과 역할을 설정하세요",
+			"step2Description": "에이전트를 구동할 AI 모델을 구성하세요",
+			"stepIndicator": "{{step}} / 2",
+			"startFromPreset": "프리셋으로 시작",
+			"nameLabel": "이름",
+			"handleLabel": "핸들",
+			"handleHint": "이름에서 자동으로 생성됩니다. 댓글에서 @멘션에 사용됩니다.",
+			"projectRoleLabel": "프로젝트 역할",
+			"projectRolePlaceholder": "프로젝트 역할을 선택하세요…",
+			"projectRoleHint": "이 프로젝트에서 에이전트가 읽고 수정할 수 있는 항목을 제어합니다.",
+			"modelSection": "모델",
+			"providerLabel": "제공자",
+			"modelLabel": "모델",
+			"customOption": "사용자 지정…",
+			"apiKeyLabel": "API 키",
+			"hideApiKey": "API 키 숨기기",
+			"showApiKey": "API 키 표시",
+			"apiKeyHint": "암호화되어 저장됩니다 — API 응답에 노출되지 않습니다.",
+			"baseUrlLabel": "기본 URL",
+			"systemPromptLabel": "시스템 프롬프트",
+			"optional": "(선택사항)",
+			"charsCount": "{{count}}자",
+			"createFailed": "에이전트 생성에 실패했습니다. 다시 시도해 주세요.",
+			"cancel": "취소",
+			"continue": "계속",
+			"back": "뒤로",
+			"creating": "생성 중…",
+			"createAgent": "에이전트 생성",
+			"namePlaceholder": "Dev Bot",
+			"systemPromptPlaceholder": "당신은 시니어 소프트웨어 엔지니어입니다…"
+		},
+		"card": {
+			"configure": "구성",
+			"delete": "삭제",
+			"repos": "저장소",
+			"configureAndViewActivity": "구성 및 활동 보기",
+			"deleteDialog": {
+				"title": "{{name}}을(를) 삭제하시겠습니까?",
+				"description": "이 작업은 에이전트를 영구적으로 삭제하고 프로젝트에서 제거합니다. 진행 중인 대화는 중단됩니다.",
+				"cancel": "취소",
+				"delete": "삭제"
+			}
+		},
+		"page": {
+			"title": "AI 에이전트",
+			"subtitle": "작업을 수행하고 팀과 대화하는 자율 에이전트",
+			"newAgent": "새 에이전트",
+			"empty": {
+				"title": "아직 에이전트가 없습니다",
+				"description": "작업 자동화, 코드 리뷰, 문서 작성 등을 위해 AI 에이전트를 추가하세요.",
+				"createFirstAgent": "첫 에이전트 만들기"
+			},
+			"chatShortcutPrefix": "클릭",
+			"chatShortcutSuffix": "하면 모든 에이전트와 채팅하고, 대화를 보고, MCP 서버와 스킬을 관리할 수 있습니다."
+		},
+		"detail": {
+			"tabs": {
+				"overview": "개요",
+				"mcpServers": "MCP 서버",
+				"skills": "스킬",
+				"conversations": "대화"
+			},
+			"overview": {
+				"nameLabel": "이름",
+				"llmConfiguration": "LLM 구성",
+				"providerLabel": "제공자",
+				"modelLabel": "모델",
+				"customOption": "사용자 지정…",
+				"apiKeyUpdateLabel": "API 키 업데이트",
+				"apiKeyUpdateHint": "(현재 값을 유지하려면 비워 두세요)",
+				"baseUrlLabel": "기본 URL",
+				"triggerPrompts": {
+					"title": "자동 추가 트리거 프롬프트",
+					"hint": "에이전트가 호출되는 방식에 따라 런타임에 시스템 프롬프트에 자동으로 추가됩니다.",
+					"taskAssignment": "작업 배정 / 작업 댓글",
+					"docCommentMention": "문서 댓글 @멘션",
+					"directChat": "직접 채팅",
+					"writeDescription": "AI로 작업 설명 작성"
+				},
+				"capabilities": "기능",
+				"cloneRepositories": "저장소 클론",
+				"cloneRepositoriesHint": "에이전트가 로컬에서 저장소를 git clone할 수 있도록 허용",
+				"gitCommitterIdentity": "Git 커미터 신원",
+				"gitCommitterHint": "이 에이전트가 만드는 커밋에 사용되는 이름과 이메일입니다.",
+				"committerNameLabel": "커미터 이름",
+				"committerEmailLabel": "커미터 이메일",
+				"saveChanges": "변경사항 저장",
+				"saved": "저장됨",
+				"saveFailed": "저장에 실패했습니다. 다시 시도해 주세요.",
+				"systemPromptLabel": "시스템 프롬프트"
+			},
+			"mcp": {
+				"serverCount_one": "서버 {{count}}개 구성됨",
+				"serverCount_other": "서버 {{count}}개 구성됨",
+				"addServer": "서버 추가",
+				"empty": {
+					"title": "추가된 MCP 서버가 없습니다",
+					"addFirstServer": "첫 서버 추가"
+				},
+				"addDialog": {
+					"title": "MCP 서버 추가",
+					"description": "MCP 서버를 연결하여 에이전트의 기능을 확장하세요.",
+					"serverNameLabel": "서버 이름",
+					"transportLabel": "전송 방식",
+					"commandLabel": "명령어",
+					"argsLabel": "인자",
+					"argsHint": "(공백으로 구분)",
+					"urlLabel": "URL",
+					"cancel": "취소",
+					"addServer": "서버 추가"
+				}
+			},
+			"skills": {
+				"skillCount_one": "스킬 {{count}}개 연결됨",
+				"skillCount_other": "스킬 {{count}}개 연결됨",
+				"addSkill": "스킬 추가",
+				"empty": {
+					"title": "아직 스킬이 없습니다",
+					"addFirstSkill": "첫 스킬 추가"
+				},
+				"addDialog": {
+					"title": "스킬 추가",
+					"description": "에이전트에게 특화된 지침이나 기능을 부여하세요.",
+					"skillNameLabel": "스킬 이름",
+					"sourceLabel": "출처",
+					"sourceInline": "인라인(여기에 내용 작성)",
+					"sourceMarketplace": "마켓플레이스",
+					"sourceGithubUrl": "GitHub URL",
+					"skillContentLabel": "스킬 내용(Markdown)",
+					"urlLabel": "URL",
+					"cancel": "취소",
+					"addSkill": "스킬 추가"
+				}
+			},
+			"conversations": {
+				"triggerChat": "채팅",
+				"triggerWriteDescription": "설명 작성",
+				"triggerTask": "작업",
+				"iterations_one": "{{count}}회 반복",
+				"iterations_other": "{{count}}회 반복",
+				"prOpened": "PR 열림",
+				"watch": "지켜보기",
+				"empty": {
+					"title": "아직 대화가 없습니다",
+					"description": "이 에이전트에게 작업이 배정되거나 누군가 메시지를 보내면 대화가 시작됩니다."
+				}
+			}
+		},
+		"conversationView": {
+			"thinking": "생각 중…",
+			"observation": "관찰",
+			"toolLabel": "도구: {{toolName}}",
+			"stop": "중지",
+			"notFound": "대화를 찾을 수 없습니다",
+			"chatSession": "채팅 세션",
+			"taskSession": "작업 세션",
+			"pr": "PR",
+			"noMessages": "아직 메시지가 없습니다"
+		}
+	},
+	"docs": {
+		"editorPage": {
+			"notFound": {
+				"title": "문서를 찾을 수 없습니다",
+				"description": "이 문서는 삭제되었거나 링크가 잘못되었을 수 있습니다."
+			},
+			"unsaved": "저장되지 않음",
+			"saving": "저장 중…",
+			"saved": "저장됨",
+			"commentsAndActivity": "댓글 및 활동"
+		},
+		"activity": {
+			"created": "이 문서를 만들었습니다",
+			"updated": "문서를 업데이트했습니다",
+			"updatedFields": "{{fields}}을(를) 업데이트했습니다",
+			"deleted": "문서를 삭제했습니다",
+			"moved": "문서를 이동했습니다",
+			"contentChangeDiff": "내용 변경 차이"
+		}
+	},
+	"roles": {
+		"deleteDialog": {
+			"title": "역할 삭제",
+			"confirmTextPrefix": "정말로 삭제하시겠습니까",
+			"confirmTextSuffix": "? 현재 이 역할에 배정된 멤버는 접근 권한을 잃게 됩니다. 이 작업은 되돌릴 수 없습니다.",
+			"cancel": "취소",
+			"deleteRole": "역할 삭제",
+			"errors": {
+				"notFound": "이 역할은 더 이상 존재하지 않습니다.",
+				"hasMembers": "하나 이상의 멤버에게 할당되어 있어 이 역할을 삭제할 수 없습니다.",
+				"forbidden": "이 역할을 삭제할 권한이 없습니다.",
+				"internalError": "문제가 발생했습니다. 다시 시도해 주세요.",
+				"generic": "문제가 발생했습니다."
+			}
+		},
+		"formDialog": {
+			"editTitle": "역할 수정",
+			"createTitle": "새 역할",
+			"editDescription": "역할 이름과 권한 부여 설정을 업데이트하세요.",
+			"createDescription": "새로운 프로젝트 역할을 정의하고 멤버에게 부여할 권한을 설정하세요.",
+			"roleNameLabel": "역할 이름",
+			"roleNamePlaceholder": "예: PROJECT_REVIEWER",
+			"permissionsLabel": "권한",
+			"enabledCount_one": "{{count}}개 활성화됨",
+			"enabledCount_other": "{{count}}개 활성화됨",
+			"cancel": "취소",
+			"saveChanges": "변경사항 저장",
+			"createRole": "역할 생성",
+			"errors": {
+				"nameTaken": "이미 존재하는 역할 이름입니다.",
+				"nameInvalid": "역할 이름은 대문자, 숫자, 밑줄만 사용해야 합니다.",
+				"notFound": "이 역할은 더 이상 존재하지 않습니다. 이미 삭제되었을 수 있습니다.",
+				"forbidden": "이 작업을 수행할 권한이 없습니다.",
+				"internalError": "서버에서 문제가 발생했습니다. 다시 시도해 주세요.",
+				"generic": "문제가 발생했습니다."
+			}
+		},
+		"permissions": {
+			"projectsRead": {
+				"label": "프로젝트 조회",
+				"description": "프로젝트 세부정보 및 설정 보기"
+			},
+			"projectsWrite": {
+				"label": "프로젝트 수정",
+				"description": "프로젝트 이름, 설명, 설정 업데이트"
+			},
+			"projectsDelete": {
+				"label": "프로젝트 삭제",
+				"description": "이 프로젝트를 영구적으로 삭제"
+			},
+			"membersRead": {
+				"label": "멤버 보기",
+				"description": "프로젝트 멤버 목록 및 보기"
+			},
+			"membersWrite": {
+				"label": "멤버 관리",
+				"description": "프로젝트 멤버 추가, 제거, 재배정"
+			},
+			"rolesRead": {
+				"label": "역할 보기",
+				"description": "프로젝트 역할 정의 목록 및 보기"
+			},
+			"rolesWrite": {
+				"label": "역할 관리",
+				"description": "프로젝트 역할 생성, 수정, 삭제"
+			},
+			"tasksRead": {
+				"label": "작업 보기",
+				"description": "프로젝트의 작업 탐색 및 읽기"
+			},
+			"tasksWrite": {
+				"label": "작업 수정",
+				"description": "작업 생성, 업데이트, 이동"
+			},
+			"sprintsRead": {
+				"label": "스프린트 보기",
+				"description": "스프린트 보드 및 백로그 탐색"
+			},
+			"sprintsWrite": {
+				"label": "스프린트 관리",
+				"description": "스프린트 생성, 업데이트, 종료"
+			},
+			"docsRead": {
+				"label": "문서 보기",
+				"description": "프로젝트의 문서 탐색 및 읽기"
+			},
+			"docsWrite": {
+				"label": "문서 수정",
+				"description": "문서 및 폴더 생성, 업데이트, 삭제"
+			},
+			"agentsRead": {
+				"label": "에이전트 보기",
+				"description": "AI 에이전트 탐색 및 구성 보기"
+			},
+			"agentsWrite": {
+				"label": "에이전트 관리",
+				"description": "AI 에이전트 생성, 구성, 삭제"
+			}
+		},
+		"permissionGroups": {
+			"project": "프로젝트",
+			"members": "멤버",
+			"roles": "역할",
+			"tasks": "작업",
+			"sprints": "스프린트",
+			"documents": "문서",
+			"aiAgents": "AI 에이전트"
+		}
+	},
+	"settings": {
+		"general": {
+			"title": "일반",
+			"projectNameLabel": "프로젝트 이름",
+			"projectNamePlaceholder": "내 멋진 프로젝트",
+			"taskIdPrefixLabel": "작업 ID 접두사",
+			"taskIdPrefixHint": "예: PACA → PACA-1, PACA-2…",
+			"taskIdPrefixPlaceholder": "PROJ",
+			"descriptionLabel": "설명",
+			"descriptionPlaceholder": "이 프로젝트에 대해 설명하세요…",
+			"publicProjectLabel": "공개 프로젝트",
+			"publicProjectHintPublic": "링크가 있는 모든 사람이 이 프로젝트를 볼 수 있습니다. 익명 사용자는 읽기 전용 권한을 갖습니다.",
+			"publicProjectHintPrivate": "팀 멤버만 이 프로젝트에 접근할 수 있습니다.",
+			"saveChanges": "변경사항 저장",
+			"saved": "저장됨 ✓",
+			"noPermission": "이 프로젝트를 수정할 권한이 없습니다.",
+			"errors": {
+				"nameTaken": "이미 존재하는 프로젝트 이름입니다.",
+				"nameInvalid": "프로젝트 이름이 비어 있거나 올바르지 않습니다.",
+				"prefixInvalid": "접두사는 1~10자의 대문자/숫자여야 합니다(예: PACA).",
+				"updateFailed": "프로젝트 업데이트에 실패했습니다. 다시 시도해 주세요."
+			}
+		},
+		"roles": {
+			"title": "프로젝트 역할",
+			"description": "이 프로젝트 멤버의 역할과 권한을 관리하세요.",
+			"newRole": "새 역할",
+			"noPermissionsAssigned": "할당된 권한 없음",
+			"editRole": "역할 수정",
+			"deleteRole": "역할 삭제",
+			"rolesDefined_one": "역할 정의됨",
+			"rolesDefined_other": "역할 정의됨",
+			"permissionGrants": "전체 역할에 부여된 권한",
+			"empty": {
+				"title": "아직 정의된 역할이 없습니다",
+				"description": "멤버에게 권한 할당을 시작하려면 첫 번째 역할을 만드세요.",
+				"createRole": "역할 생성"
+			},
+			"table": {
+				"name": "이름",
+				"permissions": "권한",
+				"created": "생성일"
+			},
+			"systemRolesNote": "시스템 역할은 공유 템플릿이며 수정하거나 삭제할 수 없습니다."
+		},
+		"taskStatuses": {
+			"title": "작업 상태",
+			"description": "이 프로젝트에서 작업이 거치는 워크플로 상태를 정의하세요.",
+			"newStatus": "새 상태",
+			"reorderFailed": "새 순서를 저장하지 못했습니다. 다시 시도해 주세요.",
+			"empty": {
+				"title": "정의된 상태가 없습니다",
+				"description": "이 프로젝트의 작업 워크플로를 정의하려면 상태를 만드세요.",
+				"createStatus": "상태 생성"
+			},
+			"table": {
+				"name": "이름",
+				"category": "카테고리",
+				"default": "기본값"
+			},
+			"default": "기본값",
+			"setAsDefault": "기본 상태로 설정",
+			"editStatus": "상태 수정",
+			"deleteStatus": "상태 삭제"
+		},
+		"taskTypes": {
+			"title": "작업 유형",
+			"description": "커스텀 유형(예: 버그, 기능, 스토리)으로 작업을 분류하세요.",
+			"newType": "새 유형",
+			"empty": {
+				"title": "정의된 작업 유형이 없습니다",
+				"description": "작업을 종류별로 분류할 유형을 만드세요 — 예: 버그, 기능, 스토리.",
+				"createType": "유형 생성"
+			},
+			"table": {
+				"icon": "아이콘",
+				"name": "이름",
+				"description": "설명",
+				"default": "기본값"
+			},
+			"default": "기본값",
+			"setAsDefault": "기본 유형으로 설정",
+			"editType": "유형 수정",
+			"deleteType": "유형 삭제"
+		},
+		"customFields": {
+			"title": "커스텀 필드",
+			"description": "워크플로에 맞는 추가 데이터로 작업을 확장하는 프로젝트 수준의 커스텀 작업 필드를 정의하세요.",
+			"newField": "새 커스텀 필드",
+			"empty": {
+				"title": "아직 커스텀 필드가 없습니다",
+				"description": "커스텀 필드를 사용하면 스프린트, 심각도 수준, 릴리스 태그 등 워크플로에 특화된 데이터를 기록할 수 있습니다.",
+				"createFirstField": "첫 필드 만들기"
+			},
+			"table": {
+				"displayName": "표시 이름",
+				"fieldKey": "필드 키",
+				"type": "유형",
+				"required": "필수"
+			},
+			"yes": "예",
+			"no": "아니오",
+			"editField": "필드 수정",
+			"deleteField": "필드 삭제",
+			"cancel": "취소",
+			"saveChanges": "변경사항 저장",
+			"displayNameLabel": "표시 이름",
+			"displayNamePlaceholder": "예: 릴리스 태그",
+			"fieldKeyLabel": "필드 키",
+			"fieldKeyHint": "API 및 데이터 내보내기에서 식별자로 사용됩니다.",
+			"fieldKeyImmutableHint": "필드 키는 생성 후 변경할 수 없습니다.",
+			"fieldTypeLabel": "필드 유형",
+			"fieldTypeImmutableHint": "필드 유형은 생성 후 변경할 수 없습니다.",
+			"optionsLabel": "옵션",
+			"addOptionPlaceholder": "옵션 추가…",
+			"addOption": "추가",
+			"requiredLabel": "필수",
+			"requiredHint": "사용자는 작업을 생성하거나 수정할 때 이 필드를 입력해야 합니다.",
+			"fieldTypes": {
+				"text": "텍스트",
+				"number": "숫자",
+				"date": "날짜",
+				"checkbox": "체크박스",
+				"select": "선택",
+				"multiSelect": "다중 선택",
+				"url": "URL"
+			},
+			"createDialog": {
+				"title": "커스텀 필드 생성",
+				"description": "이 프로젝트의 작업에 추가 데이터를 기록할 새 필드를 정의하세요.",
+				"createField": "필드 생성",
+				"errors": {
+					"keyTaken": "이 프로젝트에 이미 동일한 키를 가진 필드가 있습니다.",
+					"keyInvalid": "필드 키가 비어 있거나 올바르지 않습니다.",
+					"nameInvalid": "표시 이름이 비어 있거나 올바르지 않습니다.",
+					"createFailed": "필드 생성에 실패했습니다. 다시 시도해 주세요."
+				}
+			},
+			"editDialog": {
+				"title": "커스텀 필드 수정",
+				"description": "필드 설정을 업데이트하세요.",
+				"errors": {
+					"nameInvalid": "표시 이름이 비어 있거나 올바르지 않습니다.",
+					"saveFailed": "변경사항 저장에 실패했습니다. 다시 시도해 주세요."
+				}
+			},
+			"deleteDialog": {
+				"title": "커스텀 필드 삭제",
+				"confirmTextPrefix": "삭제",
+				"confirmTextSuffix": "? 이 필드에 저장된 작업 데이터가 사라집니다. 이 작업은 되돌릴 수 없습니다.",
+				"deleteFailed": "필드 삭제에 실패했습니다. 다시 시도해 주세요.",
+				"deleteField": "필드 삭제"
+			}
+		},
+		"dangerZone": {
+			"title": "위험 구역",
+			"deleteProjectTitle": "이 프로젝트 삭제",
+			"deleteProjectDescription": "프로젝트와 모든 데이터를 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.",
+			"deleteProjectButton": "프로젝트 삭제",
+			"deleteDialog": {
+				"title": "프로젝트 삭제",
+				"confirmTextPrefix": "이 작업은",
+				"confirmTextSuffix": "와(과) 멤버, 역할, 인터랙션을 포함한 모든 데이터를 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.",
+				"typeToConfirmPrefix": "확인하려면",
+				"typeToConfirmSuffix": "을(를) 입력하세요",
+				"deleteFailed": "프로젝트 삭제에 실패했습니다. 다시 시도해 주세요.",
+				"cancel": "취소",
+				"deletePermanently": "영구 삭제"
+			}
+		}
+	},
+	"taskStatuses": {
+		"deleteDialog": {
+			"title": "상태 삭제",
+			"confirmTextPrefix": "삭제",
+			"confirmTextSuffix": "? 이 상태를 사용하는 작업은 상태를 잃게 됩니다. 이 작업은 되돌릴 수 없습니다.",
+			"deleteFailed": "상태 삭제에 실패했습니다. 다시 시도해 주세요.",
+			"cancel": "취소",
+			"deleteStatus": "상태 삭제"
+		},
+		"formDialog": {
+			"editTitle": "상태 수정",
+			"createTitle": "상태 생성",
+			"editDescription": "이 워크플로 상태를 업데이트하세요.",
+			"createDescription": "프로젝트 워크플로에 새 상태를 추가하세요.",
+			"nameLabel": "이름",
+			"namePlaceholder": "예: 검토 중",
+			"categoryLabel": "카테고리",
+			"colorLabel": "색상",
+			"customColorTitle": "사용자 지정 색상",
+			"cancel": "취소",
+			"saveChanges": "변경사항 저장",
+			"createStatus": "상태 생성",
+			"errors": {
+				"nameInvalid": "상태 이름이 비어 있거나 올바르지 않습니다.",
+				"categoryInvalid": "잘못된 카테고리가 선택되었습니다.",
+				"saveFailed": "상태 저장에 실패했습니다. 다시 시도해 주세요."
+			}
+		}
+	},
+	"team": {
+		"title": "팀",
+		"subtitle": "프로젝트 멤버와 역할을 관리하세요",
+		"addMember": "멤버 추가",
+		"memberCount_one": "멤버 {{count}}명",
+		"memberCount_other": "멤버 {{count}}명",
+		"empty": {
+			"title": "아직 멤버가 없습니다",
+			"description": "시작하려면 이 프로젝트에 팀원이나 AI 에이전트를 추가하세요.",
+			"addFirstMember": "첫 멤버 추가"
+		},
+		"addMemberDialog": {
+			"title": "멤버 추가",
+			"description": "사용자를 선택하고 이 프로젝트에서의 역할을 배정하세요.",
+			"userLabel": "사용자",
+			"change": "변경",
+			"searchPlaceholder": "이름 또는 사용자 이름으로 검색…",
+			"noUsersMatch": "검색과 일치하는 사용자가 없습니다.",
+			"noUsersAvailable": "추가할 수 있는 사용자가 없습니다.",
+			"roleLabel": "역할",
+			"rolePlaceholder": "역할을 선택하세요…",
+			"cancel": "취소",
+			"addMember": "멤버 추가",
+			"errors": {
+				"addFailed": "멤버 추가에 실패했습니다. 다시 시도해 주세요."
+			}
+		},
+		"roleChip": {
+			"changeRole": "역할 변경",
+			"changeFailed": "역할 변경에 실패했습니다."
+		},
+		"memberRow": {
+			"removeMember": "멤버 제거"
+		},
+		"removeDialog": {
+			"title": "멤버 제거",
+			"removePrefix": "제거",
+			"fromInfix": "에서",
+			"confirmSuffix": "? 즉시 접근 권한을 잃게 됩니다.",
+			"removeFailed": "멤버 제거에 실패했습니다. 다시 시도해 주세요.",
+			"cancel": "취소",
+			"remove": "제거"
+		}
+	},
+	"aiChat": {
+		"chatWithAgent": "AI 에이전트와 채팅",
+		"newConversation": "새 대화",
+		"agentLabel": "에이전트",
+		"noAgentsConfigured": "이 프로젝트에 구성된 에이전트가 없습니다.",
+		"selectAgentPlaceholder": "에이전트를 선택하세요…",
+		"messageLabel": "메시지",
+		"messageHint": "(Enter로 전송, Shift+Enter로 줄바꿈)",
+		"messagePlaceholder": "에이전트가 무엇을 도와드릴까요?",
+		"send": "전송"
+	},
+	"taskTypes": {
+		"deleteDialog": {
+			"title": "작업 유형 삭제",
+			"confirmTextPrefix": "삭제",
+			"confirmTextSuffix": "? 이 유형을 사용하는 작업은 유형 배정을 잃게 됩니다. 이 작업은 되돌릴 수 없습니다.",
+			"deleteFailed": "작업 유형 삭제에 실패했습니다. 다시 시도해 주세요.",
+			"cancel": "취소",
+			"deleteType": "유형 삭제"
+		},
+		"formDialog": {
+			"editTitle": "작업 유형 수정",
+			"createTitle": "작업 유형 생성",
+			"editDescription": "이 작업 유형을 업데이트하세요.",
+			"createDescription": "이 프로젝트의 작업을 분류할 새 유형을 추가하세요.",
+			"nameLabel": "이름",
+			"namePlaceholder": "예: 버그, 기능, 스토리",
+			"iconLabel": "아이콘",
+			"optional": "(선택사항)",
+			"clear": "지우기",
+			"colorLabel": "색상",
+			"customColorTitle": "사용자 지정 색상",
+			"descriptionLabel": "설명",
+			"descriptionPlaceholder": "이 유형을 언제 사용하는지 설명하세요…",
+			"cancel": "취소",
+			"saveChanges": "변경사항 저장",
+			"createType": "유형 생성",
+			"errors": {
+				"nameInvalid": "유형 이름이 비어 있거나 올바르지 않습니다.",
+				"saveFailed": "작업 유형 저장에 실패했습니다. 다시 시도해 주세요."
+			}
+		}
+	},
+	"taskDetail": {
+		"common": {
+			"empty": "비어 있음",
+			"dash": "—",
+			"unassigned": "담당자 없음"
+		},
+		"notFound": {
+			"title": "작업을 찾을 수 없습니다",
+			"description": "이 작업은 삭제되었거나 링크가 잘못되었을 수 있습니다.",
+			"ariaLabel": "작업 상세",
+			"backToProject": "프로젝트로 돌아가기",
+			"projectFallback": "프로젝트"
+		},
+		"header": {
+			"created": "{{date}}에 생성됨",
+			"copied": "복사됨!",
+			"share": "공유",
+			"taskActions": "작업 작업",
+			"delete": "삭제",
+			"closeTaskDetail": "작업 상세 닫기",
+			"deleteDialog": {
+				"title": "작업을 삭제하시겠습니까?",
+				"description": "\"{{title}}\" 및 모든 관련 데이터를 영구적으로 삭제합니다. 이 작업은 되돌릴 수 없습니다.",
+				"cancel": "취소",
+				"delete": "삭제"
+			}
+		},
+		"properties": {
+			"title": "속성",
+			"status": "상태",
+			"dates": "날짜",
+			"trackTime": "시간 기록",
+			"addTime": "시간 추가",
+			"type": "유형",
+			"relationships": "관계",
+			"assignees": "담당자",
+			"importance": "중요도",
+			"none": "없음",
+			"storyPoints": "스토리 포인트",
+			"tags": "태그",
+			"reporter": "보고자",
+			"sprint": "스프린트",
+			"productBacklog": "제품 백로그",
+			"epic": "에픽",
+			"viewEpic": "에픽 보기",
+			"removeEpic": "에픽 제거",
+			"parent": "상위 항목",
+			"viewParent": "상위 항목 보기",
+			"removeParent": "상위 항목 제거",
+			"addFields": "필드 추가"
+		},
+		"description": {
+			"title": "설명",
+			"writeWithAI": "AI로 작성",
+			"writeWithAIDialog": {
+				"title": "AI로 작성",
+				"description": "작업 설명을 작성할 에이전트를 선택하세요.",
+				"noAgents": "이 프로젝트에 구성된 에이전트가 없습니다.",
+				"cancel": "취소",
+				"starting": "시작 중...",
+				"writeButton": "설명 작성"
+			}
+		},
+		"subtasks": {
+			"title": "하위 작업",
+			"addButton": "하위 작업 추가",
+			"titlePlaceholder": "하위 작업 제목…",
+			"empty": "아직 하위 작업이 없습니다"
+		},
+		"links": {
+			"title": "연결된 작업",
+			"addButton": "링크 추가",
+			"openTask": "작업 열기",
+			"removeLink": "링크 제거",
+			"empty": "연결된 작업이 없습니다"
+		},
+		"attachments": {
+			"title": "첨부 파일",
+			"uploadLabel": "첨부 파일 업로드",
+			"dropZoneTitle": "업로드할 파일을 여기에 끌어다 놓으세요",
+			"dropZoneSubtitle": "또는 클릭하여 찾아보기",
+			"previewLabel": "{{fileName}} 미리보기",
+			"downloadLabel": "{{fileName}} 다운로드",
+			"deleteLabel": "{{fileName}} 삭제",
+			"unitBytes_one": "{{count}} B",
+			"unitBytes_other": "{{count}} B",
+			"unitKilobytes": "{{value}} KB",
+			"unitMegabytes": "{{value}} MB"
+		},
+		"addFieldDialog": {
+			"title": "커스텀 필드 생성",
+			"displayNameLabel": "표시 이름",
+			"displayNamePlaceholder": "예: 릴리스 태그",
+			"fieldKeyLabel": "필드 키",
+			"fieldKeyPlaceholder": "release_tag",
+			"fieldTypeLabel": "필드 유형",
+			"requiredLabel": "필수",
+			"cancel": "취소",
+			"creating": "생성 중…",
+			"createField": "필드 생성",
+			"fieldTypes": {
+				"text": "텍스트",
+				"number": "숫자",
+				"date": "날짜",
+				"checkbox": "체크박스",
+				"select": "선택"
+			}
+		},
+		"addTaskLinkModal": {
+			"title": "작업 연결",
+			"relationship": "관계",
+			"searchPlaceholder": "제목 또는 번호로 작업 검색...",
+			"loadingTasks": "작업을 불러오는 중…",
+			"noTasksFound": "작업을 찾을 수 없습니다",
+			"linkTypes": {
+				"blocks": {
+					"label": "차단함",
+					"description": "이 작업은 다른 작업보다 먼저 완료되어야 합니다"
+				},
+				"isBlockedBy": {
+					"label": "차단됨",
+					"description": "다른 작업이 완료될 때까지 이 작업을 시작할 수 없습니다"
+				},
+				"relatesTo": {
+					"label": "관련됨",
+					"description": "이 작업들은 관련이 있지만 종속 관계는 아닙니다"
+				},
+				"duplicates": {
+					"label": "중복함",
+					"description": "이 작업은 다른 작업의 중복입니다"
+				}
+			}
+		},
+		"propertyField": {
+			"dateEditor": {
+				"datePlaceholder": "날짜",
+				"clearDate": "날짜 지우기",
+				"startDate": "시작일",
+				"dueDate": "마감일"
+			},
+			"storyPointsEditor": {
+				"decrease": "스토리 포인트 감소",
+				"increase": "스토리 포인트 증가"
+			},
+			"tagsEditor": {
+				"addTag": "태그 추가",
+				"addTagPlaceholder": "태그 추가..."
+			}
+		},
+		"panel": {
+			"priority": "우선순위",
+			"assignee": "담당자",
+			"assigned": "배정됨",
+			"sprint": "스프린트",
+			"created": "생성일",
+			"updated": "수정일"
+		},
+		"activity": {
+			"none": "없음",
+			"system": "시스템",
+			"created": "이 작업을 생성했습니다",
+			"deleted": "이 작업을 삭제했습니다",
+			"updated": "이 작업을 업데이트했습니다",
+			"changedStatus": "상태를 \"{{oldVal}}\"에서 \"{{newVal}}\"(으)로 변경했습니다",
+			"setStatus": "상태를 \"{{newVal}}\"(으)로 설정했습니다",
+			"clearedStatus": "상태를 지웠습니다",
+			"changedType": "유형을 \"{{oldVal}}\"에서 \"{{newVal}}\"(으)로 변경했습니다",
+			"setType": "유형을 \"{{newVal}}\"(으)로 설정했습니다",
+			"clearedType": "유형을 지웠습니다",
+			"renamed": "이름을 \"{{oldVal}}\"에서 \"{{newVal}}\"(으)로 변경했습니다",
+			"setTitle": "제목을 \"{{newVal}}\"(으)로 설정했습니다",
+			"changedPriority": "우선순위를 {{oldVal}}에서 {{newVal}}(으)로 변경했습니다",
+			"setPriority": "우선순위를 {{newVal}}(으)로 설정했습니다",
+			"changedAssignee": "담당자를 {{oldName}}에서 {{newName}}(으)로 변경했습니다",
+			"assignedTo": "{{newName}}에게 배정했습니다",
+			"removedAssignee": "담당자 {{oldName}}을(를) 제거했습니다",
+			"changedReporter": "보고자를 {{oldName}}에서 {{newName}}(으)로 변경했습니다",
+			"setReporter": "보고자를 {{newName}}(으)로 설정했습니다",
+			"removedReporter": "보고자 {{oldName}}을(를) 제거했습니다",
+			"movedSprint": "스프린트 \"{{oldSprint}}\"에서 \"{{newSprint}}\"(으)로 이동했습니다",
+			"addedToSprint": "스프린트 \"{{newSprint}}\"에 추가했습니다",
+			"removedFromSprint": "스프린트 \"{{oldSprint}}\"에서 제거했습니다",
+			"setParentTask": "상위 작업을 설정했습니다",
+			"removedParentTask": "상위 작업을 제거했습니다",
+			"changedDueDate": "마감일을 {{oldVal}}에서 {{newVal}}(으)로 변경했습니다",
+			"setDueDate": "마감일을 {{newVal}}(으)로 설정했습니다",
+			"removedDueDate": "마감일을 제거했습니다",
+			"changedStartDate": "시작일을 {{oldVal}}에서 {{newVal}}(으)로 변경했습니다",
+			"setStartDate": "시작일을 {{newVal}}(으)로 설정했습니다",
+			"removedStartDate": "시작일을 제거했습니다",
+			"updatedDescription": "설명을 업데이트했습니다",
+			"updatedTags": "태그를 업데이트했습니다",
+			"updatedCustomFields": "커스텀 필드를 업데이트했습니다",
+			"updatedField": "{{field}}을(를) 업데이트했습니다",
+			"addedAttachment": "첨부 파일을 추가했습니다",
+			"addedAttachmentNamed": "첨부 파일을 추가했습니다: {{fileName}}",
+			"removedAttachment": "첨부 파일을 제거했습니다",
+			"removedAttachmentNamed": "첨부 파일을 제거했습니다: {{fileName}}",
+			"linkTypeBlocks": "차단함",
+			"linkTypeRelatedTo": "관련됨",
+			"linkTypeDuplicates": "중복함",
+			"addedTaskLink": "작업 링크를 추가했습니다 ({{linkType}})",
+			"removedTaskLink": "작업 링크를 제거했습니다",
+			"startedAiSession": "AI 세션을 시작했습니다",
+			"watchSession": "세션 지켜보기",
+			"madeChange": "변경했습니다",
+			"descriptionChangeDiff": "설명 변경 차이"
+		},
+		"timeAgo": {
+			"justNow": "방금 전",
+			"minutes_one": "{{count}}분 전",
+			"minutes_other": "{{count}}분 전",
+			"hours_one": "{{count}}시간 전",
+			"hours_other": "{{count}}시간 전",
+			"days_one": "{{count}}일 전",
+			"days_other": "{{count}}일 전"
+		}
+	},
+	"board": {
+		"common": {
+			"none": "없음"
+		},
+		"view": {
+			"noTasks": "작업 없음",
+			"loading": "불러오는 중…",
+			"viewMore": "더 보기",
+			"expandColumn": "열 펼치기",
+			"collapseColumn": "열 접기"
+		},
+		"taskCard": {
+			"unassigned": "담당자 없음",
+			"priorityLabel": "우선순위",
+			"reporterTitle": "보고자",
+			"epicLabel": "에픽",
+			"noEpic": "에픽 없음",
+			"storyPointsTitle": "스토리 포인트"
+		},
+		"listGroup": {
+			"columnHeaders": {
+				"id": "ID",
+				"title": "제목"
+			},
+			"loading": "불러오는 중…",
+			"viewMore": "더 보기",
+			"startSprint": "스프린트 시작",
+			"newSprint": "새 스프린트",
+			"noTasks": "작업 없음"
+		},
+		"taskRow": {
+			"columnHeaders": {
+				"type": "유형",
+				"importance": "중요도",
+				"storyPoints": "SP",
+				"status": "상태",
+				"assignee": "담당자",
+				"reporter": "보고자",
+				"startDate": "시작일",
+				"dueDate": "마감일",
+				"epic": "에픽",
+				"created": "생성일"
+			},
+			"unassigned": "담당자 없음",
+			"noEpic": "에픽 없음"
+		},
+		"addTaskRow": {
+			"addTask": "작업 추가",
+			"placeholder": "작업 제목…",
+			"cancel": "취소",
+			"create": "생성"
+		},
+		"taskTypeSelector": {
+			"noType": "—"
+		},
+		"backlog": {
+			"title": "제품 백로그",
+			"description": "스프린트에 배정되지 않은 모든 작업 항목입니다."
+		}
+	},
+	"layout": {
+		"shell": {
+			"newSprint": "새 스프린트",
+			"renameView": "뷰 이름 변경",
+			"deleteView": "뷰 삭제",
+			"searchTasksPlaceholder": "작업 검색…",
+			"pluginNotAvailable": "플러그인을 사용할 수 없습니다"
+		},
+		"viewSettings": {
+			"viewSettingsAriaLabel": "뷰 설정",
+			"title": "뷰 설정",
+			"chooseFields": "필드 선택",
+			"back": "← 뒤로",
+			"clearFilters": "필터 지우기",
+			"display": "표시",
+			"filters": "필터",
+			"noSelection": "—",
+			"titleField": "제목",
+			"fieldsLabel": "필드",
+			"columnByLabel": "열 기준",
+			"swimlanesLabel": "스윔레인",
+			"sortByLabel": "정렬 기준",
+			"fieldSumLabel": "필드 합계",
+			"initialSizeLabel": "초기 크기",
+			"perPageLabel": "페이지당",
+			"sprintsLabel": "스프린트",
+			"statusesLabel": "상태",
+			"assigneesLabel": "담당자",
+			"taskTypesLabel": "작업 유형",
+			"reset": "초기화",
+			"saving": "저장 중…",
+			"save": "저장",
+			"sprintFilter": {
+				"noSprints": "스프린트 없음",
+				"allSprints": "모든 스프린트"
+			},
+			"statusFilter": {
+				"noStatuses": "상태 없음",
+				"allStatuses": "모든 상태",
+				"clear": "지우기",
+				"all": "전체"
+			},
+			"assigneeFilter": {
+				"allAssignees": "모든 담당자",
+				"noMembers": "멤버 없음",
+				"unassigned": "담당자 없음"
+			},
+			"taskTypeFilter": {
+				"normalTypes": "일반 유형",
+				"allNormalTypesDynamic": "모든 일반 유형(동적)",
+				"systemTypes": "시스템 유형",
+				"noTaskTypes": "작업 유형 없음"
+			}
+		},
+		"roadmap": {
+			"taskColumnLabel": "작업",
+			"noTasksToDisplay": "표시할 작업이 없습니다",
+			"noDatesSet": "설정된 날짜 없음",
+			"dateRangeTooltip": "{{start}} → {{end}}",
+			"startDateTooltip": "시작: {{date}}",
+			"dueDateTooltip": "마감: {{date}}",
+			"loading": "불러오는 중…",
+			"viewMore": "더 보기"
+		},
+		"newViewPopover": {
+			"addView": "뷰 추가",
+			"addViewAriaLabel": "뷰 추가",
+			"title": "새 뷰",
+			"viewNameLabel": "뷰 이름",
+			"defaultName": "새 {{layout}}",
+			"layoutLabel": "레이아웃",
+			"creating": "생성 중…",
+			"createView": "뷰 생성",
+			"layouts": {
+				"board": "보드",
+				"table": "테이블",
+				"roadmap": "로드맵",
+				"plugin": "플러그인"
+			}
+		},
+		"renameViewDialog": {
+			"title": "뷰 이름 변경",
+			"cancel": "취소",
+			"renaming": "이름 변경 중…",
+			"rename": "이름 변경"
+		},
+		"startSprintModal": {
+			"title": "스프린트 시작",
+			"nameLabel": "이름",
+			"goalLabel": "목표",
+			"optional": "(선택사항)",
+			"goalPlaceholder": "이 스프린트에서 달성하고자 하는 것은 무엇인가요?",
+			"startDateLabel": "시작일",
+			"endDateLabel": "종료일",
+			"cancel": "취소",
+			"starting": "시작 중…",
+			"startSprint": "스프린트 시작"
+		},
+		"timeline": {
+			"title": "타임라인",
+			"description": "로드맵에서 에픽과 장기 계획을 관리하세요."
+		},
+		"sprintDetail": {
+			"notFound": "스프린트를 찾을 수 없거나 접근 권한이 없습니다.",
+			"statusActive": "진행 중",
+			"statusPlanned": "예정됨",
+			"statusCompleted": "완료됨",
+			"description": "{{status}} 스프린트",
+			"descriptionWithStartDate": "{{status}} 스프린트 · {{date}} 시작",
+			"completeSprint": "스프린트 완료",
+			"completeSprintModal": {
+				"title": "스프린트 완료",
+				"willBeMovedTo_one": "미완료 작업 {{count}}개가 다음으로 이동됩니다:",
+				"willBeMovedTo_other": "미완료 작업 {{count}}개가 다음으로 이동됩니다:",
+				"noIncompleteTasks": "이 스프린트에 남은 미완료 작업이 없습니다.",
+				"productBacklog": "제품 백로그",
+				"unassignedHint": "작업은 모든 스프린트에서 배정 해제됩니다",
+				"cancel": "취소",
+				"completing": "완료 중…",
+				"completeSprint": "스프린트 완료"
+			}
+		},
+		"conversation": {
+			"agentsFallback": "에이전트"
+		}
+	},
+	"priority": {
+		"none": "없음",
+		"low": "낮음",
+		"medium": "보통",
+		"high": "높음",
+		"critical": "긴급"
+	},
+	"viewUtils": {
+		"groups": {
+			"backlog": "백로그",
+			"unassigned": "담당자 없음",
+			"noReporter": "보고자 없음",
+			"noType": "유형 없음",
+			"none": "없음",
+			"yes": "예",
+			"no": "아니오"
+		},
+		"columnBy": {
+			"status": "상태",
+			"sprint": "스프린트",
+			"assignee": "담당자",
+			"importance": "중요도",
+			"type": "유형",
+			"reporter": "보고자"
+		},
+		"sortBy": {
+			"manual": "수동",
+			"importance": "중요도",
+			"storyPoints": "스토리 포인트",
+			"title": "제목",
+			"created": "생성일",
+			"startDate": "시작일",
+			"dueDate": "마감일"
+		},
+		"swimlanes": {
+			"none": "없음",
+			"assignee": "담당자",
+			"importance": "중요도",
+			"type": "유형"
+		},
+		"fieldSum": {
+			"count": "개수",
+			"storyPoints": "스토리 포인트"
+		},
+		"fields": {
+			"assignee": "담당자",
+			"status": "상태",
+			"importance": "중요도",
+			"storyPoints": "스토리 포인트",
+			"type": "유형",
+			"epic": "에픽",
+			"reporter": "보고자",
+			"startDate": "시작일",
+			"dueDate": "마감일",
+			"created": "생성일"
+		}
+	}
+}

@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import type { Sprint } from "@/lib/interaction-api";
 
@@ -25,6 +26,7 @@ export function StartSprintModal({
 	onOpenChange,
 	onSubmit,
 }: StartSprintModalProps) {
+	const { t } = useTranslation("projects");
 	const [name, setName] = useState(sprint.name);
 	const [goal, setGoal] = useState(sprint.goal ?? "");
 	const [startDate, setStartDate] = useState(
@@ -102,12 +104,12 @@ export function StartSprintModal({
 					<X className="size-4" />
 				</button>
 				<h2 className="font-[Syne] text-lg font-bold tracking-tight mb-4">
-					Start sprint
+					{t("layout.startSprintModal.title")}
 				</h2>
 				<div className="flex flex-col gap-4">
 					<div className="flex flex-col gap-1.5">
 						<label htmlFor="ss-name" className="text-sm font-medium">
-							Name
+							{t("layout.startSprintModal.nameLabel")}
 						</label>
 						<input
 							id="ss-name"
@@ -121,14 +123,17 @@ export function StartSprintModal({
 							htmlFor="ss-goal"
 							className="text-sm font-medium text-muted-foreground"
 						>
-							Goal <span className="text-xs font-normal">(optional)</span>
+							{t("layout.startSprintModal.goalLabel")}{" "}
+							<span className="text-xs font-normal">
+								{t("layout.startSprintModal.optional")}
+							</span>
 						</label>
 						<textarea
 							id="ss-goal"
 							value={goal}
 							onChange={(e) => setGoal(e.target.value)}
 							rows={2}
-							placeholder="What should this sprint achieve?"
+							placeholder={t("layout.startSprintModal.goalPlaceholder")}
 							className="rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground/50 resize-none"
 						/>
 					</div>
@@ -138,7 +143,7 @@ export function StartSprintModal({
 								htmlFor="ss-start"
 								className="text-sm font-medium text-muted-foreground"
 							>
-								Start date
+								{t("layout.startSprintModal.startDateLabel")}
 							</label>
 							<input
 								id="ss-start"
@@ -153,7 +158,7 @@ export function StartSprintModal({
 								htmlFor="ss-end"
 								className="text-sm font-medium text-muted-foreground"
 							>
-								End date
+								{t("layout.startSprintModal.endDateLabel")}
 							</label>
 							<input
 								id="ss-end"
@@ -172,7 +177,7 @@ export function StartSprintModal({
 						onClick={() => onOpenChange(false)}
 						className="rounded-lg border border-border/50 bg-muted/20 px-4 py-2 text-sm font-medium hover:bg-muted/40 transition-all"
 					>
-						Cancel
+						{t("layout.startSprintModal.cancel")}
 					</button>
 					<button
 						type="button"
@@ -180,7 +185,9 @@ export function StartSprintModal({
 						disabled={submitting}
 						className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50 transition-all"
 					>
-						{submitting ? "Starting…" : "Start sprint"}
+						{submitting
+							? t("layout.startSprintModal.starting")
+							: t("layout.startSprintModal.startSprint")}
 					</button>
 				</div>
 			</div>

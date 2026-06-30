@@ -1,0 +1,69 @@
+import i18next from "i18next";
+import LanguageDetector from "i18next-browser-languagedetector";
+import { initReactI18next } from "react-i18next";
+
+export const SUPPORTED_LANGUAGES = [
+	"en",
+	"vi",
+	"ko",
+	"zh-CN",
+	"ja",
+	"es",
+	"fr",
+] as const;
+
+export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
+
+export const LOCALE_STORAGE_KEY = "locale";
+
+const localeModules = import.meta.glob("./locales/*/*.json", {
+	eager: true,
+}) as Record<string, { default: Record<string, unknown> }>;
+
+const resources: Record<string, Record<string, Record<string, unknown>>> = {};
+
+for (const [path, mod] of Object.entries(localeModules)) {
+	const match = path.match(/\.\/locales\/([^/]+)\/([^/]+)\.json$/);
+	if (!match) continue;
+	const [, lang, namespace] = match;
+	resources[lang] ??= {};
+	resources[lang][namespace] = mod.default;
+}
+
+i18next
+	.use(LanguageDetector)
+	.use(initReactI18next)
+	.init({
+		resources,
+		fallbackLng: "en",
+		supportedLngs: SUPPORTED_LANGUAGES,
+		defaultNS: "common",
+		interpolation: {
+			escapeValue: false,
+		},
+		detection: {
+			order: ["localStorage", "navigator"],
+			lookupLocalStorage: LOCALE_STORAGE_KEY,
+			caches: ["localStorage"],
+		},
+	});
+
+if (typeof window !== "undefined") {
+	window.addEventListener("storage", (event) => {
+		if (
+			event.key === LOCALE_STORAGE_KEY &&
+			event.newValue &&
+			event.newValue !== i18next.language
+		) {
+			void i18next.changeLanguage(event.newValue);
+		}
+	});
+
+	const syncHtmlLang = (language: string) => {
+		document.documentElement.lang = language;
+	};
+	syncHtmlLang(i18next.language);
+	i18next.on("languageChanged", syncHtmlLang);
+}
+
+export default i18next;

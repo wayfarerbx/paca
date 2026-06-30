@@ -1,0 +1,79 @@
+{
+	"language": {
+		"label": "言語",
+		"toggleTooltip": "言語: {{language}} — クリックして変更"
+	},
+	"brand": {
+		"logoAlt": "Paca ロゴ"
+	},
+	"theme": {
+		"label": "テーマ",
+		"light": "ライト",
+		"dark": "ダーク",
+		"auto": "自動",
+		"cycleTooltip": "テーマ: {{mode}} — クリックして切り替え",
+		"modeAutoTooltip": "テーマモード: 自動（システム設定）。クリックでライトモードに切り替えます。",
+		"modeTooltip": "テーマモード: {{mode}}。クリックでモードを切り替えます。"
+	},
+	"nav": {
+		"home": "ホーム",
+		"administration": "管理",
+		"globalRoles": "グローバルロール",
+		"users": "ユーザー",
+		"plugins": "プラグイン",
+		"allProjects": "すべてのプロジェクト",
+		"project": "プロジェクト",
+		"agents": "エージェント",
+		"team": "チーム",
+		"settings": "設定"
+	},
+	"projectSwitcher": {
+		"projects": "プロジェクト",
+		"yourProjects": "あなたのプロジェクト",
+		"noProjectsYet": "プロジェクトはまだありません",
+		"newProject": "新しいプロジェクト"
+	},
+	"interactions": {
+		"title": "インタラクション",
+		"timeline": "タイムライン",
+		"productBacklog": "プロダクトバックログ"
+	},
+	"docs": {
+		"documentation": "ドキュメント",
+		"noDocumentsYet": "ドキュメントはまだありません",
+		"emptyFolder": "空のフォルダ",
+		"add": "追加",
+		"newDocument": "新規ドキュメント",
+		"newFolder": "新規フォルダ",
+		"newFolderDefaultName": "新規フォルダ",
+		"newSubfolder": "新規サブフォルダ",
+		"rename": "名前を変更",
+		"delete": "削除",
+		"untitled": "無題"
+	},
+	"notifications": {
+		"title": "通知",
+		"empty": "通知はまだありません",
+		"markAllAsRead": "すべて既読にする",
+		"text": {
+			"assigned": "{{actor}}さんがあなたをタスク #{{taskNumber}} — {{taskTitle}} に割り当てました",
+			"mentioned": "{{actor}}さんが #{{taskNumber}} — {{taskTitle}} であなたにメンションしました"
+		},
+		"timeAgo": {
+			"justNow": "たった今",
+			"minutes_one": "{{count}}分前",
+			"minutes_other": "{{count}}分前",
+			"hours_one": "{{count}}時間前",
+			"hours_other": "{{count}}時間前",
+			"days_one": "{{count}}日前",
+			"days_other": "{{count}}日前"
+		}
+	},
+	"userMenu": {
+		"signIn": "サインイン",
+		"myProfile": "マイプロフィール",
+		"apiKeys": "APIキー",
+		"logOut": "ログアウト",
+		"loggingOut": "ログアウト中…"
+	}
+}

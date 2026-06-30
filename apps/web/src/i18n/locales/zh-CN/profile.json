@@ -1,0 +1,106 @@
+{
+	"page": {
+		"title": "个人资料",
+		"subtitle": "查看并更新您的账户信息。"
+	},
+	"fields": {
+		"fullName": "姓名",
+		"fullNamePlaceholder": "请输入您的姓名",
+		"notSet": "未设置",
+		"username": "用户名"
+	},
+	"actions": {
+		"editProfile": "编辑资料",
+		"saveChanges": "保存更改",
+		"saving": "正在保存…",
+		"cancel": "取消"
+	},
+	"errors": {
+		"updateFailed": "更新资料失败，请重试。"
+	},
+	"joinedOn": "加入于 {{date}}",
+	"changePassword": {
+		"title": "修改密码",
+		"description": "更新您的账户密码。",
+		"descriptionMustChange": "您必须先设置新密码才能继续。",
+		"temporaryPasswordNotice": "系统已为您的账户设置了临时密码，请立即修改。",
+		"success": "密码修改成功。",
+		"fields": {
+			"currentPassword": "当前密码",
+			"newPassword": "新密码",
+			"confirmPassword": "确认新密码",
+			"passwordPlaceholder": "••••••••",
+			"newPasswordHint": "请使用至少 8 个字符，并选择与当前密码不同的密码。"
+		},
+		"aria": {
+			"showCurrentPassword": "显示当前密码",
+			"hideCurrentPassword": "隐藏当前密码",
+			"showNewPassword": "显示新密码",
+			"hideNewPassword": "隐藏新密码",
+			"showConfirmPassword": "显示确认密码",
+			"hideConfirmPassword": "隐藏确认密码"
+		},
+		"actions": {
+			"submit": "修改密码",
+			"updating": "正在更新…"
+		},
+		"errors": {
+			"currentPasswordRequired": "当前密码不能为空。",
+			"currentPasswordIncorrect": "当前密码不正确。",
+			"sessionExpired": "您的会话已过期，请重新登录。",
+			"serverError": "服务器出现错误，请重试。",
+			"changeFailed": "修改密码失败。"
+		}
+	},
+	"apiKeys": {
+		"title": "API 密钥",
+		"subtitle": "API 密钥允许您在不使用会话 Cookie 的情况下验证 API 请求。请像对待密码一样妥善保管，切勿与他人分享。",
+		"empty": "暂无 API 密钥。创建一个以开始使用。",
+		"yourKeys": {
+			"title": "您的密钥",
+			"description": "密钥仅显示前 8 个字符用于识别。"
+		},
+		"table": {
+			"name": "名称",
+			"prefix": "前缀",
+			"created": "创建时间",
+			"expires": "过期时间",
+			"lastUsed": "最后使用时间"
+		},
+		"actions": {
+			"newKey": "新建密钥",
+			"cancel": "取消",
+			"creating": "正在创建…",
+			"createKey": "创建密钥",
+			"done": "完成",
+			"revoking": "正在吊销…",
+			"revokeKey": "吊销密钥",
+			"revokeKeyAria": "吊销密钥",
+			"copyKeyAria": "复制密钥"
+		},
+		"createDialog": {
+			"title": "创建 API 密钥",
+			"description": "为密钥设置一个描述性名称，方便您日后识别。",
+			"nameLabel": "名称",
+			"namePlaceholder": "例如：CI 流水线、本地开发",
+			"expiryLabel": "过期日期",
+			"expiryOptional": "（可选）"
+		},
+		"revealDialog": {
+			"title": "API 密钥已创建",
+			"description": "请立即复制您的新密钥，之后将无法再次查看。",
+			"copied": "已复制到剪贴板！"
+		},
+		"revokeDialog": {
+			"title": "吊销 API 密钥",
+			"confirmPrefix": "确定要吊销",
+			"confirmSuffix": "吗？使用此密钥的所有请求将立即停止工作。"
+		},
+		"errors": {
+			"nameRequired": "名称不能为空。",
+			"nameTooLong": "名称长度不能超过 100 个字符。",
+			"createFailed": "创建密钥失败，请重试。",
+			"copyFailed": "复制失败，请手动复制密钥。"
+		}
+	}
+}

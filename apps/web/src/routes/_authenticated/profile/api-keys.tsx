@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Copy, Key, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -50,6 +51,7 @@ function formatDate(iso: string | null): string {
 }
 
 function APIKeysPage() {
+	const { t } = useTranslation("profile");
 	const queryClient = useQueryClient();
 	const { data: keys = [], isLoading } = useQuery(apiKeysQueryOptions);
 
@@ -88,11 +90,11 @@ function APIKeysPage() {
 		onError: (err: { response?: { data?: { error_code?: string } } }) => {
 			const code = err.response?.data?.error_code;
 			if (code === "API_KEY_NAME_INVALID") {
-				setCreateError("Name must not be empty.");
+				setCreateError(t("apiKeys.errors.nameRequired"));
 			} else if (code === "API_KEY_NAME_TOO_LONG") {
-				setCreateError("Name must be 100 characters or fewer.");
+				setCreateError(t("apiKeys.errors.nameTooLong"));
 			} else {
-				setCreateError("Failed to create key. Please try again.");
+				setCreateError(t("apiKeys.errors.createFailed"));
 			}
 		},
 	});
@@ -108,7 +110,7 @@ function APIKeysPage() {
 	function handleCopy() {
 		if (!revealedKey) return;
 		if (!navigator.clipboard?.writeText) {
-			window.alert("Copy failed. Please copy the key manually.");
+			window.alert(t("apiKeys.errors.copyFailed"));
 			return;
 		}
 		navigator.clipboard
@@ -119,7 +121,7 @@ function APIKeysPage() {
 			})
 			.catch(() => {
 				setCopied(false);
-				window.alert("Copy failed. Please copy the key manually.");
+				window.alert(t("apiKeys.errors.copyFailed"));
 			});
 	}
 
@@ -135,25 +137,27 @@ function APIKeysPage() {
 	return (
 		<div className="max-w-3xl mx-auto flex flex-col gap-6 p-4 md:p-6">
 			<div>
-				<h1 className="text-2xl font-semibold tracking-tight">API Keys</h1>
+				<h1 className="text-2xl font-semibold tracking-tight">
+					{t("apiKeys.title")}
+				</h1>
 				<p className="text-sm text-muted-foreground mt-1">
-					API keys let you authenticate API requests without using your session
-					cookies. Treat them like passwords — never share them.
+					{t("apiKeys.subtitle")}
 				</p>
 			</div>
 
 			<Card>
 				<CardHeader className="flex flex-row items-center justify-between pb-2">
 					<div>
-						<CardTitle className="text-base">Your keys</CardTitle>
+						<CardTitle className="text-base">
+							{t("apiKeys.yourKeys.title")}
+						</CardTitle>
 						<CardDescription>
-							Keys are shown with only the first 8 characters for
-							identification.
+							{t("apiKeys.yourKeys.description")}
 						</CardDescription>
 					</div>
 					<Button size="sm" onClick={() => setCreateOpen(true)}>
 						<Plus className="size-4 mr-1.5" />
-						New key
+						{t("apiKeys.actions.newKey")}
 					</Button>
 				</CardHeader>
 
@@ -162,11 +166,11 @@ function APIKeysPage() {
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead>Name</TableHead>
-									<TableHead>Prefix</TableHead>
-									<TableHead>Created</TableHead>
-									<TableHead>Expires</TableHead>
-									<TableHead>Last used</TableHead>
+									<TableHead>{t("apiKeys.table.name")}</TableHead>
+									<TableHead>{t("apiKeys.table.prefix")}</TableHead>
+									<TableHead>{t("apiKeys.table.created")}</TableHead>
+									<TableHead>{t("apiKeys.table.expires")}</TableHead>
+									<TableHead>{t("apiKeys.table.lastUsed")}</TableHead>
 									<TableHead className="w-10" />
 								</TableRow>
 							</TableHeader>
@@ -202,18 +206,18 @@ function APIKeysPage() {
 						<div className="flex flex-col items-center gap-2 py-10 text-center">
 							<Key className="size-8 text-muted-foreground/50" />
 							<p className="text-sm text-muted-foreground">
-								No API keys yet. Create one to get started.
+								{t("apiKeys.empty")}
 							</p>
 						</div>
 					) : (
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead>Name</TableHead>
-									<TableHead>Prefix</TableHead>
-									<TableHead>Created</TableHead>
-									<TableHead>Expires</TableHead>
-									<TableHead>Last used</TableHead>
+									<TableHead>{t("apiKeys.table.name")}</TableHead>
+									<TableHead>{t("apiKeys.table.prefix")}</TableHead>
+									<TableHead>{t("apiKeys.table.created")}</TableHead>
+									<TableHead>{t("apiKeys.table.expires")}</TableHead>
+									<TableHead>{t("apiKeys.table.lastUsed")}</TableHead>
 									<TableHead className="w-10" />
 								</TableRow>
 							</TableHeader>
@@ -232,7 +236,7 @@ function APIKeysPage() {
 												variant="ghost"
 												size="icon"
 												className="size-8 text-muted-foreground hover:text-destructive"
-												aria-label="Revoke key"
+												aria-label={t("apiKeys.actions.revokeKeyAria")}
 												onClick={() =>
 													setRevokeTarget({
 														id: key.id,
@@ -255,18 +259,20 @@ function APIKeysPage() {
 			<Dialog open={createOpen} onOpenChange={handleCreateClose}>
 				<DialogContent className="sm:max-w-md">
 					<DialogHeader>
-						<DialogTitle>Create API key</DialogTitle>
+						<DialogTitle>{t("apiKeys.createDialog.title")}</DialogTitle>
 						<DialogDescription>
-							Give your key a descriptive name so you can identify it later.
+							{t("apiKeys.createDialog.description")}
 						</DialogDescription>
 					</DialogHeader>
 
 					<div className="flex flex-col gap-4 py-2">
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="key-name">Name</Label>
+							<Label htmlFor="key-name">
+								{t("apiKeys.createDialog.nameLabel")}
+							</Label>
 							<Input
 								id="key-name"
-								placeholder="e.g. CI pipeline, Local dev"
+								placeholder={t("apiKeys.createDialog.namePlaceholder")}
 								value={newKeyName}
 								onChange={(e) => {
 									setNewKeyName(e.target.value);
@@ -278,9 +284,9 @@ function APIKeysPage() {
 
 						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="key-expiry">
-								Expiration date{" "}
+								{t("apiKeys.createDialog.expiryLabel")}{" "}
 								<span className="text-muted-foreground font-normal">
-									(optional)
+									{t("apiKeys.createDialog.expiryOptional")}
 								</span>
 							</Label>
 							<Input
@@ -302,13 +308,15 @@ function APIKeysPage() {
 							onClick={() => handleCreateClose(false)}
 							disabled={createMutation.isPending}
 						>
-							Cancel
+							{t("apiKeys.actions.cancel")}
 						</Button>
 						<Button
 							onClick={() => createMutation.mutate()}
 							disabled={createMutation.isPending || !newKeyName.trim()}
 						>
-							{createMutation.isPending ? "Creating…" : "Create key"}
+							{createMutation.isPending
+								? t("apiKeys.actions.creating")
+								: t("apiKeys.actions.createKey")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
@@ -326,9 +334,9 @@ function APIKeysPage() {
 			>
 				<DialogContent className="sm:max-w-lg">
 					<DialogHeader>
-						<DialogTitle>API key created</DialogTitle>
+						<DialogTitle>{t("apiKeys.revealDialog.title")}</DialogTitle>
 						<DialogDescription>
-							Copy your new key now. You won't be able to see it again.
+							{t("apiKeys.revealDialog.description")}
 						</DialogDescription>
 					</DialogHeader>
 
@@ -343,13 +351,15 @@ function APIKeysPage() {
 								size="icon"
 								className="shrink-0"
 								onClick={handleCopy}
-								aria-label="Copy key"
+								aria-label={t("apiKeys.actions.copyKeyAria")}
 							>
 								<Copy className="size-4" />
 							</Button>
 						</div>
 						{copied ? (
-							<p className="text-xs text-green-600">Copied to clipboard!</p>
+							<p className="text-xs text-green-600">
+								{t("apiKeys.revealDialog.copied")}
+							</p>
 						) : null}
 					</div>
 
@@ -360,7 +370,7 @@ function APIKeysPage() {
 								setCopied(false);
 							}}
 						>
-							Done
+							{t("apiKeys.actions.done")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>
@@ -375,11 +385,11 @@ function APIKeysPage() {
 			>
 				<DialogContent className="sm:max-w-sm">
 					<DialogHeader>
-						<DialogTitle>Revoke API key</DialogTitle>
+						<DialogTitle>{t("apiKeys.revokeDialog.title")}</DialogTitle>
 						<DialogDescription>
-							Are you sure you want to revoke{" "}
-							<strong>{revokeTarget?.name}</strong>? Any requests using this key
-							will stop working immediately.
+							{t("apiKeys.revokeDialog.confirmPrefix")}{" "}
+							<strong>{revokeTarget?.name}</strong>
+							{t("apiKeys.revokeDialog.confirmSuffix")}
 						</DialogDescription>
 					</DialogHeader>
 					<DialogFooter>
@@ -388,7 +398,7 @@ function APIKeysPage() {
 							onClick={() => setRevokeTarget(null)}
 							disabled={revokeMutation.isPending}
 						>
-							Cancel
+							{t("apiKeys.actions.cancel")}
 						</Button>
 						<Button
 							variant="destructive"
@@ -399,7 +409,9 @@ function APIKeysPage() {
 								}
 							}}
 						>
-							{revokeMutation.isPending ? "Revoking…" : "Revoke key"}
+							{revokeMutation.isPending
+								? t("apiKeys.actions.revoking")
+								: t("apiKeys.actions.revokeKey")}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +33,7 @@ export function DeleteTaskTypeDialog({
 	open,
 	onOpenChange,
 }: DeleteTaskTypeDialogProps) {
+	const { t } = useTranslation("projects");
 	const queryClient = useQueryClient();
 	const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +51,7 @@ export function DeleteTaskTypeDialog({
 				onOpenChange(false);
 				return;
 			}
-			setError("Failed to delete task type. Please try again.");
+			setError(t("taskTypes.deleteDialog.deleteFailed"));
 		},
 	});
 
@@ -66,14 +68,13 @@ export function DeleteTaskTypeDialog({
 					<div className="flex size-10 items-center justify-center rounded-full bg-destructive/10 mb-2">
 						<Trash2 className="size-5 text-destructive" />
 					</div>
-					<DialogTitle>Delete task type</DialogTitle>
+					<DialogTitle>{t("taskTypes.deleteDialog.title")}</DialogTitle>
 					<DialogDescription>
-						Delete{" "}
+						{t("taskTypes.deleteDialog.confirmTextPrefix")}{" "}
 						<span className="font-semibold text-foreground">
 							&ldquo;{taskType.name}&rdquo;
 						</span>
-						? Tasks using this type will lose their type assignment. This action
-						cannot be undone.
+						{t("taskTypes.deleteDialog.confirmTextSuffix")}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -93,7 +94,7 @@ export function DeleteTaskTypeDialog({
 							/>
 						}
 					>
-						Cancel
+						{t("taskTypes.deleteDialog.cancel")}
 					</DialogClose>
 					<Button
 						variant="destructive"
@@ -106,7 +107,7 @@ export function DeleteTaskTypeDialog({
 						) : (
 							<Trash2 className="size-3.5" />
 						)}
-						Delete type
+						{t("taskTypes.deleteDialog.deleteType")}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

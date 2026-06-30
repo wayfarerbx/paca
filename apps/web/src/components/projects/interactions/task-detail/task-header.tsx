@@ -10,6 +10,7 @@ import {
 	X,
 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -25,10 +26,11 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { formatDate } from "@/lib/format-date";
 import type { Task } from "@/lib/interaction-api";
 import { deleteTask } from "@/lib/interaction-api";
 import { cn } from "@/lib/utils";
-import { formatDate, shortId } from "./helpers";
+import { shortId } from "./helpers";
 
 interface TaskHeaderProps {
 	task: Task;
@@ -53,6 +55,7 @@ export function TaskHeader({
 	onClose,
 	onDeleted,
 }: TaskHeaderProps) {
+	const { t } = useTranslation("projects");
 	const qc = useQueryClient();
 	const [linkCopied, setLinkCopied] = useState(false);
 	const [confirmDelete, setConfirmDelete] = useState(false);
@@ -121,7 +124,7 @@ export function TaskHeader({
 			</div>
 
 			<span className="hidden md:inline text-xs text-muted-foreground/60 font-medium">
-				Created {formatDate(task.created_at)}
+				{t("taskDetail.header.created", { date: formatDate(task.created_at) })}
 			</span>
 
 			<div className="ml-auto flex items-center gap-1">
@@ -138,12 +141,12 @@ export function TaskHeader({
 					{linkCopied ? (
 						<>
 							<Check className="size-3 text-emerald-500" />
-							<span>Copied!</span>
+							<span>{t("taskDetail.header.copied")}</span>
 						</>
 					) : (
 						<>
 							<Share2 className="size-3" />
-							<span>Share</span>
+							<span>{t("taskDetail.header.share")}</span>
 						</>
 					)}
 				</button>
@@ -152,7 +155,7 @@ export function TaskHeader({
 					<DropdownMenu>
 						<DropdownMenuTrigger
 							className="flex size-7 items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/60 transition-all duration-150"
-							aria-label="Task actions"
+							aria-label={t("taskDetail.header.taskActions")}
 						>
 							<MoreVertical className="size-4" />
 						</DropdownMenuTrigger>
@@ -162,7 +165,7 @@ export function TaskHeader({
 								onClick={() => setConfirmDelete(true)}
 							>
 								<Trash2 className="size-3.5 mr-2" />
-								Delete
+								{t("taskDetail.header.delete")}
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
@@ -173,7 +176,7 @@ export function TaskHeader({
 						type="button"
 						onClick={onClose}
 						className="flex size-7 items-center justify-center rounded-md text-muted-foreground/60 hover:text-foreground hover:bg-muted/60 transition-all duration-150"
-						aria-label="Close task detail"
+						aria-label={t("taskDetail.header.closeTaskDetail")}
 					>
 						<X className="size-3.5" />
 					</button>
@@ -184,10 +187,13 @@ export function TaskHeader({
 			<Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
 				<DialogContent className="max-w-sm">
 					<DialogHeader>
-						<DialogTitle>Delete task?</DialogTitle>
+						<DialogTitle>
+							{t("taskDetail.header.deleteDialog.title")}
+						</DialogTitle>
 						<DialogDescription>
-							This permanently deletes "{task.title}" and all of its data. This
-							action cannot be undone.
+							{t("taskDetail.header.deleteDialog.description", {
+								title: task.title,
+							})}
 						</DialogDescription>
 					</DialogHeader>
 					<DialogFooter>
@@ -196,7 +202,7 @@ export function TaskHeader({
 							onClick={() => setConfirmDelete(false)}
 							disabled={deleteMutation.isPending}
 						>
-							Cancel
+							{t("taskDetail.header.deleteDialog.cancel")}
 						</Button>
 						<Button
 							variant="destructive"
@@ -206,7 +212,7 @@ export function TaskHeader({
 							{deleteMutation.isPending ? (
 								<Loader2 className="size-4 animate-spin" />
 							) : (
-								"Delete"
+								t("taskDetail.header.deleteDialog.delete")
 							)}
 						</Button>
 					</DialogFooter>

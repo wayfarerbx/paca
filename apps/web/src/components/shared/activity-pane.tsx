@@ -4,6 +4,7 @@ import {
 	useQuery,
 	useQueryClient,
 } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
 import {
 	GitBranch,
 	Loader2,
@@ -16,6 +17,7 @@ import {
 	Trash2,
 } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
 	blocksToText,
 	CommentDisplay,
@@ -79,6 +81,7 @@ export function ActivityPane<T extends ActivityEntry>({
 	sortAscending = false,
 	currentUserId,
 }: ActivityPaneConfig<T>) {
+	const { t } = useTranslation("shared");
 	const editorRef = useRef<CommentEditorHandle>(null);
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const [editorFocused, setEditorFocused] = useState(false);
@@ -173,7 +176,7 @@ export function ActivityPane<T extends ActivityEntry>({
 			<div className="flex shrink-0 items-center gap-2.5 border-b border-border/25 px-5 py-3 bg-muted/20">
 				<MessageSquare className="size-3.5 text-muted-foreground/70" />
 				<span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-					Activity
+					{t("activityPane.title")}
 				</span>
 				{sorted.length > 0 && (
 					<span className="ml-auto rounded-full bg-muted/60 px-2 py-0.5 text-xs font-bold text-muted-foreground/70 tabular-nums">
@@ -190,7 +193,7 @@ export function ActivityPane<T extends ActivityEntry>({
 					{sorted.length === 0 && (
 						<div className="flex flex-col items-center py-8 text-muted-foreground/40">
 							<MessageSquare className="size-6 mb-2" />
-							<p className="text-xs font-medium">No activity yet</p>
+							<p className="text-xs font-medium">{t("activityPane.empty")}</p>
 						</div>
 					)}
 					{sorted.map((entry) => (
@@ -221,7 +224,7 @@ export function ActivityPane<T extends ActivityEntry>({
 					{editingCommentId && (
 						<div className="flex items-center gap-2 px-1 pb-1">
 							<span className="text-xs font-medium text-foreground/70">
-								Editing comment...
+								{t("activityPane.editingComment")}
 							</span>
 							<Button
 								variant="ghost"
@@ -229,7 +232,7 @@ export function ActivityPane<T extends ActivityEntry>({
 								className="h-5 text-xs rounded-md px-2"
 								onClick={handleCancelEdit}
 							>
-								Cancel
+								{t("activityPane.cancel")}
 							</Button>
 						</div>
 					)}
@@ -259,7 +262,7 @@ export function ActivityPane<T extends ActivityEntry>({
 					<div className="flex items-center justify-between">
 						{editorFocused && (
 							<p className="text-xs text-muted-foreground/40 pl-1">
-								⌘↵ to send
+								{t("activityPane.sendHint")}
 							</p>
 						)}
 						<button
@@ -281,14 +284,14 @@ export function ActivityPane<T extends ActivityEntry>({
 	);
 }
 
-function timeAgo(iso: string): string {
+function timeAgo(iso: string, t: TFunction<"shared">): string {
 	const diff = Date.now() - new Date(iso).getTime();
 	const mins = Math.floor(diff / 60000);
-	if (mins < 1) return "just now";
-	if (mins < 60) return `${mins}m ago`;
+	if (mins < 1) return t("activityPane.timeAgo.justNow");
+	if (mins < 60) return t("activityPane.timeAgo.minutes", { count: mins });
 	const hrs = Math.floor(mins / 60);
-	if (hrs < 24) return `${hrs}h ago`;
-	return `${Math.floor(hrs / 24)}d ago`;
+	if (hrs < 24) return t("activityPane.timeAgo.hours", { count: hrs });
+	return t("activityPane.timeAgo.days", { count: Math.floor(hrs / 24) });
 }
 
 interface ActivityItemInnerProps<T extends ActivityEntry> {
@@ -322,6 +325,7 @@ function ActivityItemInner<T extends ActivityEntry>({
 	editingCommentId,
 	onStartEdit,
 }: ActivityItemInnerProps<T>) {
+	const { t } = useTranslation("shared");
 	const qc = useQueryClient();
 	const commentBlocks = getCommentBlocks(entry.content);
 	const [diffOpen, setDiffOpen] = useState(false);
@@ -329,7 +333,8 @@ function ActivityItemInner<T extends ActivityEntry>({
 	const [revertError, setRevertError] = useState<string | null>(null);
 
 	const isComment = entry.activity_type === "comment";
-	const displayName = entry.actor_name || entry.actor_username || "System";
+	const displayName =
+		entry.actor_name || entry.actor_username || t("activityPane.systemActor");
 	const initial = displayName.slice(0, 1).toUpperCase();
 
 	const isOwnComment =
@@ -365,7 +370,7 @@ function ActivityItemInner<T extends ActivityEntry>({
 			await onRevert(entry);
 			qc.invalidateQueries({ queryKey });
 		} catch {
-			setRevertError("Revert failed. Please try again.");
+			setRevertError(t("activityPane.errors.revertFailed"));
 		} finally {
 			setRevertPending(false);
 		}
@@ -391,7 +396,7 @@ function ActivityItemInner<T extends ActivityEntry>({
 								{displayName}
 							</span>
 							<span className="text-xs text-muted-foreground/50">
-								{timeAgo(entry.created_at)}
+								{timeAgo(entry.created_at, t)}
 							</span>
 							{isEditing && (
 								<span className="ml-auto flex items-center gap-1 text-xs font-medium text-primary">
@@ -399,7 +404,7 @@ function ActivityItemInner<T extends ActivityEntry>({
 										<span className="animate-ping absolute inline-flex size-full rounded-full bg-primary/40 opacity-75"></span>
 										<span className="relative inline-flex size-2 rounded-full bg-primary"></span>
 									</span>
-									Editing
+									{t("activityPane.editing")}
 								</span>
 							)}
 							{canEdit && canDelete && !isEditing && (
@@ -410,14 +415,14 @@ function ActivityItemInner<T extends ActivityEntry>({
 									<DropdownMenuContent align="end" className="w-36">
 										<DropdownMenuItem onClick={() => onStartEdit(entry.id)}>
 											<Pencil className="size-3.5 mr-2" />
-											Edit
+											{t("activityPane.edit")}
 										</DropdownMenuItem>
 										<DropdownMenuItem
 											className="text-destructive focus:text-destructive"
 											onClick={() => deleteMutation.mutate()}
 										>
 											<Trash2 className="size-3.5 mr-2" />
-											Delete
+											{t("activityPane.delete")}
 										</DropdownMenuItem>
 									</DropdownMenuContent>
 								</DropdownMenu>
@@ -445,7 +450,7 @@ function ActivityItemInner<T extends ActivityEntry>({
 									{describeActivity(entry)}
 								</span>
 								<span className="text-xs text-muted-foreground/45">
-									{timeAgo(entry.created_at)}
+									{timeAgo(entry.created_at, t)}
 								</span>
 							</div>
 							{(diffContent || canRevert) && (
@@ -458,7 +463,7 @@ function ActivityItemInner<T extends ActivityEntry>({
 											{diffContent && (
 												<DropdownMenuItem onClick={() => setDiffOpen(true)}>
 													<GitBranch className="size-3.5 mr-2" />
-													View diff
+													{t("activityPane.viewDiff")}
 												</DropdownMenuItem>
 											)}
 											{canRevert && (
@@ -471,7 +476,7 @@ function ActivityItemInner<T extends ActivityEntry>({
 													) : (
 														<RotateCcw className="size-3.5 mr-2" />
 													)}
-													Revert
+													{t("activityPane.revert")}
 												</DropdownMenuItem>
 											)}
 										</DropdownMenuContent>
@@ -482,7 +487,7 @@ function ActivityItemInner<T extends ActivityEntry>({
 											onOpenChange={setDiffOpen}
 											oldContent={diffContent.old}
 											newContent={diffContent.new}
-											title={diffContent.title ?? "Change diff"}
+											title={diffContent.title ?? t("contentDiff.changeDiff")}
 										/>
 									)}
 								</>

@@ -1,5 +1,6 @@
 import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { FieldError } from "./FieldError";
 
 export function LoginFormPanel() {
+	const { t } = useTranslation("auth");
+	const { t: tCommon } = useTranslation("common");
 	const { form, serverError } = useLoginForm();
 	const [showPassword, setShowPassword] = useState(false);
 	const logoSrc = "/paca-logo.svg";
@@ -23,7 +26,7 @@ export function LoginFormPanel() {
 				<div className="mb-7 flex items-center gap-2.5 lg:hidden">
 					<img
 						src={logoSrc}
-						alt="Paca logo"
+						alt={t("brand.logoAlt")}
 						width={127}
 						height={175}
 						className="h-auto w-8"
@@ -35,10 +38,10 @@ export function LoginFormPanel() {
 
 				{/* Heading */}
 				<h1 className="display-title mb-1 text-2xl font-bold text-(--sea-ink) sm:text-3xl">
-					Welcome back
+					{t("login.title")}
 				</h1>
 				<p className="mb-8 text-sm text-(--sea-ink-soft)">
-					Sign in to your workspace to continue.
+					{t("login.subtitle")}
 				</p>
 
 				<form
@@ -52,8 +55,8 @@ export function LoginFormPanel() {
 					<form.Field
 						name="username"
 						validators={{
-							onBlur: ({ value }) => validateUsername(value),
-							onChange: ({ value }) => validateUsername(value),
+							onBlur: ({ value }) => validateUsername(value, tCommon),
+							onChange: ({ value }) => validateUsername(value, tCommon),
 						}}
 					>
 						{(field) => (
@@ -62,14 +65,14 @@ export function LoginFormPanel() {
 									htmlFor={field.name}
 									className="text-xs font-semibold tracking-wide text-(--sea-ink) uppercase"
 								>
-									Username
+									{t("login.usernameLabel")}
 								</Label>
 								<Input
 									id={field.name}
 									name={field.name}
 									type="text"
 									autoComplete="username"
-									placeholder="Enter your username"
+									placeholder={t("login.usernamePlaceholder")}
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(event) => {
@@ -88,8 +91,8 @@ export function LoginFormPanel() {
 					<form.Field
 						name="password"
 						validators={{
-							onBlur: ({ value }) => validatePassword(value),
-							onChange: ({ value }) => validatePassword(value),
+							onBlur: ({ value }) => validatePassword(value, tCommon),
+							onChange: ({ value }) => validatePassword(value, tCommon),
 						}}
 					>
 						{(field) => (
@@ -98,7 +101,7 @@ export function LoginFormPanel() {
 									htmlFor={field.name}
 									className="text-xs font-semibold tracking-wide text-(--sea-ink) uppercase"
 								>
-									Password
+									{t("login.passwordLabel")}
 								</Label>
 								<div className="relative">
 									<Input
@@ -117,7 +120,9 @@ export function LoginFormPanel() {
 										onClick={() => setShowPassword((current) => !current)}
 										className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-(--sea-ink-soft) transition-colors hover:text-(--sea-ink)"
 										aria-label={
-											showPassword ? "Hide password" : "Show password"
+											showPassword
+												? t("login.hidePassword")
+												: t("login.showPassword")
 										}
 									>
 										{showPassword ? (
@@ -152,7 +157,7 @@ export function LoginFormPanel() {
 									htmlFor={field.name}
 									className="cursor-pointer text-sm text-(--sea-ink-soft)"
 								>
-									Keep me signed in
+									{t("login.rememberMe")}
 								</Label>
 								<Switch
 									id={field.name}
@@ -179,7 +184,7 @@ export function LoginFormPanel() {
 								)}
 								disabled={isSubmitting || !username.trim() || !password}
 							>
-								{isSubmitting ? "Signing in…" : "Sign in"}
+								{isSubmitting ? t("login.signingIn") : t("login.signIn")}
 							</button>
 						)}
 					</form.Subscribe>
@@ -188,8 +193,7 @@ export function LoginFormPanel() {
 				{/* Divider + admin note */}
 				<div className="mt-6 border-t border-(--line) pt-5">
 					<p className="text-xs leading-relaxed text-(--sea-ink-soft)/70">
-						Account access and password resets are managed by your
-						administrator.
+						{t("login.adminManagedNote")}
 					</p>
 				</div>
 			</div>

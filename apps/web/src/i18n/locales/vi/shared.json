@@ -1,0 +1,151 @@
+{
+	"activityPane": {
+		"title": "Hoạt động",
+		"empty": "Chưa có hoạt động nào",
+		"editingComment": "Đang chỉnh sửa bình luận...",
+		"cancel": "Hủy",
+		"sendHint": "⌘↵ để gửi",
+		"systemActor": "Hệ thống",
+		"editing": "Đang chỉnh sửa",
+		"edit": "Chỉnh sửa",
+		"delete": "Xóa",
+		"viewDiff": "Xem thay đổi",
+		"revert": "Hoàn tác",
+		"timeAgo": {
+			"justNow": "vừa xong",
+			"minutes_one": "{{count}} phút trước",
+			"minutes_other": "{{count}} phút trước",
+			"hours_one": "{{count}} giờ trước",
+			"hours_other": "{{count}} giờ trước",
+			"days_one": "{{count}} ngày trước",
+			"days_other": "{{count}} ngày trước"
+		},
+		"errors": {
+			"revertFailed": "Hoàn tác thất bại. Vui lòng thử lại."
+		}
+	},
+	"contentDiff": {
+		"emptyLine": "(dòng trống)",
+		"noDifferences": "Không có khác biệt về văn bản",
+		"changeDiff": "Thay đổi nội dung",
+		"removed": "Đã xóa",
+		"added": "Đã thêm"
+	},
+	"home": {
+		"greeting": {
+			"morning": "Chào buổi sáng",
+			"afternoon": "Chào buổi chiều",
+			"evening": "Chào buổi tối",
+			"fallbackName": "bạn"
+		},
+		"hero": {
+			"badge": "Không gian làm việc Scrumban",
+			"subtitleWithProjects_one": "Bạn có {{count}} dự án đang hoạt động. Hãy tiếp tục từ nơi bạn đã dừng lại.",
+			"subtitleWithProjects_other": "Bạn có {{count}} dự án đang hoạt động. Hãy tiếp tục từ nơi bạn đã dừng lại.",
+			"subtitleEmpty": "Không gian làm việc của bạn đã sẵn sàng. Tạo một dự án, mời đội nhóm của bạn và bắt đầu triển khai.",
+			"newProject": "Dự án mới"
+		},
+		"stats": {
+			"projects": {
+				"label": "Dự án",
+				"subEmpty": "Chưa có dự án nào",
+				"subActive": "{{count}} đang hoạt động"
+			},
+			"openTasks": {
+				"label": "Nhiệm vụ đang mở",
+				"sub": "Trên tất cả dự án"
+			},
+			"teamMembers": {
+				"label": "Thành viên đội nhóm",
+				"sub": "Bao gồm cả bạn"
+			},
+			"aiAgents": {
+				"label": "AI Agent",
+				"sub": "Chưa cấu hình"
+			}
+		},
+		"projectsSection": {
+			"title": "Dự án",
+			"countInWorkspace_one": "{{count}} dự án trong không gian làm việc của bạn",
+			"countInWorkspace_other": "{{count}} dự án trong không gian làm việc của bạn",
+			"newShort": "Mới",
+			"newProjectCard": "Dự án mới"
+		},
+		"projectCard": {
+			"public": "Công khai",
+			"noDescription": "Không có mô tả"
+		},
+		"gettingStarted": {
+			"title": "Bắt đầu",
+			"progress": "{{completed}} / {{total}}",
+			"subtitle": "Hoàn thành các bước này để khai thác toàn bộ sức mạnh của Paca.",
+			"steps": {
+				"createProject": {
+					"title": "Tạo dự án đầu tiên của bạn",
+					"description": "Thiết lập bảng scrumban để quản lý công việc của đội nhóm bạn."
+				},
+				"inviteTeam": {
+					"title": "Mời đội nhóm của bạn",
+					"description": "Thêm cộng tác viên là con người và gán vai trò."
+				},
+				"configureAgent": {
+					"title": "Cấu hình một AI agent",
+					"description": "Kết nối một AI để xử lý nhiệm vụ tự động."
+				},
+				"runSprint": {
+					"title": "Chạy sprint đầu tiên của bạn",
+					"description": "Di chuyển nhiệm vụ qua chu trình Plan → Act → Check → Adapt."
+				}
+			}
+		},
+		"quickActions": {
+			"title": "Thao tác nhanh",
+			"newProject": {
+				"label": "Dự án mới",
+				"description": "Tạo một bảng scrumban"
+			},
+			"inviteTeam": {
+				"label": "Mời đội nhóm",
+				"description": "Thêm thành viên hoặc agent"
+			},
+			"addAiAgent": {
+				"label": "Thêm AI Agent",
+				"description": "Cấu hình tự động hóa"
+			}
+		},
+		"about": {
+			"title": "Paca hoạt động như thế nào",
+			"descriptionLead": "Kết hợp sự sáng tạo của con người với tốc độ của AI trên một bảng scrumban chung. Nhiệm vụ di chuyển qua",
+			"workflow": "Plan → Act → Check → Adapt",
+			"descriptionTrail": "với sự minh bạch hoàn toàn về việc ai — con người hay AI — đã làm gì.",
+			"openSource": "Mã nguồn mở · Apache-2.0"
+		},
+		"createDialog": {
+			"title": "Dự án mới",
+			"description": "Tạo một không gian làm việc scrumban cho đội nhóm của bạn. Bạn có thể mời thành viên và cấu hình cài đặt sau khi tạo.",
+			"nameLabel": "Tên dự án *",
+			"namePlaceholder": "vd: Platform v3",
+			"prefixLabel": "Tiền tố mã nhiệm vụ",
+			"prefixHint": "(vd: PACA)",
+			"prefixPlaceholder": "PROJ",
+			"prefixExampleLead": "Nhiệm vụ sẽ được gắn nhãn",
+			"descriptionLabel": "Mô tả",
+			"optionalHint": "(tùy chọn)",
+			"descriptionPlaceholder": "Dự án này nói về điều gì?",
+			"publicProject": {
+				"label": "Dự án công khai",
+				"publicHint": "Bất kỳ ai có liên kết đều có thể xem dự án này. Người dùng ẩn danh chỉ có quyền xem.",
+				"privateHint": "Chỉ thành viên đội nhóm mới có thể truy cập dự án này."
+			},
+			"cancel": "Hủy",
+			"submit": "Tạo dự án",
+			"errors": {
+				"nameRequired": "Vui lòng nhập tên dự án.",
+				"nameTaken": "Đã tồn tại một dự án với tên này.",
+				"nameInvalid": "Tên dự án trống hoặc không hợp lệ.",
+				"prefixInvalid": "Tiền tố phải gồm 1–10 chữ in hoa/chữ số (vd: PACA).",
+				"generic": "Đã xảy ra lỗi. Vui lòng thử lại."
+			}
+		}
+	}
+}
