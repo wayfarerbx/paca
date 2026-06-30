@@ -4,10 +4,12 @@ import { FieldValue } from "../primitives";
 import { CheckboxEditor } from "./checkbox-editor";
 import { SingleDateEditor } from "./date-editor";
 import { displayDate } from "./helpers";
+import { MultiSelectEditor } from "./multi-select-editor";
 import { NumberEditor } from "./number-editor";
 import { SelectEditor } from "./select-editor";
 import { TextEditor } from "./text-editor";
 import type { SelectOption } from "./types";
+import { UrlEditor } from "./url-editor";
 
 export function CustomFieldEditor({
 	customType,
@@ -16,7 +18,14 @@ export function CustomFieldEditor({
 	options = [],
 	onChange,
 }: {
-	customType: "Text" | "Number" | "Date" | "Checkbox" | "Select";
+	customType:
+		| "Text"
+		| "Number"
+		| "Date"
+		| "Checkbox"
+		| "Select"
+		| "MultiSelect"
+		| "Url";
 	rawValue: unknown;
 	canEdit: boolean;
 	options?: string[];
@@ -85,5 +94,32 @@ export function CustomFieldEditor({
 				/>
 			);
 		}
+		case "MultiSelect": {
+			const selectOptions: SelectOption[] = options.map((o) => ({
+				value: o,
+				label: o,
+			}));
+			const currentVal = Array.isArray(rawValue)
+				? rawValue.filter((v): v is string => typeof v === "string")
+				: typeof rawValue === "string" && rawValue
+					? [rawValue]
+					: [];
+			return (
+				<MultiSelectEditor
+					value={currentVal}
+					options={selectOptions}
+					canEdit={canEdit}
+					onChange={(v) => onChange?.(v)}
+				/>
+			);
+		}
+		case "Url":
+			return (
+				<UrlEditor
+					value={rawValue != null ? String(rawValue) : null}
+					canEdit={canEdit}
+					onChange={(v) => onChange?.(v)}
+				/>
+			);
 	}
 }

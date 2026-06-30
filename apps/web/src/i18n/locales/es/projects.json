@@ -699,7 +699,9 @@
 				"number": "Número",
 				"date": "Fecha",
 				"checkbox": "Casilla de verificación",
-				"select": "Selección"
+				"select": "Selección",
+				"multiSelect": "Selección múltiple",
+				"url": "URL"
 			}
 		},
 		"addTaskLinkModal": {
@@ -741,6 +743,9 @@
 			"tagsEditor": {
 				"addTag": "Añadir etiqueta",
 				"addTagPlaceholder": "Añadir etiqueta..."
+			},
+			"multiSelectEditor": {
+				"addOption": "Añadir opción"
 			}
 		},
 		"panel": {

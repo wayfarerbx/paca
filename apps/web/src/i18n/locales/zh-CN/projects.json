@@ -699,7 +699,9 @@
 				"number": "数字",
 				"date": "日期",
 				"checkbox": "复选框",
-				"select": "单选"
+				"select": "单选",
+				"multiSelect": "多选",
+				"url": "URL"
 			}
 		},
 		"addTaskLinkModal": {
@@ -741,6 +743,9 @@
 			"tagsEditor": {
 				"addTag": "添加标签",
 				"addTagPlaceholder": "添加标签..."
+			},
+			"multiSelectEditor": {
+				"addOption": "添加选项"
 			}
 		},
 		"panel": {

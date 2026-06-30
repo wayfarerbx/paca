@@ -43,6 +43,8 @@ const UI_FIELD_TYPES = [
 	"Date",
 	"Checkbox",
 	"Select",
+	"MultiSelect",
+	"Url",
 ] as const;
 type UIFieldType = (typeof UI_FIELD_TYPES)[number];
 
@@ -52,6 +54,8 @@ const UI_TO_API_FIELD_TYPE: Record<UIFieldType, FieldType> = {
 	Date: "date",
 	Checkbox: "boolean",
 	Select: "select",
+	MultiSelect: "multi_select",
+	Url: "url",
 };
 
 const UI_FIELD_TYPE_LABEL_KEYS = {
@@ -60,6 +64,8 @@ const UI_FIELD_TYPE_LABEL_KEYS = {
 	Date: "settings.customFields.fieldTypes.date",
 	Checkbox: "settings.customFields.fieldTypes.checkbox",
 	Select: "settings.customFields.fieldTypes.select",
+	MultiSelect: "settings.customFields.fieldTypes.multiSelect",
+	Url: "settings.customFields.fieldTypes.url",
 } as const satisfies Record<UIFieldType, string>;
 
 const API_TO_UI_FIELD_TYPE_LABEL_KEY = {
@@ -133,7 +139,8 @@ function CreateCustomFieldDialog({
 				display_name: displayName.trim(),
 				field_key: fieldKey || slugify(displayName),
 				field_type: UI_TO_API_FIELD_TYPE[fieldType],
-				options: fieldType === "Select" ? options : [],
+				options:
+					fieldType === "Select" || fieldType === "MultiSelect" ? options : [],
 				is_required: required,
 			}),
 		onSuccess: () => {
@@ -237,8 +244,8 @@ function CreateCustomFieldDialog({
 						</div>
 					</div>
 
-					{/* Options editor — only for Select type */}
-					{fieldType === "Select" && (
+					{/* Options editor — only for Select / MultiSelect types */}
+					{(fieldType === "Select" || fieldType === "MultiSelect") && (
 						<div className="space-y-1.5">
 							<Label>{t("settings.customFields.optionsLabel")}</Label>
 							<div className="space-y-1">
@@ -402,7 +409,10 @@ function EditCustomFieldDialog({
 				return Promise.resolve(field as unknown as CustomFieldDefinition);
 			return updateCustomFieldDefinition(projectId, field.id, {
 				display_name: displayName.trim(),
-				options: field.field_type === "select" ? options : undefined,
+				options:
+					field.field_type === "select" || field.field_type === "multi_select"
+						? options
+						: undefined,
 				is_required: required,
 			});
 		},
@@ -483,7 +493,8 @@ function EditCustomFieldDialog({
 						</p>
 					</div>
 
-					{field.field_type === "select" && (
+					{(field.field_type === "select" ||
+						field.field_type === "multi_select") && (
 						<div className="space-y-1.5">
 							<Label>{t("settings.customFields.optionsLabel")}</Label>
 							<div className="space-y-1">

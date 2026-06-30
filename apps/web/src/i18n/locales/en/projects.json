@@ -699,7 +699,9 @@
 				"number": "Number",
 				"date": "Date",
 				"checkbox": "Checkbox",
-				"select": "Select"
+				"select": "Select",
+				"multiSelect": "Multi-Select",
+				"url": "URL"
 			}
 		},
 		"addTaskLinkModal": {
@@ -741,6 +743,9 @@
 			"tagsEditor": {
 				"addTag": "Add tag",
 				"addTagPlaceholder": "Add tag..."
+			},
+			"multiSelectEditor": {
+				"addOption": "Add option"
 			}
 		},
 		"panel": {

@@ -10,13 +10,22 @@ import { cn } from "@/lib/utils";
 import { mapApiFieldToUi, mapUiFieldTypeToApi, slugify } from "./helpers";
 import type { CustomFieldDef } from "./types";
 
-type UiFieldType = "Text" | "Number" | "Date" | "Checkbox" | "Select";
+type UiFieldType =
+	| "Text"
+	| "Number"
+	| "Date"
+	| "Checkbox"
+	| "Select"
+	| "MultiSelect"
+	| "Url";
 const FIELD_TYPES: UiFieldType[] = [
 	"Text",
 	"Number",
 	"Date",
 	"Checkbox",
 	"Select",
+	"MultiSelect",
+	"Url",
 ];
 
 const FIELD_TYPE_LABEL_KEYS = {
@@ -25,6 +34,8 @@ const FIELD_TYPE_LABEL_KEYS = {
 	Date: "taskDetail.addFieldDialog.fieldTypes.date",
 	Checkbox: "taskDetail.addFieldDialog.fieldTypes.checkbox",
 	Select: "taskDetail.addFieldDialog.fieldTypes.select",
+	MultiSelect: "taskDetail.addFieldDialog.fieldTypes.multiSelect",
+	Url: "taskDetail.addFieldDialog.fieldTypes.url",
 } as const satisfies Record<UiFieldType, string>;
 
 interface AddFieldDialogProps {
@@ -73,7 +84,10 @@ export function AddFieldDialog({
 					field_key: key,
 					field_type: apiFieldType,
 					is_required: required,
-					options: fieldType === "Select" ? [] : undefined,
+					options:
+						fieldType === "Select" || fieldType === "MultiSelect"
+							? []
+							: undefined,
 				});
 				const mapped = mapApiFieldToUi(created);
 				onAdd(mapped);

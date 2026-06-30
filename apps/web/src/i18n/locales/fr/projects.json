@@ -699,7 +699,9 @@
 				"number": "Nombre",
 				"date": "Date",
 				"checkbox": "Case à cocher",
-				"select": "Liste déroulante"
+				"select": "Liste déroulante",
+				"multiSelect": "Sélection multiple",
+				"url": "URL"
 			}
 		},
 		"addTaskLinkModal": {
@@ -741,6 +743,9 @@
 			"tagsEditor": {
 				"addTag": "Ajouter un tag",
 				"addTagPlaceholder": "Ajouter un tag..."
+			},
+			"multiSelectEditor": {
+				"addOption": "Ajouter une option"
 			}
 		},
 		"panel": {

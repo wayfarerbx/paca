@@ -699,7 +699,9 @@
 				"number": "数値",
 				"date": "日付",
 				"checkbox": "チェックボックス",
-				"select": "選択"
+				"select": "選択",
+				"multiSelect": "複数選択",
+				"url": "URL"
 			}
 		},
 		"addTaskLinkModal": {
@@ -741,6 +743,9 @@
 			"tagsEditor": {
 				"addTag": "タグを追加",
 				"addTagPlaceholder": "タグを追加..."
+			},
+			"multiSelectEditor": {
+				"addOption": "オプションを追加"
 			}
 		},
 		"panel": {

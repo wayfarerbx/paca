@@ -31,8 +31,8 @@ const API_TO_UI_FIELD_TYPE: Record<FieldType, CustomFieldDef["field_type"]> = {
 	date: "Date",
 	boolean: "Checkbox",
 	select: "Select",
-	multi_select: "Select",
-	url: "Text",
+	multi_select: "MultiSelect",
+	url: "Url",
 };
 
 const UI_TO_API_FIELD_TYPE: Record<CustomFieldDef["field_type"], FieldType> = {
@@ -41,6 +41,8 @@ const UI_TO_API_FIELD_TYPE: Record<CustomFieldDef["field_type"], FieldType> = {
 	Date: "date",
 	Checkbox: "boolean",
 	Select: "select",
+	MultiSelect: "multi_select",
+	Url: "url",
 };
 
 export function mapApiFieldToUi(

@@ -699,7 +699,9 @@
 				"number": "숫자",
 				"date": "날짜",
 				"checkbox": "체크박스",
-				"select": "선택"
+				"select": "선택",
+				"multiSelect": "다중 선택",
+				"url": "URL"
 			}
 		},
 		"addTaskLinkModal": {
@@ -741,6 +743,9 @@
 			"tagsEditor": {
 				"addTag": "태그 추가",
 				"addTagPlaceholder": "태그 추가..."
+			},
+			"multiSelectEditor": {
+				"addOption": "옵션 추가"
 			}
 		},
 		"panel": {

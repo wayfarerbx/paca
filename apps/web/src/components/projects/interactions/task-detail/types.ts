@@ -7,7 +7,14 @@ export interface CustomFieldDef {
 	id: string;
 	display_name: string;
 	field_key: string;
-	field_type: "Text" | "Number" | "Date" | "Checkbox" | "Select";
+	field_type:
+		| "Text"
+		| "Number"
+		| "Date"
+		| "Checkbox"
+		| "Select"
+		| "MultiSelect"
+		| "Url";
 	required?: boolean;
 	options?: string[];
 }

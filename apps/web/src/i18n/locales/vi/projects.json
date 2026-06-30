@@ -699,7 +699,9 @@
 				"number": "Số",
 				"date": "Ngày",
 				"checkbox": "Checkbox",
-				"select": "Chọn"
+				"select": "Chọn",
+				"multiSelect": "Chọn nhiều",
+				"url": "URL"
 			}
 		},
 		"addTaskLinkModal": {
@@ -741,6 +743,9 @@
 			"tagsEditor": {
 				"addTag": "Thêm thẻ",
 				"addTagPlaceholder": "Thêm thẻ..."
+			},
+			"multiSelectEditor": {
+				"addOption": "Thêm tùy chọn"
 			}
 		},
 		"panel": {

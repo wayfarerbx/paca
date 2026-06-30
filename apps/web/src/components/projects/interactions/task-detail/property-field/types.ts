@@ -65,7 +65,14 @@ export interface PropertyFieldProps {
 	linkValue?: string;
 	onLinkClick?: () => void;
 
-	customType?: "Text" | "Number" | "Date" | "Checkbox" | "Select";
+	customType?:
+		| "Text"
+		| "Number"
+		| "Date"
+		| "Checkbox"
+		| "Select"
+		| "MultiSelect"
+		| "Url";
 	customRawValue?: unknown;
 	onCustomChange?: (value: unknown) => void;
 	customOptions?: string[];
