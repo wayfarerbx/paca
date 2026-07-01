@@ -154,6 +154,21 @@ export function isBlocksContent(content: unknown): content is unknown[] {
 	return Array.isArray(content);
 }
 
+/**
+ * Normalizes arbitrary stored content into a BlockNote block array so
+ * editors/viewers never receive non-array data (which crashes BlockNote's
+ * internal `.map()` calls over blocks). Legacy plain-text content — e.g.
+ * data saved before content validation existed — is wrapped into a single
+ * paragraph block so it stays visible instead of silently disappearing.
+ */
+export function normalizeBlockContent(content: unknown): unknown[] {
+	if (Array.isArray(content)) return content;
+	if (typeof content === "string" && content.trim().length > 0) {
+		return textToBlocks(content);
+	}
+	return [];
+}
+
 function stripTrailingEmptyBlocks(blocks: unknown[]): unknown[] {
 	if (!Array.isArray(blocks) || blocks.length === 0) return blocks;
 	const lastBlock = blocks[blocks.length - 1] as { content?: unknown[] };

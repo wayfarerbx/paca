@@ -206,6 +206,10 @@ func (h *DocumentHandler) CreateDocument(w http.ResponseWriter, r *http.Request)
 	if !middleware.BindJSON(w, r, &req) {
 		return
 	}
+	if err := dto.ValidateBlockNoteContent(req.Content); err != nil {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "content: "+err.Error()))
+		return
+	}
 
 	var createdBy *uuid.UUID
 	var createdByAgent *uuid.UUID
@@ -255,6 +259,12 @@ func (h *DocumentHandler) UpdateDocument(w http.ResponseWriter, r *http.Request)
 	var req dto.UpdateDocumentRequest
 	if !middleware.BindJSON(w, r, &req) {
 		return
+	}
+	if req.Content.Set && req.Content.Value != nil {
+		if err := dto.ValidateBlockNoteContent(req.Content.Value); err != nil {
+			presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "content: "+err.Error()))
+			return
+		}
 	}
 
 	var updatedBy *uuid.UUID

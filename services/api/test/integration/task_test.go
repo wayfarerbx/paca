@@ -3141,6 +3141,42 @@ func TestActivities_AddAndListComment(t *testing.T) {
 	}
 }
 
+// TestActivities_AddComment_StringContentReturns400 guards against GitHub
+// issue #233: a bare JSON string (not a BlockNote block array, and not the
+// legacy {"text": "..."} shape) must be rejected rather than stored, since
+// the web app's block renderers crash on it.
+func TestActivities_AddComment_StringContentReturns400(t *testing.T) {
+	taskRepo := newFakeTaskRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionTasksRead, authz.PermissionTasksWrite},
+		},
+	}
+	r := buildTaskTestRouter(taskRepo, store)
+	tok := issueTaskToken(t, uuid.NewString())
+
+	w := serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		fmt.Sprintf("/api/v1/projects/%s/tasks", projectID), tok,
+		map[string]any{"title": "Activity Test Task"},
+	))
+	if w.Code != http.StatusCreated {
+		t.Fatalf("create task: expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+	taskID := taskIDFrom(t, "task", w.Body.Bytes())
+
+	w = serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		fmt.Sprintf("/api/v1/projects/%s/tasks/%s/activities/comments", projectID, taskID), tok,
+		map[string]any{"content": "just a plain string"},
+	))
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+	if code := decodeErrorCode(t, w); code != "ACTIVITY_COMMENT_CONTENT_INVALID" {
+		t.Errorf("expected ACTIVITY_COMMENT_CONTENT_INVALID, got %q", code)
+	}
+}
+
 func TestActivities_AddComment_RequiresAuth(t *testing.T) {
 	taskRepo := newFakeTaskRepoIT()
 	projectID := uuid.New()

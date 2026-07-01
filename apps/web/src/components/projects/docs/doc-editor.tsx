@@ -12,6 +12,7 @@ import {
 } from "react";
 import { CustomSideMenu } from "@/components/shared/blocknote-custom-side-menu";
 import { customSchema } from "@/components/shared/blocknote-schema";
+import { normalizeBlockContent } from "@/components/shared/comment-blocknote";
 import { MentionSuggestionMenus } from "@/components/shared/mention-suggestion-menus";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { useThemeMode } from "@/hooks/use-theme-mode";
@@ -88,8 +89,13 @@ export const DocEditor = forwardRef<DocEditorHandle, DocEditorProps>(
 
 		// Populate / re-populate editor from server content
 		useEffect(() => {
-			const normalized = content ?? null;
-			const cleanedNormalized = cleanBlocks(normalized);
+			// Normalize whatever the server returned (including legacy/invalid
+			// content that isn't a block array, e.g. a plain string) into a safe
+			// block array so BlockNote never receives data it can't render.
+			const displayBlocks = normalizeBlockContent(content ?? null);
+			const cleanedNormalized = cleanBlocks(
+				displayBlocks.length > 0 ? displayBlocks : null,
+			);
 			const normalizedStr = cleanedNormalized
 				? JSON.stringify(cleanedNormalized)
 				: null;
@@ -108,11 +114,10 @@ export const DocEditor = forwardRef<DocEditorHandle, DocEditorProps>(
 			readyRef.current = false;
 			dirtyRef.current = false;
 
-			let blocks: Parameters<typeof editor.replaceBlocks>[1] | undefined;
-			if (normalized && Array.isArray(normalized) && normalized.length > 0) {
-				blocks = normalized as Parameters<typeof editor.replaceBlocks>[1];
-			}
-			editor.replaceBlocks(editor.document, blocks ?? []);
+			editor.replaceBlocks(
+				editor.document,
+				displayBlocks as Parameters<typeof editor.replaceBlocks>[1],
+			);
 			queueMicrotask(() => {
 				readyRef.current = true;
 			});

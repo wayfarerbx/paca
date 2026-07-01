@@ -508,7 +508,7 @@ func TestIntegrationDocuments_CRUD(t *testing.T) {
 	// Create document
 	createW := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{
 		"title":   "Getting Started",
-		"content": json.RawMessage(`{"type":"doc","content":[]}`),
+		"content": json.RawMessage(`[]`),
 	}))
 	if createW.Code != http.StatusCreated {
 		t.Fatalf("create document: expected 201, got %d (%s)", createW.Code, createW.Body.String())
@@ -690,7 +690,7 @@ func TestIntegrationDocuments_Snapshots(t *testing.T) {
 	// Create document with initial content
 	createW := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{
 		"title":   "API Reference",
-		"content": json.RawMessage(`{"type":"doc","v":1}`),
+		"content": json.RawMessage(`[{"type":"paragraph","content":[{"type":"text","text":"v1"}]}]`),
 	}))
 	if createW.Code != http.StatusCreated {
 		t.Fatalf("create: expected 201, got %d", createW.Code)
@@ -709,7 +709,7 @@ func TestIntegrationDocuments_Snapshots(t *testing.T) {
 
 	// Update content — triggers snapshot creation
 	patchW := serve(r, authedJSONReq(t.Context(), http.MethodPatch, base+"/"+docID, tok, map[string]any{
-		"content": json.RawMessage(`{"type":"doc","v":2}`),
+		"content": json.RawMessage(`[{"type":"paragraph","content":[{"type":"text","text":"v2"}]}]`),
 	}))
 	if patchW.Code != http.StatusOK {
 		t.Fatalf("update: expected 200, got %d (%s)", patchW.Code, patchW.Body.String())
@@ -860,6 +860,38 @@ func TestIntegrationDocuments_AddEmptyCommentReturns400(t *testing.T) {
 
 	w := serve(r, authedJSONReq(t.Context(), http.MethodPost,
 		base+"/"+docID+"/comments", tok, map[string]any{"content": "   "}))
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d (%s)", w.Code, w.Body.String())
+	}
+	if code := decodeErrorCode(t, w); code != "DOC_COMMENT_CONTENT_INVALID" {
+		t.Errorf("expected DOC_COMMENT_CONTENT_INVALID, got %q", code)
+	}
+}
+
+// TestIntegrationDocuments_AddStringCommentReturns400 guards against GitHub
+// issue #233: a bare JSON string (not a BlockNote block array, and not the
+// legacy {"text": "..."} shape) must be rejected rather than stored, since
+// the web app's block renderers crash on it.
+func TestIntegrationDocuments_AddStringCommentReturns400(t *testing.T) {
+	docRepo := newFakeDocRepoIT()
+	projectID := uuid.New()
+	store := &projectPermStore{
+		projectPerms: map[uuid.UUID][]authz.Permission{
+			projectID: {authz.PermissionDocsRead, authz.PermissionDocsWrite},
+		},
+	}
+	r := buildDocTestRouter(docRepo, store)
+	tok := issueDocToken(t, uuid.NewString())
+	base := fmt.Sprintf("/api/v1/projects/%s/docs", projectID)
+
+	createW := serve(r, authedJSONReq(t.Context(), http.MethodPost, base, tok, map[string]any{"title": "Doc"}))
+	if createW.Code != http.StatusCreated {
+		t.Fatalf("create: expected 201, got %d", createW.Code)
+	}
+	docID := docIDFrom(t, "document", createW.Body.Bytes())
+
+	w := serve(r, authedJSONReq(t.Context(), http.MethodPost,
+		base+"/"+docID+"/comments", tok, map[string]any{"content": "just a plain string"}))
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400, got %d (%s)", w.Code, w.Body.String())
 	}

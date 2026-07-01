@@ -664,6 +664,45 @@ func TestTaskHandler_CreateTask_EmptyTitleReturns400(t *testing.T) {
 	}
 }
 
+// TestTaskHandler_CreateTask_StringDescriptionReturns400 guards against
+// GitHub issue #233: a plain string description (instead of a BlockNote
+// block array) must be rejected up front, not stored and later crash the
+// web app's `.map()`-based block renderers.
+func TestTaskHandler_CreateTask_StringDescriptionReturns400(t *testing.T) {
+	svc := newFakeTaskSvc()
+	r := buildTaskHandlerRouter(svc)
+	projectID := uuid.New()
+	w := doTaskRequest(r, http.MethodPost,
+		fmt.Sprintf("/projects/%s/tasks", projectID),
+		map[string]any{"title": "New Task", "description": "just a plain string"},
+	)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// TestTaskHandler_UpdateTask_StringDescriptionReturns400 mirrors the create
+// case above for PATCH /projects/:projectId/tasks/:taskId.
+func TestTaskHandler_UpdateTask_StringDescriptionReturns400(t *testing.T) {
+	svc := newFakeTaskSvc()
+	r := buildTaskHandlerRouter(svc)
+	projectID := uuid.New()
+
+	createW := doTaskRequest(r, http.MethodPost,
+		fmt.Sprintf("/projects/%s/tasks", projectID),
+		map[string]any{"title": "New Task"},
+	)
+	taskID := decodeTaskID(t, createW.Body.Bytes())
+
+	w := doTaskRequest(r, http.MethodPatch,
+		fmt.Sprintf("/projects/%s/tasks/%s", projectID, taskID),
+		map[string]any{"description": "just a plain string"},
+	)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
 func TestTaskHandler_GetTask_Returns200(t *testing.T) {
 	svc := newFakeTaskSvc()
 	r := buildTaskHandlerRouter(svc)

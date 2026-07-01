@@ -18,6 +18,12 @@ describe("cleanBlocks", () => {
 		expect(cleanBlocks(null)).toBeNull();
 	});
 
+	it("returns null when blocks is not an array (e.g. a plain string)", () => {
+		expect(
+			cleanBlocks("just a plain string" as unknown as unknown[]),
+		).toBeNull();
+	});
+
 	it("strips id field recursively and preserves other properties", () => {
 		const input = [
 			{

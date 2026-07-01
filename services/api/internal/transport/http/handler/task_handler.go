@@ -607,6 +607,12 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 	if !middleware.BindJSON(w, r, &req) {
 		return
 	}
+	if req.Description != nil {
+		if err := dto.ValidateBlockNoteContent(*req.Description); err != nil {
+			presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "description: "+err.Error()))
+			return
+		}
+	}
 
 	t, err := h.svc.CreateTask(r.Context(), taskdom.CreateTaskInput{
 		ProjectID:    projectID,
@@ -678,6 +684,12 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 	var req dto.UpdateTaskRequest
 	if !middleware.BindJSON(w, r, &req) {
 		return
+	}
+	if req.Description.Set && req.Description.Value != nil {
+		if err := dto.ValidateBlockNoteContent(req.Description.Value); err != nil {
+			presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "description: "+err.Error()))
+			return
+		}
 	}
 
 	// Fetch old state before mutating so we can record before/after values.

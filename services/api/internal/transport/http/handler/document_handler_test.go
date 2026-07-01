@@ -84,7 +84,9 @@ func newDocumentRouter() chi.Router {
 	r := chi.NewRouter()
 	r.Route("/projects/{projectId}", func(r chi.Router) {
 		r.Post("/docs/folders", h.CreateFolder)
+		r.Post("/docs", h.CreateDocument)
 		r.Route("/docs/{docId}", func(r chi.Router) {
+			r.Patch("/", h.UpdateDocument)
 			r.Post("/comments", h.AddComment)
 			r.Patch("/comments/{commentId}", h.UpdateComment)
 		})
@@ -164,5 +166,38 @@ func TestDocUpdateComment_EmptyContent_Returns400(t *testing.T) {
 	)
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for empty content, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// TestCreateDocument_StringContent_Returns400 guards against GitHub issue
+// #233: document content must be a BlockNote block array, not a plain string.
+func TestCreateDocument_StringContent_Returns400(t *testing.T) {
+	r := newDocumentRouter()
+	projectID := uuid.New()
+
+	w := doDocRequest(t, r, http.MethodPost,
+		"/projects/"+projectID.String()+"/docs",
+		map[string]any{"title": "Doc", "content": "just a plain string"},
+		nil,
+	)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for string content, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// TestUpdateDocument_StringContent_Returns400 mirrors the create case above
+// for PATCH /projects/:projectId/docs/:docId.
+func TestUpdateDocument_StringContent_Returns400(t *testing.T) {
+	r := newDocumentRouter()
+	projectID := uuid.New()
+	docID := uuid.New()
+
+	w := doDocRequest(t, r, http.MethodPatch,
+		"/projects/"+projectID.String()+"/docs/"+docID.String(),
+		map[string]any{"content": "just a plain string"},
+		nil,
+	)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for string content, got %d: %s", w.Code, w.Body.String())
 	}
 }

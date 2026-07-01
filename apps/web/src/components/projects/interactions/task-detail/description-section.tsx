@@ -9,6 +9,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CustomSideMenu } from "@/components/shared/blocknote-custom-side-menu";
 import { customSchema } from "@/components/shared/blocknote-schema";
+import { normalizeBlockContent } from "@/components/shared/comment-blocknote";
 import { MentionSuggestionMenus } from "@/components/shared/mention-suggestion-menus";
 import { Button } from "@/components/ui/button";
 import {
@@ -127,8 +128,13 @@ export function DescriptionSection({
 	// Populate the editor from BlockNote JSON whenever description changes
 	// externally (initial load or server refetch that differs from what we saved).
 	useEffect(() => {
-		const normalized = description ?? null;
-		const cleanedNormalized = cleanBlocks(normalized);
+		// Normalize whatever the API returned (including legacy/invalid content
+		// that isn't a block array, e.g. a plain string) into a safe block array
+		// so BlockNote never receives data it can't render.
+		const displayBlocks = normalizeBlockContent(description ?? null);
+		const cleanedNormalized = cleanBlocks(
+			displayBlocks.length > 0 ? displayBlocks : null,
+		);
 		// Stringify for stable comparison (array identity changes on every response)
 		const normalizedStr = cleanedNormalized
 			? JSON.stringify(cleanedNormalized)
@@ -139,11 +145,10 @@ export function DescriptionSection({
 		lastSavedRef.current = normalizedStr;
 		readyRef.current = false;
 
-		let blocks: Parameters<typeof editor.replaceBlocks>[1] | undefined;
-		if (normalized && Array.isArray(normalized) && normalized.length > 0) {
-			blocks = normalized as Parameters<typeof editor.replaceBlocks>[1];
-		}
-		editor.replaceBlocks(editor.document, blocks ?? []);
+		editor.replaceBlocks(
+			editor.document,
+			displayBlocks as Parameters<typeof editor.replaceBlocks>[1],
+		);
 		queueMicrotask(() => {
 			readyRef.current = true;
 		});

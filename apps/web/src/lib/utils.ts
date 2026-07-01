@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 export function cleanBlocks(
 	blocks: unknown[] | null | undefined,
 ): unknown[] | null {
-	if (!blocks) return null;
+	if (!blocks || !Array.isArray(blocks)) return null;
 	const strip = (arr: unknown[]): unknown[] => {
 		return arr.map((item) => {
 			if (!item || typeof item !== "object") return item;
