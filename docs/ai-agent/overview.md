@@ -61,7 +61,7 @@ Paca AI Agents are first-class project members powered by the [OpenHands Softwar
                   │  Docker socket (spawn / manage containers)
                   ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  Agent Docker Containers  (ghcr.io/openhands/agent-server:latest-python)    │
+│  Agent Docker Containers  (ghcr.io/paca-ai/paca-agent-server:latest)        │
 │  • One container per active conversation                                    │
 │  • Completely isolated from other containers                                │
 │  • Workspace cloned from repo plugin (credentials injected as secrets)     │

@@ -142,7 +142,7 @@ async def run_conversation(trigger: TriggerEvent, agent_config: AgentConfig):
 
     # 6. Spin up Docker workspace
     with DockerWorkspace(
-        server_image="ghcr.io/openhands/agent-server:latest-python",
+        server_image="ghcr.io/paca-ai/paca-agent-server:latest",
         host_port=allocate_port(),
         platform=detect_platform(),
     ) as workspace:
@@ -201,7 +201,7 @@ def make_event_callback(trigger, streams):
 ## Docker Container Strategy
 
 - Each conversation gets a **dedicated Docker container** using `DockerWorkspace`.
-- The OpenHands `agent-server` image (`ghcr.io/openhands/agent-server:latest-python`) is used by default and can be overridden per agent type.
+- The Paca `agent-server` image (`ghcr.io/paca-ai/paca-agent-server:latest`, a thin wrapper around OpenHands' `agent-server` with the Paca MCP server pre-installed) is used by default and can be overridden per agent type.
 - The container is automatically stopped and removed when the `DockerWorkspace` context manager exits (normal finish, stop, or unhandled error).
 - Container network access is restricted: containers are placed on an isolated Docker network that has no route to other Paca service containers.
 - Port allocation: a small port pool (`10000–10999`) is managed by the ai-agent service. Each active conversation claims one port; it is released when the conversation ends.
@@ -363,7 +363,7 @@ All endpoints are **internal-only** — not exposed through the public API gatew
 | `INTERNAL_API_KEY` | ✅ | Shared secret for service-to-service calls to `services/api` |
 | `API_BASE_URL` | ✅ | Internal URL of `services/api`, e.g. `http://api:8080` |
 | `DOCKER_SOCKET` | ✅ | Path to Docker socket, e.g. `/var/run/docker.sock` |
-| `AGENT_SERVER_IMAGE` | | Default agent-server image. Default: `ghcr.io/openhands/agent-server:latest-python` |
+| `AGENT_SERVER_IMAGE` | | Default agent-server image. Default: `ghcr.io/paca-ai/paca-agent-server:latest` |
 | `CONVERSATION_PERSISTENCE_ROOT` | | Host path where conversation state is persisted. Default: `/data/conversations` |
 | `PORT_POOL_START` | | First port in the container port pool. Default: `10000` |
 | `PORT_POOL_SIZE` | | Number of ports in the pool (= max concurrent conversations per replica). Default: `100` |

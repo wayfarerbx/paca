@@ -19,7 +19,7 @@ openhands-sdk >=1.29 never actually invokes for RemoteConversation. The
 other tests cover scenarios that were never exercised end-to-end before:
 a multi-step tool-call flow, and the LLM-failure path.
 
-Requires Docker and pulls ghcr.io/openhands/agent-server on first run.
+Requires Docker and pulls ghcr.io/paca-ai/paca-agent-server on first run.
 Run with: PACA_E2E=1 pytest tests/e2e -v
 """
 
