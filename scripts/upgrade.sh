@@ -247,6 +247,30 @@ else
     info "Using floating :latest images — no image version changes needed."
 fi
 
+# Migrate AGENT_SERVER_IMAGE off the old upstream default. Installs created
+# before Paca shipped its own agent-server image (Paca MCP pre-installed,
+# openhands-sdk version kept in step with services/ai-agent) have this
+# hardcoded to the raw OpenHands image. Only offer to rewrite installs still
+# on that exact old default — never touch a value the user deliberately
+# customized. Asked rather than applied silently: it changes which image the
+# sandbox containers run, which is worth a confirmation like the version
+# re-pin above rather than a silent backfill.
+OLD_AGENT_SERVER_IMAGE_DEFAULT="ghcr.io/openhands/agent-server:latest-python"
+if [[ "$(get_env_var .env AGENT_SERVER_IMAGE)" == "$OLD_AGENT_SERVER_IMAGE_DEFAULT" ]]; then
+    heading "Agent-server image"
+    info "AGENT_SERVER_IMAGE is still set to the upstream OpenHands image (${OLD_AGENT_SERVER_IMAGE_DEFAULT})."
+    info "Paca now ships its own agent-server image (ghcr.io/paca-ai/paca-agent-server:latest) with the Paca MCP server pre-installed, avoiding a cold npm download on every new sandbox."
+    UPDATE_AGENT_IMAGE="yes"
+    yes_no UPDATE_AGENT_IMAGE "Switch AGENT_SERVER_IMAGE to ghcr.io/paca-ai/paca-agent-server:latest?" "y"
+    if [[ "$UPDATE_AGENT_IMAGE" == "yes" ]]; then
+        backup_env_once
+        set_env_var .env AGENT_SERVER_IMAGE "ghcr.io/paca-ai/paca-agent-server:latest"
+        info "Updated AGENT_SERVER_IMAGE to ghcr.io/paca-ai/paca-agent-server:latest."
+    else
+        info "Keeping AGENT_SERVER_IMAGE unchanged."
+    fi
+fi
+
 # Backfill variables introduced by the nginx → Caddy gateway migration.
 # Installations from before that release have neither in .env. SITE_ADDRESS
 # defaults to the hostname already in PUBLIC_URL so Caddy requests a

@@ -28,6 +28,20 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 REPLY_TEXT = "Hello! This is a canned reply from the fake LLM server."
 
+# openhands-sdk's AutoTitleSubscriber (autotitle=True by default) fires
+# title_utils.generate_title_with_llm() asynchronously on the first user
+# message — a separate /v1/chat/completions call racing the real
+# conversation turn for whichever scripted reply comes next. Recognized by
+# its distinctive system prompt and answered directly below, without
+# consuming a script slot, so scripted multi-turn tests stay deterministic
+# regardless of which call actually reaches the server first.
+_SDK_INTERNAL_CALL_MARKER = "descriptive titles for conversations with OpenHands"
+
+
+def _is_sdk_internal_call(payload: dict) -> bool:
+    messages = payload.get("messages") or []
+    return any(_SDK_INTERNAL_CALL_MARKER in json.dumps(m) for m in messages)
+
 
 @dataclass(frozen=True)
 class ToolCall:
@@ -80,6 +94,10 @@ class _Handler(BaseHTTPRequestHandler):
             payload = json.loads(body or b"{}")
         except json.JSONDecodeError:
             payload = {}
+
+        if _is_sdk_internal_call(payload):
+            self._send_non_streaming_reply(text_reply("untitled"))
+            return
 
         reply = self.server.next_reply()
         if reply.error_status is not None:
