@@ -39,7 +39,7 @@ class Settings(BaseSettings):
 
     # Docker sandbox
     docker_socket: str = "/var/run/docker.sock"
-    agent_server_image: str = "ghcr.io/openhands/agent-server:latest-python"
+    agent_server_image: str = "ghcr.io/paca-ai/paca-agent-server:latest"
     # Port the agent-server process listens on *inside* its container.
     # ghcr.io/openhands/agent-server binds on 8000 by default.
     agent_server_container_port: int = 8000
