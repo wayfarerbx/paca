@@ -157,7 +157,7 @@ jobs:
       - name: Pull agent-server sandbox image
         # Reported as its own step for clearer timing in the Actions UI —
         # this pulls several GB on a cold cache.
-        run: docker pull ghcr.io/openhands/agent-server:latest-python
+        run: docker pull ghcr.io/paca-ai/paca-agent-server:latest
 
       - name: Run E2E tests
         env:

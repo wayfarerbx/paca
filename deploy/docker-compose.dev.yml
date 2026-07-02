@@ -286,7 +286,7 @@ services:
       # keys stored in the DB can be decrypted at conversation time.
       ENCRYPTION_KEY: "3b4a93a4f2ffa732a5f7cf44b9a37050e49f5f9c3f105c3995432b9dd49e28ac"
       DOCKER_SOCKET: /var/run/docker.sock
-      AGENT_SERVER_IMAGE: ghcr.io/openhands/agent-server:latest-python
+      AGENT_SERVER_IMAGE: ghcr.io/paca-ai/paca-agent-server:latest
       PORT_POOL_START: "10000"
       PORT_POOL_SIZE: "100"
       WORKER_CONCURRENCY: "5"
