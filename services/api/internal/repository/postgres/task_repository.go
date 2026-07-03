@@ -249,21 +249,34 @@ func (r *TaskRepository) DeleteTaskType(ctx context.Context, id uuid.UUID) error
 // SetDefaultTaskType atomically marks typeID as the project's default task type,
 // clearing is_default on all other types in the same project.
 func (r *TaskRepository) SetDefaultTaskType(ctx context.Context, projectID, typeID uuid.UUID) error {
-	result, err := r.db.ExecContext(ctx, `
-		UPDATE task_types
-		SET is_default = (id = $1), updated_at = NOW()
-		WHERE project_id = $2
-		  AND EXISTS (SELECT 1 FROM task_types WHERE id = $1 AND project_id = $2)`,
-		typeID.String(), projectID.String(),
-	)
-	if err != nil {
-		return fmt.Errorf("task type repo: set default: %w", err)
-	}
-	n, _ := result.RowsAffected()
-	if n == 0 {
-		return taskdom.ErrTypeNotFound
-	}
-	return nil
+	return WithTx(ctx, r.db, func(tx *sqlx.Tx) error {
+		// Lock all types for this project to serialize concurrent calls.
+		var ids []string
+		if err := tx.SelectContext(ctx, &ids, `SELECT id FROM task_types WHERE project_id = $1 FOR UPDATE`, projectID.String()); err != nil {
+			return fmt.Errorf("task type repo: set default (lock): %w", err)
+		}
+
+		found := false
+		for _, id := range ids {
+			if id == typeID.String() {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return taskdom.ErrTypeNotFound
+		}
+
+		if _, err := tx.ExecContext(ctx, `UPDATE task_types SET is_default = false, updated_at = NOW() WHERE project_id = $1 AND is_default = true`, projectID.String()); err != nil {
+			return fmt.Errorf("task type repo: set default (clear): %w", err)
+		}
+
+		if _, err := tx.ExecContext(ctx, `UPDATE task_types SET is_default = true, updated_at = NOW() WHERE id = $1 AND project_id = $2`, typeID.String(), projectID.String()); err != nil {
+			return fmt.Errorf("task type repo: set default (set): %w", err)
+		}
+
+		return nil
+	})
 }
 
 // --- Task Statuses ---------------------------------------------------------
