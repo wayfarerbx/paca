@@ -441,13 +441,18 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodeAgentMCPServerNotFound,
 		apierr.CodeAgentSkillNotFound,
 		apierr.CodeAgentConversationNotFound,
-		apierr.CodeAgentChatSessionNotFound:
+		apierr.CodeAgentChatSessionNotFound,
+		apierr.CodeAgentEnvVarNotFound:
 		return http.StatusNotFound
 	case apierr.CodeAgentHandleTaken,
 		apierr.CodeAgentConversationNotRunning,
-		apierr.CodeAgentConversationAlreadyStopped:
+		apierr.CodeAgentConversationAlreadyStopped,
+		apierr.CodeAgentEnvVarKeyTaken:
 		return http.StatusConflict
-	case apierr.CodeAgentHandleInvalid, apierr.CodeAgentNameInvalid:
+	case apierr.CodeAgentHandleInvalid,
+		apierr.CodeAgentNameInvalid,
+		apierr.CodeAgentEnvVarKeyInvalid,
+		apierr.CodeAgentEnvVarKeyReserved:
 		return http.StatusBadRequest
 	case apierr.CodeBadRequest:
 		return http.StatusBadRequest
