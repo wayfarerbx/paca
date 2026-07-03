@@ -375,7 +375,6 @@ request operations are plugin-specific, not built-in tools.
 """
 
 
-
 class ListRepositoriesTool(ToolDefinition[ListRepositoriesAction, ListRepositoriesObservation]):
     @classmethod
     def create(
@@ -440,7 +439,6 @@ class PushBranchTool(ToolDefinition[PushBranchAction, PushBranchObservation]):
                 executor=PushBranchExecutor(project_id, terminal, api_base_url, api_key),
             )
         ]
-
 
 
 # Register tool classes so Agent can resolve them via Tool(name=..., params={...})
