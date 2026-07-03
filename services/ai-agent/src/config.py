@@ -30,7 +30,18 @@ class Settings(BaseSettings):
     # Development override — absolute path to the local MCP build entry point
     # (e.g. /workspace/apps/mcp/build/index.js).  When set, the agent runs
     # the local build instead of the published @paca-ai/paca-mcp npm package.
+    # This path is used inside the agent sandbox container.
     dev_mcp_path: str = ""
+    # Host-side MCP package directory to bind into the sandbox when running the
+    # ai-agent service outside Docker, for example D:/app/site/2/apps/mcp.
+    dev_mcp_host_path: str = ""
+
+    # Local filesystem repositories for Windows/local development. Put source
+    # folders under LOCAL_REPOS_HOST_PATH; each direct child folder is exposed
+    # to agents as a repository through the built-in local-fs adapter.
+    local_repos_host_path: str = ""
+    local_repos_path: str = "/local-repos"
+    local_repo_plugin_id: str = "local-fs"
 
     # AES-256 encryption key (hex-encoded, 64 chars) shared with the API service.
     # Set via ENCRYPTION_KEY (same variable used by the api service).

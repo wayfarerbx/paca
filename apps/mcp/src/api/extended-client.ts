@@ -1,6 +1,12 @@
 import type {
+	AddAgentMCPServerInput,
+	AddAgentSkillInput,
 	AddMemberInput,
+	Agent,
+	AgentMCPServer,
+	AgentSkill,
 	CreateCustomFieldInput,
+	CreateAgentInput,
 	CreateRoleInput,
 	CreateTaskStatusInput,
 	CreateTaskTypeInput,
@@ -11,6 +17,9 @@ import type {
 	SuccessEnvelope,
 	TaskStatus,
 	TaskType,
+	UpdateAgentInput,
+	UpdateAgentMCPServerInput,
+	UpdateAgentSkillInput,
 	UpdateCustomFieldInput,
 	UpdateMemberRoleInput,
 	UpdateRoleInput,
@@ -168,6 +177,131 @@ export class PacaAPIExtendedClient {
 
 	async deleteProjectRole(projectId: string, roleId: string): Promise<void> {
 		await this.delete(`/api/v1/projects/${projectId}/roles/${roleId}`);
+	}
+
+	// ==================== AI Agents ====================
+
+	async listAgents(projectId: string): Promise<Agent[]> {
+		const response = await this.get(`/api/v1/projects/${projectId}/agents`);
+		if (Array.isArray(response)) {
+			return response;
+		}
+		return response.items || response.agents || response.data || [];
+	}
+
+	async getAgent(projectId: string, agentId: string): Promise<Agent> {
+		return this.get(`/api/v1/projects/${projectId}/agents/${agentId}`);
+	}
+
+	async createAgent(
+		projectId: string,
+		input: CreateAgentInput,
+	): Promise<Agent> {
+		return this.post(`/api/v1/projects/${projectId}/agents`, input);
+	}
+
+	async updateAgent(
+		projectId: string,
+		agentId: string,
+		input: UpdateAgentInput,
+	): Promise<Agent> {
+		return this.patch(`/api/v1/projects/${projectId}/agents/${agentId}`, input);
+	}
+
+	async deleteAgent(projectId: string, agentId: string): Promise<void> {
+		await this.delete(`/api/v1/projects/${projectId}/agents/${agentId}`);
+	}
+
+	async listAgentMCPServers(
+		projectId: string,
+		agentId: string,
+	): Promise<AgentMCPServer[]> {
+		const response = await this.get(
+			`/api/v1/projects/${projectId}/agents/${agentId}/mcp-servers`,
+		);
+		if (Array.isArray(response)) {
+			return response;
+		}
+		return response.items || response.mcp_servers || response.data || [];
+	}
+
+	async addAgentMCPServer(
+		projectId: string,
+		agentId: string,
+		input: AddAgentMCPServerInput,
+	): Promise<AgentMCPServer> {
+		return this.post(
+			`/api/v1/projects/${projectId}/agents/${agentId}/mcp-servers`,
+			input,
+		);
+	}
+
+	async updateAgentMCPServer(
+		projectId: string,
+		agentId: string,
+		serverId: string,
+		input: UpdateAgentMCPServerInput,
+	): Promise<AgentMCPServer> {
+		return this.patch(
+			`/api/v1/projects/${projectId}/agents/${agentId}/mcp-servers/${serverId}`,
+			input,
+		);
+	}
+
+	async deleteAgentMCPServer(
+		projectId: string,
+		agentId: string,
+		serverId: string,
+	): Promise<void> {
+		await this.delete(
+			`/api/v1/projects/${projectId}/agents/${agentId}/mcp-servers/${serverId}`,
+		);
+	}
+
+	async listAgentSkills(
+		projectId: string,
+		agentId: string,
+	): Promise<AgentSkill[]> {
+		const response = await this.get(
+			`/api/v1/projects/${projectId}/agents/${agentId}/skills`,
+		);
+		if (Array.isArray(response)) {
+			return response;
+		}
+		return response.items || response.skills || response.data || [];
+	}
+
+	async addAgentSkill(
+		projectId: string,
+		agentId: string,
+		input: AddAgentSkillInput,
+	): Promise<AgentSkill> {
+		return this.post(
+			`/api/v1/projects/${projectId}/agents/${agentId}/skills`,
+			input,
+		);
+	}
+
+	async updateAgentSkill(
+		projectId: string,
+		agentId: string,
+		skillId: string,
+		input: UpdateAgentSkillInput,
+	): Promise<AgentSkill> {
+		return this.patch(
+			`/api/v1/projects/${projectId}/agents/${agentId}/skills/${skillId}`,
+			input,
+		);
+	}
+
+	async deleteAgentSkill(
+		projectId: string,
+		agentId: string,
+		skillId: string,
+	): Promise<void> {
+		await this.delete(
+			`/api/v1/projects/${projectId}/agents/${agentId}/skills/${skillId}`,
+		);
 	}
 
 	// ==================== Task Types ====================

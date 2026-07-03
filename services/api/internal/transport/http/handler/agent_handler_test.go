@@ -10,8 +10,11 @@ import (
 	"testing"
 
 	agentdom "github.com/Paca-AI/api/internal/domain/agent"
+	domainauth "github.com/Paca-AI/api/internal/domain/auth"
 	"github.com/Paca-AI/api/internal/transport/http/handler"
+	httpmw "github.com/Paca-AI/api/internal/transport/http/middleware"
 	"github.com/go-chi/chi/v5"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
@@ -22,6 +25,7 @@ import (
 type mockAgentSvc struct {
 	getAgent    func(ctx context.Context, projectID, agentID uuid.UUID) (*agentdom.Agent, error)
 	createAgent func(ctx context.Context, projectID uuid.UUID, in agentdom.CreateAgentInput) (*agentdom.Agent, error)
+	updateAgent func(ctx context.Context, projectID, agentID uuid.UUID, in agentdom.UpdateAgentInput) (*agentdom.Agent, error)
 }
 
 func (m *mockAgentSvc) ListAgents(_ context.Context, _ uuid.UUID) ([]*agentdom.Agent, error) {
@@ -39,7 +43,10 @@ func (m *mockAgentSvc) CreateAgent(ctx context.Context, projectID uuid.UUID, in 
 	}
 	return nil, errors.New("mock: CreateAgent not configured")
 }
-func (m *mockAgentSvc) UpdateAgent(_ context.Context, _, _ uuid.UUID, _ agentdom.UpdateAgentInput) (*agentdom.Agent, error) {
+func (m *mockAgentSvc) UpdateAgent(ctx context.Context, projectID, agentID uuid.UUID, in agentdom.UpdateAgentInput) (*agentdom.Agent, error) {
+	if m.updateAgent != nil {
+		return m.updateAgent(ctx, projectID, agentID, in)
+	}
 	return nil, agentdom.ErrAgentNotFound
 }
 func (m *mockAgentSvc) DeleteAgent(_ context.Context, _, _ uuid.UUID) error {
@@ -104,11 +111,12 @@ func newAgentRouter(svc agentdom.Service) chi.Router {
 	h := handler.NewAgentHandler(svc, "")
 	r := chi.NewRouter()
 	r.Route("/projects/{projectId}", func(r chi.Router) {
-		r.Post("/agents", h.CreateAgent)
-		r.Route("/agents/{agentId}", func(r chi.Router) {
-			r.Post("/mcp-servers", h.AddMCPServer)
-			r.Post("/skills", h.AddSkill)
-			r.Post("/chat-sessions", h.StartChatSession)
+		r.Route("/agents", func(r chi.Router) {
+			r.Post("/", h.CreateAgent)
+			r.Patch("/{agentId}", h.UpdateAgent)
+			r.Post("/{agentId}/mcp-servers", h.AddMCPServer)
+			r.Post("/{agentId}/skills", h.AddSkill)
+			r.Post("/{agentId}/chat-sessions", h.StartChatSession)
 		})
 		r.Route("/tasks/{taskId}", func(r chi.Router) {
 			r.Post("/write-with-ai", h.WriteTaskDescriptionWithAI)
@@ -127,7 +135,10 @@ func doAgentRequest(t *testing.T, r chi.Router, method, path string, body any) *
 	} else {
 		buf = bytes.NewBuffer(nil)
 	}
-	req := httptest.NewRequestWithContext(context.Background(), method, path, buf)
+	ctx := context.WithValue(context.Background(), httpmw.ClaimsContextKey(), &domainauth.Claims{
+		RegisteredClaims: jwt.RegisteredClaims{Subject: uuid.NewString()},
+	})
+	req := httptest.NewRequestWithContext(ctx, method, path, buf)
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
@@ -223,6 +234,43 @@ func TestCreateAgent_MissingLLMBaseURL_Returns400(t *testing.T) {
 	}
 }
 
+func TestCreateAgent_ChatGPTWithoutLLMBaseURL_CreatesAgent(t *testing.T) {
+	projectID := uuid.New()
+	var captured agentdom.CreateAgentInput
+	r := newAgentRouter(&mockAgentSvc{
+		createAgent: func(_ context.Context, projectID uuid.UUID, in agentdom.CreateAgentInput) (*agentdom.Agent, error) {
+			captured = in
+			return &agentdom.Agent{
+				ID:              uuid.New(),
+				ProjectID:       projectID,
+				Name:            in.Name,
+				Handle:          in.Handle,
+				LLMProvider:     in.LLMProvider,
+				LLMModel:        in.LLMModel,
+				LLMBaseURL:      in.LLMBaseURL,
+				LLMAPIKeySecret: "encrypted",
+			}, nil
+		},
+	})
+	w := doAgentRequest(t, r, http.MethodPost,
+		"/projects/"+projectID.String()+"/agents",
+		validCreateAgentBody(map[string]any{
+			"llm_provider": "chatgpt",
+			"llm_model":    "gpt-5.5",
+			"llm_api_key":  "",
+			"llm_base_url": "",
+		}))
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201 for chatgpt without llm_base_url, got %d: %s", w.Code, w.Body.String())
+	}
+	if captured.LLMProvider != "chatgpt" || captured.LLMBaseURL != "" {
+		t.Fatalf("expected chatgpt with empty base URL, got provider=%q base_url=%q", captured.LLMProvider, captured.LLMBaseURL)
+	}
+	if captured.LLMAPIKey != "" {
+		t.Fatal("expected no LLM API key for chatgpt subscription mode")
+	}
+}
+
 func TestCreateAgent_MissingProjectRoleID_Returns400(t *testing.T) {
 	r := newAgentRouter(&mockAgentSvc{})
 	projectID := uuid.New()
@@ -232,6 +280,36 @@ func TestCreateAgent_MissingProjectRoleID_Returns400(t *testing.T) {
 		"/projects/"+projectID.String()+"/agents", body)
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for missing project_role_id, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestUpdateAgent_ProjectRoleID(t *testing.T) {
+	projectID := uuid.New()
+	agentID := uuid.New()
+	roleID := uuid.New()
+	var captured agentdom.UpdateAgentInput
+	r := newAgentRouter(&mockAgentSvc{
+		updateAgent: func(_ context.Context, gotProjectID, gotAgentID uuid.UUID, in agentdom.UpdateAgentInput) (*agentdom.Agent, error) {
+			captured = in
+			return &agentdom.Agent{
+				ID:            gotAgentID,
+				ProjectID:     gotProjectID,
+				Name:          "Agent",
+				Handle:        "agent",
+				ProjectRoleID: in.ProjectRoleID,
+			}, nil
+		},
+	})
+
+	w := doAgentRequest(t, r, http.MethodPatch,
+		"/projects/"+projectID.String()+"/agents/"+agentID.String(),
+		map[string]any{"project_role_id": roleID.String()})
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if captured.ProjectRoleID == nil || *captured.ProjectRoleID != roleID {
+		t.Fatalf("expected project role id %s, got %v", roleID, captured.ProjectRoleID)
 	}
 }
 

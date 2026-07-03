@@ -353,6 +353,134 @@ export interface UpdateRoleInput {
 	permissions?: Record<string, unknown>;
 }
 
+// ==================== AI Agents ====================
+
+export interface Agent {
+	id: string;
+	project_id: string;
+	member_id?: string | null;
+	project_role_id?: string | null;
+	project_role_name?: string;
+	name: string;
+	handle: string;
+	avatar_url?: string | null;
+	llm_provider: string;
+	llm_model: string;
+	llm_base_url: string;
+	system_prompt: string;
+	task_trigger_prompt: string;
+	doc_comment_trigger_prompt: string;
+	chat_trigger_prompt: string;
+	description_write_trigger_prompt: string;
+	can_clone_repos: boolean;
+	can_create_prs: boolean;
+	max_iterations: number;
+	timeout_minutes: number;
+	git_committer_name: string;
+	git_committer_email: string;
+	created_by?: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface CreateAgentInput {
+	name: string;
+	handle: string;
+	project_role_id: string;
+	llm_provider?: string;
+	llm_model?: string;
+	llm_api_key?: string;
+	llm_base_url?: string;
+	system_prompt?: string;
+	task_trigger_prompt?: string;
+	doc_comment_trigger_prompt?: string;
+	chat_trigger_prompt?: string;
+	description_write_trigger_prompt?: string;
+	can_clone_repos?: boolean;
+	can_create_prs?: boolean;
+	max_iterations?: number;
+	timeout_minutes?: number;
+	git_committer_name?: string;
+	git_committer_email?: string;
+}
+
+export interface UpdateAgentInput {
+	name?: string;
+	handle?: string;
+	project_role_id?: string;
+	llm_provider?: string;
+	llm_model?: string;
+	llm_api_key?: string;
+	llm_base_url?: string;
+	system_prompt?: string;
+	task_trigger_prompt?: string;
+	doc_comment_trigger_prompt?: string;
+	chat_trigger_prompt?: string;
+	description_write_trigger_prompt?: string;
+	can_clone_repos?: boolean;
+	can_create_prs?: boolean;
+	max_iterations?: number;
+	timeout_minutes?: number;
+	git_committer_name?: string;
+	git_committer_email?: string;
+}
+
+export interface AgentMCPServer {
+	id: string;
+	agent_id: string;
+	server_name: string;
+	transport: "stdio" | "sse" | "http";
+	command?: string | null;
+	args: string[];
+	url?: string | null;
+	env: Record<string, string>;
+	is_enabled: boolean;
+	created_at: string;
+}
+
+export interface AddAgentMCPServerInput {
+	server_name: string;
+	transport: "stdio" | "sse" | "http";
+	command?: string;
+	args?: string[];
+	url?: string;
+	env?: Record<string, string>;
+}
+
+export interface UpdateAgentMCPServerInput {
+	command?: string;
+	args?: string[];
+	url?: string;
+	env?: Record<string, string>;
+	is_enabled?: boolean;
+}
+
+export interface AgentSkill {
+	id: string;
+	agent_id: string;
+	skill_name: string;
+	skill_source: "inline" | "marketplace" | "github_url";
+	skill_content: string;
+	source_url?: string | null;
+	triggers: string[];
+	is_enabled: boolean;
+	created_at: string;
+}
+
+export interface AddAgentSkillInput {
+	skill_name: string;
+	skill_source: "inline" | "marketplace" | "github_url";
+	skill_content?: string;
+	source_url?: string;
+	triggers?: string[];
+}
+
+export interface UpdateAgentSkillInput {
+	skill_content?: string;
+	triggers?: string[];
+	is_enabled?: boolean;
+}
+
 // ==================== Task Types ====================
 
 export interface TaskType {

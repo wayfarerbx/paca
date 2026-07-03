@@ -66,6 +66,7 @@ import {
 	updateMCPServer,
 	updateSkill,
 } from "@/lib/agent-api";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute(
 	"/_authenticated/projects/$projectId/agents/$agentId/",
@@ -92,6 +93,13 @@ export const Route = createFileRoute(
 type Tab = "overview" | "mcp-servers" | "skills" | "conversations";
 
 const CUSTOM = "__custom__";
+const PRO_SUBSCRIPTION_PROVIDER = "chatgpt";
+
+type AgentAuthMode = "api_key" | "pro_subscription";
+
+function supportsProSubscription(provider: string) {
+	return provider.trim().toLowerCase() === PRO_SUBSCRIPTION_PROVIDER;
+}
 
 // ── Overview Tab ──────────────────────────────────────────────────────────────
 
@@ -137,6 +145,12 @@ function OverviewTab({
 	const [name, setName] = useState(agent.name);
 	const [llmApiKey, setLlmApiKey] = useState("");
 	const [llmBaseUrl, setLlmBaseUrl] = useState(agent.llm_base_url ?? "");
+	const [authMode, setAuthMode] = useState<AgentAuthMode>(
+		supportsProSubscription(agent.llm_provider) &&
+			!(agent.llm_base_url ?? "").trim()
+			? "pro_subscription"
+			: "api_key",
+	);
 	const [systemPrompt, setSystemPrompt] = useState(agent.system_prompt);
 	const [taskTriggerPrompt, setTaskTriggerPrompt] = useState(
 		agent.task_trigger_prompt,
@@ -159,19 +173,40 @@ function OverviewTab({
 	const llmProvider =
 		providerSelect === CUSTOM ? customProvider.trim() : providerSelect;
 	const llmModel = modelSelect === CUSTOM ? customModel.trim() : modelSelect;
+	const canUseProSubscription = supportsProSubscription(llmProvider);
+	const usesProSubscription =
+		canUseProSubscription && authMode === "pro_subscription";
 
 	const handleProviderChange = (v: string | null) => {
 		if (!v) return;
 		setProviderSelect(v);
 		if (v !== CUSTOM) {
 			const info = llmModels[v];
-			setLlmBaseUrl(info?.base_url ?? "");
+			const nextAuthMode = supportsProSubscription(v)
+				? "pro_subscription"
+				: "api_key";
+			setAuthMode(nextAuthMode);
+			setLlmBaseUrl(
+				nextAuthMode === "pro_subscription" ? "" : (info?.base_url ?? ""),
+			);
 			const firstModel = info?.models?.[0] ?? "";
 			setModelSelect(firstModel || CUSTOM);
 			if (!firstModel) setCustomModel("");
 		} else {
+			setAuthMode("api_key");
 			setModelSelect(CUSTOM);
 			setCustomModel("");
+		}
+	};
+
+	const handleAuthModeChange = (mode: AgentAuthMode) => {
+		setAuthMode(mode);
+		if (mode === "pro_subscription") {
+			setLlmBaseUrl("");
+			return;
+		}
+		if (!llmBaseUrl.trim() && providerSelect !== CUSTOM) {
+			setLlmBaseUrl(llmModels[providerSelect]?.base_url ?? "");
 		}
 	};
 
@@ -199,8 +234,8 @@ function OverviewTab({
 				name: name.trim(),
 				llm_provider: llmProvider,
 				llm_model: llmModel,
-				...(llmApiKey ? { llm_api_key: llmApiKey } : {}),
-				llm_base_url: llmBaseUrl,
+				...(llmApiKey.trim() ? { llm_api_key: llmApiKey.trim() } : {}),
+				llm_base_url: usesProSubscription ? "" : llmBaseUrl.trim(),
 				system_prompt: systemPrompt,
 				task_trigger_prompt: taskTriggerPrompt,
 				doc_comment_trigger_prompt: docCommentTriggerPrompt,
@@ -220,7 +255,7 @@ function OverviewTab({
 		isDirty &&
 		!!llmProvider &&
 		!!llmModel &&
-		!!llmBaseUrl.trim() &&
+		(usesProSubscription || !!llmBaseUrl.trim()) &&
 		!saveMutation.isPending;
 
 	return (
@@ -315,33 +350,77 @@ function OverviewTab({
 						)}
 					</div>
 				</div>
-				<div className="space-y-1.5 mt-3">
-					<Label>
-						{t("agents.detail.overview.apiKeyUpdateLabel")}{" "}
-						<span className="text-muted-foreground font-normal text-xs">
-							{t("agents.detail.overview.apiKeyUpdateHint")}
-						</span>
-					</Label>
-					<Input
-						type="password"
-						placeholder="sk-ant-…"
-						value={llmApiKey}
-						onChange={(e) => setLlmApiKey(e.target.value)}
-						disabled={!canWrite}
-					/>
-				</div>
-				<div className="space-y-1.5 mt-3">
-					<Label>
-						{t("agents.detail.overview.baseUrlLabel")}{" "}
-						<span className="text-destructive">*</span>
-					</Label>
-					<Input
-						placeholder="https://api.openai.com/v1"
-						value={llmBaseUrl}
-						onChange={(e) => setLlmBaseUrl(e.target.value)}
-						disabled={!canWrite}
-					/>
-				</div>
+				{canUseProSubscription && (
+					<div className="space-y-1.5 mt-3">
+						<Label>{t("agents.detail.overview.authModeLabel")}</Label>
+						<div className="inline-flex rounded-lg border border-border/60 bg-background p-1">
+							<button
+								type="button"
+								aria-pressed={authMode === "api_key"}
+								onClick={() => handleAuthModeChange("api_key")}
+								disabled={!canWrite}
+								className={cn(
+									"rounded-md px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50",
+									authMode === "api_key"
+										? "bg-primary text-primary-foreground shadow-sm"
+										: "text-muted-foreground hover:text-foreground",
+								)}
+							>
+								{t("agents.detail.overview.authModeApiKey")}
+							</button>
+							<button
+								type="button"
+								aria-pressed={authMode === "pro_subscription"}
+								onClick={() => handleAuthModeChange("pro_subscription")}
+								disabled={!canWrite}
+								className={cn(
+									"rounded-md px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50",
+									authMode === "pro_subscription"
+										? "bg-primary text-primary-foreground shadow-sm"
+										: "text-muted-foreground hover:text-foreground",
+								)}
+							>
+								{t("agents.detail.overview.authModeProSubscription")}
+							</button>
+						</div>
+					</div>
+				)}
+				{usesProSubscription ? (
+					<p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-3">
+						<span className="size-1.5 shrink-0 rounded-full bg-emerald-500 inline-block" />
+						{t("agents.detail.overview.proSubscriptionHint")}
+					</p>
+				) : (
+					<div className="space-y-1.5 mt-3">
+						<Label>
+							{t("agents.detail.overview.apiKeyUpdateLabel")}{" "}
+							<span className="text-muted-foreground font-normal text-xs">
+								{t("agents.detail.overview.apiKeyUpdateHint")}
+							</span>
+						</Label>
+						<Input
+							type="password"
+							placeholder="sk-ant-..."
+							value={llmApiKey}
+							onChange={(e) => setLlmApiKey(e.target.value)}
+							disabled={!canWrite}
+						/>
+					</div>
+				)}
+				{!usesProSubscription && (
+					<div className="space-y-1.5 mt-3">
+						<Label>
+							{t("agents.detail.overview.baseUrlLabel")}{" "}
+							<span className="text-destructive">*</span>
+						</Label>
+						<Input
+							placeholder="https://api.openai.com/v1"
+							value={llmBaseUrl}
+							onChange={(e) => setLlmBaseUrl(e.target.value)}
+							disabled={!canWrite}
+						/>
+					</div>
+				)}
 			</div>
 
 			<Separator />

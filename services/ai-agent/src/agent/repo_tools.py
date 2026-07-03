@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import shlex
 from collections.abc import Sequence
+from pathlib import Path, PurePosixPath
 from urllib.parse import quote as urlquote
 from urllib.parse import urlparse
 
@@ -27,6 +28,10 @@ def _scrub_token(text: str, token: str) -> str:
     # Scrub the full credential pattern that git may echo in error messages.
     scrubbed = re.sub(r"x-access-token:[^@]+@", "x-access-token:***@", scrubbed)
     return scrubbed
+
+
+def _is_safe_local_repo_id(repo_id: str) -> bool:
+    return bool(repo_id) and repo_id not in {".", ".."} and "/" not in repo_id and "\\" not in repo_id
 
 
 # NOTE: do NOT import `from ..config import settings` here.
@@ -86,11 +91,37 @@ class ListRepositoriesExecutor(ToolExecutor[ListRepositoriesAction, ListReposito
         repo_plugin_ids: list[str],
         api_base_url: str,
         api_key: str,
+        local_repos_path: str = "/local-repos",
+        local_plugin_id: str = "local-fs",
     ) -> None:
         self.project_id = project_id
         self.repo_plugin_ids = repo_plugin_ids
         self.api_base_url = api_base_url
         self.api_key = api_key
+        self.local_repos_path = local_repos_path
+        self.local_plugin_id = local_plugin_id
+
+    def _list_local_repositories(self) -> list[dict]:
+        root = Path(self.local_repos_path)
+        if not root.is_dir():
+            return []
+
+        repos: list[dict] = []
+        for child in sorted(root.iterdir(), key=lambda p: p.name.lower()):
+            if not child.is_dir() or child.name.startswith("."):
+                continue
+            repos.append(
+                {
+                    "plugin_id": self.local_plugin_id,
+                    "plugin_name": "Local Filesystem",
+                    "repo_id": child.name,
+                    "full_name": child.name,
+                    "owner": "local",
+                    "repo_name": child.name,
+                    "clone_url": f"file://{self.local_repos_path.rstrip('/')}/{child.name}",
+                }
+            )
+        return repos
 
     def __call__(
         self, action: ListRepositoriesAction, conversation=None
@@ -99,6 +130,10 @@ class ListRepositoriesExecutor(ToolExecutor[ListRepositoriesAction, ListReposito
         errors: list[str] = []
         for plugin_id in self.repo_plugin_ids:
             try:
+                if plugin_id == self.local_plugin_id:
+                    all_repos.extend(self._list_local_repositories())
+                    continue
+
                 url = (
                     f"{self.api_base_url}/api/v1/plugins/{plugin_id}"
                     f"/projects/{self.project_id}/repositories"
@@ -171,16 +206,56 @@ class CloneRepositoryExecutor(ToolExecutor[CloneRepositoryAction, CloneRepositor
         terminal: TerminalExecutor,
         api_base_url: str,
         api_key: str,
+        local_repos_path: str = "/local-repos",
+        local_plugin_id: str = "local-fs",
     ) -> None:
         self.project_id = project_id
         self.terminal = terminal
         self.api_base_url = api_base_url
         self.api_key = api_key
+        self.local_repos_path = local_repos_path
+        self.local_plugin_id = local_plugin_id
+
+    def _clone_local(self, action: CloneRepositoryAction) -> CloneRepositoryObservation:
+        if not _is_safe_local_repo_id(action.repo_id):
+            return CloneRepositoryObservation(
+                success=False,
+                message="Invalid local repository id.",
+            )
+
+        source = f"{self.local_repos_path.rstrip('/')}/{action.repo_id}"
+        parent = str(PurePosixPath(action.target_dir).parent)
+        target = shlex.quote(action.target_dir)
+        cmd = (
+            f"test -d {shlex.quote(source)} && "
+            f"rm -rf {target} && "
+            f"mkdir -p {shlex.quote(parent)} && "
+            f"ln -s {shlex.quote(source)} {target}"
+        )
+        result = self.terminal(TerminalAction(command=f"{cmd} 2>&1"))
+        if result.exit_code is not None and result.exit_code != 0:
+            return CloneRepositoryObservation(
+                success=False,
+                message=f"local repository link failed: {result.text.strip()}",
+            )
+
+        branch_result = self.terminal(
+            TerminalAction(command=f"git -C {target} branch --show-current 2>/dev/null || true")
+        )
+        return CloneRepositoryObservation(
+            success=True,
+            message=f"Linked local repository {action.repo_id}",
+            cloned_path=action.target_dir,
+            branch=branch_result.text.strip(),
+        )
 
     def __call__(
         self, action: CloneRepositoryAction, conversation=None
     ) -> CloneRepositoryObservation:
         try:
+            if action.plugin_id == self.local_plugin_id:
+                return self._clone_local(action)
+
             url = (
                 f"{self.api_base_url}/api/v1/plugins/{action.plugin_id}"
                 f"/projects/{self.project_id}/repositories/{action.repo_id}/clone-info"
@@ -258,6 +333,8 @@ class PushBranchObservation(Observation):
 
     @property
     def to_llm_content(self) -> Sequence[TextContent]:
+        if self.success and self.message:
+            return [TextContent(text=self.message)]
         if self.success:
             return [TextContent(text=f"Branch '{self.branch}' pushed to remote successfully.")]
         return [TextContent(text=f"Failed to push branch: {self.message}")]
@@ -270,14 +347,34 @@ class PushBranchExecutor(ToolExecutor[PushBranchAction, PushBranchObservation]):
         terminal: TerminalExecutor,
         api_base_url: str,
         api_key: str,
+        local_plugin_id: str = "local-fs",
     ) -> None:
         self.project_id = project_id
         self.terminal = terminal
         self.api_base_url = api_base_url
         self.api_key = api_key
+        self.local_plugin_id = local_plugin_id
 
     def __call__(self, action: PushBranchAction, conversation=None) -> PushBranchObservation:
         try:
+            if action.plugin_id == self.local_plugin_id:
+                branch = action.branch_name.strip()
+                if not branch:
+                    br = self.terminal(
+                        TerminalAction(
+                            command=f"git -C {shlex.quote(action.repo_dir)} branch --show-current 2>/dev/null || true"
+                        )
+                    )
+                    branch = br.text.strip()
+                return PushBranchObservation(
+                    success=True,
+                    branch=branch,
+                    message=(
+                        "Local filesystem repository: no remote push is needed. "
+                        "Changes are already saved in the mounted local source folder."
+                    ),
+                )
+
             # Fetch a fresh auth token for the push.
             ci_url = (
                 f"{self.api_base_url}/api/v1/plugins/{action.plugin_id}"
@@ -358,6 +455,8 @@ class CreatePullRequestObservation(Observation):
 
     @property
     def to_llm_content(self) -> Sequence[TextContent]:
+        if self.success and self.message:
+            return [TextContent(text=self.message)]
         if self.success:
             lines = [
                 "Pull request created successfully!",
@@ -372,16 +471,31 @@ class CreatePullRequestExecutor(
     ToolExecutor[CreatePullRequestAction, CreatePullRequestObservation]
 ):
     def __init__(
-        self, project_id: str, task_id: str | None, api_base_url: str, api_key: str
+        self,
+        project_id: str,
+        task_id: str | None,
+        api_base_url: str,
+        api_key: str,
+        local_plugin_id: str = "local-fs",
     ) -> None:
         self.project_id = project_id
         self.task_id = task_id
         self.api_base_url = api_base_url
         self.api_key = api_key
+        self.local_plugin_id = local_plugin_id
 
     def __call__(
         self, action: CreatePullRequestAction, conversation=None
     ) -> CreatePullRequestObservation:
+        if action.plugin_id == self.local_plugin_id:
+            return CreatePullRequestObservation(
+                success=True,
+                message=(
+                    "Local filesystem repository: no pull request was created. "
+                    "Review the saved changes directly in the local source folder."
+                ),
+            )
+
         if not self.task_id:
             return CreatePullRequestObservation(
                 success=False,
@@ -485,13 +599,20 @@ class ListRepositoriesTool(ToolDefinition[ListRepositoriesAction, ListRepositori
         repo_plugin_ids: list[str],
         api_base_url: str,
         api_key: str,
+        local_repos_path: str = "/local-repos",
+        local_plugin_id: str = "local-fs",
     ) -> Sequence[ToolDefinition]:
         return [
             cls(
                 description=_LIST_DESC,
                 action_type=ListRepositoriesAction,
                 executor=ListRepositoriesExecutor(
-                    project_id, repo_plugin_ids, api_base_url, api_key
+                    project_id,
+                    repo_plugin_ids,
+                    api_base_url,
+                    api_key,
+                    local_repos_path,
+                    local_plugin_id,
                 ),
             )
         ]
@@ -506,6 +627,8 @@ class CloneRepositoryTool(ToolDefinition[CloneRepositoryAction, CloneRepositoryO
         project_id: str,
         api_base_url: str,
         api_key: str,
+        local_repos_path: str = "/local-repos",
+        local_plugin_id: str = "local-fs",
     ) -> Sequence[ToolDefinition]:
         working_dir = conv_state.workspace.working_dir if conv_state else "/tmp"
         terminal = TerminalExecutor(working_dir=working_dir)
@@ -514,7 +637,14 @@ class CloneRepositoryTool(ToolDefinition[CloneRepositoryAction, CloneRepositoryO
                 description=_CLONE_DESC,
                 action_type=CloneRepositoryAction,
                 observation_type=CloneRepositoryObservation,
-                executor=CloneRepositoryExecutor(project_id, terminal, api_base_url, api_key),
+                executor=CloneRepositoryExecutor(
+                    project_id,
+                    terminal,
+                    api_base_url,
+                    api_key,
+                    local_repos_path,
+                    local_plugin_id,
+                ),
             )
         ]
 
@@ -528,6 +658,7 @@ class PushBranchTool(ToolDefinition[PushBranchAction, PushBranchObservation]):
         project_id: str,
         api_base_url: str,
         api_key: str,
+        local_plugin_id: str = "local-fs",
     ) -> Sequence[ToolDefinition]:
         working_dir = conv_state.workspace.working_dir if conv_state else "/tmp"
         terminal = TerminalExecutor(working_dir=working_dir)
@@ -536,7 +667,9 @@ class PushBranchTool(ToolDefinition[PushBranchAction, PushBranchObservation]):
                 description=_PUSH_BRANCH_DESC,
                 action_type=PushBranchAction,
                 observation_type=PushBranchObservation,
-                executor=PushBranchExecutor(project_id, terminal, api_base_url, api_key),
+                executor=PushBranchExecutor(
+                    project_id, terminal, api_base_url, api_key, local_plugin_id
+                ),
             )
         ]
 
@@ -551,13 +684,16 @@ class CreatePullRequestTool(ToolDefinition[CreatePullRequestAction, CreatePullRe
         task_id: str | None,
         api_base_url: str,
         api_key: str,
+        local_plugin_id: str = "local-fs",
     ) -> Sequence[ToolDefinition]:
         return [
             cls(
                 description=_CREATE_PR_DESC,
                 action_type=CreatePullRequestAction,
                 observation_type=CreatePullRequestObservation,
-                executor=CreatePullRequestExecutor(project_id, task_id, api_base_url, api_key),
+                executor=CreatePullRequestExecutor(
+                    project_id, task_id, api_base_url, api_key, local_plugin_id
+                ),
             )
         ]
 
@@ -576,6 +712,8 @@ def make_repository_tool_specs(
     *,
     api_base_url: str,
     api_key: str,
+    local_repos_path: str = "/local-repos",
+    local_plugin_id: str = "local-fs",
 ) -> list[Tool]:
     """Return Tool specs (name references) for Agent instantiation.
 
@@ -583,20 +721,25 @@ def make_repository_tool_specs(
     the executors can call the Paca API from inside the sandbox container
     without importing our service settings.
     """
-    common = {"api_base_url": api_base_url, "api_key": api_key}
+    api_common = {
+        "api_base_url": api_base_url,
+        "api_key": api_key,
+        "local_plugin_id": local_plugin_id,
+    }
+    local_common = {"local_repos_path": local_repos_path, **api_common}
     return [
         Tool(
             name="list_repositories",
             params={
                 "project_id": project_id,
                 "repo_plugin_ids": repo_plugin_ids,
-                **common,
+                **local_common,
             },
         ),
-        Tool(name="clone_repository", params={"project_id": project_id, **common}),
-        Tool(name="push_branch", params={"project_id": project_id, **common}),
+        Tool(name="clone_repository", params={"project_id": project_id, **local_common}),
+        Tool(name="push_branch", params={"project_id": project_id, **api_common}),
         Tool(
             name="create_pull_request",
-            params={"project_id": project_id, "task_id": task_id, **common},
+            params={"project_id": project_id, "task_id": task_id, **api_common},
         ),
     ]

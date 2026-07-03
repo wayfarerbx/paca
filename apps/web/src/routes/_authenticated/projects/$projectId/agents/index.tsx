@@ -70,6 +70,13 @@ import { projectRolesQueryOptions } from "@/lib/project-api";
 import { cn } from "@/lib/utils";
 
 const CUSTOM = "__custom__";
+const PRO_SUBSCRIPTION_PROVIDER = "chatgpt";
+
+type AgentAuthMode = "api_key" | "pro_subscription";
+
+function supportsProSubscription(provider: string) {
+	return provider.trim().toLowerCase() === PRO_SUBSCRIPTION_PROVIDER;
+}
 
 export const Route = createFileRoute(
 	"/_authenticated/projects/$projectId/agents/",
@@ -122,6 +129,7 @@ function CreateAgentDialog({
 	const [llmBaseUrl, setLlmBaseUrl] = useState(
 		llmModels.anthropic?.base_url ?? "",
 	);
+	const [authMode, setAuthMode] = useState<AgentAuthMode>("api_key");
 	const [systemPrompt, setSystemPrompt] = useState("");
 	const [showApiKey, setShowApiKey] = useState(false);
 
@@ -129,6 +137,9 @@ function CreateAgentDialog({
 	const llmProvider =
 		providerSelect === CUSTOM ? customProvider.trim() : providerSelect;
 	const llmModel = modelSelect === CUSTOM ? customModel.trim() : modelSelect;
+	const canUseProSubscription = supportsProSubscription(llmProvider);
+	const usesProSubscription =
+		canUseProSubscription && authMode === "pro_subscription";
 
 	const reset = () => {
 		setStep(1);
@@ -142,6 +153,7 @@ function CreateAgentDialog({
 		setCustomModel("");
 		setLlmApiKey("");
 		setLlmBaseUrl(llmModels.anthropic?.base_url ?? "");
+		setAuthMode("api_key");
 		setSystemPrompt("");
 		setShowApiKey(false);
 	};
@@ -156,13 +168,31 @@ function CreateAgentDialog({
 		setProviderSelect(v);
 		if (v !== CUSTOM) {
 			const info = llmModels[v];
-			setLlmBaseUrl(info?.base_url ?? "");
+			const nextAuthMode = supportsProSubscription(v)
+				? "pro_subscription"
+				: "api_key";
+			setAuthMode(nextAuthMode);
+			setLlmBaseUrl(
+				nextAuthMode === "pro_subscription" ? "" : (info?.base_url ?? ""),
+			);
 			const firstModel = info?.models?.[0] ?? "";
 			setModelSelect(firstModel || CUSTOM);
 			if (!firstModel) setCustomModel("");
 		} else {
+			setAuthMode("api_key");
 			setModelSelect(CUSTOM);
 			setCustomModel("");
+		}
+	};
+
+	const handleAuthModeChange = (mode: AgentAuthMode) => {
+		setAuthMode(mode);
+		if (mode === "pro_subscription") {
+			setLlmBaseUrl("");
+			return;
+		}
+		if (!llmBaseUrl.trim() && providerSelect !== CUSTOM) {
+			setLlmBaseUrl(llmModels[providerSelect]?.base_url ?? "");
 		}
 	};
 
@@ -172,7 +202,17 @@ function CreateAgentDialog({
 		if (preset) {
 			if (preset.defaultLLMProvider) {
 				setProviderSelect(preset.defaultLLMProvider);
-				setLlmBaseUrl(llmModels[preset.defaultLLMProvider]?.base_url ?? "");
+				const nextAuthMode = supportsProSubscription(
+					preset.defaultLLMProvider,
+				)
+					? "pro_subscription"
+					: "api_key";
+				setAuthMode(nextAuthMode);
+				setLlmBaseUrl(
+					nextAuthMode === "pro_subscription"
+						? ""
+						: (llmModels[preset.defaultLLMProvider]?.base_url ?? ""),
+				);
 			}
 			if (preset.defaultLLMModel) setModelSelect(preset.defaultLLMModel);
 			if (preset.defaultSystemPrompt)
@@ -191,8 +231,8 @@ function CreateAgentDialog({
 				handle: handle.trim(),
 				llm_provider: llmProvider,
 				llm_model: llmModel,
-				llm_api_key: llmApiKey,
-				llm_base_url: llmBaseUrl,
+				llm_api_key: llmApiKey.trim(),
+				llm_base_url: usesProSubscription ? "" : llmBaseUrl.trim(),
 				system_prompt: systemPrompt,
 				task_trigger_prompt: TRIGGER_PROMPTS.task,
 				doc_comment_trigger_prompt: TRIGGER_PROMPTS.docComment,
@@ -223,8 +263,8 @@ function CreateAgentDialog({
 		step1Valid &&
 		llmProvider &&
 		llmModel &&
-		llmBaseUrl.trim() &&
-		llmApiKey.trim() &&
+		(usesProSubscription || llmBaseUrl.trim()) &&
+		(usesProSubscription || llmApiKey.trim()) &&
 		!createMutation.isPending
 	);
 
@@ -478,64 +518,106 @@ function CreateAgentDialog({
 									)}
 								</div>
 							</div>
+							{canUseProSubscription && (
+								<div className="space-y-1.5">
+									<Label>{t("agents.createDialog.authModeLabel")}</Label>
+									<div className="inline-flex rounded-lg border border-border/60 bg-background p-1">
+										<button
+											type="button"
+											aria-pressed={authMode === "api_key"}
+											onClick={() => handleAuthModeChange("api_key")}
+											className={cn(
+												"rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+												authMode === "api_key"
+													? "bg-primary text-primary-foreground shadow-sm"
+													: "text-muted-foreground hover:text-foreground",
+											)}
+										>
+											{t("agents.createDialog.authModeApiKey")}
+										</button>
+										<button
+											type="button"
+											aria-pressed={authMode === "pro_subscription"}
+											onClick={() => handleAuthModeChange("pro_subscription")}
+											className={cn(
+												"rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+												authMode === "pro_subscription"
+													? "bg-primary text-primary-foreground shadow-sm"
+													: "text-muted-foreground hover:text-foreground",
+											)}
+										>
+											{t("agents.createDialog.authModeProSubscription")}
+										</button>
+									</div>
+								</div>
+							)}
 						</div>
 
 						{/* API Key */}
-						<div className="space-y-1.5">
-							<Label htmlFor="agent-api-key">
-								<span className="flex items-center gap-1.5">
-									<Lock className="size-3 text-muted-foreground" />
-									{t("agents.createDialog.apiKeyLabel")}{" "}
-									<span className="text-destructive">*</span>
-								</span>
-							</Label>
-							<div className="relative">
-								<Input
-									id="agent-api-key"
-									type={showApiKey ? "text" : "password"}
-									placeholder={
-										llmProvider === "anthropic" ? "sk-ant-…" : "sk-…"
-									}
-									value={llmApiKey}
-									onChange={(e) => setLlmApiKey(e.target.value)}
-									className="pr-9"
-								/>
-								<button
-									type="button"
-									onClick={() => setShowApiKey((s) => !s)}
-									className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
-									aria-label={
-										showApiKey
-											? t("agents.createDialog.hideApiKey")
-											: t("agents.createDialog.showApiKey")
-									}
-								>
-									{showApiKey ? (
-										<EyeOff className="size-4" />
-									) : (
-										<Eye className="size-4" />
-									)}
-								</button>
-							</div>
+						{usesProSubscription ? (
 							<p className="text-xs text-muted-foreground flex items-center gap-1.5">
 								<span className="size-1.5 shrink-0 rounded-full bg-emerald-500 inline-block" />
-								{t("agents.createDialog.apiKeyHint")}
+								{t("agents.createDialog.proSubscriptionHint")}
 							</p>
-						</div>
+						) : (
+							<div className="space-y-1.5">
+								<Label htmlFor="agent-api-key">
+									<span className="flex items-center gap-1.5">
+										<Lock className="size-3 text-muted-foreground" />
+										{t("agents.createDialog.apiKeyLabel")}{" "}
+										<span className="text-destructive">*</span>
+									</span>
+								</Label>
+								<div className="relative">
+									<Input
+										id="agent-api-key"
+										type={showApiKey ? "text" : "password"}
+										placeholder={
+											llmProvider === "anthropic" ? "sk-ant-..." : "sk-..."
+										}
+										value={llmApiKey}
+										onChange={(e) => setLlmApiKey(e.target.value)}
+										className="pr-9"
+									/>
+									<button
+										type="button"
+										onClick={() => setShowApiKey((s) => !s)}
+										className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/60 hover:text-foreground transition-colors"
+										aria-label={
+											showApiKey
+												? t("agents.createDialog.hideApiKey")
+												: t("agents.createDialog.showApiKey")
+										}
+									>
+										{showApiKey ? (
+											<EyeOff className="size-4" />
+										) : (
+											<Eye className="size-4" />
+										)}
+									</button>
+								</div>
+								<p className="text-xs text-muted-foreground flex items-center gap-1.5">
+									<span className="size-1.5 shrink-0 rounded-full bg-emerald-500 inline-block" />
+									{t("agents.createDialog.apiKeyHint")}
+								</p>
+							</div>
+						)}
 
 						{/* Base URL */}
-						<div className="space-y-1.5">
-							<Label htmlFor="agent-base-url">
-								{t("agents.createDialog.baseUrlLabel")}{" "}
-								<span className="text-destructive">*</span>
-							</Label>
-							<Input
-								id="agent-base-url"
-								placeholder="https://api.openai.com/v1"
-								value={llmBaseUrl}
-								onChange={(e) => setLlmBaseUrl(e.target.value)}
-							/>
-						</div>
+						{!usesProSubscription && (
+							<div className="space-y-1.5">
+								<Label htmlFor="agent-base-url">
+									{t("agents.createDialog.baseUrlLabel")}{" "}
+									<span className="text-destructive">*</span>
+								</Label>
+								<Input
+									id="agent-base-url"
+									placeholder="https://api.openai.com/v1"
+									value={llmBaseUrl}
+									onChange={(e) => setLlmBaseUrl(e.target.value)}
+								/>
+							</div>
+						)}
 
 						{/* System Prompt */}
 						<div className="space-y-1.5">

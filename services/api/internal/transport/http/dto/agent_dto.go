@@ -17,6 +17,8 @@ type AgentResponse struct {
 	ID                            uuid.UUID                `json:"id"`
 	ProjectID                     uuid.UUID                `json:"project_id"`
 	MemberID                      *uuid.UUID               `json:"member_id,omitempty"`
+	ProjectRoleID                 *uuid.UUID               `json:"project_role_id,omitempty"`
+	ProjectRoleName               string                   `json:"project_role_name,omitempty"`
 	Name                          string                   `json:"name"`
 	Handle                        string                   `json:"handle"`
 	AvatarURL                     *string                  `json:"avatar_url,omitempty"`
@@ -47,8 +49,8 @@ type CreateAgentRequest struct {
 	Handle                        string    `json:"handle" binding:"required"`
 	LLMProvider                   string    `json:"llm_provider" binding:"required"`
 	LLMModel                      string    `json:"llm_model" binding:"required"`
-	LLMAPIKey                     string    `json:"llm_api_key" binding:"required"`
-	LLMBaseURL                    string    `json:"llm_base_url" binding:"required"`
+	LLMAPIKey                     string    `json:"llm_api_key"`
+	LLMBaseURL                    string    `json:"llm_base_url"`
 	SystemPrompt                  string    `json:"system_prompt"`
 	TaskTriggerPrompt             string    `json:"task_trigger_prompt"`
 	DocCommentTriggerPrompt       string    `json:"doc_comment_trigger_prompt"`
@@ -65,23 +67,24 @@ type CreateAgentRequest struct {
 
 // UpdateAgentRequest is the body for PATCH /projects/:projectId/agents/:agentId.
 type UpdateAgentRequest struct {
-	Name                          *string `json:"name"`
-	Handle                        *string `json:"handle"`
-	LLMProvider                   *string `json:"llm_provider"`
-	LLMModel                      *string `json:"llm_model"`
-	LLMAPIKey                     *string `json:"llm_api_key"`
-	LLMBaseURL                    *string `json:"llm_base_url"`
-	SystemPrompt                  *string `json:"system_prompt"`
-	TaskTriggerPrompt             *string `json:"task_trigger_prompt"`
-	DocCommentTriggerPrompt       *string `json:"doc_comment_trigger_prompt"`
-	ChatTriggerPrompt             *string `json:"chat_trigger_prompt"`
-	DescriptionWriteTriggerPrompt *string `json:"description_write_trigger_prompt"`
-	CanCloneRepos                 *bool   `json:"can_clone_repos"`
-	CanCreatePRs                  *bool   `json:"can_create_prs"`
-	MaxIterations                 *int    `json:"max_iterations"`
-	TimeoutMinutes                *int    `json:"timeout_minutes"`
-	GitCommitterName              *string `json:"git_committer_name"`
-	GitCommitterEmail             *string `json:"git_committer_email"`
+	Name                          *string    `json:"name"`
+	Handle                        *string    `json:"handle"`
+	LLMProvider                   *string    `json:"llm_provider"`
+	LLMModel                      *string    `json:"llm_model"`
+	LLMAPIKey                     *string    `json:"llm_api_key"`
+	LLMBaseURL                    *string    `json:"llm_base_url"`
+	SystemPrompt                  *string    `json:"system_prompt"`
+	TaskTriggerPrompt             *string    `json:"task_trigger_prompt"`
+	DocCommentTriggerPrompt       *string    `json:"doc_comment_trigger_prompt"`
+	ChatTriggerPrompt             *string    `json:"chat_trigger_prompt"`
+	DescriptionWriteTriggerPrompt *string    `json:"description_write_trigger_prompt"`
+	CanCloneRepos                 *bool      `json:"can_clone_repos"`
+	CanCreatePRs                  *bool      `json:"can_create_prs"`
+	MaxIterations                 *int       `json:"max_iterations"`
+	TimeoutMinutes                *int       `json:"timeout_minutes"`
+	GitCommitterName              *string    `json:"git_committer_name"`
+	GitCommitterEmail             *string    `json:"git_committer_email"`
+	ProjectRoleID                 *uuid.UUID `json:"project_role_id"`
 }
 
 // AgentFromEntity maps an Agent entity to AgentResponse.
@@ -90,6 +93,8 @@ func AgentFromEntity(a *agentdom.Agent) AgentResponse {
 		ID:                            a.ID,
 		ProjectID:                     a.ProjectID,
 		MemberID:                      a.MemberID,
+		ProjectRoleID:                 a.ProjectRoleID,
+		ProjectRoleName:               a.ProjectRoleName,
 		Name:                          a.Name,
 		Handle:                        a.Handle,
 		AvatarURL:                     a.AvatarURL,

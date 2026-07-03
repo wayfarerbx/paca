@@ -43,6 +43,8 @@ type agentRecord struct {
 	UpdatedAt                     time.Time  `db:"updated_at"`
 	DeletedAt                     *time.Time `db:"deleted_at"`
 	MemberID                      *string    `db:"member_id"` // populated when joining with project_members
+	ProjectRoleID                 *string    `db:"project_role_id"`
+	ProjectRoleName               string     `db:"project_role_name"`
 }
 
 type agentMCPServerRecord struct {
@@ -137,7 +139,7 @@ const agentSelectCols = `a.id, a.project_id, a.name, a.handle, a.avatar_url, a.l
 	a.doc_comment_trigger_prompt, a.chat_trigger_prompt, a.description_write_trigger_prompt,
 	a.can_clone_repos, a.can_create_prs, a.max_iterations, a.timeout_minutes,
 	a.git_committer_name, a.git_committer_email, a.created_by, a.created_at, a.updated_at, a.deleted_at,
-	pm.id AS member_id`
+	pm.id AS member_id, pm.project_role_id AS project_role_id, COALESCE(pr.role_name, '') AS project_role_name`
 
 // -------------------------------------------------------------------------
 // Agents
@@ -150,6 +152,7 @@ func (r *AgentRepository) ListAgents(ctx context.Context, projectID uuid.UUID) (
 		SELECT `+agentSelectCols+`
 		FROM agents a
 		LEFT JOIN project_members pm ON pm.agent_id = a.id AND pm.deleted_at IS NULL
+		LEFT JOIN project_roles pr ON pr.id = pm.project_role_id
 		WHERE a.project_id = $1 AND a.deleted_at IS NULL`, projectID.String())
 	if err != nil {
 		return nil, err
@@ -169,6 +172,7 @@ func (r *AgentRepository) FindAgentByID(ctx context.Context, id uuid.UUID) (*age
 		SELECT `+agentSelectCols+`
 		FROM agents a
 		LEFT JOIN project_members pm ON pm.agent_id = a.id AND pm.deleted_at IS NULL
+		LEFT JOIN project_roles pr ON pr.id = pm.project_role_id
 		WHERE a.id = $1 AND a.deleted_at IS NULL`, id.String())
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, agentdom.ErrAgentNotFound
@@ -198,6 +202,7 @@ func (r *AgentRepository) FindAgentByHandle(ctx context.Context, projectID uuid.
 		SELECT `+agentSelectCols+`
 		FROM agents a
 		LEFT JOIN project_members pm ON pm.agent_id = a.id AND pm.deleted_at IS NULL
+		LEFT JOIN project_roles pr ON pr.id = pm.project_role_id
 		WHERE a.project_id = $1 AND a.handle = $2 AND a.deleted_at IS NULL`,
 		projectID.String(), handle)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -230,30 +235,23 @@ func (r *AgentRepository) CreateAgent(ctx context.Context, a *agentdom.Agent) er
 }
 
 // UpdateAgent patches the mutable fields of an existing agent.
-// When LLMAPIKeySecret is non-empty it is updated atomically with the rest of
-// the fields inside a single transaction so no partial update is possible.
 func (r *AgentRepository) UpdateAgent(ctx context.Context, a *agentdom.Agent) error {
 	return WithTx(ctx, r.db, func(tx *sqlx.Tx) error {
 		_, err := tx.ExecContext(ctx, `
 			UPDATE agents SET
-			  name=$1, handle=$2, avatar_url=$3, llm_provider=$4, llm_model=$5, llm_base_url=$6,
-			  system_prompt=$7, task_trigger_prompt=$8, doc_comment_trigger_prompt=$9,
-			  chat_trigger_prompt=$10, description_write_trigger_prompt=$11,
-			  can_clone_repos=$12, can_create_prs=$13, max_iterations=$14, timeout_minutes=$15,
-			  git_committer_name=$16, git_committer_email=$17, updated_at=$18
-			WHERE id=$19`,
-			a.Name, a.Handle, a.AvatarURL, a.LLMProvider, a.LLMModel, a.LLMBaseURL,
+			  name=$1, handle=$2, avatar_url=$3, llm_provider=$4, llm_model=$5,
+			  llm_api_key_secret=$6, llm_base_url=$7,
+			  system_prompt=$8, task_trigger_prompt=$9, doc_comment_trigger_prompt=$10,
+			  chat_trigger_prompt=$11, description_write_trigger_prompt=$12,
+			  can_clone_repos=$13, can_create_prs=$14, max_iterations=$15, timeout_minutes=$16,
+			  git_committer_name=$17, git_committer_email=$18, updated_at=$19
+			WHERE id=$20`,
+			a.Name, a.Handle, a.AvatarURL, a.LLMProvider, a.LLMModel, a.LLMAPIKeySecret, a.LLMBaseURL,
 			a.SystemPrompt, a.TaskTriggerPrompt, a.DocCommentTriggerPrompt,
 			a.ChatTriggerPrompt, a.DescriptionWriteTriggerPrompt,
 			a.CanCloneRepos, a.CanCreatePRs, a.MaxIterations, a.TimeoutMinutes,
 			a.GitCommitterName, a.GitCommitterEmail, time.Now(), a.ID.String(),
 		)
-		if err != nil {
-			return err
-		}
-		if a.LLMAPIKeySecret != "" {
-			_, err = tx.ExecContext(ctx, `UPDATE agents SET llm_api_key_secret=$1 WHERE id=$2`, a.LLMAPIKeySecret, a.ID.String())
-		}
 		return err
 	})
 }
@@ -707,6 +705,11 @@ func agentFromReadRow(row agentRecord) *agentdom.Agent {
 	if row.MemberID != nil {
 		mid := mustParseUUID(*row.MemberID)
 		a.MemberID = &mid
+	}
+	if row.ProjectRoleID != nil {
+		rid := mustParseUUID(*row.ProjectRoleID)
+		a.ProjectRoleID = &rid
+		a.ProjectRoleName = row.ProjectRoleName
 	}
 	return a
 }

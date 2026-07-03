@@ -1,0 +1,22 @@
+{
+	"dialog": {
+		"closeLabel": "Закрыть",
+		"closeButton": "Закрыть"
+	},
+	"sidebar": {
+		"title": "Боковая панель",
+		"description": "Показывает мобильную боковую панель.",
+		"toggleLabel": "Переключить боковую панель"
+	},
+	"validation": {
+		"usernameRequired": "Укажите имя пользователя.",
+		"usernameMinLength": "Имя пользователя должно содержать не менее {{min}} символов.",
+		"passwordRequired": "Укажите пароль.",
+		"passwordMinLength": "Пароль должен содержать не менее {{min}} символов.",
+		"newPasswordRequired": "Укажите новый пароль.",
+		"newPasswordMinLength": "Новый пароль должен содержать не менее {{min}} символов.",
+		"newPasswordMustDiffer": "Новый пароль должен отличаться от текущего.",
+		"confirmPasswordRequired": "Подтвердите новый пароль.",
+		"passwordsDoNotMatch": "Пароли не совпадают."
+	}
+}

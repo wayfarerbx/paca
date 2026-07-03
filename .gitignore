@@ -2,6 +2,8 @@ node_modules
 .DS_Store
 dist
 dist-ssr
+.runtime/
+.tools/
 *.local
 *.tsbuildinfo
 .env
@@ -41,3 +43,4 @@ plugins/local
 
 # Python artifacts
 __pycache__/
+.venv/

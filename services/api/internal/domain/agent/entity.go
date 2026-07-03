@@ -34,9 +34,11 @@ type Agent struct {
 	UpdatedAt                     time.Time
 	DeletedAt                     *time.Time
 	// Member ID in project_members (populated on create / list)
-	MemberID   *uuid.UUID
-	MCPServers []*AgentMCPServer
-	Skills     []*AgentSkill
+	MemberID        *uuid.UUID
+	ProjectRoleID   *uuid.UUID
+	ProjectRoleName string
+	MCPServers      []*AgentMCPServer
+	Skills          []*AgentSkill
 }
 
 // AgentMCPServer is a custom MCP server configuration attached to an agent.

@@ -7,6 +7,7 @@ import json
 import logging
 import threading
 import time
+from pathlib import Path
 
 import httpx
 from openhands.sdk import Agent, AgentContext, Conversation
@@ -173,6 +174,39 @@ def _gather_repo_sources(trigger: TriggerMessage) -> list[RepoInfoSource]:
         except Exception as exc:
             logger.warning("Failed to get repository info from plugin %s: %s", plugin_id, exc)
     return sources
+
+
+def _local_repos_enabled() -> bool:
+    return bool(settings.local_repos_host_path) and Path(settings.local_repos_host_path).is_dir()
+
+
+def _effective_repo_plugin_ids(repo_plugin_ids: list[str]) -> list[str]:
+    ids = list(repo_plugin_ids)
+    if _local_repos_enabled() and settings.local_repo_plugin_id not in ids:
+        ids.append(settings.local_repo_plugin_id)
+    return ids
+
+
+def _local_repo_infos() -> list[dict]:
+    if not _local_repos_enabled():
+        return []
+
+    root = Path(settings.local_repos_host_path)
+    repos: list[dict] = []
+    for child in sorted(root.iterdir(), key=lambda p: p.name.lower()):
+        if not child.is_dir() or child.name.startswith("."):
+            continue
+        repos.append(
+            {
+                "plugin_id": settings.local_repo_plugin_id,
+                "repo_id": child.name,
+                "full_name": child.name,
+                "owner": "local",
+                "repo_name": child.name,
+                "clone_url": f"file://{settings.local_repos_path.rstrip('/')}/{child.name}",
+            }
+        )
+    return repos
 
 
 # ─── Shared event index ───────────────────────────────────────────────────────
@@ -448,11 +482,12 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
             "- Use paths like `'Architecture/API Design'` — folder structure is handled for you.\n"
         )
 
-        has_repos = len(trigger.repo_plugin_ids) > 0 and agent_config.can_clone_repos
+        repo_plugin_ids = _effective_repo_plugin_ids(trigger.repo_plugin_ids)
+        has_repos = len(repo_plugin_ids) > 0 and agent_config.can_clone_repos
         logger.info(
             "Conversation %s — repo_plugin_ids=%s can_clone_repos=%s has_repos=%s",
             trigger.conversation_id,
-            trigger.repo_plugin_ids,
+            repo_plugin_ids,
             agent_config.can_clone_repos,
             has_repos,
         )
@@ -471,7 +506,11 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
                 " and the branch name to publish the branch.\n"
                 "6. Call create_pull_request with the plugin_id, repo_id, a descriptive title, "
                 "the feature branch as head_branch, and the default branch as base_branch.\n\n"
-                "Do NOT skip steps 5 and 6 — always push your branch and open a PR when finished."
+                "Do NOT skip steps 5 and 6 for remote Git repositories.\n\n"
+                "Local filesystem repositories use plugin_id `local-fs`. For `local-fs`, "
+                "clone_repository links the selected local folder to /workspace/repo and "
+                "your edits are saved directly in the mounted local source folder. "
+                "Do not create a pull request for `local-fs`; summarize the saved changes instead."
             )
 
         # Append the trigger-specific prompt last so it takes precedence.
@@ -511,10 +550,12 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
                 if has_repos:
                     agent_kwargs["tools"] = get_default_tools() + make_repository_tool_specs(
                         trigger.project_id,
-                        trigger.repo_plugin_ids,
+                        repo_plugin_ids,
                         trigger.task_id,
                         api_base_url=settings.api_base_url,
                         api_key=settings.paca_api_key,
+                        local_repos_path=settings.local_repos_path,
+                        local_plugin_id=settings.local_repo_plugin_id,
                     )
 
                 agent = Agent(**agent_kwargs)
@@ -542,7 +583,7 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
                     if has_repos:
                         try:
                             repo_sources = _gather_repo_sources(trigger)
-                            all_repos: list[dict] = []
+                            all_repos: list[dict] = _local_repo_infos()
                             for source in repo_sources:
                                 for repo in source.repositories:
                                     all_repos.append(

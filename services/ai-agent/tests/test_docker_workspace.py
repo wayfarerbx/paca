@@ -7,8 +7,11 @@ import pytest
 from src.agent.docker_workspace import (
     _acquire_port,
     _detect_platform,
+    _docker_base_url,
+    _openhands_home_host_path,
     _ports_in_use,
     _release_port,
+    _use_openhands_home_volume,
 )
 from src.config import settings
 
@@ -82,3 +85,42 @@ def test_exhausted_pool_raises_runtime_error():
     )
     with pytest.raises(RuntimeError, match="No ports available"):
         _acquire_port()
+
+
+def test_windows_default_docker_socket_uses_npipe(monkeypatch):
+    monkeypatch.setattr(settings, "docker_socket", "/var/run/docker.sock")
+    with patch("src.agent.docker_workspace.platform_module.system", return_value="Windows"):
+        assert _docker_base_url() == "npipe:////./pipe/dockerDesktopLinuxEngine"
+
+
+def test_explicit_docker_url_is_preserved(monkeypatch):
+    monkeypatch.setattr(settings, "docker_socket", "tcp://127.0.0.1:2375")
+    assert _docker_base_url() == "tcp://127.0.0.1:2375"
+
+
+def test_openhands_home_host_path_returns_existing_openhands_dir(tmp_path, monkeypatch):
+    openhands_dir = tmp_path / ".openhands"
+    openhands_dir.mkdir()
+    monkeypatch.setattr("src.agent.docker_workspace.Path.home", lambda: tmp_path)
+
+    assert _openhands_home_host_path() == str(openhands_dir)
+
+
+def test_openhands_home_host_path_omits_missing_openhands_dir(tmp_path, monkeypatch):
+    monkeypatch.setattr("src.agent.docker_workspace.Path.home", lambda: tmp_path)
+
+    assert _openhands_home_host_path() is None
+
+
+def test_windows_local_dev_uses_named_openhands_volume(monkeypatch):
+    monkeypatch.setattr("src.agent.docker_workspace.platform_module.system", lambda: "Windows")
+    monkeypatch.setattr("src.agent.docker_workspace._is_inside_docker", lambda: False)
+
+    assert _use_openhands_home_volume() is True
+
+
+def test_non_windows_uses_bind_mount_for_openhands_home(monkeypatch):
+    monkeypatch.setattr("src.agent.docker_workspace.platform_module.system", lambda: "Linux")
+    monkeypatch.setattr("src.agent.docker_workspace._is_inside_docker", lambda: False)
+
+    assert _use_openhands_home_volume() is False
