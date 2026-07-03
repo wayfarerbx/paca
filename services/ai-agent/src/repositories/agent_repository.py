@@ -129,10 +129,16 @@ async def load_agent_config(agent_id: str) -> AgentConfig | None:
         )
         for r in skill_rows
     ]
-    env_vars = {
-        r["key"]: _decrypt_secret(r["encrypted_value"], label=f"environment variable {r['key']}")
-        for r in env_var_rows
-    }
+    # A key is omitted rather than injected with an empty value on decrypt
+    # failure — a missing env var is unambiguous, while an empty one can be
+    # mistaken for a deliberately blank secret by downstream tooling (e.g.
+    # git treating an empty GITHUB_TOKEN as "no auth" vs "broken auth").
+    env_vars: dict[str, str] = {}
+    for r in env_var_rows:
+        key = r["key"]
+        value = _decrypt_secret(r["encrypted_value"], label=f"environment variable {key}")
+        if value:
+            env_vars[key] = value
 
     return AgentConfig(
         agent_id=str(row["id"]),

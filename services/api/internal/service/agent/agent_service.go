@@ -440,12 +440,15 @@ var reservedEnvVarKeys = map[string]bool{
 }
 
 // validateEnvVarKey checks that key is a well-formed, non-reserved shell
-// environment variable name.
+// environment variable name. The reserved-name check is case-insensitive so
+// a lookalike like "oh_secret_key" can't sit alongside the real uppercase
+// infra variable and confuse anyone inspecting the container's environment.
 func validateEnvVarKey(key string) error {
 	if !envVarKeyPattern.MatchString(key) {
 		return agentdom.ErrEnvVarKeyInvalid
 	}
-	if reservedEnvVarKeys[key] || strings.HasPrefix(key, "PACA_") {
+	upperKey := strings.ToUpper(key)
+	if reservedEnvVarKeys[upperKey] || strings.HasPrefix(upperKey, "PACA_") {
 		return agentdom.ErrEnvVarKeyReserved
 	}
 	return nil

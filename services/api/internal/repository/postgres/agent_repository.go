@@ -525,7 +525,13 @@ func (r *AgentRepository) CreateEnvVar(ctx context.Context, v *agentdom.AgentEnv
 		VALUES ($1,$2,$3,$4,$5,$6)`,
 		v.ID.String(), v.AgentID.String(), v.Key, v.EncryptedValue, v.CreatedAt, v.UpdatedAt,
 	)
-	return err
+	if err != nil {
+		if isUniqueViolation(err) {
+			return agentdom.ErrEnvVarKeyTaken
+		}
+		return err
+	}
+	return nil
 }
 
 // UpdateEnvVar saves the full environment variable record.
