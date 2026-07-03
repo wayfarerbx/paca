@@ -78,6 +78,7 @@
 				"overview": "概览",
 				"mcpServers": "MCP 服务器",
 				"skills": "技能",
+				"envVars": "环境变量",
 				"conversations": "对话"
 			},
 			"overview": {
@@ -128,6 +129,25 @@
 					"urlLabel": "URL",
 					"cancel": "取消",
 					"addServer": "添加服务器"
+				}
+			},
+			"envVars": {
+				"count_one": "已配置 {{count}} 个变量",
+				"count_other": "已配置 {{count}} 个变量",
+				"addVariable": "添加变量",
+				"empty": {
+					"title": "尚未添加环境变量",
+					"addFirst": "添加您的第一个变量"
+				},
+				"addDialog": {
+					"title": "添加环境变量",
+					"description": "密钥值在静态存储时会被加密，并在运行时注入到智能体的沙箱环境中。保存后将无法再次查看该值。",
+					"keyLabel": "键",
+					"keyPlaceholder": "GITHUB_TOKEN",
+					"keyHint": "（字母、数字、下划线，必须以字母或下划线开头）",
+					"valueLabel": "值",
+					"cancel": "取消",
+					"addVariable": "添加变量"
 				}
 			},
 			"skills": {

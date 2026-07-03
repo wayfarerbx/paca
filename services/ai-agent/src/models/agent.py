@@ -43,3 +43,4 @@ class AgentConfig:
     git_committer_email: str = "280579135+paca-agent@users.noreply.github.com"
     mcp_servers: list[AgentMCPServerRow] = field(default_factory=list)
     skills: list[AgentSkillRow] = field(default_factory=list)
+    env_vars: dict[str, str] = field(default_factory=dict)

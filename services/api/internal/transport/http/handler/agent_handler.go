@@ -448,6 +448,108 @@ func (h *AgentHandler) DeleteSkill(w http.ResponseWriter, r *http.Request) {
 	presenter.OK(w, r, map[string]any{"message": "skill deleted"})
 }
 
+// --- Environment Variables ---------------------------------------------------
+
+// ListEnvVars handles GET /projects/:projectId/agents/:agentId/env-vars.
+func (h *AgentHandler) ListEnvVars(w http.ResponseWriter, r *http.Request) {
+	_, agentID, err := h.parseAgentForProject(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	envVars, err := h.svc.ListEnvVars(r.Context(), agentID)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	resp := make([]dto.AgentEnvVarResponse, 0, len(envVars))
+	for _, v := range envVars {
+		resp = append(resp, dto.EnvVarFromEntity(v))
+	}
+	presenter.OK(w, r, map[string]any{"items": resp})
+}
+
+// AddEnvVar handles POST /projects/:projectId/agents/:agentId/env-vars.
+func (h *AgentHandler) AddEnvVar(w http.ResponseWriter, r *http.Request) {
+	_, agentID, err := h.parseAgentForProject(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	var req dto.AddEnvVarRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	if req.Key == "" {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "key is required"))
+		return
+	}
+	if req.Value == "" {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "value is required"))
+		return
+	}
+	envVar, err := h.svc.AddEnvVar(r.Context(), agentID, agentdom.AddEnvVarInput{
+		Key:   req.Key,
+		Value: req.Value,
+	})
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	presenter.OK(w, r, dto.EnvVarFromEntity(envVar))
+}
+
+// UpdateEnvVar handles PATCH /projects/:projectId/agents/:agentId/env-vars/:envVarId.
+func (h *AgentHandler) UpdateEnvVar(w http.ResponseWriter, r *http.Request) {
+	_, agentID, err := h.parseAgentForProject(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	envVarID, err := parseParamUUID(r, "envVarId")
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	var req dto.UpdateEnvVarRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	if req.Value == "" {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "value is required"))
+		return
+	}
+	envVar, err := h.svc.UpdateEnvVar(r.Context(), agentID, envVarID, agentdom.UpdateEnvVarInput{
+		Value: req.Value,
+	})
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	presenter.OK(w, r, dto.EnvVarFromEntity(envVar))
+}
+
+// DeleteEnvVar handles DELETE /projects/:projectId/agents/:agentId/env-vars/:envVarId.
+func (h *AgentHandler) DeleteEnvVar(w http.ResponseWriter, r *http.Request) {
+	_, agentID, err := h.parseAgentForProject(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	envVarID, err := parseParamUUID(r, "envVarId")
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	if err := h.svc.DeleteEnvVar(r.Context(), agentID, envVarID); err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	presenter.OK(w, r, map[string]any{"message": "environment variable deleted"})
+}
+
 // --- Chat Sessions ----------------------------------------------------------
 
 // ListChatSessions handles GET /projects/:projectId/agents/:agentId/chat-sessions.

@@ -281,6 +281,14 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusConflict, apierr.CodeAgentConversationAlreadyStopped
 	case errors.Is(err, agentdom.ErrChatSessionNotFound):
 		return http.StatusNotFound, apierr.CodeAgentChatSessionNotFound
+	case errors.Is(err, agentdom.ErrEnvVarNotFound):
+		return http.StatusNotFound, apierr.CodeAgentEnvVarNotFound
+	case errors.Is(err, agentdom.ErrEnvVarKeyTaken):
+		return http.StatusConflict, apierr.CodeAgentEnvVarKeyTaken
+	case errors.Is(err, agentdom.ErrEnvVarKeyInvalid):
+		return http.StatusBadRequest, apierr.CodeAgentEnvVarKeyInvalid
+	case errors.Is(err, agentdom.ErrEnvVarKeyReserved):
+		return http.StatusBadRequest, apierr.CodeAgentEnvVarKeyReserved
 	default:
 		return http.StatusInternalServerError, apierr.CodeInternalError
 	}
@@ -433,13 +441,18 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodeAgentMCPServerNotFound,
 		apierr.CodeAgentSkillNotFound,
 		apierr.CodeAgentConversationNotFound,
-		apierr.CodeAgentChatSessionNotFound:
+		apierr.CodeAgentChatSessionNotFound,
+		apierr.CodeAgentEnvVarNotFound:
 		return http.StatusNotFound
 	case apierr.CodeAgentHandleTaken,
 		apierr.CodeAgentConversationNotRunning,
-		apierr.CodeAgentConversationAlreadyStopped:
+		apierr.CodeAgentConversationAlreadyStopped,
+		apierr.CodeAgentEnvVarKeyTaken:
 		return http.StatusConflict
-	case apierr.CodeAgentHandleInvalid, apierr.CodeAgentNameInvalid:
+	case apierr.CodeAgentHandleInvalid,
+		apierr.CodeAgentNameInvalid,
+		apierr.CodeAgentEnvVarKeyInvalid,
+		apierr.CodeAgentEnvVarKeyReserved:
 		return http.StatusBadRequest
 	case apierr.CodeBadRequest:
 		return http.StatusBadRequest

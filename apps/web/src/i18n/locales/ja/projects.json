@@ -78,6 +78,7 @@
 				"overview": "概要",
 				"mcpServers": "MCPサーバー",
 				"skills": "スキル",
+				"envVars": "環境変数",
 				"conversations": "会話"
 			},
 			"overview": {
@@ -128,6 +129,25 @@
 					"urlLabel": "URL",
 					"cancel": "キャンセル",
 					"addServer": "サーバーを追加"
+				}
+			},
+			"envVars": {
+				"count_one": "{{count}}件の変数を設定済み",
+				"count_other": "{{count}}件の変数を設定済み",
+				"addVariable": "変数を追加",
+				"empty": {
+					"title": "環境変数が追加されていません",
+					"addFirst": "最初の変数を追加"
+				},
+				"addDialog": {
+					"title": "環境変数を追加",
+					"description": "シークレット値は保存時に暗号化され、実行時にエージェントのサンドボックスに注入されます。保存後は値を再度表示することはできません。",
+					"keyLabel": "キー",
+					"keyPlaceholder": "GITHUB_TOKEN",
+					"keyHint": "（英字・数字・アンダースコア。英字またはアンダースコアで始まる必要があります）",
+					"valueLabel": "値",
+					"cancel": "キャンセル",
+					"addVariable": "変数を追加"
 				}
 			},
 			"skills": {

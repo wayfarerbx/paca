@@ -30,6 +30,12 @@ type mockAgentRepo struct {
 	createSkill                   func(ctx context.Context, skill *agentdom.AgentSkill) error
 	updateSkill                   func(ctx context.Context, skill *agentdom.AgentSkill) error
 	deleteSkill                   func(ctx context.Context, id uuid.UUID) error
+	listEnvVars                   func(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentEnvironmentVariable, error)
+	findEnvVarByID                func(ctx context.Context, id uuid.UUID) (*agentdom.AgentEnvironmentVariable, error)
+	findEnvVarByKey               func(ctx context.Context, agentID uuid.UUID, key string) (*agentdom.AgentEnvironmentVariable, error)
+	createEnvVar                  func(ctx context.Context, v *agentdom.AgentEnvironmentVariable) error
+	updateEnvVar                  func(ctx context.Context, v *agentdom.AgentEnvironmentVariable) error
+	deleteEnvVar                  func(ctx context.Context, id uuid.UUID) error
 	listConversations             func(ctx context.Context, filter agentdom.ListConversationsFilter) ([]*agentdom.AgentConversation, int64, error)
 	findConversationByID          func(ctx context.Context, id uuid.UUID) (*agentdom.AgentConversation, error)
 	createConversation            func(ctx context.Context, conv *agentdom.AgentConversation) error
@@ -172,6 +178,48 @@ func (m *mockAgentRepo) UpdateSkill(ctx context.Context, skill *agentdom.AgentSk
 func (m *mockAgentRepo) DeleteSkill(ctx context.Context, id uuid.UUID) error {
 	if m.deleteSkill != nil {
 		return m.deleteSkill(ctx, id)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) ListEnvVars(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentEnvironmentVariable, error) {
+	if m.listEnvVars != nil {
+		return m.listEnvVars(ctx, agentID)
+	}
+	return nil, nil
+}
+
+func (m *mockAgentRepo) FindEnvVarByID(ctx context.Context, id uuid.UUID) (*agentdom.AgentEnvironmentVariable, error) {
+	if m.findEnvVarByID != nil {
+		return m.findEnvVarByID(ctx, id)
+	}
+	return nil, agentdom.ErrEnvVarNotFound
+}
+
+func (m *mockAgentRepo) FindEnvVarByKey(ctx context.Context, agentID uuid.UUID, key string) (*agentdom.AgentEnvironmentVariable, error) {
+	if m.findEnvVarByKey != nil {
+		return m.findEnvVarByKey(ctx, agentID, key)
+	}
+	return nil, agentdom.ErrEnvVarNotFound
+}
+
+func (m *mockAgentRepo) CreateEnvVar(ctx context.Context, v *agentdom.AgentEnvironmentVariable) error {
+	if m.createEnvVar != nil {
+		return m.createEnvVar(ctx, v)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) UpdateEnvVar(ctx context.Context, v *agentdom.AgentEnvironmentVariable) error {
+	if m.updateEnvVar != nil {
+		return m.updateEnvVar(ctx, v)
+	}
+	return nil
+}
+
+func (m *mockAgentRepo) DeleteEnvVar(ctx context.Context, id uuid.UUID) error {
+	if m.deleteEnvVar != nil {
+		return m.deleteEnvVar(ctx, id)
 	}
 	return nil
 }

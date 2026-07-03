@@ -7,6 +7,7 @@ import {
 	Code2,
 	GitBranch,
 	GitPullRequest,
+	KeyRound,
 	Loader2,
 	MessageSquare,
 	Plus,
@@ -51,14 +52,17 @@ import {
 	type AgentConversation,
 	type AgentMCPServer,
 	type AgentSkill,
+	addEnvVar,
 	addMCPServer,
 	addSkill,
+	agentEnvVarsQueryOptions,
 	agentMCPServersQueryOptions,
 	agentQueryOptions,
 	agentSkillsQueryOptions,
 	CONVERSATION_STATUS_COLORS,
 	CONVERSATION_STATUS_LABELS,
 	conversationsQueryOptions,
+	deleteEnvVar,
 	deleteMCPServer,
 	deleteSkill,
 	llmModelsQueryOptions,
@@ -80,6 +84,7 @@ export const Route = createFileRoute(
 				agentMCPServersQueryOptions(projectId, agentId),
 			),
 			queryClient.ensureQueryData(agentSkillsQueryOptions(projectId, agentId)),
+			queryClient.ensureQueryData(agentEnvVarsQueryOptions(projectId, agentId)),
 			queryClient.ensureQueryData(
 				conversationsQueryOptions(projectId, agentId),
 			),
@@ -89,7 +94,7 @@ export const Route = createFileRoute(
 	component: AgentDetailPage,
 });
 
-type Tab = "overview" | "mcp-servers" | "skills" | "conversations";
+type Tab = "overview" | "mcp-servers" | "skills" | "env-vars" | "conversations";
 
 const CUSTOM = "__custom__";
 
@@ -1003,6 +1008,196 @@ function SkillsTab({
 	);
 }
 
+// ── Environment Variables Tab ────────────────────────────────────────────────
+
+const ENV_VAR_KEY_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+function AddEnvVarDialog({
+	projectId,
+	agentId,
+	open,
+	onOpenChange,
+}: {
+	projectId: string;
+	agentId: string;
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+}) {
+	const { t } = useTranslation("projects");
+	const qc = useQueryClient();
+	const [key, setKey] = useState("");
+	const [value, setValue] = useState("");
+
+	const isKeyValid = ENV_VAR_KEY_PATTERN.test(key.trim());
+
+	const addMutation = useMutation({
+		mutationFn: () => addEnvVar(projectId, agentId, { key: key.trim(), value }),
+		onSuccess: () => {
+			qc.invalidateQueries({
+				queryKey: ["projects", projectId, "agents", agentId, "env-vars"],
+			});
+			onOpenChange(false);
+			setKey("");
+			setValue("");
+		},
+	});
+
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="max-w-md">
+				<DialogHeader>
+					<DialogTitle className="flex items-center gap-2">
+						<KeyRound className="size-4 text-primary" />
+						{t("agents.detail.envVars.addDialog.title")}
+					</DialogTitle>
+					<DialogDescription>
+						{t("agents.detail.envVars.addDialog.description")}
+					</DialogDescription>
+				</DialogHeader>
+				<div className="space-y-4 py-2">
+					<div className="space-y-1.5">
+						<Label>{t("agents.detail.envVars.addDialog.keyLabel")}</Label>
+						<Input
+							placeholder={t("agents.detail.envVars.addDialog.keyPlaceholder")}
+							className="font-mono"
+							value={key}
+							onChange={(e) => setKey(e.target.value)}
+						/>
+						<p className="text-xs text-muted-foreground">
+							{t("agents.detail.envVars.addDialog.keyHint")}
+						</p>
+					</div>
+					<div className="space-y-1.5">
+						<Label>{t("agents.detail.envVars.addDialog.valueLabel")}</Label>
+						<Input
+							type="password"
+							autoComplete="off"
+							className="font-mono"
+							value={value}
+							onChange={(e) => setValue(e.target.value)}
+						/>
+					</div>
+				</div>
+				<DialogFooter>
+					<Button variant="outline" onClick={() => onOpenChange(false)}>
+						{t("agents.detail.envVars.addDialog.cancel")}
+					</Button>
+					<Button
+						onClick={() => addMutation.mutate()}
+						disabled={!isKeyValid || !value || addMutation.isPending}
+					>
+						{addMutation.isPending ? (
+							<Loader2 className="size-4 animate-spin" />
+						) : (
+							t("agents.detail.envVars.addDialog.addVariable")
+						)}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	);
+}
+
+function EnvVarsTab({
+	projectId,
+	agentId,
+	canWrite,
+}: {
+	projectId: string;
+	agentId: string;
+	canWrite: boolean;
+}) {
+	const { t } = useTranslation("projects");
+	const qc = useQueryClient();
+	const { data: envVars = [] } = useQuery(
+		agentEnvVarsQueryOptions(projectId, agentId),
+	);
+	const [addOpen, setAddOpen] = useState(false);
+
+	const deleteMutation = useMutation({
+		mutationFn: (id: string) => deleteEnvVar(projectId, agentId, id),
+		onSuccess: () => {
+			qc.invalidateQueries({
+				queryKey: ["projects", projectId, "agents", agentId, "env-vars"],
+			});
+		},
+	});
+
+	return (
+		<div className="space-y-4">
+			<div className="flex items-center justify-between">
+				<p className="text-sm text-muted-foreground">
+					{t("agents.detail.envVars.count", { count: envVars.length })}
+				</p>
+				{canWrite && (
+					<Button size="sm" onClick={() => setAddOpen(true)}>
+						<Plus className="size-4 mr-1.5" />
+						{t("agents.detail.envVars.addVariable")}
+					</Button>
+				)}
+			</div>
+
+			{envVars.length === 0 ? (
+				<div className="flex flex-col items-center justify-center gap-3 py-14 rounded-xl border border-dashed border-border">
+					<KeyRound className="size-8 text-muted-foreground/40" />
+					<p className="text-sm text-muted-foreground">
+						{t("agents.detail.envVars.empty.title")}
+					</p>
+					{canWrite && (
+						<Button
+							size="sm"
+							variant="outline"
+							onClick={() => setAddOpen(true)}
+						>
+							<Plus className="size-3.5 mr-1" />
+							{t("agents.detail.envVars.empty.addFirst")}
+						</Button>
+					)}
+				</div>
+			) : (
+				<div className="space-y-2">
+					{envVars.map((v) => (
+						<div
+							key={v.id}
+							className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card px-4 py-3"
+						>
+							<div className="flex items-center gap-3 min-w-0">
+								<KeyRound className="size-4 text-muted-foreground shrink-0" />
+								<div className="min-w-0">
+									<p className="text-sm font-medium font-mono truncate">
+										{v.key}
+									</p>
+									<p className="text-xs text-muted-foreground font-mono truncate">
+										{v.value}
+									</p>
+								</div>
+							</div>
+							{canWrite && (
+								<Button
+									variant="ghost"
+									size="icon"
+									className="size-7 text-muted-foreground hover:text-destructive shrink-0"
+									onClick={() => deleteMutation.mutate(v.id)}
+									disabled={deleteMutation.isPending}
+								>
+									<Trash2 className="size-3.5" />
+								</Button>
+							)}
+						</div>
+					))}
+				</div>
+			)}
+
+			<AddEnvVarDialog
+				projectId={projectId}
+				agentId={agentId}
+				open={addOpen}
+				onOpenChange={setAddOpen}
+			/>
+		</div>
+	);
+}
+
 // ── Conversations Tab ─────────────────────────────────────────────────────────
 
 function ConversationRow({
@@ -1176,6 +1371,11 @@ const TABS = [
 	},
 	{ id: "skills", labelKey: "agents.detail.tabs.skills", icon: Wand2 },
 	{
+		id: "env-vars",
+		labelKey: "agents.detail.tabs.envVars",
+		icon: KeyRound,
+	},
+	{
 		id: "conversations",
 		labelKey: "agents.detail.tabs.conversations",
 		icon: MessageSquare,
@@ -1279,6 +1479,13 @@ function AgentDetailPage() {
 				)}
 				{activeTab === "skills" && (
 					<SkillsTab
+						projectId={projectId}
+						agentId={agentId}
+						canWrite={canWrite}
+					/>
+				)}
+				{activeTab === "env-vars" && (
+					<EnvVarsTab
 						projectId={projectId}
 						agentId={agentId}
 						canWrite={canWrite}

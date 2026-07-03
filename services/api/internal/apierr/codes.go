@@ -270,6 +270,14 @@ const (
 	CodeAgentConversationAlreadyStopped Code = "AGENT_CONVERSATION_ALREADY_STOPPED"
 	// CodeAgentChatSessionNotFound indicates the requested chat session does not exist.
 	CodeAgentChatSessionNotFound Code = "AGENT_CHAT_SESSION_NOT_FOUND"
+	// CodeAgentEnvVarNotFound indicates the requested environment variable does not exist.
+	CodeAgentEnvVarNotFound Code = "AGENT_ENV_VAR_NOT_FOUND"
+	// CodeAgentEnvVarKeyTaken indicates the environment variable key is already in use on this agent.
+	CodeAgentEnvVarKeyTaken Code = "AGENT_ENV_VAR_KEY_TAKEN"
+	// CodeAgentEnvVarKeyInvalid indicates the environment variable key is malformed.
+	CodeAgentEnvVarKeyInvalid Code = "AGENT_ENV_VAR_KEY_INVALID"
+	// CodeAgentEnvVarKeyReserved indicates the environment variable key collides with an internal sandbox variable.
+	CodeAgentEnvVarKeyReserved Code = "AGENT_ENV_VAR_KEY_RESERVED"
 )
 
 // Error carries a machine-readable Code alongside a human-readable Message.

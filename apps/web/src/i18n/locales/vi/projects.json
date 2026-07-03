@@ -78,6 +78,7 @@
 				"overview": "Tổng quan",
 				"mcpServers": "Máy chủ MCP",
 				"skills": "Skill",
+				"envVars": "Môi trường",
 				"conversations": "Hội thoại"
 			},
 			"overview": {
@@ -128,6 +129,25 @@
 					"urlLabel": "URL",
 					"cancel": "Hủy",
 					"addServer": "Thêm máy chủ"
+				}
+			},
+			"envVars": {
+				"count_one": "{{count}} biến đã cấu hình",
+				"count_other": "{{count}} biến đã cấu hình",
+				"addVariable": "Thêm biến",
+				"empty": {
+					"title": "Chưa thêm biến môi trường nào",
+					"addFirst": "Thêm biến đầu tiên của bạn"
+				},
+				"addDialog": {
+					"title": "Thêm biến môi trường",
+					"description": "Giá trị bí mật được mã hóa khi lưu trữ và được đưa vào sandbox của agent khi chạy. Sau khi lưu, giá trị sẽ không thể xem lại được nữa.",
+					"keyLabel": "Khóa",
+					"keyPlaceholder": "GITHUB_TOKEN",
+					"keyHint": "(chữ cái, chữ số, dấu gạch dưới — phải bắt đầu bằng chữ cái hoặc dấu gạch dưới)",
+					"valueLabel": "Giá trị",
+					"cancel": "Hủy",
+					"addVariable": "Thêm biến"
 				}
 			},
 			"skills": {

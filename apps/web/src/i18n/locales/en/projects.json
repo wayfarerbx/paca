@@ -78,6 +78,7 @@
 				"overview": "Overview",
 				"mcpServers": "MCP Servers",
 				"skills": "Skills",
+				"envVars": "Environment",
 				"conversations": "Conversations"
 			},
 			"overview": {
@@ -128,6 +129,25 @@
 					"urlLabel": "URL",
 					"cancel": "Cancel",
 					"addServer": "Add server"
+				}
+			},
+			"envVars": {
+				"count_one": "{{count}} variable configured",
+				"count_other": "{{count}} variables configured",
+				"addVariable": "Add variable",
+				"empty": {
+					"title": "No environment variables added",
+					"addFirst": "Add your first variable"
+				},
+				"addDialog": {
+					"title": "Add Environment Variable",
+					"description": "Secret values are encrypted at rest and injected into the agent's sandbox at run time. Once saved, a value can never be viewed again.",
+					"keyLabel": "Key",
+					"keyPlaceholder": "GITHUB_TOKEN",
+					"keyHint": "(letters, digits, underscores — must start with a letter or underscore)",
+					"valueLabel": "Value",
+					"cancel": "Cancel",
+					"addVariable": "Add variable"
 				}
 			},
 			"skills": {

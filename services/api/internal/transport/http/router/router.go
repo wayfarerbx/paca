@@ -471,6 +471,16 @@ func New(deps Deps) http.Handler {
 						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsWrite)).
 							Delete("/{agentId}/skills/{skillId}", deps.Agent.DeleteSkill)
 
+						// Environment variables
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsRead)).
+							Get("/{agentId}/env-vars", deps.Agent.ListEnvVars)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsWrite)).
+							Post("/{agentId}/env-vars", deps.Agent.AddEnvVar)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsWrite)).
+							Patch("/{agentId}/env-vars/{envVarId}", deps.Agent.UpdateEnvVar)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsWrite)).
+							Delete("/{agentId}/env-vars/{envVarId}", deps.Agent.DeleteEnvVar)
+
 						// Chat sessions
 						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsRead)).
 							Get("/{agentId}/chat-sessions", deps.Agent.ListChatSessions)

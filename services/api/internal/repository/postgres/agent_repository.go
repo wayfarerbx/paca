@@ -59,6 +59,15 @@ type agentMCPServerRecord struct {
 	UpdatedAt  time.Time `db:"updated_at"`
 }
 
+type agentEnvVarRecord struct {
+	ID             string    `db:"id"`
+	AgentID        string    `db:"agent_id"`
+	Key            string    `db:"key"`
+	EncryptedValue string    `db:"encrypted_value"`
+	CreatedAt      time.Time `db:"created_at"`
+	UpdatedAt      time.Time `db:"updated_at"`
+}
+
 type agentSkillRecord struct {
 	ID           string    `db:"id"`
 	AgentID      string    `db:"agent_id"`
@@ -186,8 +195,13 @@ func (r *AgentRepository) FindAgentByID(ctx context.Context, id uuid.UUID) (*age
 	if err != nil {
 		return nil, err
 	}
+	envVars, err := r.ListEnvVars(ctx, id)
+	if err != nil {
+		return nil, err
+	}
 	agent.MCPServers = mcpServers
 	agent.Skills = skills
+	agent.EnvVars = envVars
 	return agent, nil
 }
 
@@ -458,6 +472,81 @@ func (r *AgentRepository) UpdateSkill(ctx context.Context, s *agentdom.AgentSkil
 // DeleteSkill permanently removes a skill record.
 func (r *AgentRepository) DeleteSkill(ctx context.Context, id uuid.UUID) error {
 	_, err := r.db.ExecContext(ctx, `DELETE FROM agent_skills WHERE id = $1`, id.String())
+	return err
+}
+
+// -------------------------------------------------------------------------
+// Environment Variables
+// -------------------------------------------------------------------------
+
+const envVarCols = `id, agent_id, key, encrypted_value, created_at, updated_at`
+
+// ListEnvVars returns all environment variable records for the given agent.
+func (r *AgentRepository) ListEnvVars(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentEnvironmentVariable, error) {
+	var recs []agentEnvVarRecord
+	if err := r.db.SelectContext(ctx, &recs, `SELECT `+envVarCols+` FROM agent_environment_variables WHERE agent_id = $1 ORDER BY key`, agentID.String()); err != nil {
+		return nil, err
+	}
+	result := make([]*agentdom.AgentEnvironmentVariable, 0, len(recs))
+	for _, rec := range recs {
+		result = append(result, envVarFromRecord(rec))
+	}
+	return result, nil
+}
+
+// FindEnvVarByID returns a single environment variable by its primary key.
+func (r *AgentRepository) FindEnvVarByID(ctx context.Context, id uuid.UUID) (*agentdom.AgentEnvironmentVariable, error) {
+	var rec agentEnvVarRecord
+	if err := r.db.GetContext(ctx, &rec, `SELECT `+envVarCols+` FROM agent_environment_variables WHERE id = $1`, id.String()); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, agentdom.ErrEnvVarNotFound
+		}
+		return nil, err
+	}
+	return envVarFromRecord(rec), nil
+}
+
+// FindEnvVarByKey returns a single environment variable by agent and key.
+func (r *AgentRepository) FindEnvVarByKey(ctx context.Context, agentID uuid.UUID, key string) (*agentdom.AgentEnvironmentVariable, error) {
+	var rec agentEnvVarRecord
+	if err := r.db.GetContext(ctx, &rec, `SELECT `+envVarCols+` FROM agent_environment_variables WHERE agent_id = $1 AND key = $2`, agentID.String(), key); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, agentdom.ErrEnvVarNotFound
+		}
+		return nil, err
+	}
+	return envVarFromRecord(rec), nil
+}
+
+// CreateEnvVar inserts a new environment variable record.
+func (r *AgentRepository) CreateEnvVar(ctx context.Context, v *agentdom.AgentEnvironmentVariable) error {
+	_, err := r.db.ExecContext(ctx, `
+		INSERT INTO agent_environment_variables (id, agent_id, key, encrypted_value, created_at, updated_at)
+		VALUES ($1,$2,$3,$4,$5,$6)`,
+		v.ID.String(), v.AgentID.String(), v.Key, v.EncryptedValue, v.CreatedAt, v.UpdatedAt,
+	)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return agentdom.ErrEnvVarKeyTaken
+		}
+		return err
+	}
+	return nil
+}
+
+// UpdateEnvVar saves the full environment variable record.
+func (r *AgentRepository) UpdateEnvVar(ctx context.Context, v *agentdom.AgentEnvironmentVariable) error {
+	_, err := r.db.ExecContext(ctx, `
+		UPDATE agent_environment_variables SET encrypted_value=$1, updated_at=$2
+		WHERE id=$3`,
+		v.EncryptedValue, v.UpdatedAt, v.ID.String(),
+	)
+	return err
+}
+
+// DeleteEnvVar permanently removes an environment variable record.
+func (r *AgentRepository) DeleteEnvVar(ctx context.Context, id uuid.UUID) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM agent_environment_variables WHERE id = $1`, id.String())
 	return err
 }
 
@@ -827,6 +916,17 @@ func skillToRecord(s *agentdom.AgentSkill) (agentSkillRecord, error) {
 		CreatedAt:    s.CreatedAt,
 		UpdatedAt:    s.UpdatedAt,
 	}, nil
+}
+
+func envVarFromRecord(rec agentEnvVarRecord) *agentdom.AgentEnvironmentVariable {
+	return &agentdom.AgentEnvironmentVariable{
+		ID:             mustParseUUID(rec.ID),
+		AgentID:        mustParseUUID(rec.AgentID),
+		Key:            rec.Key,
+		EncryptedValue: rec.EncryptedValue,
+		CreatedAt:      rec.CreatedAt,
+		UpdatedAt:      rec.UpdatedAt,
+	}
 }
 
 func conversationFromRecord(rec agentConversationRecord) *agentdom.AgentConversation {

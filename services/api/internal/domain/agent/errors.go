@@ -23,6 +23,14 @@ var (
 	ErrSkillNameTaken = errors.New("skill name already in use on this agent")
 )
 
+// Environment variable errors
+var (
+	ErrEnvVarNotFound    = errors.New("environment variable not found")
+	ErrEnvVarKeyTaken    = errors.New("environment variable key already in use on this agent")
+	ErrEnvVarKeyInvalid  = errors.New("environment variable key must start with a letter or underscore and contain only letters, digits, and underscores")
+	ErrEnvVarKeyReserved = errors.New("environment variable key is reserved for internal sandbox configuration")
+)
+
 // Conversation errors
 var (
 	ErrConversationNotFound       = errors.New("conversation not found")

@@ -174,6 +174,7 @@ def docker_sandbox(
     conversation_id: str,
     git_committer_name: str = "paca-agent",
     git_committer_email: str = "280579135+paca-agent@users.noreply.github.com",
+    env: dict[str, str] | None = None,
 ) -> Iterator[RemoteWorkspace]:
     """Spin up an isolated agent-server container and yield a RemoteWorkspace.
 
@@ -244,7 +245,11 @@ def docker_sandbox(
                 )
 
         # ── Environment ───────────────────────────────────────────────────────
+        # User-configured secret env vars are spread first so that the
+        # hardcoded infra keys below always win on name collision — a
+        # misconfigured agent variable can never shadow sandbox internals.
         environment: dict = {
+            **(env or {}),
             # OH_SECRET_KEY is required by the agent server to encrypt persisted
             # secrets.  Each container is ephemeral so a fresh key per run is fine.
             "OH_SECRET_KEY": secrets.token_hex(32),
