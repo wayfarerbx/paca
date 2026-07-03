@@ -281,6 +281,14 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusConflict, apierr.CodeAgentConversationAlreadyStopped
 	case errors.Is(err, agentdom.ErrChatSessionNotFound):
 		return http.StatusNotFound, apierr.CodeAgentChatSessionNotFound
+	case errors.Is(err, agentdom.ErrEnvVarNotFound):
+		return http.StatusNotFound, apierr.CodeAgentEnvVarNotFound
+	case errors.Is(err, agentdom.ErrEnvVarKeyTaken):
+		return http.StatusConflict, apierr.CodeAgentEnvVarKeyTaken
+	case errors.Is(err, agentdom.ErrEnvVarKeyInvalid):
+		return http.StatusBadRequest, apierr.CodeAgentEnvVarKeyInvalid
+	case errors.Is(err, agentdom.ErrEnvVarKeyReserved):
+		return http.StatusBadRequest, apierr.CodeAgentEnvVarKeyReserved
 	default:
 		return http.StatusInternalServerError, apierr.CodeInternalError
 	}

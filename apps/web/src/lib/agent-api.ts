@@ -115,6 +115,15 @@ export interface AgentSkill {
 	updated_at: string;
 }
 
+export interface AgentEnvVar {
+	id: string;
+	agent_id: string;
+	key: string;
+	// Always "***" — the plaintext value is never returned by the API.
+	value: string;
+	created_at: string;
+}
+
 export interface Agent {
 	id: string;
 	project_id: string;
@@ -135,6 +144,7 @@ export interface Agent {
 	member_id?: string | null;
 	mcp_servers?: AgentMCPServer[];
 	skills?: AgentSkill[];
+	env_vars?: AgentEnvVar[];
 	created_at: string;
 	updated_at: string;
 }
@@ -401,6 +411,53 @@ export async function deleteSkill(
 	);
 }
 
+// ── Environment Variables ────────────────────────────────────────────────────
+
+export async function listEnvVars(
+	projectId: string,
+	agentId: string,
+): Promise<AgentEnvVar[]> {
+	const { data } = await apiClient.instance.get<
+		SuccessEnvelope<{ items: AgentEnvVar[] }>
+	>(`/projects/${projectId}/agents/${agentId}/env-vars`);
+	return data.data.items;
+}
+
+export async function addEnvVar(
+	projectId: string,
+	agentId: string,
+	payload: { key: string; value: string },
+): Promise<AgentEnvVar> {
+	const { data } = await apiClient.instance.post<SuccessEnvelope<AgentEnvVar>>(
+		`/projects/${projectId}/agents/${agentId}/env-vars`,
+		payload,
+	);
+	return data.data;
+}
+
+export async function updateEnvVar(
+	projectId: string,
+	agentId: string,
+	envVarId: string,
+	payload: { value: string },
+): Promise<AgentEnvVar> {
+	const { data } = await apiClient.instance.patch<SuccessEnvelope<AgentEnvVar>>(
+		`/projects/${projectId}/agents/${agentId}/env-vars/${envVarId}`,
+		payload,
+	);
+	return data.data;
+}
+
+export async function deleteEnvVar(
+	projectId: string,
+	agentId: string,
+	envVarId: string,
+): Promise<void> {
+	await apiClient.instance.delete(
+		`/projects/${projectId}/agents/${agentId}/env-vars/${envVarId}`,
+	);
+}
+
 // ── Conversations ─────────────────────────────────────────────────────────────
 
 export async function listConversations(
@@ -516,6 +573,12 @@ export const agentSkillsQueryOptions = (projectId: string, agentId: string) =>
 	queryOptions({
 		queryKey: ["projects", projectId, "agents", agentId, "skills"],
 		queryFn: () => listSkills(projectId, agentId),
+	});
+
+export const agentEnvVarsQueryOptions = (projectId: string, agentId: string) =>
+	queryOptions({
+		queryKey: ["projects", projectId, "agents", agentId, "env-vars"],
+		queryFn: () => listEnvVars(projectId, agentId),
 	});
 
 export const conversationsQueryOptions = (

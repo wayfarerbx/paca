@@ -37,6 +37,7 @@ type Agent struct {
 	MemberID   *uuid.UUID
 	MCPServers []*AgentMCPServer
 	Skills     []*AgentSkill
+	EnvVars    []*AgentEnvironmentVariable
 }
 
 // AgentMCPServer is a custom MCP server configuration attached to an agent.
@@ -52,6 +53,19 @@ type AgentMCPServer struct {
 	IsEnabled  bool
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
+}
+
+// AgentEnvironmentVariable is a secret environment variable injected into an
+// agent's sandbox container at run time. Value is always stored encrypted;
+// the plaintext is never persisted on this struct once it round-trips
+// through the repository.
+type AgentEnvironmentVariable struct {
+	ID             uuid.UUID
+	AgentID        uuid.UUID
+	Key            string
+	EncryptedValue string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 // AgentSkill is a skill associated with an agent.

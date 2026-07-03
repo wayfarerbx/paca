@@ -68,6 +68,16 @@ func (m *mockAgentSvc) UpdateSkill(_ context.Context, _, _ uuid.UUID, _ agentdom
 	return nil, errors.New("not found")
 }
 func (m *mockAgentSvc) DeleteSkill(_ context.Context, _, _ uuid.UUID) error { return nil }
+func (m *mockAgentSvc) ListEnvVars(_ context.Context, _ uuid.UUID) ([]*agentdom.AgentEnvironmentVariable, error) {
+	return nil, nil
+}
+func (m *mockAgentSvc) AddEnvVar(_ context.Context, _ uuid.UUID, _ agentdom.AddEnvVarInput) (*agentdom.AgentEnvironmentVariable, error) {
+	return &agentdom.AgentEnvironmentVariable{ID: uuid.New()}, nil
+}
+func (m *mockAgentSvc) UpdateEnvVar(_ context.Context, _, _ uuid.UUID, _ agentdom.UpdateEnvVarInput) (*agentdom.AgentEnvironmentVariable, error) {
+	return nil, errors.New("not found")
+}
+func (m *mockAgentSvc) DeleteEnvVar(_ context.Context, _, _ uuid.UUID) error { return nil }
 func (m *mockAgentSvc) ListConversations(_ context.Context, _ agentdom.ListConversationsFilter) ([]*agentdom.AgentConversation, int64, error) {
 	return nil, 0, nil
 }

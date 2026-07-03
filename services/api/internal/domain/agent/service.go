@@ -11,6 +11,7 @@ type Service interface {
 	AgentService
 	MCPServerService
 	SkillService
+	EnvVarService
 	ConversationService
 	ChatSessionService
 }
@@ -39,6 +40,14 @@ type SkillService interface {
 	AddSkill(ctx context.Context, agentID uuid.UUID, in AddSkillInput) (*AgentSkill, error)
 	UpdateSkill(ctx context.Context, agentID, skillID uuid.UUID, in UpdateSkillInput) (*AgentSkill, error)
 	DeleteSkill(ctx context.Context, agentID, skillID uuid.UUID) error
+}
+
+// EnvVarService defines secret environment variable CRUD use cases.
+type EnvVarService interface {
+	ListEnvVars(ctx context.Context, agentID uuid.UUID) ([]*AgentEnvironmentVariable, error)
+	AddEnvVar(ctx context.Context, agentID uuid.UUID, in AddEnvVarInput) (*AgentEnvironmentVariable, error)
+	UpdateEnvVar(ctx context.Context, agentID, envVarID uuid.UUID, in UpdateEnvVarInput) (*AgentEnvironmentVariable, error)
+	DeleteEnvVar(ctx context.Context, agentID, envVarID uuid.UUID) error
 }
 
 // ConversationService defines conversation management use cases.
@@ -121,6 +130,17 @@ type UpdateMCPServerInput struct {
 	URL       *string
 	Env       map[string]string
 	IsEnabled *bool
+}
+
+// AddEnvVarInput carries fields to add a secret environment variable.
+type AddEnvVarInput struct {
+	Key   string
+	Value string // plain text; encrypted by the service before storage
+}
+
+// UpdateEnvVarInput carries the new value for an existing environment variable.
+type UpdateEnvVarInput struct {
+	Value string // plain text; encrypted by the service before storage
 }
 
 // AddSkillInput carries fields to add a skill.

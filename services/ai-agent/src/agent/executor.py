@@ -503,6 +503,7 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
                 trigger.conversation_id,
                 git_committer_name=agent_config.git_committer_name,
                 git_committer_email=agent_config.git_committer_email,
+                env=agent_config.env_vars,
             ) as workspace:
                 agent_kwargs: dict = {"llm": llm, "agent_context": agent_context}
                 if mcp_config.get("mcpServers"):

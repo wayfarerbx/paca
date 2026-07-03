@@ -13,22 +13,24 @@ from ..models.agent import AgentConfig, AgentMCPServerRow, AgentSkillRow
 logger = logging.getLogger(__name__)
 
 
-def _decrypt_secret(ciphertext: str) -> str:
+def _decrypt_secret(ciphertext: str, label: str = "LLM API key") -> str:
     """Decrypt an AES-256-GCM ciphertext produced by the Go API's secret.Encryptor.
 
     If ENCRYPTION_KEY is not configured the value is returned as-is (plaintext
     backward-compat mode).  Any decryption error returns an empty string so
     that a clear "missing API key" error surfaces at the LLM call rather than
     the misleading "token expired / incorrect" that results from forwarding the
-    raw ciphertext to the provider.
+    raw ciphertext to the provider. `label` is used only to identify the field
+    being decrypted in log messages (e.g. "LLM API key", "environment variable").
     """
     if not ciphertext:
         return ciphertext
     if not settings.encryption_key:
         logger.warning(
-            "ENCRYPTION_KEY is not set — LLM API key will be used as-is from the "
+            "ENCRYPTION_KEY is not set — %s will be used as-is from the "
             "database. If the api service encrypts secrets, set ENCRYPTION_KEY in "
-            "the ai-agent environment to the same value."
+            "the ai-agent environment to the same value.",
+            label,
         )
         return ciphertext
     try:
@@ -43,9 +45,10 @@ def _decrypt_secret(ciphertext: str) -> str:
         return plaintext.decode()
     except Exception as exc:
         logger.error(
-            "Failed to decrypt LLM API key secret — the LLM will receive an empty "
-            "key. Verify that ENCRYPTION_KEY in the ai-agent service matches the "
-            "api service. Error: %s",
+            "Failed to decrypt %s — the value will be treated as empty. Verify "
+            "that ENCRYPTION_KEY in the ai-agent service matches the api "
+            "service. Error: %s",
+            label,
             exc,
         )
         return ""
@@ -96,6 +99,14 @@ async def load_agent_config(agent_id: str) -> AgentConfig | None:
         """,
         agent_id,
     )
+    env_var_rows = await pool.fetch(
+        """
+        SELECT key, encrypted_value
+        FROM agent_environment_variables
+        WHERE agent_id = $1
+        """,
+        agent_id,
+    )
 
     mcp_servers = [
         AgentMCPServerRow(
@@ -118,6 +129,10 @@ async def load_agent_config(agent_id: str) -> AgentConfig | None:
         )
         for r in skill_rows
     ]
+    env_vars = {
+        r["key"]: _decrypt_secret(r["encrypted_value"], label=f"environment variable {r['key']}")
+        for r in env_var_rows
+    }
 
     return AgentConfig(
         agent_id=str(row["id"]),
@@ -138,4 +153,5 @@ async def load_agent_config(agent_id: str) -> AgentConfig | None:
         or "280579135+paca-agent@users.noreply.github.com",
         mcp_servers=mcp_servers,
         skills=skills,
+        env_vars=env_vars,
     )

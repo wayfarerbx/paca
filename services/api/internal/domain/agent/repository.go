@@ -11,6 +11,7 @@ type Repository interface {
 	AgentRepository
 	MCPServerRepository
 	SkillRepository
+	EnvVarRepository
 	ConversationRepository
 	ChatSessionRepository
 }
@@ -49,6 +50,16 @@ type SkillRepository interface {
 	CreateSkill(ctx context.Context, s *AgentSkill) error
 	UpdateSkill(ctx context.Context, s *AgentSkill) error
 	DeleteSkill(ctx context.Context, id uuid.UUID) error
+}
+
+// EnvVarRepository defines storage for agent secret environment variables.
+type EnvVarRepository interface {
+	ListEnvVars(ctx context.Context, agentID uuid.UUID) ([]*AgentEnvironmentVariable, error)
+	FindEnvVarByID(ctx context.Context, id uuid.UUID) (*AgentEnvironmentVariable, error)
+	FindEnvVarByKey(ctx context.Context, agentID uuid.UUID, key string) (*AgentEnvironmentVariable, error)
+	CreateEnvVar(ctx context.Context, v *AgentEnvironmentVariable) error
+	UpdateEnvVar(ctx context.Context, v *AgentEnvironmentVariable) error
+	DeleteEnvVar(ctx context.Context, id uuid.UUID) error
 }
 
 // ConversationRepository defines storage for agent conversations.

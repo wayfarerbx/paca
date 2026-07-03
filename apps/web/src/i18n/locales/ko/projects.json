@@ -78,6 +78,7 @@
 				"overview": "개요",
 				"mcpServers": "MCP 서버",
 				"skills": "스킬",
+				"envVars": "환경 변수",
 				"conversations": "대화"
 			},
 			"overview": {
@@ -128,6 +129,25 @@
 					"urlLabel": "URL",
 					"cancel": "취소",
 					"addServer": "서버 추가"
+				}
+			},
+			"envVars": {
+				"count_one": "변수 {{count}}개 구성됨",
+				"count_other": "변수 {{count}}개 구성됨",
+				"addVariable": "변수 추가",
+				"empty": {
+					"title": "추가된 환경 변수가 없습니다",
+					"addFirst": "첫 변수 추가"
+				},
+				"addDialog": {
+					"title": "환경 변수 추가",
+					"description": "비밀 값은 저장 시 암호화되며 실행 시 에이전트의 샌드박스에 주입됩니다. 저장 후에는 값을 다시 볼 수 없습니다.",
+					"keyLabel": "키",
+					"keyPlaceholder": "GITHUB_TOKEN",
+					"keyHint": "(영문, 숫자, 밑줄 — 영문 또는 밑줄로 시작해야 함)",
+					"valueLabel": "값",
+					"cancel": "취소",
+					"addVariable": "변수 추가"
 				}
 			},
 			"skills": {

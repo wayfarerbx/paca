@@ -4,6 +4,7 @@ package agentsvc
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -414,6 +415,106 @@ func (s *Service) DeleteSkill(ctx context.Context, agentID, skillID uuid.UUID) e
 		return agentdom.ErrSkillNotFound
 	}
 	return s.repo.DeleteSkill(ctx, skillID)
+}
+
+// -------------------------------------------------------------------------
+// Environment Variables
+// -------------------------------------------------------------------------
+
+// envVarKeyPattern matches valid shell environment variable names.
+var envVarKeyPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+
+// reservedEnvVarKeys are names the sandbox container already sets for its own
+// operation (git identity, MCP wiring, secrets). User-supplied variables may
+// not use these names, so a misconfigured agent can never shadow them.
+// Keep in sync with services/ai-agent/src/agent/docker_workspace.py and
+// services/ai-agent/src/agent/builder.py.
+var reservedEnvVarKeys = map[string]bool{
+	"OH_SECRET_KEY":             true,
+	"OPENHANDS_SUPPRESS_BANNER": true,
+	"GIT_AUTHOR_NAME":           true,
+	"GIT_AUTHOR_EMAIL":          true,
+	"GIT_COMMITTER_NAME":        true,
+	"GIT_COMMITTER_EMAIL":       true,
+	"OH_EXTRA_PYTHON_PATH":      true,
+}
+
+// validateEnvVarKey checks that key is a well-formed, non-reserved shell
+// environment variable name.
+func validateEnvVarKey(key string) error {
+	if !envVarKeyPattern.MatchString(key) {
+		return agentdom.ErrEnvVarKeyInvalid
+	}
+	if reservedEnvVarKeys[key] || strings.HasPrefix(key, "PACA_") {
+		return agentdom.ErrEnvVarKeyReserved
+	}
+	return nil
+}
+
+// ListEnvVars returns all secret environment variables for the given agent.
+func (s *Service) ListEnvVars(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentEnvironmentVariable, error) {
+	return s.repo.ListEnvVars(ctx, agentID)
+}
+
+// AddEnvVar creates a new secret environment variable for the given agent.
+func (s *Service) AddEnvVar(ctx context.Context, agentID uuid.UUID, in agentdom.AddEnvVarInput) (*agentdom.AgentEnvironmentVariable, error) {
+	key := strings.TrimSpace(in.Key)
+	if err := validateEnvVarKey(key); err != nil {
+		return nil, err
+	}
+	if existing, err := s.repo.FindEnvVarByKey(ctx, agentID, key); err == nil && existing != nil {
+		return nil, agentdom.ErrEnvVarKeyTaken
+	}
+	encryptedValue, err := s.encryptKey(in.Value)
+	if err != nil {
+		return nil, fmt.Errorf("encrypt environment variable value: %w", err)
+	}
+	now := time.Now()
+	v := &agentdom.AgentEnvironmentVariable{
+		ID:             uuid.New(),
+		AgentID:        agentID,
+		Key:            key,
+		EncryptedValue: encryptedValue,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+	if err := s.repo.CreateEnvVar(ctx, v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// UpdateEnvVar replaces the value of an existing environment variable.
+func (s *Service) UpdateEnvVar(ctx context.Context, agentID, envVarID uuid.UUID, in agentdom.UpdateEnvVarInput) (*agentdom.AgentEnvironmentVariable, error) {
+	v, err := s.repo.FindEnvVarByID(ctx, envVarID)
+	if err != nil {
+		return nil, err
+	}
+	if v.AgentID != agentID {
+		return nil, agentdom.ErrEnvVarNotFound
+	}
+	encryptedValue, err := s.encryptKey(in.Value)
+	if err != nil {
+		return nil, fmt.Errorf("encrypt environment variable value: %w", err)
+	}
+	v.EncryptedValue = encryptedValue
+	v.UpdatedAt = time.Now()
+	if err := s.repo.UpdateEnvVar(ctx, v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// DeleteEnvVar removes an environment variable after verifying ownership.
+func (s *Service) DeleteEnvVar(ctx context.Context, agentID, envVarID uuid.UUID) error {
+	v, err := s.repo.FindEnvVarByID(ctx, envVarID)
+	if err != nil {
+		return err
+	}
+	if v.AgentID != agentID {
+		return agentdom.ErrEnvVarNotFound
+	}
+	return s.repo.DeleteEnvVar(ctx, envVarID)
 }
 
 // -------------------------------------------------------------------------

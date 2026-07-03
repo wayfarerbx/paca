@@ -78,6 +78,7 @@
 				"overview": "Resumen",
 				"mcpServers": "Servidores MCP",
 				"skills": "Skills",
+				"envVars": "Entorno",
 				"conversations": "Conversaciones"
 			},
 			"overview": {
@@ -128,6 +129,25 @@
 					"urlLabel": "URL",
 					"cancel": "Cancelar",
 					"addServer": "Añadir servidor"
+				}
+			},
+			"envVars": {
+				"count_one": "{{count}} variable configurada",
+				"count_other": "{{count}} variables configuradas",
+				"addVariable": "Añadir variable",
+				"empty": {
+					"title": "No se han añadido variables de entorno",
+					"addFirst": "Añade tu primera variable"
+				},
+				"addDialog": {
+					"title": "Añadir variable de entorno",
+					"description": "Los valores secretos se cifran en reposo y se inyectan en el sandbox del agente en tiempo de ejecución. Una vez guardado, un valor nunca podrá volver a verse.",
+					"keyLabel": "Clave",
+					"keyPlaceholder": "GITHUB_TOKEN",
+					"keyHint": "(letras, números, guiones bajos — debe empezar por una letra o guión bajo)",
+					"valueLabel": "Valor",
+					"cancel": "Cancelar",
+					"addVariable": "Añadir variable"
 				}
 			},
 			"skills": {

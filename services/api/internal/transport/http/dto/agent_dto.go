@@ -39,6 +39,7 @@ type AgentResponse struct {
 	UpdatedAt                     time.Time                `json:"updated_at"`
 	MCPServers                    []AgentMCPServerResponse `json:"mcp_servers,omitempty"`
 	Skills                        []AgentSkillResponse     `json:"skills,omitempty"`
+	EnvVars                       []AgentEnvVarResponse    `json:"env_vars,omitempty"`
 }
 
 // CreateAgentRequest is the body for POST /projects/:projectId/agents.
@@ -121,6 +122,12 @@ func AgentFromEntity(a *agentdom.Agent) AgentResponse {
 		resp.Skills = make([]AgentSkillResponse, 0, len(a.Skills))
 		for _, s := range a.Skills {
 			resp.Skills = append(resp.Skills, SkillFromEntity(s))
+		}
+	}
+	if len(a.EnvVars) > 0 {
+		resp.EnvVars = make([]AgentEnvVarResponse, 0, len(a.EnvVars))
+		for _, v := range a.EnvVars {
+			resp.EnvVars = append(resp.EnvVars, EnvVarFromEntity(v))
 		}
 	}
 	return resp
@@ -260,6 +267,43 @@ func SkillFromEntity(s *agentdom.AgentSkill) AgentSkillResponse {
 		Triggers:     triggers,
 		IsEnabled:    s.IsEnabled,
 		CreatedAt:    s.CreatedAt,
+	}
+}
+
+// =========================================================================
+// Environment Variable DTOs
+// =========================================================================
+
+// AgentEnvVarResponse is the public view of a secret environment variable.
+// Value is always redacted — the plaintext is never returned once set.
+type AgentEnvVarResponse struct {
+	ID        uuid.UUID `json:"id"`
+	AgentID   uuid.UUID `json:"agent_id"`
+	Key       string    `json:"key"`
+	Value     string    `json:"value"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// AddEnvVarRequest is the body for POST /agents/:agentId/env-vars.
+type AddEnvVarRequest struct {
+	Key   string `json:"key" binding:"required"`
+	Value string `json:"value" binding:"required"`
+}
+
+// UpdateEnvVarRequest is the body for PATCH /agents/:agentId/env-vars/:envVarId.
+type UpdateEnvVarRequest struct {
+	Value string `json:"value" binding:"required"`
+}
+
+// EnvVarFromEntity maps an AgentEnvironmentVariable entity to its DTO. The
+// value is always masked; it is never decrypted for API responses.
+func EnvVarFromEntity(v *agentdom.AgentEnvironmentVariable) AgentEnvVarResponse {
+	return AgentEnvVarResponse{
+		ID:        v.ID,
+		AgentID:   v.AgentID,
+		Key:       v.Key,
+		Value:     "***",
+		CreatedAt: v.CreatedAt,
 	}
 }
 
