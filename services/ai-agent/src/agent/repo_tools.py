@@ -334,93 +334,6 @@ class PushBranchExecutor(ToolExecutor[PushBranchAction, PushBranchObservation]):
             return PushBranchObservation(success=False, message=str(exc))
 
 
-# ─── Create Pull Request ──────────────────────────────────────────────────────
-
-
-class CreatePullRequestAction(Action):
-    """Action to create a pull request and link it to the current task."""
-
-    plugin_id: str = Field(description="The plugin ID (from list_repositories)")
-    repo_id: str = Field(description="The repository ID (from list_repositories)")
-    title: str = Field(description="Pull request title")
-    head_branch: str = Field(description="The feature branch to merge from")
-    base_branch: str = Field(description="The target branch to merge into (e.g. main)")
-    body: str = Field(default="", description="Pull request description (optional)")
-
-
-class CreatePullRequestObservation(Observation):
-    """Observation containing PR creation result."""
-
-    success: bool = False
-    pr_number: int = 0
-    pr_url: str = ""
-    message: str = ""
-
-    @property
-    def to_llm_content(self) -> Sequence[TextContent]:
-        if self.success:
-            lines = [
-                "Pull request created successfully!",
-                f"  PR number: #{self.pr_number}",
-                f"  URL: {self.pr_url}",
-            ]
-            return [TextContent(text="\n".join(lines))]
-        return [TextContent(text=f"Failed to create pull request: {self.message}")]
-
-
-class CreatePullRequestExecutor(
-    ToolExecutor[CreatePullRequestAction, CreatePullRequestObservation]
-):
-    def __init__(
-        self, project_id: str, task_id: str | None, api_base_url: str, api_key: str
-    ) -> None:
-        self.project_id = project_id
-        self.task_id = task_id
-        self.api_base_url = api_base_url
-        self.api_key = api_key
-
-    def __call__(
-        self, action: CreatePullRequestAction, conversation=None
-    ) -> CreatePullRequestObservation:
-        if not self.task_id:
-            return CreatePullRequestObservation(
-                success=False,
-                message="No task ID is associated with this conversation. Cannot create a PR.",
-            )
-        try:
-            url = (
-                f"{self.api_base_url}/api/v1/plugins/{action.plugin_id}"
-                f"/projects/{self.project_id}/tasks/{self.task_id}/pull-requests"
-            )
-            resp = httpx.post(
-                url,
-                headers={"X-API-Key": self.api_key, "Content-Type": "application/json"},
-                json={
-                    "repo_id": action.repo_id,
-                    "title": action.title,
-                    "head_branch": action.head_branch,
-                    "base_branch": action.base_branch,
-                    "body": action.body,
-                },
-                timeout=15,
-            )
-            resp.raise_for_status()
-            data = resp.json().get("data", {})
-            return CreatePullRequestObservation(
-                success=True,
-                pr_number=data.get("pr_number", 0),
-                pr_url=data.get("html_url", ""),
-            )
-        except httpx.HTTPStatusError as exc:
-            try:
-                err_msg = exc.response.json().get("error", str(exc))
-            except Exception:
-                err_msg = str(exc)
-            return CreatePullRequestObservation(success=False, message=err_msg)
-        except Exception as exc:
-            return CreatePullRequestObservation(success=False, message=str(exc))
-
-
 # ─── Tool Definitions ─────────────────────────────────────────────────────────
 
 _LIST_DESC = """\
@@ -456,23 +369,11 @@ Parameters:
 - branch_name: Branch name to push (leave empty to use the currently checked-out branch)
 - repo_dir: Path to the local repository (default: /workspace/repo)
 
-After a successful push, call create_pull_request to open a PR.
+After a successful push, use the repository plugin's own tools (if configured
+for this agent) to open, review, or comment on a pull/merge request. Pull
+request operations are plugin-specific, not built-in tools.
 """
 
-_CREATE_PR_DESC = """\
-Create a pull request on GitHub and link it to the current task.
-
-Call this after push_branch has succeeded. The PR will be linked to the
-task that triggered this conversation.
-
-Parameters:
-- plugin_id: The plugin UUID (from list_repositories)
-- repo_id: The repository UUID (from list_repositories)
-- title: A short, descriptive PR title
-- head_branch: The feature branch you pushed (source of changes)
-- base_branch: The branch to merge into (e.g. main, develop)
-- body: Optional PR description with details about the changes
-"""
 
 
 class ListRepositoriesTool(ToolDefinition[ListRepositoriesAction, ListRepositoriesObservation]):
@@ -541,38 +442,16 @@ class PushBranchTool(ToolDefinition[PushBranchAction, PushBranchObservation]):
         ]
 
 
-class CreatePullRequestTool(ToolDefinition[CreatePullRequestAction, CreatePullRequestObservation]):
-    @classmethod
-    def create(
-        cls,
-        conv_state=None,
-        *,
-        project_id: str,
-        task_id: str | None,
-        api_base_url: str,
-        api_key: str,
-    ) -> Sequence[ToolDefinition]:
-        return [
-            cls(
-                description=_CREATE_PR_DESC,
-                action_type=CreatePullRequestAction,
-                observation_type=CreatePullRequestObservation,
-                executor=CreatePullRequestExecutor(project_id, task_id, api_base_url, api_key),
-            )
-        ]
-
 
 # Register tool classes so Agent can resolve them via Tool(name=..., params={...})
 register_tool("list_repositories", ListRepositoriesTool)
 register_tool("clone_repository", CloneRepositoryTool)
 register_tool("push_branch", PushBranchTool)
-register_tool("create_pull_request", CreatePullRequestTool)
 
 
 def make_repository_tool_specs(
     project_id: str,
     repo_plugin_ids: list[str],
-    task_id: str | None = None,
     *,
     api_base_url: str,
     api_key: str,
@@ -595,8 +474,4 @@ def make_repository_tool_specs(
         ),
         Tool(name="clone_repository", params={"project_id": project_id, **common}),
         Tool(name="push_branch", params={"project_id": project_id, **common}),
-        Tool(
-            name="create_pull_request",
-            params={"project_id": project_id, "task_id": task_id, **common},
-        ),
     ]

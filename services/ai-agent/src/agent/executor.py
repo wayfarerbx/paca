@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import threading
 import time
@@ -27,20 +26,20 @@ from .repo_tools import make_repository_tool_specs
 
 logger = logging.getLogger(__name__)
 
-_DONE_STATUSES = frozenset(
-    {
-        ConversationExecutionStatus.FINISHED,
-        ConversationExecutionStatus.ERROR,
-        ConversationExecutionStatus.STUCK,
-    }
-)
-
 _ERROR_STATUSES = frozenset(
     {
         ConversationExecutionStatus.ERROR,
         ConversationExecutionStatus.STUCK,
     }
 )
+
+# events.reconcile() re-walks the *entire* remote event history over REST
+# (openhands.sdk.conversation.impl.remote_conversation.RemoteEventsList has no
+# "since" cursor) — the SDK's own blocking run() only pays that cost once, at
+# completion, rather than on every status poll. We still need it more often
+# than that to bound the WS-dead-thread persistence gap (see
+# _wait_for_done_or_stop), but not on every 2s tick.
+_RECONCILE_INTERVAL = 10.0
 
 
 def _get_conversation_error_detail(conversation) -> str | None:
@@ -64,6 +63,7 @@ def _get_conversation_error_detail(conversation) -> str | None:
 def _wait_for_done_or_stop(
     conversation,
     stop_event: threading.Event,
+    reconcile,
     poll_interval: float = 2.0,
     timeout: float = 3600.0,
 ) -> tuple[bool, bool]:
@@ -74,6 +74,7 @@ def _wait_for_done_or_stop(
       errored  — True if the conversation ended with ERROR or STUCK status.
     """
     start = time.monotonic()
+    last_reconcile = start
     while True:
         # stop_event.wait() blocks for up to poll_interval seconds, returning
         # True immediately if the event is already set.
@@ -82,10 +83,15 @@ def _wait_for_done_or_stop(
                 conversation.pause()
             except Exception as exc:
                 logger.warning("Failed to pause conversation on stop request: %s", exc)
+            # Catch up on anything the dead WS thread missed before we stop
+            # watching this conversation entirely.
+            reconcile(conversation)
             return True, False
 
-        if time.monotonic() - start > timeout:
+        now = time.monotonic()
+        if now - start > timeout:
             logger.warning("Conversation polling timed out after %.0f seconds", timeout)
+            reconcile(conversation)
             return False, False
 
         try:
@@ -93,24 +99,34 @@ def _wait_for_done_or_stop(
             # ever re-fetches over REST if the cache is still empty (see
             # RemoteState._get_conversation_info). openhands-sdk's WS client
             # thread permanently stops reconnecting after any ConnectionClosed
-            # (upstream bug, still present as of openhands-sdk 1.31.0 — see
+            # (upstream bug, still present as of openhands-sdk 1.30.0 — see
             # OpenHands/software-agent-sdk#1532), which would otherwise freeze
             # this loop on a stale "running" status until the timeout above.
             # Force a live REST read every poll so a dead socket can't wedge us.
             conversation.state.refresh_from_server()
             status = conversation.state.execution_status
-            if status in _DONE_STATUSES:
+
+            # The same dead socket also stops new agent events from ever
+            # reaching our persistence callback (it only fires from inside the
+            # WS client thread). reconcile() is a full-history REST walk (see
+            # _RECONCILE_INTERVAL), so throttle it independently of the
+            # cheap poll_interval status check above.
+            if now - last_reconcile >= _RECONCILE_INTERVAL:
+                reconcile(conversation)
+                last_reconcile = now
+
+            if status.is_terminal():
                 errored = status in _ERROR_STATUSES
                 if errored:
-                    # Same staleness risk applies to the cached event list used
-                    # for the error detail — reconcile before reading it.
-                    conversation.state.events.reconcile()
                     detail = _get_conversation_error_detail(conversation)
                     logger.error(
                         "Conversation ended with status %s — %s",
                         status.value,
                         detail or "no detail available",
                     )
+                # Final catch-up so the run never ends with an un-persisted
+                # tail from the last reconcile_interval stretch.
+                reconcile(conversation)
                 return False, errored
         except Exception as exc:
             logger.debug("Failed to read conversation execution status: %s", exc)
@@ -124,7 +140,7 @@ class _QuietVisualizer(ConversationVisualizerBase):
 
     The SDK's DefaultConversationVisualizer emits a WARNING for every event
     type absent from its EVENT_VISUALIZATION_CONFIG (e.g. StreamingDeltaEvent).
-    Since this service handles all events via callbacks / token_callbacks, we
+    Since this service handles all events via the `callbacks` list, we
     replace the default visualizer with this no-op to eliminate the noise.
     """
 
@@ -179,7 +195,7 @@ def _gather_repo_sources(trigger: TriggerMessage) -> list[RepoInfoSource]:
 
 
 class _AtomicCounter:
-    """Thread-safe monotonic counter shared across event and token callbacks."""
+    """Thread-safe monotonic counter for ordering persisted events."""
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
@@ -192,203 +208,144 @@ class _AtomicCounter:
             return v
 
 
-class _TurnState:
-    """Tracks whether _make_token_callback already persisted the agent's
-    reply for the in-flight turn.
+class _SeenEvents:
+    """Thread-safe set of SDK event ids already routed to persistence.
 
-    openhands.sdk.conversation.impl.RemoteConversation accepts a
-    token_callbacks kwarg but never wires it to anything — Conversation()
-    always builds a RemoteConversation here since docker_sandbox() always
-    yields a RemoteWorkspace, so on_token is never actually invoked.
-    _make_event_callback consults this flag to fall back to persisting the
-    SDK's own MessageEvent instead, so the reply is never silently dropped.
-    See https://github.com/Paca-AI/paca/issues/211 and #214.
+    Shared between the live WebSocket callback and the reconciliation
+    fallback in `_wait_for_done_or_stop` so that an event is persisted
+    exactly once no matter which path first observes it.
     """
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._token_persisted = False
+        self._ids: set[str] = set()
 
-    def mark_token_persisted(self) -> None:
+    def mark_new(self, event_id: str) -> bool:
+        """Return True and record the id if it hasn't been seen before."""
         with self._lock:
-            self._token_persisted = True
-
-    def consume(self) -> bool:
-        """Return True if the token callback persisted this turn, clearing
-        the flag for the next one."""
-        with self._lock:
-            was_persisted = self._token_persisted
-            self._token_persisted = False
-            return was_persisted
+            if event_id in self._ids:
+                return False
+            self._ids.add(event_id)
+            return True
 
 
 # ─── Event callback ───────────────────────────────────────────────────────────
+
+
+def _persist_event(
+    trigger: TriggerMessage,
+    loop: asyncio.AbstractEventLoop,
+    counter: _AtomicCounter,
+    event,
+) -> None:
+    """Filter, index, and persist a single SDK event to Postgres + Valkey.
+
+    Shared by the live WebSocket callback and the reconciliation fallback (see
+    `_make_reconciler`) so both paths apply identical filtering and write to
+    the same destinations, regardless of which one first observes an event.
+    """
+    event_type = type(event).__name__
+    event_source = str(getattr(event, "source", "agent"))
+
+    # Events the frontend never renders — skip to avoid wasting event_index
+    # slots and polluting the paginated events list.
+    if event_type in {
+        "StreamingDeltaEvent",  # raw streaming chunks — only the final message matters
+        "ConversationStateUpdateEvent",  # internal iteration bookkeeping
+        "SystemPromptEvent",  # system prompt echo — not shown to user
+        "ConversationErrorEvent",  # SDK error signal — surfaced via conversation status
+    }:
+        return
+
+    event_index = counter.next()
+    payload = event.model_dump_json() if hasattr(event, "model_dump_json") else "{}"
+
+    async def _persist():
+        await conversation_repository.insert_conversation_event(
+            conversation_id=trigger.conversation_id,
+            event_type=event_type,
+            event_source=event_source,
+            event_index=event_index,
+            payload=payload,
+        )
+        await stream_store.publish_event(
+            {
+                "conversation_id": trigger.conversation_id,
+                "project_id": trigger.project_id,
+                "event_type": event_type,
+                "event_source": event_source,
+                "event_index": str(event_index),
+                "payload": payload,
+                "status": "running",
+            }
+        )
+        await stream_store.publish_realtime(
+            project_id=trigger.project_id,
+            conversation_id=trigger.conversation_id,
+            event_type=f"agent.{event_type.lower()}",
+        )
+
+    future = asyncio.run_coroutine_threadsafe(_persist(), loop)
+    try:
+        future.result(timeout=10)
+    except Exception as exc:
+        logger.warning(
+            "Event persist failed for conversation %s: %s",
+            trigger.conversation_id,
+            exc,
+        )
 
 
 def _make_event_callback(
     trigger: TriggerMessage,
     loop: asyncio.AbstractEventLoop,
     counter: _AtomicCounter,
-    turn_state: _TurnState,
+    seen: _SeenEvents,
 ):
-    """Return a synchronous callback invoked by the OpenHands SDK on each complete event.
-
-    Agent MessageEvents are normally skipped here in favor of
-    _make_token_callback, which captures the LLM's text output directly from
-    the streaming response for cleaner content without SDK wrapper fields —
-    when on_token actually gets invoked (see _TurnState). All other events
-    (actions, observations, system messages) are saved normally.
-    """
+    """Return a synchronous callback invoked by the OpenHands SDK on each complete event."""
 
     def callback(event) -> None:
-        event_type = type(event).__name__
-        event_source = str(getattr(event, "source", "agent"))
-
-        # Events the frontend never renders — skip to avoid wasting event_index
-        # slots and polluting the paginated events list.
-        if event_type in {
-            "StreamingDeltaEvent",  # raw streaming chunks — only the final message matters
-            "ConversationStateUpdateEvent",  # internal iteration bookkeeping
-            "SystemPromptEvent",  # system prompt echo — not shown to user
-            "ConversationErrorEvent",  # SDK error signal — surfaced via conversation status
-        }:
+        event_id = getattr(event, "id", None)
+        if event_id is not None and not seen.mark_new(event_id):
             return
-        # Agent text responses are normally captured by token_callbacks with
-        # richer streaming data; skip them here to avoid duplicate DB rows —
-        # unless the token callback never actually persisted this turn (it
-        # never fires at all for RemoteConversation — see _TurnState), in
-        # which case fall through and persist this event instead of silently
-        # dropping the reply.
-        if event_type == "MessageEvent" and event_source == "agent" and turn_state.consume():
-            return
-
-        event_index = counter.next()
-        payload = event.model_dump_json() if hasattr(event, "model_dump_json") else "{}"
-
-        async def _persist():
-            await conversation_repository.insert_conversation_event(
-                conversation_id=trigger.conversation_id,
-                event_type=event_type,
-                event_source=event_source,
-                event_index=event_index,
-                payload=payload,
-            )
-            await stream_store.publish_event(
-                {
-                    "conversation_id": trigger.conversation_id,
-                    "project_id": trigger.project_id,
-                    "event_type": event_type,
-                    "event_source": event_source,
-                    "event_index": str(event_index),
-                    "payload": payload,
-                    "status": "running",
-                }
-            )
-            await stream_store.publish_realtime(
-                project_id=trigger.project_id,
-                conversation_id=trigger.conversation_id,
-                event_type=f"agent.{event_type.lower()}",
-            )
-
-        future = asyncio.run_coroutine_threadsafe(_persist(), loop)
-        try:
-            future.result(timeout=10)
-        except Exception as exc:
-            logger.warning(
-                "Event persist failed for conversation %s: %s",
-                trigger.conversation_id,
-                exc,
-            )
+        _persist_event(trigger, loop, counter, event)
 
     return callback
 
 
-# ─── Token (streaming) callback ───────────────────────────────────────────────
-
-
-def _make_token_callback(
+def _make_reconciler(
     trigger: TriggerMessage,
     loop: asyncio.AbstractEventLoop,
     counter: _AtomicCounter,
-    turn_state: _TurnState,
+    seen: _SeenEvents,
 ):
-    """Return a token callback that accumulates streaming LLM chunks into complete
-    messages and persists each finished message as a MessageEvent.
+    """Return a function that catches up on events the dead WS thread missed.
 
-    The OpenHands SDK calls this once per streaming chunk.  When finish_reason
-    is set the accumulated content is flushed to the database and a realtime
-    pub/sub notification is published so WebSocket clients update immediately.
+    openhands-sdk's WS client thread permanently stops reconnecting after any
+    ConnectionClosed (see the comment in `_wait_for_done_or_stop`), so the
+    composed event callback silently stops firing entirely — even though the
+    agent keeps running in its sandbox and producing events. `events.reconcile()`
+    re-fetches the full event history over REST and merges it straight into
+    the SDK's local cache, bypassing callbacks, so anything new it pulls in
+    has to be routed through `_persist_event` by hand here.
     """
-    lock = threading.Lock()
-    parts_content: list[str] = []
-    parts_reasoning: list[str] = []
 
-    def on_token(stream) -> None:
-        for choice in stream.choices:
-            delta = choice.delta
-            finish_reason = getattr(choice, "finish_reason", None)
+    def reconcile(conversation) -> None:
+        try:
+            conversation.state.events.reconcile()
+            for event in list(conversation.state.events):
+                event_id = getattr(event, "id", None)
+                if event_id is None or not seen.mark_new(event_id):
+                    continue
+                _persist_event(trigger, loop, counter, event)
+        except Exception as exc:
+            logger.debug(
+                "Event reconciliation failed for conversation %s: %s",
+                trigger.conversation_id,
+                exc,
+            )
 
-            content_chunk = getattr(delta, "content", None) or ""
-            reasoning_chunk = getattr(delta, "reasoning_content", None) or ""
-
-            with lock:
-                if content_chunk:
-                    parts_content.append(content_chunk)
-                if reasoning_chunk:
-                    parts_reasoning.append(reasoning_chunk)
-
-                if finish_reason:
-                    full_content = "".join(parts_content)
-                    full_reasoning = "".join(parts_reasoning)
-                    parts_content.clear()
-                    parts_reasoning.clear()
-
-                    if not full_content and not full_reasoning:
-                        return
-
-                    event_index = counter.next()
-                    payload_obj: dict = {"content": full_content, "source": "agent"}
-                    if full_reasoning:
-                        payload_obj["reasoning_content"] = full_reasoning
-                    payload_str = json.dumps(payload_obj)
-
-                    async def _persist(idx=event_index, p=payload_str):
-                        await conversation_repository.insert_conversation_event(
-                            conversation_id=trigger.conversation_id,
-                            event_type="MessageEvent",
-                            event_source="agent",
-                            event_index=idx,
-                            payload=p,
-                        )
-                        await stream_store.publish_event(
-                            {
-                                "conversation_id": trigger.conversation_id,
-                                "project_id": trigger.project_id,
-                                "event_type": "MessageEvent",
-                                "event_source": "agent",
-                                "event_index": str(idx),
-                                "payload": p,
-                                "status": "running",
-                            }
-                        )
-                        await stream_store.publish_realtime(
-                            project_id=trigger.project_id,
-                            conversation_id=trigger.conversation_id,
-                            event_type="agent.messageevent",
-                        )
-
-                    future = asyncio.run_coroutine_threadsafe(_persist(), loop)
-                    try:
-                        future.result(timeout=10)
-                        turn_state.mark_token_persisted()
-                    except Exception as exc:
-                        logger.warning(
-                            "Token callback persist failed for conversation %s: %s",
-                            trigger.conversation_id,
-                            exc,
-                        )
-
-    return on_token
+    return reconcile
 
 
 def _build_project_context_suffix(project_id: str) -> str:
@@ -408,7 +365,7 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
     """Execute a single agent conversation end-to-end."""
     loop = asyncio.get_event_loop()
     counter = _AtomicCounter()
-    turn_state = _TurnState()
+    seen_events = _SeenEvents()
     stop_event = threading.Event()
     logger.info("Starting conversation %s (agent=%s)", trigger.conversation_id, trigger.agent_id)
     await conversation_repository.update_conversation_status(trigger.conversation_id, "running")
@@ -468,10 +425,10 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
                 "4. Make your code changes, then commit them:\n"
                 "   git -C /workspace/repo add -A && git -C /workspace/repo commit -m '<message>'\n"
                 "5. Call push_branch with the plugin_id, repo_id,"
-                " and the branch name to publish the branch.\n"
-                "6. Call create_pull_request with the plugin_id, repo_id, a descriptive title, "
-                "the feature branch as head_branch, and the default branch as base_branch.\n\n"
-                "Do NOT skip steps 5 and 6 — always push your branch and open a PR when finished."
+                " and the branch name to publish the branch.\n\n"
+                "Do NOT skip step 5 — always push your branch when finished.\n\n"
+                "Creating, listing, reviewing, and commenting on pull/merge requests is "
+                "handled by the repository plugin's own tools. "
             )
 
         # Append the trigger-specific prompt last so it takes precedence.
@@ -513,7 +470,6 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
                     agent_kwargs["tools"] = get_default_tools() + make_repository_tool_specs(
                         trigger.project_id,
                         trigger.repo_plugin_ids,
-                        trigger.task_id,
                         api_base_url=settings.api_base_url,
                         api_key=settings.paca_api_key,
                     )
@@ -530,8 +486,7 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
                 conversation = Conversation(
                     agent=agent,
                     workspace=workspace,
-                    callbacks=[_make_event_callback(trigger, loop, counter, turn_state)],
-                    token_callbacks=[_make_token_callback(trigger, loop, counter, turn_state)],
+                    callbacks=[_make_event_callback(trigger, loop, counter, seen_events)],
                     max_iteration_per_run=agent_config.max_iterations,
                     visualizer=_QuietVisualizer(),
                 )
@@ -565,7 +520,8 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
                     # Use non-blocking run so our polling loop can be interrupted
                     # by a stop signal without waiting for the SDK timeout.
                     conversation.run(blocking=False)
-                    return _wait_for_done_or_stop(conversation, stop_event)
+                    reconcile = _make_reconciler(trigger, loop, counter, seen_events)
+                    return _wait_for_done_or_stop(conversation, stop_event, reconcile)
                 finally:
                     active_conversations.pop(trigger.conversation_id, None)
                     # Stop the SDK's WebSocket client thread so it does not

@@ -172,6 +172,7 @@ fi
 
 BACKEND_DIR="$PACA_DIR/plugins/local/backend/$PLUGIN_ID"
 FRONTEND_DIR="$PACA_DIR/plugins/local/frontend/$PLUGIN_ID"
+MCP_DIR="$PACA_DIR/plugins/local/mcp/$PLUGIN_ID"
 
 # Build backend
 if [[ "$SKIP_BUILD" = false ]]; then
@@ -246,6 +247,46 @@ if [[ "$SKIP_BUILD" = false ]]; then
 fi
 
 print_success "Frontend store populated"
+
+# Build and populate MCP bundle (optional — not every plugin has MCP tools)
+if [[ -d "$PLUGIN_DIR/mcp" ]]; then
+    if [[ "$SKIP_BUILD" = false ]]; then
+        print_step "Building MCP bundle..."
+        cd "$PLUGIN_DIR/mcp"
+
+        if [[ ! -f "package.json" ]]; then
+            print_error "package.json not found in mcp directory"
+            exit 1
+        fi
+
+        if [[ ! -d "node_modules" ]]; then
+            print_step "Installing MCP dependencies..."
+            bun install
+        fi
+
+        bun run build
+
+        if [[ ! -f "dist/mcp.js" ]]; then
+            print_error "MCP build failed - dist/mcp.js not found"
+            exit 1
+        fi
+
+        print_success "MCP bundle built successfully"
+    else
+        print_step "Skipping MCP build (--skip-build)"
+    fi
+
+    print_step "Populating MCP store..."
+    mkdir -p "$MCP_DIR"
+
+    if [[ "$SKIP_BUILD" = false ]]; then
+        cp "$PLUGIN_DIR/mcp/dist/mcp.js" "$MCP_DIR/mcp.js"
+    fi
+
+    print_success "MCP store populated"
+else
+    print_info "No mcp directory found — skipping MCP bundle (plugin has no MCP tools)"
+fi
 
 # Install plugin via API
 if [[ "$SKIP_INSTALL" = false ]]; then
@@ -385,4 +426,7 @@ echo ""
 print_success "Plugin $PLUGIN_ID v$PLUGIN_VERSION build and installation complete!"
 print_info "Backend artifacts: $BACKEND_DIR"
 print_info "Frontend artifacts: $FRONTEND_DIR"
+if [[ -d "$PLUGIN_DIR/mcp" ]]; then
+    print_info "MCP artifacts: $MCP_DIR"
+fi
 print_info "If the plugin is enabled, it will be available after restarting the Paca services"

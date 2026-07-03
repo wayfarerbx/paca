@@ -11,8 +11,8 @@ from src.agent.executor import (
     _AtomicCounter,
     _build_project_context_suffix,
     _make_event_callback,
-    _make_token_callback,
-    _TurnState,
+    _make_reconciler,
+    _SeenEvents,
 )
 from src.core import streams as stream_store
 from src.core.streams import TriggerMessage
@@ -38,36 +38,12 @@ def test_different_project_ids_produce_different_suffixes():
     assert _build_project_context_suffix("proj-1") != _build_project_context_suffix("proj-2")
 
 
-def test_turn_state_defaults_to_not_persisted():
-    """The event callback should fall back to persisting the raw MessageEvent
-    when the token callback never fired for this turn — which is always, for
-    RemoteConversation (see _TurnState's docstring in executor.py)."""
-    state = _TurnState()
-    assert state.consume() is False
-
-
-def test_turn_state_consume_reflects_token_persist():
-    state = _TurnState()
-    state.mark_token_persisted()
-    assert state.consume() is True
-
-
-def test_turn_state_consume_clears_flag_for_next_turn():
-    state = _TurnState()
-    state.mark_token_persisted()
-    assert state.consume() is True
-    # A second turn with no streaming output must not inherit the previous
-    # turn's flag — otherwise its reply would be silently dropped too.
-    assert state.consume() is False
-
-
-# ─── _make_event_callback / _make_token_callback integration ─────────────────
+# ─── _make_event_callback ─────────────────────────────────────────────────────
 #
-# These exercise the real closures together rather than just _TurnState in
-# isolation. They run a real asyncio loop on a background thread because the
-# callbacks call asyncio.run_coroutine_threadsafe(...).result(...) — exactly
-# how they're driven in production (the SDK invokes them synchronously from
-# the executor thread, while the main event loop runs separately).
+# These run a real asyncio loop on a background thread because the callbacks
+# call asyncio.run_coroutine_threadsafe(...).result(...) — exactly how they're
+# driven in production (the SDK invokes them synchronously from the executor
+# thread, while the main event loop runs separately).
 
 
 @pytest.fixture
@@ -92,24 +68,14 @@ def mock_persistence(monkeypatch):
 
 class MessageEvent:
     """Stand-in for openhands.sdk.event.MessageEvent — the callback only
-    relies on the class name, `.source`, and `.model_dump_json()`."""
+    relies on the class name, `.id`, `.source`, and `.model_dump_json()`."""
 
-    def __init__(self, source: str = "agent") -> None:
+    def __init__(self, source: str = "agent", id: str | None = None) -> None:
         self.source = source
+        self.id = id
 
     def model_dump_json(self) -> str:
         return json.dumps({"source": self.source})
-
-
-class _FakeChoice:
-    def __init__(self, content: str = "", finish_reason: str | None = None) -> None:
-        self.delta = type("Delta", (), {"content": content, "reasoning_content": ""})()
-        self.finish_reason = finish_reason
-
-
-class _FakeStreamChunk:
-    def __init__(self, *choices: _FakeChoice) -> None:
-        self.choices = choices
 
 
 def _trigger(conversation_id: str = "conv-1") -> TriggerMessage:
@@ -128,19 +94,16 @@ def _trigger(conversation_id: str = "conv-1") -> TriggerMessage:
     )
 
 
-def test_event_callback_persists_agent_reply_when_token_callback_never_fires(
-    bg_loop, mock_persistence
-):
-    """Mirrors production under openhands-sdk's RemoteConversation: on_token
-    is never invoked at all (token_callbacks isn't wired through for remote
-    workspaces — see openhands.sdk.conversation.impl.remote_conversation).
-    The event callback must persist the agent's reply itself rather than
-    silently dropping it."""
+def test_event_callback_persists_agent_reply(bg_loop, mock_persistence):
+    """Regression coverage for https://github.com/Paca-AI/paca/issues/211 and
+    #214: openhands-sdk's RemoteConversation never wires up token_callbacks
+    (confirmed by reading openhands.sdk.conversation.impl.remote_conversation
+    — the real constructor has no such parameter, it's swallowed by a
+    catch-all **kwargs), so the event callback is the only path that ever
+    persists the agent's reply."""
     trigger = _trigger()
-    turn_state = _TurnState()
-    event_callback = _make_event_callback(trigger, bg_loop, _AtomicCounter(), turn_state)
+    event_callback = _make_event_callback(trigger, bg_loop, _AtomicCounter(), _SeenEvents())
 
-    # on_token is intentionally never called here.
     event_callback(MessageEvent(source="agent"))
 
     mock_persistence.assert_awaited_once()
@@ -150,32 +113,76 @@ def test_event_callback_persists_agent_reply_when_token_callback_never_fires(
     assert kwargs["conversation_id"] == "conv-1"
 
 
-def test_event_callback_skips_duplicate_when_token_callback_already_persisted(
-    bg_loop, mock_persistence
-):
-    """When the token callback *does* manage to flush a finished message,
-    the event callback must not also persist the SDK's own MessageEvent —
-    that would duplicate the reply in the conversation."""
+def test_event_callback_skips_non_message_noise_events(bg_loop, mock_persistence):
+    """Internal bookkeeping events must be skipped."""
     trigger = _trigger()
-    turn_state = _TurnState()
-    on_token = _make_token_callback(trigger, bg_loop, _AtomicCounter(), turn_state)
-    event_callback = _make_event_callback(trigger, bg_loop, _AtomicCounter(), turn_state)
-
-    on_token(_FakeStreamChunk(_FakeChoice(content="Hello", finish_reason="stop")))
-    mock_persistence.assert_awaited_once()
-    mock_persistence.reset_mock()
-
-    event_callback(MessageEvent(source="agent"))
-    mock_persistence.assert_not_awaited()
-
-
-def test_event_callback_still_skips_non_message_noise_events(bg_loop, mock_persistence):
-    """Unrelated to the fallback logic: internal bookkeeping events must
-    still be skipped regardless of turn_state."""
-    trigger = _trigger()
-    event_callback = _make_event_callback(trigger, bg_loop, _AtomicCounter(), _TurnState())
+    event_callback = _make_event_callback(trigger, bg_loop, _AtomicCounter(), _SeenEvents())
 
     noise = type("ConversationStateUpdateEvent", (), {"source": "agent"})()
     event_callback(noise)
 
     mock_persistence.assert_not_awaited()
+
+
+# ─── _make_reconciler ─────────────────────────────────────────────────────────
+
+
+class _FakeEventsList:
+    """Stand-in for RemoteEventsList — reconcile() + iteration only."""
+
+    def __init__(self, events: list) -> None:
+        self._events = events
+        self.reconcile_calls = 0
+
+    def reconcile(self) -> int:
+        self.reconcile_calls += 1
+        return 0
+
+    def __iter__(self):
+        return iter(self._events)
+
+
+class _FakeConversation:
+    def __init__(self, events: list) -> None:
+        self.state = type("State", (), {"events": _FakeEventsList(events)})()
+
+
+def test_reconciler_persists_events_missed_by_dead_ws_thread(bg_loop, mock_persistence):
+    """Simulates the openhands-sdk WS-thread-died scenario: events the agent
+    produced never reached the live callback (nothing called it), but they
+    are visible over REST via events.reconcile(). The reconciler must push
+    those through the normal persistence path exactly once."""
+    trigger = _trigger()
+    seen = _SeenEvents()
+    reconcile = _make_reconciler(trigger, bg_loop, _AtomicCounter(), seen)
+
+    conversation = _FakeConversation(
+        [MessageEvent(source="agent", id="evt-1"), MessageEvent(source="agent", id="evt-2")]
+    )
+
+    reconcile(conversation)
+
+    assert mock_persistence.await_count == 2
+    persisted_ids = {call.kwargs["event_index"] for call in mock_persistence.call_args_list}
+    assert len(persisted_ids) == 2  # each event got its own monotonic index
+
+
+def test_reconciler_does_not_reprocess_events_already_seen(bg_loop, mock_persistence):
+    """An event already delivered via the live WebSocket callback (and marked
+    seen there) must not be persisted again just because reconcile() also
+    surfaces it from the full REST history."""
+    trigger = _trigger()
+    seen = _SeenEvents()
+    event_callback = _make_event_callback(trigger, bg_loop, _AtomicCounter(), seen)
+    reconcile = _make_reconciler(trigger, bg_loop, _AtomicCounter(), seen)
+
+    live_event = MessageEvent(source="agent", id="evt-live")
+    event_callback(live_event)
+    mock_persistence.assert_awaited_once()
+    mock_persistence.reset_mock()
+
+    conversation = _FakeConversation([live_event, MessageEvent(source="agent", id="evt-new")])
+    reconcile(conversation)
+
+    mock_persistence.assert_awaited_once()
+    assert mock_persistence.call_args.kwargs["conversation_id"] == "conv-1"

@@ -169,8 +169,7 @@ async def test_agent_reply_is_persisted_through_real_sandbox(make_fake_llm, pers
 async def test_agent_tool_call_then_reply_persists_full_flow(make_fake_llm, persistence):
     """A tool call followed by a final text reply spans two agent.step()
     iterations. Confirms the action, its observation, AND the final reply
-    all persist — i.e. _TurnState correctly resets between turns in the
-    real pipeline, not just in the isolated unit test."""
+    all persist through the real pipeline, not just the isolated unit test."""
     base_url = make_fake_llm(
         script=[
             tool_call_reply("terminal", {"command": "echo hello-from-e2e"}),
