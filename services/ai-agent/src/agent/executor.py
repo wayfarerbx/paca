@@ -89,10 +89,22 @@ def _wait_for_done_or_stop(
             return False, False
 
         try:
+            # RemoteState caches execution_status from WebSocket events and only
+            # ever re-fetches over REST if the cache is still empty (see
+            # RemoteState._get_conversation_info). openhands-sdk's WS client
+            # thread permanently stops reconnecting after any ConnectionClosed
+            # (upstream bug, still present as of openhands-sdk 1.31.0 — see
+            # OpenHands/software-agent-sdk#1532), which would otherwise freeze
+            # this loop on a stale "running" status until the timeout above.
+            # Force a live REST read every poll so a dead socket can't wedge us.
+            conversation.state.refresh_from_server()
             status = conversation.state.execution_status
             if status in _DONE_STATUSES:
                 errored = status in _ERROR_STATUSES
                 if errored:
+                    # Same staleness risk applies to the cached event list used
+                    # for the error detail — reconcile before reading it.
+                    conversation.state.events.reconcile()
                     detail = _get_conversation_error_detail(conversation)
                     logger.error(
                         "Conversation ended with status %s — %s",
