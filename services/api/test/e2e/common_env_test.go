@@ -27,6 +27,7 @@ import (
 	"github.com/Paca-AI/api/internal/platform/authz"
 	"github.com/Paca-AI/api/internal/platform/cache"
 	"github.com/Paca-AI/api/internal/platform/database"
+	"github.com/Paca-AI/api/internal/platform/messaging"
 	"github.com/Paca-AI/api/internal/platform/storage"
 	jwttoken "github.com/Paca-AI/api/internal/platform/token"
 	pgRepo "github.com/Paca-AI/api/internal/repository/postgres"
@@ -39,9 +40,11 @@ import (
 	sprintsvc "github.com/Paca-AI/api/internal/service/sprint"
 	tasksvc "github.com/Paca-AI/api/internal/service/task"
 	usersvc "github.com/Paca-AI/api/internal/service/user"
+	workflowsvc "github.com/Paca-AI/api/internal/service/workflow"
 	"github.com/Paca-AI/api/internal/transport/http/handler"
 	"github.com/Paca-AI/api/internal/transport/http/router"
 	"github.com/jmoiron/sqlx"
+	"github.com/redis/go-redis/v9"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
@@ -85,7 +88,11 @@ type e2eEnv struct {
 	attachmentSvc  *attachmentsvc.Service
 	apiKeyRepo     *pgRepo.APIKeyRepository
 	apiKeySvc      *apikeysvc.Service
-	db             *sqlx.DB // raw connection for per-test service wiring
+	workflowRepo   *pgRepo.WorkflowRepository
+	workflowSvc    *workflowsvc.Service
+	activitySvc    *tasksvc.ActivitySvc
+	redisClient    *redis.Client // shared Valkey client, for per-test worker/consumer wiring
+	db             *sqlx.DB      // raw connection for per-test service wiring
 }
 
 func newE2EEnv(t *testing.T) *e2eEnv {
@@ -191,8 +198,17 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 	attachmentRepo := pgRepo.NewAttachmentRepository(db)
 	apiKeyRepo := pgRepo.NewAPIKeyRepository(db)
 	apiKeyService := apikeysvc.New(apiKeyRepo)
+	// A real (non-nil) publisher is required so that task.updated activity
+	// events actually reach StreamTaskActivities — otherwise a per-test
+	// worker.WorkflowConsumer would never observe task status changes made
+	// through the HTTP API. This is a cheap, fire-and-forget XAdd for every
+	// other e2e test too (no consumer group drains it unless a test starts
+	// one), so it doesn't affect their behavior or teardown time.
+	publisher := messaging.NewPublisher(redisClient, log)
 	activityRepo := pgRepo.NewTaskActivityRepository(db)
-	activityService := tasksvc.NewActivityService(activityRepo, projectRepo, nil)
+	activityService := tasksvc.NewActivityService(activityRepo, projectRepo, publisher)
+	workflowRepo := pgRepo.NewWorkflowRepository(db)
+	workflowService := workflowsvc.New(workflowRepo, taskRepo, projectRepo)
 	var attachmentService *attachmentsvc.Service
 	if sharedMinIOEndpoint != "" {
 		minIOEndpoint := sharedMinIOEndpoint
@@ -234,6 +250,7 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 		View:                 handler.NewViewHandler(viewService),
 		Attachment:           handler.NewAttachmentHandler(attachmentService),
 		APIKey:               handler.NewAPIKeyHandler(apiKeyService),
+		Workflow:             handler.NewWorkflowHandler(workflowService),
 		Log:                  log,
 	})
 
@@ -267,6 +284,10 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 		attachmentSvc:  attachmentService,
 		apiKeyRepo:     apiKeyRepo,
 		apiKeySvc:      apiKeyService,
+		workflowRepo:   workflowRepo,
+		workflowSvc:    workflowService,
+		activitySvc:    activityService,
+		redisClient:    redisClient,
 		db:             db,
 	}
 }
