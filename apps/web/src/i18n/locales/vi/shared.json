@@ -11,15 +11,6 @@
 		"delete": "Xóa",
 		"viewDiff": "Xem thay đổi",
 		"revert": "Hoàn tác",
-		"timeAgo": {
-			"justNow": "vừa xong",
-			"minutes_one": "{{count}} phút trước",
-			"minutes_other": "{{count}} phút trước",
-			"hours_one": "{{count}} giờ trước",
-			"hours_other": "{{count}} giờ trước",
-			"days_one": "{{count}} ngày trước",
-			"days_other": "{{count}} ngày trước"
-		},
 		"errors": {
 			"revertFailed": "Hoàn tác thất bại. Vui lòng thử lại."
 		}

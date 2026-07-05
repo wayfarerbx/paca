@@ -32,7 +32,9 @@ function makeClient(overrides: Record<string, any> = {}) {
 	return {
 		listTaskActivities: vi.fn().mockResolvedValue([activity]),
 		addTaskComment: vi.fn().mockResolvedValue(comment),
-		updateTaskComment: vi.fn().mockResolvedValue({ ...comment, content: "updated" }),
+		updateTaskComment: vi
+			.fn()
+			.mockResolvedValue({ ...comment, content: "updated" }),
 		deleteTaskComment: vi.fn().mockResolvedValue(undefined),
 		...overrides,
 	} as any;
@@ -63,7 +65,11 @@ describe("getTaskActivityTools", () => {
 describe("handleTaskActivityTool – list_task_activities", () => {
 	it("calls client.listTaskActivities with projectId and taskId", async () => {
 		const client = makeClient();
-		await handleTaskActivityTool("list_task_activities", { projectId: "p1", taskId: "t1" }, client);
+		await handleTaskActivityTool(
+			"list_task_activities",
+			{ projectId: "p1", taskId: "t1" },
+			client,
+		);
 		expect(client.listTaskActivities).toHaveBeenCalledWith("p1", "t1");
 	});
 
@@ -79,7 +85,11 @@ describe("handleTaskActivityTool – list_task_activities", () => {
 
 	it("throws ZodError when required args are missing", async () => {
 		await expect(
-			handleTaskActivityTool("list_task_activities", { projectId: "p1" }, makeClient()),
+			handleTaskActivityTool(
+				"list_task_activities",
+				{ projectId: "p1" },
+				makeClient(),
+			),
 		).rejects.toThrow();
 	});
 });
@@ -96,7 +106,9 @@ describe("handleTaskActivityTool – add_task_comment", () => {
 			{ projectId: "p1", taskId: "t1", content: "LGTM" },
 			client,
 		);
-		expect(client.addTaskComment).toHaveBeenCalledWith("p1", "t1", { content: "LGTM" });
+		expect(client.addTaskComment).toHaveBeenCalledWith("p1", "t1", {
+			content: "LGTM",
+		});
 	});
 
 	it("includes 'added successfully' in the response", async () => {
@@ -110,7 +122,11 @@ describe("handleTaskActivityTool – add_task_comment", () => {
 
 	it("throws ZodError when content is missing", async () => {
 		await expect(
-			handleTaskActivityTool("add_task_comment", { projectId: "p1", taskId: "t1" }, makeClient()),
+			handleTaskActivityTool(
+				"add_task_comment",
+				{ projectId: "p1", taskId: "t1" },
+				makeClient(),
+			),
 		).rejects.toThrow();
 	});
 });

@@ -2,57 +2,99 @@ import { describe, expect, it, vi } from "vitest";
 
 // Mock all domain tool modules so we test routing, not tool implementations.
 vi.mock("../../tools/project-tools.js", () => ({
-	getProjectTools: vi.fn(() => [{ name: "list_projects" }, { name: "get_project" }]),
-	handleProjectTool: vi.fn().mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
+	getProjectTools: vi.fn(() => [
+		{ name: "list_projects" },
+		{ name: "get_project" },
+	]),
+	handleProjectTool: vi
+		.fn()
+		.mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
 }));
 vi.mock("../../tools/task-tools.js", () => ({
-	getTaskTools: vi.fn(() => [{ name: "list_tasks" }, { name: "get_task" }, { name: "create_task" }]),
-	handleTaskTool: vi.fn().mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
+	getTaskTools: vi.fn(() => [
+		{ name: "list_tasks" },
+		{ name: "get_task" },
+		{ name: "create_task" },
+	]),
+	handleTaskTool: vi
+		.fn()
+		.mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
 }));
 vi.mock("../../tools/sprint-tools.js", () => ({
-	getSprintTools: vi.fn(() => [{ name: "list_sprints" }, { name: "complete_sprint" }]),
-	handleSprintTool: vi.fn().mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
+	getSprintTools: vi.fn(() => [
+		{ name: "list_sprints" },
+		{ name: "complete_sprint" },
+	]),
+	handleSprintTool: vi
+		.fn()
+		.mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
 }));
 vi.mock("../../tools/filesystem-doc-tools.js", () => ({
-	getFilesystemDocTools: vi.fn(() => [{ name: "list_docs" }, { name: "read_doc" }]),
-	handleFilesystemDocTool: vi.fn().mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
+	getFilesystemDocTools: vi.fn(() => [
+		{ name: "list_docs" },
+		{ name: "read_doc" },
+	]),
+	handleFilesystemDocTool: vi
+		.fn()
+		.mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
 }));
 vi.mock("../../tools/member-tools.js", () => ({
 	getProjectMemberTools: vi.fn(() => [{ name: "list_project_members" }]),
 	getProjectRoleTools: vi.fn(() => [{ name: "list_project_roles" }]),
-	handleProjectMemberTool: vi.fn().mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
+	handleProjectMemberTool: vi
+		.fn()
+		.mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
 }));
 vi.mock("../../tools/task-type-tools.js", () => ({
 	getTaskTypeTools: vi.fn(() => [{ name: "list_task_types" }]),
 	getTaskStatusTools: vi.fn(() => [{ name: "list_task_statuses" }]),
-	handleTaskTypeTool: vi.fn().mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
+	handleTaskTypeTool: vi
+		.fn()
+		.mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
 }));
 vi.mock("../../tools/view-tools.js", () => ({
 	getViewTools: vi.fn(() => [{ name: "list_views" }, { name: "create_view" }]),
 	getCustomFieldTools: vi.fn(() => [{ name: "list_custom_fields" }]),
-	handleViewTool: vi.fn().mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
+	handleViewTool: vi
+		.fn()
+		.mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
 }));
 vi.mock("../../tools/attachment-tools.js", () => ({
 	getAttachmentTools: vi.fn(() => [{ name: "list_task_attachments" }]),
-	handleAttachmentTool: vi.fn().mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
+	handleAttachmentTool: vi
+		.fn()
+		.mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
 }));
 vi.mock("../../tools/task-activity-tools.js", () => ({
-	getTaskActivityTools: vi.fn(() => [{ name: "list_task_activities" }, { name: "add_task_comment" }]),
-	handleTaskActivityTool: vi.fn().mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
+	getTaskActivityTools: vi.fn(() => [
+		{ name: "list_task_activities" },
+		{ name: "add_task_comment" },
+	]),
+	handleTaskActivityTool: vi
+		.fn()
+		.mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
+}));
+vi.mock("../../tools/workflow-tools.js", () => ({
+	getWorkflowTools: vi.fn(() => [
+		{ name: "list_workflows" },
+		{ name: "get_workflow" },
+	]),
+	handleWorkflowTool: vi
+		.fn()
+		.mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
 }));
 
+import { handleAttachmentTool } from "../../tools/attachment-tools.js";
+import { handleFilesystemDocTool } from "../../tools/filesystem-doc-tools.js";
 import { getAllTools, handleToolCall } from "../../tools/index.js";
-import {
-	handleProjectMemberTool,
-} from "../../tools/member-tools.js";
+import { handleProjectMemberTool } from "../../tools/member-tools.js";
 import { handleProjectTool } from "../../tools/project-tools.js";
 import { handleSprintTool } from "../../tools/sprint-tools.js";
+import { handleTaskActivityTool } from "../../tools/task-activity-tools.js";
 import { handleTaskTool } from "../../tools/task-tools.js";
 import { handleTaskTypeTool } from "../../tools/task-type-tools.js";
 import { handleViewTool } from "../../tools/view-tools.js";
-import { handleAttachmentTool } from "../../tools/attachment-tools.js";
-import { handleTaskActivityTool } from "../../tools/task-activity-tools.js";
-import { handleFilesystemDocTool } from "../../tools/filesystem-doc-tools.js";
+import { handleWorkflowTool } from "../../tools/workflow-tools.js";
 
 // Stub clients – these are only passed through to domain handlers (which are mocked)
 const stubClients = {
@@ -61,6 +103,7 @@ const stubClients = {
 	viewsClient: {} as any,
 	taskExtendedClient: {} as any,
 	docClient: {} as any,
+	workflowClient: {} as any,
 };
 
 function makeRequest(name: string, args: Record<string, unknown> = {}) {
@@ -89,6 +132,7 @@ describe("getAllTools", () => {
 		expect(names).toContain("list_views");
 		expect(names).toContain("list_task_attachments");
 		expect(names).toContain("list_task_activities");
+		expect(names).toContain("list_workflows");
 	});
 });
 
@@ -99,12 +143,23 @@ describe("getAllTools", () => {
 describe("handleToolCall – project tool routing", () => {
 	it("routes list_projects to handleProjectTool", async () => {
 		await handleToolCall(makeRequest("list_projects"), stubClients);
-		expect(handleProjectTool).toHaveBeenCalledWith("list_projects", {}, stubClients.apiClient);
+		expect(handleProjectTool).toHaveBeenCalledWith(
+			"list_projects",
+			{},
+			stubClients.apiClient,
+		);
 	});
 
 	it("routes get_project to handleProjectTool", async () => {
-		await handleToolCall(makeRequest("get_project", { project_id: "p1" }), stubClients);
-		expect(handleProjectTool).toHaveBeenCalledWith("get_project", { project_id: "p1" }, stubClients.apiClient);
+		await handleToolCall(
+			makeRequest("get_project", { project_id: "p1" }),
+			stubClients,
+		);
+		expect(handleProjectTool).toHaveBeenCalledWith(
+			"get_project",
+			{ project_id: "p1" },
+			stubClients.apiClient,
+		);
 	});
 });
 
@@ -121,7 +176,10 @@ describe("handleToolCall – task tool routing", () => {
 	});
 
 	it("routes create_task to handleTaskTool", async () => {
-		await handleToolCall(makeRequest("create_task", { title: "T" }), stubClients);
+		await handleToolCall(
+			makeRequest("create_task", { title: "T" }),
+			stubClients,
+		);
 		expect(handleTaskTool).toHaveBeenCalledWith(
 			"create_task",
 			{ title: "T" },
@@ -135,12 +193,20 @@ describe("handleToolCall – task tool routing", () => {
 describe("handleToolCall – sprint tool routing", () => {
 	it("routes list_sprints to handleSprintTool", async () => {
 		await handleToolCall(makeRequest("list_sprints"), stubClients);
-		expect(handleSprintTool).toHaveBeenCalledWith("list_sprints", {}, stubClients.apiClient);
+		expect(handleSprintTool).toHaveBeenCalledWith(
+			"list_sprints",
+			{},
+			stubClients.apiClient,
+		);
 	});
 
 	it("routes complete_sprint to handleSprintTool", async () => {
 		await handleToolCall(makeRequest("complete_sprint"), stubClients);
-		expect(handleSprintTool).toHaveBeenCalledWith("complete_sprint", {}, stubClients.apiClient);
+		expect(handleSprintTool).toHaveBeenCalledWith(
+			"complete_sprint",
+			{},
+			stubClients.apiClient,
+		);
 	});
 });
 
@@ -199,7 +265,11 @@ describe("handleToolCall – task type/status routing", () => {
 describe("handleToolCall – view/custom-field routing", () => {
 	it("routes list_views to handleViewTool", async () => {
 		await handleToolCall(makeRequest("list_views"), stubClients);
-		expect(handleViewTool).toHaveBeenCalledWith("list_views", {}, stubClients.viewsClient);
+		expect(handleViewTool).toHaveBeenCalledWith(
+			"list_views",
+			{},
+			stubClients.viewsClient,
+		);
 	});
 
 	it("routes list_custom_fields to handleViewTool", async () => {
@@ -243,13 +313,60 @@ describe("handleToolCall – activity routing", () => {
 	});
 });
 
+describe("handleToolCall – workflow tool routing", () => {
+	it("routes list_workflows to handleWorkflowTool", async () => {
+		await handleToolCall(makeRequest("list_workflows"), stubClients);
+		expect(handleWorkflowTool).toHaveBeenCalledWith(
+			"list_workflows",
+			{},
+			stubClients.workflowClient,
+		);
+	});
+
+	it("routes add_workflow_edge to handleWorkflowTool", async () => {
+		await handleToolCall(makeRequest("add_workflow_edge"), stubClients);
+		expect(handleWorkflowTool).toHaveBeenCalledWith(
+			"add_workflow_edge",
+			{},
+			stubClients.workflowClient,
+		);
+	});
+
+	it("routes set_workflow_status_transition to handleWorkflowTool", async () => {
+		await handleToolCall(
+			makeRequest("set_workflow_status_transition"),
+			stubClients,
+		);
+		expect(handleWorkflowTool).toHaveBeenCalledWith(
+			"set_workflow_status_transition",
+			{},
+			stubClients.workflowClient,
+		);
+	});
+
+	it("routes remove_workflow_status_transition to handleWorkflowTool", async () => {
+		await handleToolCall(
+			makeRequest("remove_workflow_status_transition"),
+			stubClients,
+		);
+		expect(handleWorkflowTool).toHaveBeenCalledWith(
+			"remove_workflow_status_transition",
+			{},
+			stubClients.workflowClient,
+		);
+	});
+});
+
 // ---------------------------------------------------------------------------
 // handleToolCall – error handling
 // ---------------------------------------------------------------------------
 
 describe("handleToolCall – error handling", () => {
 	it("returns isError response for an unknown tool name", async () => {
-		const result = await handleToolCall(makeRequest("completely_unknown_tool"), stubClients);
+		const result = await handleToolCall(
+			makeRequest("completely_unknown_tool"),
+			stubClients,
+		);
 		expect(result.isError).toBe(true);
 		expect(result.content[0].text).toContain("Unknown tool");
 	});
@@ -260,13 +377,18 @@ describe("handleToolCall – error handling", () => {
 		vi.mocked(handleProjectTool).mockImplementationOnce(() => {
 			throw new Error("Sync error from handler");
 		});
-		const result = await handleToolCall(makeRequest("list_projects"), stubClients);
+		const result = await handleToolCall(
+			makeRequest("list_projects"),
+			stubClients,
+		);
 		expect(result.isError).toBe(true);
 		expect(result.content[0].text).toContain("Sync error from handler");
 	});
 
 	it("propagates rejection when a domain handler rejects asynchronously", async () => {
-		vi.mocked(handleProjectTool).mockRejectedValueOnce(new Error("Async API down"));
+		vi.mocked(handleProjectTool).mockRejectedValueOnce(
+			new Error("Async API down"),
+		);
 		await expect(
 			handleToolCall(makeRequest("list_projects"), stubClients),
 		).rejects.toThrow("Async API down");

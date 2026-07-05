@@ -18,5 +18,14 @@
 		"newPasswordMustDiffer": "新しいパスワードは現在のパスワードと異なるものにしてください。",
 		"confirmPasswordRequired": "新しいパスワードを再入力してください。",
 		"passwordsDoNotMatch": "パスワードが一致しません。"
+	},
+	"timeAgo": {
+		"justNow": "たった今",
+		"minutes_one": "{{count}}分前",
+		"minutes_other": "{{count}}分前",
+		"hours_one": "{{count}}時間前",
+		"hours_other": "{{count}}時間前",
+		"days_one": "{{count}}日前",
+		"days_other": "{{count}}日前"
 	}
 }

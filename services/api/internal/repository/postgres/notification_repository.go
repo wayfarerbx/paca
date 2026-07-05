@@ -12,17 +12,6 @@ import (
 
 // --- sqlx model -------------------------------------------------------------
 
-type notificationRecord struct {
-	ID              string     `db:"id"`
-	RecipientUserID string     `db:"recipient_user_id"`
-	ActorMemberID   *string    `db:"actor_member_id"`
-	Type            string     `db:"type"`
-	TaskID          *string    `db:"task_id"`
-	ProjectID       string     `db:"project_id"`
-	ReadAt          *time.Time `db:"read_at"`
-	CreatedAt       time.Time  `db:"created_at"`
-}
-
 // notificationReadRow is the result of the enriched SELECT … JOIN query.
 type notificationReadRow struct {
 	ID              string     `db:"id"`

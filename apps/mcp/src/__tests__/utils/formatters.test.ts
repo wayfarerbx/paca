@@ -10,13 +10,15 @@ vi.mock("../../utils/converters.js", () => ({
 import type {
 	Attachment,
 	CustomFieldDefinition,
+	Document,
+	Project,
 	ProjectMember,
 	Sprint,
+	Task,
 	TaskActivity,
 	TaskStatus,
 	TaskType,
 } from "../../types/index.js";
-
 import {
 	formatDocument,
 	formatList,
@@ -25,7 +27,6 @@ import {
 	formatTask,
 	formatTaskDetail,
 } from "../../utils/formatters.js";
-import type { Document, Project, Task } from "../../types/index.js";
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -100,16 +101,23 @@ describe("formatTask", () => {
 	});
 
 	it("calls blocknoteToMarkdown and includes its output when description is set", () => {
-		const result = formatTask({ ...baseTask, description: [{ type: "paragraph" }] });
+		const result = formatTask({
+			...baseTask,
+			description: [{ type: "paragraph" }],
+		});
 		expect(result).toContain("mocked markdown");
 	});
 
 	it("shows importance value", () => {
-		expect(formatTask({ ...baseTask, importance: 5 })).toContain("Importance: 5");
+		expect(formatTask({ ...baseTask, importance: 5 })).toContain(
+			"Importance: 5",
+		);
 	});
 
 	it("shows story points when set", () => {
-		expect(formatTask({ ...baseTask, story_points: 8 })).toContain("Story Points: 8");
+		expect(formatTask({ ...baseTask, story_points: 8 })).toContain(
+			"Story Points: 8",
+		);
 	});
 
 	it("shows tags when present", () => {
@@ -161,11 +169,15 @@ describe("formatProject", () => {
 	});
 
 	it("shows 'None' when task_id_prefix is empty", () => {
-		expect(formatProject({ ...baseProject, task_id_prefix: "" })).toContain("Task ID Prefix: None");
+		expect(formatProject({ ...baseProject, task_id_prefix: "" })).toContain(
+			"Task ID Prefix: None",
+		);
 	});
 
 	it("includes created_at", () => {
-		expect(formatProject(baseProject)).toContain("Created: 2024-01-01T00:00:00Z");
+		expect(formatProject(baseProject)).toContain(
+			"Created: 2024-01-01T00:00:00Z",
+		);
 	});
 
 	it("shows 'Unknown' for missing created_by", () => {
@@ -314,7 +326,9 @@ describe("formatTaskDetail", () => {
 	});
 
 	it("shows 'No description' when description is null", () => {
-		expect(formatTaskDetail({ ...baseTask, description: null })).toContain("No description");
+		expect(formatTaskDetail({ ...baseTask, description: null })).toContain(
+			"No description",
+		);
 	});
 
 	it("calls blocknoteToMarkdown when description is set", () => {
@@ -334,7 +348,11 @@ describe("formatTaskDetail", () => {
 			created_at: "2024-01-01T00:00:00Z",
 			updated_at: "2024-01-01T00:00:00Z",
 		};
-		const result = formatTaskDetail({ ...baseTask, status_id: "s1" }, undefined, status);
+		const result = formatTaskDetail(
+			{ ...baseTask, status_id: "s1" },
+			undefined,
+			status,
+		);
 		expect(result).toContain("In Progress");
 	});
 
@@ -351,7 +369,12 @@ describe("formatTaskDetail", () => {
 			created_at: "2024-01-01T00:00:00Z",
 			updated_at: "2024-01-01T00:00:00Z",
 		};
-		const result = formatTaskDetail({ ...baseTask, task_type_id: "ty1" }, undefined, undefined, taskType);
+		const result = formatTaskDetail(
+			{ ...baseTask, task_type_id: "ty1" },
+			undefined,
+			undefined,
+			taskType,
+		);
 		expect(result).toContain("Story");
 	});
 
@@ -390,7 +413,12 @@ describe("formatTaskDetail", () => {
 	});
 
 	it("shows parent task title when parentTask is provided", () => {
-		const parentTask = { ...baseTask, id: "parent-1", title: "Epic Task", task_number: 10 };
+		const parentTask = {
+			...baseTask,
+			id: "parent-1",
+			title: "Epic Task",
+			task_number: 10,
+		};
 		const result = formatTaskDetail(
 			{ ...baseTask, parent_task_id: "parent-1" },
 			undefined,
@@ -406,7 +434,12 @@ describe("formatTaskDetail", () => {
 	});
 
 	it("includes subtasks section when subtasks are provided", () => {
-		const subtask = { ...baseTask, id: "sub-1", title: "Subtask", task_number: 2 };
+		const subtask = {
+			...baseTask,
+			id: "sub-1",
+			title: "Subtask",
+			task_number: 2,
+		};
 		const result = formatTaskDetail(
 			baseTask,
 			undefined,
@@ -543,7 +576,10 @@ describe("formatTaskDetail", () => {
 	});
 
 	it("includes tags when present", () => {
-		const result = formatTaskDetail({ ...baseTask, tags: ["urgent", "backend"] });
+		const result = formatTaskDetail({
+			...baseTask,
+			tags: ["urgent", "backend"],
+		});
 		expect(result).toContain("urgent");
 		expect(result).toContain("backend");
 	});

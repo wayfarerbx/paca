@@ -39,6 +39,7 @@ import (
 	sprintsvc "github.com/Paca-AI/api/internal/service/sprint"
 	tasksvc "github.com/Paca-AI/api/internal/service/task"
 	usersvc "github.com/Paca-AI/api/internal/service/user"
+	workflowsvc "github.com/Paca-AI/api/internal/service/workflow"
 	"github.com/Paca-AI/api/internal/transport/http/handler"
 	"github.com/Paca-AI/api/internal/transport/http/router"
 	"github.com/Paca-AI/api/internal/worker"
@@ -50,8 +51,10 @@ import (
 
 // agentBotUserID is the fixed UUID of the built-in agent bot user seeded on
 // startup.  The AI agent service authenticates as this user when it presents
-// the AGENT_API_KEY configured in the SecurityConfig.
-var agentBotUserID = uuid.MustParse("00000000-0000-0000-0000-000000000002")
+// the AGENT_API_KEY configured in the SecurityConfig. It is also reused as
+// the generic "system actor" for automated changes with no human actor (see
+// userdom.SystemActorUserID).
+var agentBotUserID = userdom.SystemActorUserID
 
 // App holds the HTTP server and any resources that need graceful shutdown.
 type App struct {
@@ -61,6 +64,7 @@ type App struct {
 	docActivityConsumer  *worker.DocActivityConsumer
 	notificationConsumer *worker.NotificationConsumer
 	pluginEventConsumer  *worker.PluginEventConsumer
+	workflowConsumer     *worker.WorkflowConsumer
 	log                  *slog.Logger
 }
 
@@ -102,6 +106,7 @@ func New(cfg *config.Config) (*App, error) {
 	docRepo := pgRepo.NewDocumentRepository(db)
 	refreshStore := redisRepo.NewRefreshTokenStore(redisClient)
 	pluginRepo := pgRepo.NewPluginRepository(db)
+	workflowRepo := pgRepo.NewWorkflowRepository(db)
 
 	// --- Schema migration ---------------------------------------------------
 	// All statements use CREATE TABLE IF NOT EXISTS / INSERT … ON CONFLICT so
@@ -156,6 +161,8 @@ func New(cfg *config.Config) (*App, error) {
 	docActivityService := docsvc.NewActivityService(docRepo, projectRepo, publisher).
 		WithNotificationService(notificationService)
 	docActivityConsumer := worker.NewDocActivityConsumer(redisClient, docRepo, projectRepo, log)
+	workflowService := workflowsvc.New(workflowRepo, taskRepo, projectRepo)
+	workflowConsumer := worker.NewWorkflowConsumer(redisClient, workflowRepo, taskRepo, taskService, activityService, publisher, log)
 
 	// Object storage — defaults to MinIO; switches to AWS S3 when STORAGE_PROVIDER=s3.
 	storageClient, err := storage.NewS3Client(context.Background(), storage.S3Config{
@@ -257,6 +264,7 @@ func New(cfg *config.Config) (*App, error) {
 	agentHandler := handler.NewAgentHandler(agentService, cfg.AIAgentURL).
 		WithActivityRecorder(activityService)
 	convHandler := handler.NewConversationHandler(agentService)
+	workflowHandler := handler.NewWorkflowHandler(workflowService)
 
 	// --- Handlers -----------------------------------------------------------
 	cookieCfg := handler.CookieConfig{
@@ -291,6 +299,7 @@ func New(cfg *config.Config) (*App, error) {
 		Plugin:       pluginHandler,
 		Agent:        agentHandler,
 		Conversation: convHandler,
+		Workflow:     workflowHandler,
 		Log:          log,
 	}
 
@@ -304,7 +313,7 @@ func New(cfg *config.Config) (*App, error) {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	return &App{server: srv, publisher: publisher, activityConsumer: activityConsumer, docActivityConsumer: docActivityConsumer, notificationConsumer: notificationConsumer, pluginEventConsumer: pluginEventConsumer, log: log}, nil
+	return &App{server: srv, publisher: publisher, activityConsumer: activityConsumer, docActivityConsumer: docActivityConsumer, notificationConsumer: notificationConsumer, pluginEventConsumer: pluginEventConsumer, workflowConsumer: workflowConsumer, log: log}, nil
 }
 
 // Run starts the activity consumers and the HTTP server.
@@ -315,6 +324,7 @@ func (a *App) Run() error {
 	a.docActivityConsumer.Start(context.Background())
 	a.notificationConsumer.Start(context.Background())
 	a.pluginEventConsumer.Start(context.Background())
+	a.workflowConsumer.Start(context.Background())
 	return a.server.ListenAndServe()
 }
 
@@ -325,6 +335,7 @@ func (a *App) Shutdown(ctx context.Context) error {
 	a.docActivityConsumer.Stop()
 	a.notificationConsumer.Stop()
 	a.pluginEventConsumer.Stop()
+	a.workflowConsumer.Stop()
 	if a.publisher != nil {
 		a.publisher.Close()
 	}

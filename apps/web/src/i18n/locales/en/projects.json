@@ -53,7 +53,6 @@
 			"configure": "Configure",
 			"delete": "Delete",
 			"repos": "Repos",
-			"configureAndViewActivity": "Configure & view activity",
 			"deleteDialog": {
 				"title": "Delete {{name}}?",
 				"description": "This permanently deletes the agent and removes it from the project. Running conversations will be stopped.",
@@ -69,9 +68,7 @@
 				"title": "No agents yet",
 				"description": "Add an AI agent to automate tasks, review code, write documentation, and more.",
 				"createFirstAgent": "Create your first agent"
-			},
-			"chatShortcutPrefix": "Click",
-			"chatShortcutSuffix": "on any agent to chat, view conversations, and manage MCP servers and skills."
+			}
 		},
 		"detail": {
 			"tabs": {
@@ -315,6 +312,14 @@
 			"agentsWrite": {
 				"label": "Manage Agents",
 				"description": "Create, configure, and delete AI agents"
+			},
+			"workflowsRead": {
+				"label": "View Workflows",
+				"description": "Browse automation workflows and their configuration"
+			},
+			"workflowsWrite": {
+				"label": "Manage Workflows",
+				"description": "Create, edit, activate, and delete automation workflows"
 			}
 		},
 		"permissionGroups": {
@@ -324,7 +329,8 @@
 			"tasks": "Tasks",
 			"sprints": "Sprints",
 			"documents": "Documents",
-			"aiAgents": "AI Agents"
+			"aiAgents": "AI Agents",
+			"workflows": "Automation"
 		}
 	},
 	"settings": {
@@ -690,6 +696,11 @@
 			"removeLink": "Remove link",
 			"empty": "No linked tasks"
 		},
+		"workflows": {
+			"title": "Workflows",
+			"open": "Open workflow",
+			"empty": "No workflows yet"
+		},
 		"attachments": {
 			"title": "Attachments",
 			"uploadLabel": "Upload attachment",
@@ -826,15 +837,6 @@
 			"watchSession": "Watch session",
 			"madeChange": "made a change",
 			"descriptionChangeDiff": "Description change diff"
-		},
-		"timeAgo": {
-			"justNow": "just now",
-			"minutes_one": "{{count}}m ago",
-			"minutes_other": "{{count}}m ago",
-			"hours_one": "{{count}}h ago",
-			"hours_other": "{{count}}h ago",
-			"days_one": "{{count}}d ago",
-			"days_other": "{{count}}d ago"
 		}
 	},
 	"board": {
@@ -1078,6 +1080,83 @@
 			"startDate": "Start Date",
 			"dueDate": "Due Date",
 			"created": "Created"
+		}
+	},
+	"automation": {
+		"list": {
+			"title": "Automation",
+			"subtitle": "Automate task hand-offs as work moves through your project",
+			"newWorkflow": "New Workflow",
+			"empty": {
+				"title": "No workflows yet",
+				"description": "Create a workflow to automate task hand-offs as work moves through your project.",
+				"createFirstWorkflow": "Create your first workflow"
+			},
+			"noDescription": "No description",
+			"updated": "Updated {{time}}"
+		},
+		"status": {
+			"draft": "Draft",
+			"active": "Active",
+			"archived": "Archived"
+		},
+		"createDialog": {
+			"title": "New automation workflow",
+			"nameLabel": "Name",
+			"namePlaceholder": "e.g. Release pipeline",
+			"descriptionLabel": "Description",
+			"descriptionPlaceholder": "Optional details about this workflow…",
+			"cancel": "Cancel",
+			"create": "Create"
+		},
+		"deleteDialog": {
+			"title": "Delete workflow",
+			"body": "Are you sure you want to delete \"{{name}}\"? This cannot be undone.",
+			"cancel": "Cancel",
+			"confirm": "Delete"
+		},
+		"builder": {
+			"addTask": "Add task",
+			"activate": "Activate",
+			"archive": "Archive",
+			"editAsDraft": "Edit as draft",
+			"readOnlyNotice": "This workflow is not in draft — switch to \"Edit as draft\" to change its graph.",
+			"readOnlyNoticeArchived": "This workflow is archived and read-only — archived workflows can't be edited.",
+			"genericError": "Something went wrong. Please try again.",
+			"collapseSidebar": "Collapse sidebar",
+			"expandSidebar": "Expand sidebar"
+		},
+		"canvas": {
+			"unknownTask": "Unknown task",
+			"deleteEdge": "Delete connection"
+		},
+		"addNodeModal": {
+			"title": "Add task to workflow",
+			"searchPlaceholder": "Search tasks...",
+			"loadingTasks": "Loading tasks...",
+			"noTasksFound": "No tasks found"
+		},
+		"nodePanel": {
+			"title": "Task",
+			"removeNode": "Remove from workflow",
+			"removeConfirmTitle": "Remove task from workflow",
+			"removeConfirmBody": "This removes the task from the workflow graph, along with any of its connections. The task itself is not affected.",
+			"cancel": "Cancel",
+			"removeConfirmAction": "Remove"
+		},
+		"statusRules": {
+			"title": "Status → assignee rules",
+			"hint": "Automatically assign a task to a member whenever it changes to one of these statuses. This applies to any task in this workflow — when someone changes a task's status directly, or when a predecessor task finishes and a downstream task is re-evaluated at its current status.",
+			"noRules": "No rules yet",
+			"statusPlaceholder": "Status",
+			"memberPlaceholder": "Assignee"
+		},
+		"statusTransitions": {
+			"title": "Status workflow",
+			"hint": "Define what status comes next once work at each status is done. This unlocks downstream tasks and tells an AI-agent assignee exactly what status to set next, instead of guessing. A default chain is generated automatically from your project's statuses when the workflow is created.",
+			"nextStatusLabel": "Next status",
+			"terminalOption": "__END__",
+			"ambiguousWarning": "Exactly one status must have no next status (this becomes the workflow's __END__ status). Currently: {{count}} configured."
 		}
 	}
 }

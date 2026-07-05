@@ -1041,7 +1041,7 @@ func TestTriggerTaskAssigned_Success(t *testing.T) {
 	pluginRepo := &mockPluginRepo{}
 	svc := New(repo, projRepo, nil, pluginRepo)
 
-	result, err := svc.TriggerTaskAssigned(context.Background(), projectID, agentID, taskID, memberID)
+	result, err := svc.TriggerTaskAssigned(context.Background(), projectID, agentID, taskID, memberID, "")
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)

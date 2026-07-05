@@ -9,16 +9,17 @@ import {
 	PacaAPIExtendedClient,
 	PacaAPITaskExtendedClient,
 	PacaAPIViewsClient,
+	PacaAPIWorkflowClient,
 } from "./api/index.js";
+import {
+	fetchAgentPermissions,
+	getToolPermission,
+	hasPermission,
+	type PermissionMap,
+} from "./permissions.js";
 import { loadPlugins } from "./plugin-loader.js";
 import { getAllTools, handleToolCall } from "./tools/index.js";
 import type { PacaConfig } from "./types/index.js";
-import {
-	fetchAgentPermissions,
-	hasPermission,
-	getToolPermission,
-	type PermissionMap,
-} from "./permissions.js";
 
 /**
  * Creates and configures the Paca MCP server.
@@ -34,6 +35,7 @@ export async function createServer(config: PacaConfig): Promise<Server> {
 	const viewsClient = new PacaAPIViewsClient(config);
 	const taskExtendedClient = new PacaAPITaskExtendedClient(config);
 	const docClient = new PacaAPIDocClient(config);
+	const workflowClient = new PacaAPIWorkflowClient(config);
 
 	const clients = {
 		apiClient,
@@ -41,6 +43,7 @@ export async function createServer(config: PacaConfig): Promise<Server> {
 		viewsClient,
 		taskExtendedClient,
 		docClient,
+		workflowClient,
 	};
 
 	// Load plugin MCP modules from the Paca API.
@@ -71,19 +74,29 @@ export async function createServer(config: PacaConfig): Promise<Server> {
 		const filteredCoreTools = allCoreTools.filter((tool) => {
 			const toolPerm = getToolPermission(tool.name);
 			if (!toolPerm) {
-				console.error(`[server] Tool ${tool.name} has no permission mapping, allowing by default`);
+				console.error(
+					`[server] Tool ${tool.name} has no permission mapping, allowing by default`,
+				);
 				return true;
 			}
 
 			// For personal API key without project ID, show all tools (backward compatibility)
 			if (!config.agentId && !config.projectId) {
-				console.error(`[server] Personal API key mode, allowing tool ${tool.name}`);
+				console.error(
+					`[server] Personal API key mode, allowing tool ${tool.name}`,
+				);
 				return true;
 			}
 
 			if (config.projectId) {
-				const hasPerm = hasPermission(permissionMap, toolPerm.permissionKey, config.projectId);
-				console.error(`[server] Tool ${tool.name} requires ${toolPerm.permissionKey}, granted: ${hasPerm}`);
+				const hasPerm = hasPermission(
+					permissionMap,
+					toolPerm.permissionKey,
+					config.projectId,
+				);
+				console.error(
+					`[server] Tool ${tool.name} requires ${toolPerm.permissionKey}, granted: ${hasPerm}`,
+				);
 				return hasPerm;
 			}
 
@@ -91,15 +104,21 @@ export async function createServer(config: PacaConfig): Promise<Server> {
 				const hasPerm = Object.keys(permissionMap.projects).some((projectId) =>
 					hasPermission(permissionMap, toolPerm.permissionKey, projectId),
 				);
-				console.error(`[server] Tool ${tool.name} requires project permission ${toolPerm.permissionKey}, granted: ${hasPerm}`);
+				console.error(
+					`[server] Tool ${tool.name} requires project permission ${toolPerm.permissionKey}, granted: ${hasPerm}`,
+				);
 				return hasPerm;
 			}
 			const hasPerm = hasPermission(permissionMap, toolPerm.permissionKey);
-			console.error(`[server] Tool ${tool.name} requires global permission ${toolPerm.permissionKey}, granted: ${hasPerm}`);
+			console.error(
+				`[server] Tool ${tool.name} requires global permission ${toolPerm.permissionKey}, granted: ${hasPerm}`,
+			);
 			return hasPerm;
 		});
 
-		console.error(`[server] Filtered ${filteredCoreTools.length} tools from ${allCoreTools.length} total tools`);
+		console.error(
+			`[server] Filtered ${filteredCoreTools.length} tools from ${allCoreTools.length} total tools`,
+		);
 
 		// Note: Plugin tools are not filtered by permissions at this level
 		// Permissions are enforced at the API level
@@ -113,7 +132,12 @@ export async function createServer(config: PacaConfig): Promise<Server> {
 		const { name, arguments: args } = request.params;
 
 		// Validate projectId in single-project mode
-		if (config.projectId && args && typeof args === "object" && "projectId" in args) {
+		if (
+			config.projectId &&
+			args &&
+			typeof args === "object" &&
+			"projectId" in args
+		) {
 			if (args.projectId !== config.projectId) {
 				return {
 					content: [

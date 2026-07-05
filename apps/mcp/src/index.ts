@@ -51,7 +51,13 @@ async function main() {
 	}
 
 	// Create configuration object
-	const config: PacaConfig = { apiKey, baseURL, gatewayURL, agentId, projectId };
+	const config: PacaConfig = {
+		apiKey,
+		baseURL,
+		gatewayURL,
+		agentId,
+		projectId,
+	};
 
 	// Create and configure MCP server (loads plugin modules asynchronously)
 	const server = await createServer(config);

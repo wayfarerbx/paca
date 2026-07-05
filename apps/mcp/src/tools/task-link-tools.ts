@@ -141,11 +141,10 @@ export async function handleTaskLinkTool(
 		case "create_task_link": {
 			const { projectId, taskId, targetTaskId, linkType } =
 				CreateTaskLinkSchema.parse(args);
-			const link = await taskExtendedClient.createTaskLink(
-				projectId,
-				taskId,
-				{ target_task_id: targetTaskId, link_type: linkType },
-			);
+			const link = await taskExtendedClient.createTaskLink(projectId, taskId, {
+				target_task_id: targetTaskId,
+				link_type: linkType,
+			});
 			return {
 				content: [
 					{

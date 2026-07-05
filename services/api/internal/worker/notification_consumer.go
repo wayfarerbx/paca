@@ -30,8 +30,9 @@ type memberReader interface {
 }
 
 // agentTaskTrigger creates an agent conversation when a task is assigned to an agent member.
+// note is prepended to the agent's initial prompt (see agentsvc.Service.TriggerTaskAssigned).
 type agentTaskTrigger interface {
-	TriggerTaskAssigned(ctx context.Context, projectID, agentID, taskID, triggeredByMemberID uuid.UUID) (*agentdom.AgentConversation, error)
+	TriggerTaskAssigned(ctx context.Context, projectID, agentID, taskID, triggeredByMemberID uuid.UUID, note string) (*agentdom.AgentConversation, error)
 }
 
 // agentActivityRecorder posts system-generated task activities.
@@ -161,13 +162,38 @@ func (c *NotificationConsumer) processPending(ctx context.Context) {
 }
 
 // assignmentStreamPayload mirrors the JSON shape produced by the task handler
-// when it appends to StreamTaskAssignments.
+// when it appends to StreamTaskAssignments. WorkflowID/WorkflowName/
+// NextStatusName are populated only when the assignment was made by the
+// automation-workflow engine (see worker.WorkflowConsumer); when present,
+// they are folded into the agent's initial-prompt note. NextStatusName is
+// the status that comes after the task's current status in the workflow's
+// status-transition chain ("status workflow") — not necessarily the
+// workflow's terminal done status — so the agent is told exactly what to
+// set next instead of guessing.
 type assignmentStreamPayload struct {
 	TaskID              string `json:"task_id"`
 	ProjectID           string `json:"project_id"`
 	NewAssigneeMemberID string `json:"new_assignee_member_id"`
 	OldAssigneeMemberID string `json:"old_assignee_member_id,omitempty"`
 	ActorUserID         string `json:"actor_user_id"`
+	WorkflowID          string `json:"workflow_id,omitempty"`
+	WorkflowName        string `json:"workflow_name,omitempty"`
+	NextStatusName      string `json:"next_status_name,omitempty"`
+}
+
+// agentAssignmentNote builds the note appended to an agent's initial prompt
+// when it was auto-assigned via an active automation workflow, so it knows
+// what status to set next and keeps the pipeline moving. Returns "" when
+// the assignment did not come from the workflow engine.
+func (p assignmentStreamPayload) agentAssignmentNote() string {
+	if p.WorkflowName == "" {
+		return ""
+	}
+	note := fmt.Sprintf("This task was automatically assigned to you by the automation workflow %q.", p.WorkflowName)
+	if p.NextStatusName != "" {
+		note += fmt.Sprintf(" When you finish your part, set the task status to %q to continue the workflow.", p.NextStatusName)
+	}
+	return note
 }
 
 func (c *NotificationConsumer) handle(msg redis.XMessage) {
@@ -223,7 +249,7 @@ func (c *NotificationConsumer) handle(msg redis.XMessage) {
 			if actorMember, err := c.memberRepo.FindMemberByUserProject(ctx, actorUserID, projectID); err == nil {
 				actorMemberID = actorMember.ID
 			}
-			conv, triggerErr := c.agentSvc.TriggerTaskAssigned(ctx, projectID, *member.AgentID, taskID, actorMemberID)
+			conv, triggerErr := c.agentSvc.TriggerTaskAssigned(ctx, projectID, *member.AgentID, taskID, actorMemberID, p.agentAssignmentNote())
 			if triggerErr != nil {
 				c.log.Error("notification consumer: TriggerTaskAssigned failed", "id", msg.ID, "err", triggerErr)
 			} else if conv != nil && c.activityRec != nil {

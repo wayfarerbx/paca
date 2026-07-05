@@ -5,7 +5,10 @@ vi.mock("../../utils/index.js", () => ({
 	formatList: vi.fn((items: any[], fn: any) => items.map(fn).join("---")),
 }));
 
-import { getProjectTools, handleProjectTool } from "../../tools/project-tools.js";
+import {
+	getProjectTools,
+	handleProjectTool,
+} from "../../tools/project-tools.js";
 
 const proj = {
 	id: "p1",
@@ -76,12 +79,18 @@ describe("handleProjectTool – get_project", () => {
 	});
 
 	it("returns formatted project text", async () => {
-		const result = await handleProjectTool("get_project", { projectId: "p1" }, makeClient());
+		const result = await handleProjectTool(
+			"get_project",
+			{ projectId: "p1" },
+			makeClient(),
+		);
 		expect(result.content[0].text).toContain("project:p1");
 	});
 
 	it("throws ZodError when projectId is missing", async () => {
-		await expect(handleProjectTool("get_project", {}, makeClient())).rejects.toThrow();
+		await expect(
+			handleProjectTool("get_project", {}, makeClient()),
+		).rejects.toThrow();
 	});
 });
 
@@ -113,7 +122,9 @@ describe("handleProjectTool – create_project", () => {
 	});
 
 	it("throws ZodError when name is missing", async () => {
-		await expect(handleProjectTool("create_project", {}, makeClient())).rejects.toThrow();
+		await expect(
+			handleProjectTool("create_project", {}, makeClient()),
+		).rejects.toThrow();
 	});
 });
 

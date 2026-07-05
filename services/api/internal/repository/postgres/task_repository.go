@@ -149,12 +149,6 @@ func newQueryBuilder() *queryBuilder {
 	return &queryBuilder{idx: 1}
 }
 
-func (b *queryBuilder) add(clause string, val interface{}) {
-	b.whereClauses = append(b.whereClauses, clause)
-	b.args = append(b.args, val)
-	b.idx++
-}
-
 func (b *queryBuilder) addInClause(col string, vals []string) {
 	if len(vals) == 0 {
 		return
@@ -172,13 +166,6 @@ func (b *queryBuilder) placeholder() string {
 	p := fmt.Sprintf("$%d", b.idx)
 	b.idx++
 	return p
-}
-
-func (b *queryBuilder) where() string {
-	if len(b.whereClauses) == 0 {
-		return ""
-	}
-	return " AND " + strings.Join(b.whereClauses, " AND ")
 }
 
 // --- Task Types -------------------------------------------------------------

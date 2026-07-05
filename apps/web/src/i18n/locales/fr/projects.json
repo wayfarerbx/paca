@@ -53,7 +53,6 @@
 			"configure": "Configurer",
 			"delete": "Supprimer",
 			"repos": "Dépôts",
-			"configureAndViewActivity": "Configurer et voir l'activité",
 			"deleteDialog": {
 				"title": "Supprimer {{name}} ?",
 				"description": "Cette action supprime définitivement l'agent et le retire du projet. Les conversations en cours seront arrêtées.",
@@ -69,9 +68,7 @@
 				"title": "Aucun agent pour le moment",
 				"description": "Ajoutez un agent IA pour automatiser des tâches, relire du code, rédiger de la documentation, et plus encore.",
 				"createFirstAgent": "Créer votre premier agent"
-			},
-			"chatShortcutPrefix": "Cliquez sur",
-			"chatShortcutSuffix": "n'importe quel agent pour discuter, consulter les conversations et gérer les serveurs MCP et les compétences."
+			}
 		},
 		"detail": {
 			"tabs": {
@@ -315,6 +312,14 @@
 			"agentsWrite": {
 				"label": "Gérer les agents",
 				"description": "Créer, configurer et supprimer des agents IA"
+			},
+			"workflowsRead": {
+				"label": "Voir les workflows",
+				"description": "Parcourir les workflows d'automatisation et leur configuration"
+			},
+			"workflowsWrite": {
+				"label": "Gérer les workflows",
+				"description": "Créer, modifier, activer et supprimer des workflows d'automatisation"
 			}
 		},
 		"permissionGroups": {
@@ -324,7 +329,8 @@
 			"tasks": "Tâches",
 			"sprints": "Sprints",
 			"documents": "Documents",
-			"aiAgents": "Agents IA"
+			"aiAgents": "Agents IA",
+			"workflows": "Automatisation"
 		}
 	},
 	"settings": {
@@ -690,6 +696,11 @@
 			"removeLink": "Retirer le lien",
 			"empty": "Aucune tâche liée"
 		},
+		"workflows": {
+			"title": "Workflows",
+			"open": "Ouvrir le workflow",
+			"empty": "Aucun workflow pour le moment"
+		},
 		"attachments": {
 			"title": "Pièces jointes",
 			"uploadLabel": "Téléverser une pièce jointe",
@@ -826,15 +837,6 @@
 			"watchSession": "Suivre la session",
 			"madeChange": "a effectué une modification",
 			"descriptionChangeDiff": "Différences des modifications de la description"
-		},
-		"timeAgo": {
-			"justNow": "à l'instant",
-			"minutes_one": "il y a {{count}} min",
-			"minutes_other": "il y a {{count}} min",
-			"hours_one": "il y a {{count}} h",
-			"hours_other": "il y a {{count}} h",
-			"days_one": "il y a {{count}} j",
-			"days_other": "il y a {{count}} j"
 		}
 	},
 	"board": {
@@ -1078,6 +1080,83 @@
 			"startDate": "Date de début",
 			"dueDate": "Date d'échéance",
 			"created": "Créée"
+		}
+	},
+	"automation": {
+		"list": {
+			"title": "Automatisation",
+			"subtitle": "Automatisez la transmission des tâches au fil de leur avancement",
+			"newWorkflow": "Nouveau workflow",
+			"empty": {
+				"title": "Aucun workflow pour le moment",
+				"description": "Créez un workflow pour automatiser la transmission des tâches au fil de leur avancement.",
+				"createFirstWorkflow": "Créer votre premier workflow"
+			},
+			"noDescription": "Aucune description",
+			"updated": "Mis à jour {{time}}"
+		},
+		"status": {
+			"draft": "Brouillon",
+			"active": "Actif",
+			"archived": "Archivé"
+		},
+		"createDialog": {
+			"title": "Nouveau workflow d'automatisation",
+			"nameLabel": "Nom",
+			"namePlaceholder": "ex. Pipeline de publication",
+			"descriptionLabel": "Description",
+			"descriptionPlaceholder": "Détails facultatifs sur ce workflow…",
+			"cancel": "Annuler",
+			"create": "Créer"
+		},
+		"deleteDialog": {
+			"title": "Supprimer le workflow",
+			"body": "Voulez-vous vraiment supprimer « {{name}} » ? Cette action est irréversible.",
+			"cancel": "Annuler",
+			"confirm": "Supprimer"
+		},
+		"builder": {
+			"addTask": "Ajouter une tâche",
+			"activate": "Activer",
+			"archive": "Archiver",
+			"editAsDraft": "Modifier en brouillon",
+			"readOnlyNotice": "Ce workflow n'est pas en brouillon — passez en « Modifier en brouillon » pour changer son graphe.",
+			"readOnlyNoticeArchived": "Ce workflow est archivé et en lecture seule — les workflows archivés ne peuvent pas être modifiés.",
+			"genericError": "Une erreur est survenue. Veuillez réessayer.",
+			"collapseSidebar": "Réduire la barre latérale",
+			"expandSidebar": "Déployer la barre latérale"
+		},
+		"canvas": {
+			"unknownTask": "Tâche inconnue",
+			"deleteEdge": "Supprimer la connexion"
+		},
+		"addNodeModal": {
+			"title": "Ajouter une tâche au workflow",
+			"searchPlaceholder": "Rechercher des tâches...",
+			"loadingTasks": "Chargement des tâches...",
+			"noTasksFound": "Aucune tâche trouvée"
+		},
+		"nodePanel": {
+			"title": "Tâche",
+			"removeNode": "Retirer du workflow",
+			"removeConfirmTitle": "Retirer la tâche du workflow",
+			"removeConfirmBody": "Cela retire la tâche du graphe du workflow, ainsi que ses connexions. La tâche elle-même n'est pas affectée.",
+			"cancel": "Annuler",
+			"removeConfirmAction": "Retirer"
+		},
+		"statusRules": {
+			"title": "Règles statut → assigné",
+			"hint": "Assigne automatiquement une tâche à un membre lorsqu'elle passe à l'un de ces statuts. Cela s'applique à toute tâche de ce workflow — que quelqu'un change directement le statut d'une tâche, ou qu'une tâche prédécesseure se termine et qu'une tâche en aval soit réévaluée selon son statut actuel.",
+			"noRules": "Aucune règle pour le moment",
+			"statusPlaceholder": "Statut",
+			"memberPlaceholder": "Assigné"
+		},
+		"statusTransitions": {
+			"title": "Workflow de statuts",
+			"hint": "Définit quel statut vient ensuite une fois le travail terminé à chaque statut. Cela débloque les tâches suivantes et indique à un agent IA assigné exactement quel statut définir ensuite, au lieu de deviner. Une chaîne par défaut est générée automatiquement à partir des statuts du projet à la création du workflow.",
+			"nextStatusLabel": "Statut suivant",
+			"terminalOption": "__END__",
+			"ambiguousWarning": "Exactement un statut doit n'avoir aucun statut suivant (il devient le statut de fin du workflow). Actuellement : {{count}} configuré(s)."
 		}
 	}
 }

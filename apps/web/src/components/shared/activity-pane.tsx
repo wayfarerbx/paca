@@ -4,7 +4,6 @@ import {
 	useQuery,
 	useQueryClient,
 } from "@tanstack/react-query";
-import type { TFunction } from "i18next";
 import {
 	GitBranch,
 	Loader2,
@@ -33,6 +32,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { timeAgo } from "@/lib/time-ago";
 import { cn } from "@/lib/utils";
 
 export interface ActivityEntry {
@@ -284,16 +284,6 @@ export function ActivityPane<T extends ActivityEntry>({
 	);
 }
 
-function timeAgo(iso: string, t: TFunction<"shared">): string {
-	const diff = Date.now() - new Date(iso).getTime();
-	const mins = Math.floor(diff / 60000);
-	if (mins < 1) return t("activityPane.timeAgo.justNow");
-	if (mins < 60) return t("activityPane.timeAgo.minutes", { count: mins });
-	const hrs = Math.floor(mins / 60);
-	if (hrs < 24) return t("activityPane.timeAgo.hours", { count: hrs });
-	return t("activityPane.timeAgo.days", { count: Math.floor(hrs / 24) });
-}
-
 interface ActivityItemInnerProps<T extends ActivityEntry> {
 	entry: T;
 	describeActivity: (entry: T) => ReactNode;
@@ -326,6 +316,7 @@ function ActivityItemInner<T extends ActivityEntry>({
 	onStartEdit,
 }: ActivityItemInnerProps<T>) {
 	const { t } = useTranslation("shared");
+	const { t: tCommon } = useTranslation("common");
 	const qc = useQueryClient();
 	const commentBlocks = getCommentBlocks(entry.content);
 	const [diffOpen, setDiffOpen] = useState(false);
@@ -396,7 +387,7 @@ function ActivityItemInner<T extends ActivityEntry>({
 								{displayName}
 							</span>
 							<span className="text-xs text-muted-foreground/50">
-								{timeAgo(entry.created_at, t)}
+								{timeAgo(entry.created_at, tCommon)}
 							</span>
 							{isEditing && (
 								<span className="ml-auto flex items-center gap-1 text-xs font-medium text-primary">
@@ -450,7 +441,7 @@ function ActivityItemInner<T extends ActivityEntry>({
 									{describeActivity(entry)}
 								</span>
 								<span className="text-xs text-muted-foreground/45">
-									{timeAgo(entry.created_at, t)}
+									{timeAgo(entry.created_at, tCommon)}
 								</span>
 							</div>
 							{(diffContent || canRevert) && (

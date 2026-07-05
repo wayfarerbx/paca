@@ -46,4 +46,8 @@ const (
 	PermissionAgentsRead  Permission = "agents.read"
 	PermissionAgentsWrite Permission = "agents.write"
 	PermissionAgentsAll   Permission = "agents.*"
+
+	PermissionWorkflowsRead  Permission = "workflows.read"
+	PermissionWorkflowsWrite Permission = "workflows.write"
+	PermissionWorkflowsAll   Permission = "workflows.*"
 )

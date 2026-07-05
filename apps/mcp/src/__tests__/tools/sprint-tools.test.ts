@@ -23,7 +23,9 @@ function makeClient(overrides: Record<string, any> = {}) {
 		createSprint: vi.fn().mockResolvedValue(sprint),
 		updateSprint: vi.fn().mockResolvedValue({ ...sprint, name: "Sprint 2" }),
 		deleteSprint: vi.fn().mockResolvedValue(undefined),
-		completeSprint: vi.fn().mockResolvedValue({ ...sprint, status: "completed" }),
+		completeSprint: vi
+			.fn()
+			.mockResolvedValue({ ...sprint, status: "completed" }),
 		...overrides,
 	} as any;
 }
@@ -50,12 +52,18 @@ describe("handleSprintTool – list_sprints", () => {
 	});
 
 	it("returns formatted sprint list", async () => {
-		const result = await handleSprintTool("list_sprints", { projectId: "p1" }, makeClient());
+		const result = await handleSprintTool(
+			"list_sprints",
+			{ projectId: "p1" },
+			makeClient(),
+		);
 		expect(result.content[0].text).toContain("sprint:s1");
 	});
 
 	it("throws ZodError when projectId is missing", async () => {
-		await expect(handleSprintTool("list_sprints", {}, makeClient())).rejects.toThrow();
+		await expect(
+			handleSprintTool("list_sprints", {}, makeClient()),
+		).rejects.toThrow();
 	});
 });
 
@@ -66,7 +74,11 @@ describe("handleSprintTool – list_sprints", () => {
 describe("handleSprintTool – get_sprint", () => {
 	it("calls client.getSprint with projectId and sprintId", async () => {
 		const client = makeClient();
-		await handleSprintTool("get_sprint", { projectId: "p1", sprintId: "s1" }, client);
+		await handleSprintTool(
+			"get_sprint",
+			{ projectId: "p1", sprintId: "s1" },
+			client,
+		);
 		expect(client.getSprint).toHaveBeenCalledWith("p1", "s1");
 	});
 
@@ -108,7 +120,12 @@ describe("handleSprintTool – create_sprint", () => {
 	it("includes 'created successfully' in response", async () => {
 		const result = await handleSprintTool(
 			"create_sprint",
-			{ projectId: "p1", name: "S1", startDate: "2024-01-01", endDate: "2024-01-14" },
+			{
+				projectId: "p1",
+				name: "S1",
+				startDate: "2024-01-01",
+				endDate: "2024-01-14",
+			},
 			makeClient(),
 		);
 		expect(result.content[0].text).toContain("created successfully");
@@ -157,7 +174,11 @@ describe("handleSprintTool – update_sprint", () => {
 describe("handleSprintTool – delete_sprint", () => {
 	it("calls client.deleteSprint with projectId and sprintId", async () => {
 		const client = makeClient();
-		await handleSprintTool("delete_sprint", { projectId: "p1", sprintId: "s1" }, client);
+		await handleSprintTool(
+			"delete_sprint",
+			{ projectId: "p1", sprintId: "s1" },
+			client,
+		);
 		expect(client.deleteSprint).toHaveBeenCalledWith("p1", "s1");
 	});
 
@@ -178,7 +199,11 @@ describe("handleSprintTool – delete_sprint", () => {
 describe("handleSprintTool – complete_sprint", () => {
 	it("calls client.completeSprint with projectId and sprintId", async () => {
 		const client = makeClient();
-		await handleSprintTool("complete_sprint", { projectId: "p1", sprintId: "s1" }, client);
+		await handleSprintTool(
+			"complete_sprint",
+			{ projectId: "p1", sprintId: "s1" },
+			client,
+		);
 		expect(client.completeSprint).toHaveBeenCalledWith("p1", "s1");
 	});
 

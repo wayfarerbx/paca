@@ -23,6 +23,7 @@
     "@tanstack/react-router": "^1.168.23",
     "@tanstack/store": "^0.9.3",
     "@testing-library/dom": "^10.4.1",
+    "@xyflow/react": "^12.11.1",
     "axios": "^1.15.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

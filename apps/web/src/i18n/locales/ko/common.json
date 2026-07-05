@@ -18,5 +18,14 @@
 		"newPasswordMustDiffer": "새 비밀번호는 현재 비밀번호와 달라야 합니다.",
 		"confirmPasswordRequired": "새 비밀번호를 다시 입력해 주세요.",
 		"passwordsDoNotMatch": "비밀번호가 일치하지 않습니다."
+	},
+	"timeAgo": {
+		"justNow": "방금 전",
+		"minutes_one": "{{count}}분 전",
+		"minutes_other": "{{count}}분 전",
+		"hours_one": "{{count}}시간 전",
+		"hours_other": "{{count}}시간 전",
+		"days_one": "{{count}}일 전",
+		"days_other": "{{count}}일 전"
 	}
 }

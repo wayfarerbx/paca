@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { TaskAttachment } from "@/lib/attachment-api";
 import { getAttachmentDownloadURL } from "@/lib/attachment-api";
+import { timeAgo } from "@/lib/time-ago";
 import { cn } from "@/lib/utils";
-import { timeAgo } from "./helpers";
 
 interface AttachmentItemProps {
 	attachment: TaskAttachment;
@@ -35,6 +35,7 @@ export function AttachmentItem({
 	onDelete,
 }: AttachmentItemProps) {
 	const { t } = useTranslation("projects");
+	const { t: tCommon } = useTranslation("common");
 	const [isDownloading, setIsDownloading] = useState(false);
 	const ext =
 		attachment.file.file_name.split(".").pop()?.toUpperCase() ?? "FILE";
@@ -90,7 +91,7 @@ export function AttachmentItem({
 				</p>
 				<p className="text-xs text-muted-foreground/60 mt-0.5">
 					{formatBytes(attachment.file.file_size, t)} ·{" "}
-					{timeAgo(attachment.created_at, t)}
+					{timeAgo(attachment.created_at, tCommon)}
 				</p>
 			</button>
 			<div

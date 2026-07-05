@@ -53,7 +53,6 @@
 			"configure": "Configurar",
 			"delete": "Eliminar",
 			"repos": "Repositorios",
-			"configureAndViewActivity": "Configurar y ver actividad",
 			"deleteDialog": {
 				"title": "¿Eliminar {{name}}?",
 				"description": "Esto elimina permanentemente al agente y lo retira del proyecto. Las conversaciones en curso se detendrán.",
@@ -69,9 +68,7 @@
 				"title": "Aún no hay agentes",
 				"description": "Añade un agente de IA para automatizar tareas, revisar código, escribir documentación y más.",
 				"createFirstAgent": "Crea tu primer agente"
-			},
-			"chatShortcutPrefix": "Haz clic en",
-			"chatShortcutSuffix": "en cualquier agente para chatear, ver conversaciones y gestionar servidores MCP y skills."
+			}
 		},
 		"detail": {
 			"tabs": {
@@ -315,6 +312,14 @@
 			"agentsWrite": {
 				"label": "Gestionar agentes",
 				"description": "Crear, configurar y eliminar agentes de IA"
+			},
+			"workflowsRead": {
+				"label": "Ver flujos de trabajo",
+				"description": "Explorar los flujos de automatización y su configuración"
+			},
+			"workflowsWrite": {
+				"label": "Gestionar flujos de trabajo",
+				"description": "Crear, editar, activar y eliminar flujos de automatización"
 			}
 		},
 		"permissionGroups": {
@@ -324,7 +329,8 @@
 			"tasks": "Tareas",
 			"sprints": "Sprints",
 			"documents": "Documentos",
-			"aiAgents": "Agentes de IA"
+			"aiAgents": "Agentes de IA",
+			"workflows": "Automatización"
 		}
 	},
 	"settings": {
@@ -690,6 +696,11 @@
 			"removeLink": "Eliminar vínculo",
 			"empty": "No hay tareas vinculadas"
 		},
+		"workflows": {
+			"title": "Flujos de trabajo",
+			"open": "Abrir flujo de trabajo",
+			"empty": "Aún no hay flujos de trabajo"
+		},
 		"attachments": {
 			"title": "Archivos adjuntos",
 			"uploadLabel": "Subir archivo adjunto",
@@ -826,15 +837,6 @@
 			"watchSession": "Ver sesión",
 			"madeChange": "hizo un cambio",
 			"descriptionChangeDiff": "Diferencias del cambio de descripción"
-		},
-		"timeAgo": {
-			"justNow": "justo ahora",
-			"minutes_one": "hace {{count}} min",
-			"minutes_other": "hace {{count}} min",
-			"hours_one": "hace {{count}} h",
-			"hours_other": "hace {{count}} h",
-			"days_one": "hace {{count}} d",
-			"days_other": "hace {{count}} d"
 		}
 	},
 	"board": {
@@ -1078,6 +1080,83 @@
 			"startDate": "Fecha de inicio",
 			"dueDate": "Fecha de vencimiento",
 			"created": "Creada"
+		}
+	},
+	"automation": {
+		"list": {
+			"title": "Automatización",
+			"subtitle": "Automatiza la entrega de tareas a medida que avanza el trabajo en tu proyecto",
+			"newWorkflow": "Nuevo flujo de trabajo",
+			"empty": {
+				"title": "Aún no hay flujos de trabajo",
+				"description": "Crea un flujo de trabajo para automatizar la entrega de tareas a medida que avanza el trabajo en tu proyecto.",
+				"createFirstWorkflow": "Crea tu primer flujo de trabajo"
+			},
+			"noDescription": "Sin descripción",
+			"updated": "Actualizado {{time}}"
+		},
+		"status": {
+			"draft": "Borrador",
+			"active": "Activo",
+			"archived": "Archivado"
+		},
+		"createDialog": {
+			"title": "Nuevo flujo de automatización",
+			"nameLabel": "Nombre",
+			"namePlaceholder": "p. ej. Pipeline de lanzamiento",
+			"descriptionLabel": "Descripción",
+			"descriptionPlaceholder": "Detalles opcionales sobre este flujo de trabajo…",
+			"cancel": "Cancelar",
+			"create": "Crear"
+		},
+		"deleteDialog": {
+			"title": "Eliminar flujo de trabajo",
+			"body": "¿Seguro que quieres eliminar \"{{name}}\"? Esta acción no se puede deshacer.",
+			"cancel": "Cancelar",
+			"confirm": "Eliminar"
+		},
+		"builder": {
+			"addTask": "Añadir tarea",
+			"activate": "Activar",
+			"archive": "Archivar",
+			"editAsDraft": "Editar como borrador",
+			"readOnlyNotice": "Este flujo no está en borrador — cambia a \"Editar como borrador\" para modificar su gráfico.",
+			"readOnlyNoticeArchived": "Este flujo está archivado y es de solo lectura — los flujos archivados no se pueden editar.",
+			"genericError": "Algo salió mal. Inténtalo de nuevo.",
+			"collapseSidebar": "Contraer barra lateral",
+			"expandSidebar": "Expandir barra lateral"
+		},
+		"canvas": {
+			"unknownTask": "Tarea desconocida",
+			"deleteEdge": "Eliminar conexión"
+		},
+		"addNodeModal": {
+			"title": "Añadir tarea al flujo",
+			"searchPlaceholder": "Buscar tareas...",
+			"loadingTasks": "Cargando tareas...",
+			"noTasksFound": "No se encontraron tareas"
+		},
+		"nodePanel": {
+			"title": "Tarea",
+			"removeNode": "Quitar del flujo",
+			"removeConfirmTitle": "Quitar tarea del flujo",
+			"removeConfirmBody": "Esto quita la tarea del gráfico del flujo, junto con sus conexiones. La tarea en sí no se ve afectada.",
+			"cancel": "Cancelar",
+			"removeConfirmAction": "Quitar"
+		},
+		"statusRules": {
+			"title": "Reglas estado → asignado",
+			"hint": "Asigna automáticamente una tarea a un miembro cuando cambie a alguno de estos estados. Esto se aplica a cualquier tarea de este flujo — ya sea que alguien cambie el estado de una tarea directamente, o que una tarea predecesora termine y una tarea posterior se reevalúe según su estado actual.",
+			"noRules": "Aún no hay reglas",
+			"statusPlaceholder": "Estado",
+			"memberPlaceholder": "Asignado"
+		},
+		"statusTransitions": {
+			"title": "Flujo de estados",
+			"hint": "Define qué estado viene después una vez que el trabajo en cada estado está terminado. Esto desbloquea tareas posteriores y le dice a un agente de IA asignado exactamente qué estado establecer a continuación, en lugar de adivinar. Se genera automáticamente una cadena predeterminada a partir de los estados del proyecto al crear el flujo.",
+			"nextStatusLabel": "Siguiente estado",
+			"terminalOption": "__END__",
+			"ambiguousWarning": "Exactamente un estado debe no tener siguiente estado (se convierte en el estado de finalización del flujo). Actualmente: {{count}} configurado(s)."
 		}
 	}
 }

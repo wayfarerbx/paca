@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-	TOOL_PERMISSIONS,
 	fetchAgentPermissions,
 	getToolPermission,
 	hasPermission,
 	type PermissionMap,
+	TOOL_PERMISSIONS,
 } from "../permissions.js";
 
 // ---------------------------------------------------------------------------
@@ -34,12 +34,18 @@ describe("hasPermission", () => {
 		});
 
 		it("grants via global exact match", () => {
-			const map: PermissionMap = { global: { "tasks.read": true }, projects: {} };
+			const map: PermissionMap = {
+				global: { "tasks.read": true },
+				projects: {},
+			};
 			expect(hasPermission(map, "tasks.read")).toBe(true);
 		});
 
 		it("denies when exact key does not match", () => {
-			const map: PermissionMap = { global: { "tasks.write": true }, projects: {} };
+			const map: PermissionMap = {
+				global: { "tasks.write": true },
+				projects: {},
+			};
 			expect(hasPermission(map, "tasks.read", "proj-1")).toBe(false);
 		});
 
@@ -50,7 +56,10 @@ describe("hasPermission", () => {
 		});
 
 		it("denies via global domain wildcard when domain differs", () => {
-			const map: PermissionMap = { global: { "projects.*": true }, projects: {} };
+			const map: PermissionMap = {
+				global: { "projects.*": true },
+				projects: {},
+			};
 			expect(hasPermission(map, "tasks.read", "proj-1")).toBe(false);
 		});
 	});
@@ -192,7 +201,10 @@ describe("TOOL_PERMISSIONS", () => {
 
 	it("every entry has a non-empty permissionKey", () => {
 		for (const entry of TOOL_PERMISSIONS) {
-			expect(entry.permissionKey, `empty key for ${entry.toolName}`).toBeTruthy();
+			expect(
+				entry.permissionKey,
+				`empty key for ${entry.toolName}`,
+			).toBeTruthy();
 		}
 	});
 });
@@ -241,14 +253,19 @@ describe("fetchAgentPermissions", () => {
 			projectId: "proj-abc",
 		});
 
-		const projectPermCall = vi.mocked(fetch).mock.calls.find(([url]) =>
-			(url as string).includes("members/me/permissions"),
-		);
+		const projectPermCall = vi
+			.mocked(fetch)
+			.mock.calls.find(([url]) =>
+				(url as string).includes("members/me/permissions"),
+			);
 		expect(projectPermCall).toBeDefined();
 		expect(projectPermCall?.[1]).toMatchObject({
 			headers: expect.objectContaining({ "X-API-Key": "key-123" }),
 		});
-		expect(result.projects["proj-abc"]).toEqual({ "tasks.read": true, "tasks.write": false });
+		expect(result.projects["proj-abc"]).toEqual({
+			"tasks.read": true,
+			"tasks.write": false,
+		});
 	});
 
 	it("fetches global permissions when no agentId but projectId is set", async () => {

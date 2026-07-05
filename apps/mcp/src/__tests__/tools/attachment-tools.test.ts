@@ -4,7 +4,10 @@ vi.mock("../../utils/index.js", () => ({
 	formatList: vi.fn((items: any[], fn: any) => items.map(fn).join("---")),
 }));
 
-import { getAttachmentTools, handleAttachmentTool } from "../../tools/attachment-tools.js";
+import {
+	getAttachmentTools,
+	handleAttachmentTool,
+} from "../../tools/attachment-tools.js";
 
 const attachment = {
 	id: "att-1",
@@ -20,7 +23,9 @@ const attachment = {
 function makeClient(overrides: Record<string, any> = {}) {
 	return {
 		listTaskAttachments: vi.fn().mockResolvedValue([attachment]),
-		getAttachmentDownloadURL: vi.fn().mockResolvedValue("https://cdn.example.com/photo.png"),
+		getAttachmentDownloadURL: vi
+			.fn()
+			.mockResolvedValue("https://cdn.example.com/photo.png"),
 		deleteTaskAttachment: vi.fn().mockResolvedValue(undefined),
 		...overrides,
 	} as any;
@@ -78,7 +83,11 @@ describe("handleAttachmentTool – list_task_attachments", () => {
 
 	it("throws ZodError when projectId is missing", async () => {
 		await expect(
-			handleAttachmentTool("list_task_attachments", { taskId: "t1" }, makeClient()),
+			handleAttachmentTool(
+				"list_task_attachments",
+				{ taskId: "t1" },
+				makeClient(),
+			),
 		).rejects.toThrow();
 	});
 });
@@ -95,7 +104,11 @@ describe("handleAttachmentTool – get_attachment_download_url", () => {
 			{ projectId: "p1", taskId: "t1", attachmentId: "att-1" },
 			client,
 		);
-		expect(client.getAttachmentDownloadURL).toHaveBeenCalledWith("p1", "t1", "att-1");
+		expect(client.getAttachmentDownloadURL).toHaveBeenCalledWith(
+			"p1",
+			"t1",
+			"att-1",
+		);
 	});
 
 	it("returns the download URL in the response text", async () => {
@@ -104,7 +117,9 @@ describe("handleAttachmentTool – get_attachment_download_url", () => {
 			{ projectId: "p1", taskId: "t1", attachmentId: "att-1" },
 			makeClient(),
 		);
-		expect(result.content[0].text).toContain("https://cdn.example.com/photo.png");
+		expect(result.content[0].text).toContain(
+			"https://cdn.example.com/photo.png",
+		);
 	});
 });
 
@@ -120,7 +135,11 @@ describe("handleAttachmentTool – delete_task_attachment", () => {
 			{ projectId: "p1", taskId: "t1", attachmentId: "att-1" },
 			client,
 		);
-		expect(client.deleteTaskAttachment).toHaveBeenCalledWith("p1", "t1", "att-1");
+		expect(client.deleteTaskAttachment).toHaveBeenCalledWith(
+			"p1",
+			"t1",
+			"att-1",
+		);
 	});
 
 	it("includes 'deleted successfully' in the response", async () => {

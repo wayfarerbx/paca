@@ -5,6 +5,7 @@ import type {
 	PacaAPIExtendedClient,
 	PacaAPITaskExtendedClient,
 	PacaAPIViewsClient,
+	PacaAPIWorkflowClient,
 } from "../api/index.js";
 import {
 	getAttachmentTools,
@@ -25,10 +26,7 @@ import {
 	getTaskActivityTools,
 	handleTaskActivityTool,
 } from "./task-activity-tools.js";
-import {
-	getTaskLinkTools,
-	handleTaskLinkTool,
-} from "./task-link-tools.js";
+import { getTaskLinkTools, handleTaskLinkTool } from "./task-link-tools.js";
 import { getTaskTools, handleTaskTool } from "./task-tools.js";
 import {
 	getTaskStatusTools,
@@ -40,6 +38,7 @@ import {
 	getViewTools,
 	handleViewTool,
 } from "./view-tools.js";
+import { getWorkflowTools, handleWorkflowTool } from "./workflow-tools.js";
 
 /**
  * Returns all available MCP tools.
@@ -59,6 +58,7 @@ export function getAllTools(): Tool[] {
 		...getAttachmentTools(),
 		...getTaskActivityTools(),
 		...getTaskLinkTools(),
+		...getWorkflowTools(),
 	];
 }
 
@@ -74,6 +74,7 @@ export async function handleToolCall(
 		viewsClient: PacaAPIViewsClient;
 		taskExtendedClient: PacaAPITaskExtendedClient;
 		docClient: PacaAPIDocClient;
+		workflowClient: PacaAPIWorkflowClient;
 	},
 ): Promise<any> {
 	const { name, arguments: args } = request.params;
@@ -213,6 +214,28 @@ export async function handleToolCall(
 			name === "delete_task_link"
 		) {
 			return handleTaskLinkTool(name, args, clients.taskExtendedClient);
+		}
+
+		// Automation workflow tools
+		if (
+			name === "list_workflows" ||
+			name === "get_workflow" ||
+			name === "create_workflow" ||
+			name === "update_workflow" ||
+			name === "delete_workflow" ||
+			name === "activate_workflow" ||
+			name === "archive_workflow" ||
+			name === "revert_workflow_to_draft" ||
+			name === "add_workflow_node" ||
+			name === "remove_workflow_node" ||
+			name === "set_workflow_status_rule" ||
+			name === "remove_workflow_status_rule" ||
+			name === "set_workflow_status_transition" ||
+			name === "remove_workflow_status_transition" ||
+			name === "add_workflow_edge" ||
+			name === "remove_workflow_edge"
+		) {
+			return handleWorkflowTool(name, args, clients.workflowClient);
 		}
 
 		throw new Error(`Unknown tool: ${name}`);

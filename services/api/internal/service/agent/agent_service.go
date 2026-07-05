@@ -720,8 +720,11 @@ func (s *Service) gatherRepoPluginIDs(ctx context.Context) []string {
 }
 
 // TriggerTaskAssigned creates a conversation and publishes the trigger event
-// when a task is assigned to an agent member.
-func (s *Service) TriggerTaskAssigned(ctx context.Context, projectID, agentID, taskID, triggeredByMemberID uuid.UUID) (*agentdom.AgentConversation, error) {
+// when a task is assigned to an agent member. note, when non-empty, is
+// prepended to the agent's initial prompt as trigger.message — used by the
+// automation-workflow engine to tell the agent which status closes out its
+// step (e.g. "set the status to 'Done' when you finish").
+func (s *Service) TriggerTaskAssigned(ctx context.Context, projectID, agentID, taskID, triggeredByMemberID uuid.UUID, note string) (*agentdom.AgentConversation, error) {
 	repoPlugins := s.gatherRepoPlugins(ctx)
 	repoPluginIDs := make([]string, 0, len(repoPlugins))
 	for _, p := range repoPlugins {
@@ -749,6 +752,7 @@ func (s *Service) TriggerTaskAssigned(ctx context.Context, projectID, agentID, t
 		"task_id":         taskID.String(),
 		"actor_member_id": triggeredByMemberID.String(),
 		"trigger_type":    "task_assigned",
+		"message":         note,
 		"repo_plugin_ids": strings.Join(repoPluginIDs, ","),
 	}
 	_ = s.publishTrigger(ctx, events.TopicAgentTaskAssigned, payload)
