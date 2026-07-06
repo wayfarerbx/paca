@@ -821,7 +821,6 @@ async function handleWorkflowToolInner(
 						);
 						lines.push(`Workflow is now ${workflow.status}.`);
 					} catch (err) {
-						hadFailure = true;
 						lines.push(
 							`Graph edits succeeded, but re-activating afterward failed: ${extractApiErrorMessage(err)}. The workflow is currently in draft — activate it manually once fixed.`,
 						);
