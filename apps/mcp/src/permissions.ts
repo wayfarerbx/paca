@@ -317,11 +317,6 @@ export const TOOL_PERMISSIONS: ToolPermission[] = [
 
 	// Automation workflow tools
 	{
-		toolName: "list_workflows",
-		permissionKey: "workflows.read",
-		requiresProject: true,
-	},
-	{
 		toolName: "get_workflow",
 		permissionKey: "workflows.read",
 		requiresProject: true,
@@ -338,61 +333,6 @@ export const TOOL_PERMISSIONS: ToolPermission[] = [
 	},
 	{
 		toolName: "delete_workflow",
-		permissionKey: "workflows.write",
-		requiresProject: true,
-	},
-	{
-		toolName: "activate_workflow",
-		permissionKey: "workflows.write",
-		requiresProject: true,
-	},
-	{
-		toolName: "archive_workflow",
-		permissionKey: "workflows.write",
-		requiresProject: true,
-	},
-	{
-		toolName: "revert_workflow_to_draft",
-		permissionKey: "workflows.write",
-		requiresProject: true,
-	},
-	{
-		toolName: "add_workflow_node",
-		permissionKey: "workflows.write",
-		requiresProject: true,
-	},
-	{
-		toolName: "remove_workflow_node",
-		permissionKey: "workflows.write",
-		requiresProject: true,
-	},
-	{
-		toolName: "set_workflow_status_rule",
-		permissionKey: "workflows.write",
-		requiresProject: true,
-	},
-	{
-		toolName: "remove_workflow_status_rule",
-		permissionKey: "workflows.write",
-		requiresProject: true,
-	},
-	{
-		toolName: "set_workflow_status_transition",
-		permissionKey: "workflows.write",
-		requiresProject: true,
-	},
-	{
-		toolName: "remove_workflow_status_transition",
-		permissionKey: "workflows.write",
-		requiresProject: true,
-	},
-	{
-		toolName: "add_workflow_edge",
-		permissionKey: "workflows.write",
-		requiresProject: true,
-	},
-	{
-		toolName: "remove_workflow_edge",
 		permissionKey: "workflows.write",
 		requiresProject: true,
 	},

@@ -76,8 +76,8 @@ vi.mock("../../tools/task-activity-tools.js", () => ({
 }));
 vi.mock("../../tools/workflow-tools.js", () => ({
 	getWorkflowTools: vi.fn(() => [
-		{ name: "list_workflows" },
 		{ name: "get_workflow" },
+		{ name: "create_workflow" },
 	]),
 	handleWorkflowTool: vi
 		.fn()
@@ -132,7 +132,7 @@ describe("getAllTools", () => {
 		expect(names).toContain("list_views");
 		expect(names).toContain("list_task_attachments");
 		expect(names).toContain("list_task_activities");
-		expect(names).toContain("list_workflows");
+		expect(names).toContain("get_workflow");
 	});
 });
 
@@ -314,43 +314,37 @@ describe("handleToolCall – activity routing", () => {
 });
 
 describe("handleToolCall – workflow tool routing", () => {
-	it("routes list_workflows to handleWorkflowTool", async () => {
-		await handleToolCall(makeRequest("list_workflows"), stubClients);
+	it("routes get_workflow to handleWorkflowTool", async () => {
+		await handleToolCall(makeRequest("get_workflow"), stubClients);
 		expect(handleWorkflowTool).toHaveBeenCalledWith(
-			"list_workflows",
+			"get_workflow",
 			{},
 			stubClients.workflowClient,
 		);
 	});
 
-	it("routes add_workflow_edge to handleWorkflowTool", async () => {
-		await handleToolCall(makeRequest("add_workflow_edge"), stubClients);
+	it("routes create_workflow to handleWorkflowTool", async () => {
+		await handleToolCall(makeRequest("create_workflow"), stubClients);
 		expect(handleWorkflowTool).toHaveBeenCalledWith(
-			"add_workflow_edge",
+			"create_workflow",
 			{},
 			stubClients.workflowClient,
 		);
 	});
 
-	it("routes set_workflow_status_transition to handleWorkflowTool", async () => {
-		await handleToolCall(
-			makeRequest("set_workflow_status_transition"),
-			stubClients,
-		);
+	it("routes update_workflow to handleWorkflowTool", async () => {
+		await handleToolCall(makeRequest("update_workflow"), stubClients);
 		expect(handleWorkflowTool).toHaveBeenCalledWith(
-			"set_workflow_status_transition",
+			"update_workflow",
 			{},
 			stubClients.workflowClient,
 		);
 	});
 
-	it("routes remove_workflow_status_transition to handleWorkflowTool", async () => {
-		await handleToolCall(
-			makeRequest("remove_workflow_status_transition"),
-			stubClients,
-		);
+	it("routes delete_workflow to handleWorkflowTool", async () => {
+		await handleToolCall(makeRequest("delete_workflow"), stubClients);
 		expect(handleWorkflowTool).toHaveBeenCalledWith(
-			"remove_workflow_status_transition",
+			"delete_workflow",
 			{},
 			stubClients.workflowClient,
 		);

@@ -262,7 +262,8 @@ func New(cfg *config.Config) (*App, error) {
 		WithMarketplace(marketplaceClient, pluginInstaller, pluginMigrationRunner)
 
 	agentHandler := handler.NewAgentHandler(agentService, cfg.AIAgentURL).
-		WithActivityRecorder(activityService)
+		WithActivityRecorder(activityService).
+		WithMemberRepo(projectRepo)
 	convHandler := handler.NewConversationHandler(agentService)
 	workflowHandler := handler.NewWorkflowHandler(workflowService)
 

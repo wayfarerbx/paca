@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	taskdom "github.com/Paca-AI/api/internal/domain/task"
@@ -113,11 +114,23 @@ func NewWorkflowConsumer(
 // Start creates the consumer group if needed and begins processing in a
 // background goroutine. Call Stop to drain and exit cleanly.
 func (c *WorkflowConsumer) Start(ctx context.Context) {
-	err := c.client.XGroupCreateMkStream(ctx, events.StreamTaskActivities, workflowConsumerGroup, "0").Err()
-	if err != nil && err.Error() != "BUSYGROUP Consumer Group name already exists" {
-		c.log.Warn("workflow consumer: could not create consumer group", "err", err)
+	if err := c.ensureGroup(ctx); err != nil {
+		c.log.Warn("workflow consumer: could not create consumer group, will retry on first read", "err", err)
 	}
 	go c.run()
+}
+
+// ensureGroup creates the consumer group, tolerating the case where it
+// already exists. Called from Start and, defensively, from run whenever a
+// read fails with NOGROUP — e.g. because Redis was briefly unreachable when
+// Start ran — so a transient failure at boot doesn't permanently disable the
+// engine until the process is restarted.
+func (c *WorkflowConsumer) ensureGroup(ctx context.Context) error {
+	err := c.client.XGroupCreateMkStream(ctx, events.StreamTaskActivities, workflowConsumerGroup, "0").Err()
+	if err != nil && err.Error() != "BUSYGROUP Consumer Group name already exists" {
+		return err
+	}
+	return nil
 }
 
 // Stop signals the consumer to stop and waits for the goroutine to exit.
@@ -155,6 +168,11 @@ func (c *WorkflowConsumer) run() {
 				continue
 			}
 			c.log.Error("workflow consumer: xreadgroup error", "err", err)
+			if strings.Contains(err.Error(), "NOGROUP") {
+				if geErr := c.ensureGroup(context.Background()); geErr != nil {
+					c.log.Warn("workflow consumer: failed to recreate consumer group", "err", geErr)
+				}
+			}
 			time.Sleep(2 * time.Second)
 			continue
 		}
@@ -199,6 +217,103 @@ type workflowActivityStreamPayload struct {
 // marshals into a task.updated activity's Content.
 type taskUpdatedContent struct {
 	Changes []taskdom.FieldChange `json:"changes"`
+}
+
+// evalCache memoizes repository lookups shared across the nodes and edges
+// evaluated within a single processTaskStatusChange call, so a task
+// belonging to several active-workflow nodes — or an AND-join with several
+// predecessors — doesn't refetch the same workflow's rules/transitions, or
+// the same node/task row, once per node/edge.
+type evalCache struct {
+	workflows   map[uuid.UUID]*workflowdom.Workflow
+	rules       map[uuid.UUID][]*workflowdom.StatusRule
+	transitions map[uuid.UUID][]*workflowdom.StatusTransition
+	edges       map[uuid.UUID][]*workflowdom.Edge
+	nodes       map[uuid.UUID]*workflowdom.Node
+	tasks       map[uuid.UUID]*taskdom.Task
+}
+
+func newEvalCache() *evalCache {
+	return &evalCache{
+		workflows:   make(map[uuid.UUID]*workflowdom.Workflow),
+		rules:       make(map[uuid.UUID][]*workflowdom.StatusRule),
+		transitions: make(map[uuid.UUID][]*workflowdom.StatusTransition),
+		edges:       make(map[uuid.UUID][]*workflowdom.Edge),
+		nodes:       make(map[uuid.UUID]*workflowdom.Node),
+		tasks:       make(map[uuid.UUID]*taskdom.Task),
+	}
+}
+
+func (e *evalCache) getWorkflow(ctx context.Context, repo workflowGraphReader, id uuid.UUID) (*workflowdom.Workflow, error) {
+	if w, ok := e.workflows[id]; ok {
+		return w, nil
+	}
+	w, err := repo.FindWorkflowByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	e.workflows[id] = w
+	return w, nil
+}
+
+func (e *evalCache) getRules(ctx context.Context, repo workflowGraphReader, workflowID uuid.UUID) ([]*workflowdom.StatusRule, error) {
+	if r, ok := e.rules[workflowID]; ok {
+		return r, nil
+	}
+	r, err := repo.ListStatusRulesByWorkflow(ctx, workflowID)
+	if err != nil {
+		return nil, err
+	}
+	e.rules[workflowID] = r
+	return r, nil
+}
+
+func (e *evalCache) getTransitions(ctx context.Context, repo workflowGraphReader, workflowID uuid.UUID) ([]*workflowdom.StatusTransition, error) {
+	if t, ok := e.transitions[workflowID]; ok {
+		return t, nil
+	}
+	t, err := repo.ListStatusTransitionsByWorkflow(ctx, workflowID)
+	if err != nil {
+		return nil, err
+	}
+	e.transitions[workflowID] = t
+	return t, nil
+}
+
+func (e *evalCache) getEdges(ctx context.Context, repo workflowGraphReader, workflowID uuid.UUID) ([]*workflowdom.Edge, error) {
+	if edges, ok := e.edges[workflowID]; ok {
+		return edges, nil
+	}
+	edges, err := repo.ListEdgesByWorkflow(ctx, workflowID)
+	if err != nil {
+		return nil, err
+	}
+	e.edges[workflowID] = edges
+	return edges, nil
+}
+
+func (e *evalCache) getNode(ctx context.Context, repo workflowGraphReader, id uuid.UUID) (*workflowdom.Node, error) {
+	if n, ok := e.nodes[id]; ok {
+		return n, nil
+	}
+	n, err := repo.FindNodeByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	e.nodes[id] = n
+	return n, nil
+}
+
+func (e *evalCache) getTask(ctx context.Context, repo workflowTaskReader, id uuid.UUID) (*taskdom.Task, error) {
+	if t, ok := e.tasks[id]; ok {
+		return t, nil
+	}
+	t, err := repo.FindTaskByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	e.tasks[id] = t
+	return t, nil
 }
 
 func (p workflowActivityStreamPayload) hasStatusChange() bool {
@@ -288,8 +403,10 @@ func (c *WorkflowConsumer) processTaskStatusChange(ctx context.Context, projectI
 		return nil
 	}
 
+	cache := newEvalCache()
+	cache.tasks[task.ID] = task
 	for _, node := range nodes {
-		if err := c.applyNode(ctx, projectID, node, task); err != nil {
+		if err := c.applyNode(ctx, projectID, node, task, cache); err != nil {
 			c.log.Error("workflow consumer: failed to apply node", "node_id", node.ID, "workflow_id", node.WorkflowID, "task_id", taskID, "err", err)
 		}
 	}
@@ -297,13 +414,17 @@ func (c *WorkflowConsumer) processTaskStatusChange(ctx context.Context, projectI
 }
 
 // applyNode runs event 1 (this node's own status rule) and, if the node just
-// became done, fans out event 2 to its outgoing edges.
-func (c *WorkflowConsumer) applyNode(ctx context.Context, projectID uuid.UUID, node *workflowdom.Node, task *taskdom.Task) error {
-	if err := c.applyStatusRule(ctx, projectID, node, task, "status_rule"); err != nil {
+// became done, fans out event 2 to its outgoing edges. task is shared with
+// every other node evaluated for this same event (see cache), and
+// applyStatusRule updates its AssigneeID in place after a successful
+// reassignment so a task wrapped by multiple active-workflow nodes doesn't
+// have a later node's idempotency check read a stale assignee.
+func (c *WorkflowConsumer) applyNode(ctx context.Context, projectID uuid.UUID, node *workflowdom.Node, task *taskdom.Task, cache *evalCache) error {
+	if err := c.applyStatusRule(ctx, projectID, node, task, "status_rule", cache); err != nil {
 		return fmt.Errorf("apply status rule: %w", err)
 	}
 
-	done, err := c.isNodeDone(ctx, node, task)
+	done, err := c.isNodeDone(ctx, node, task, cache)
 	if err != nil {
 		return fmt.Errorf("check done status: %w", err)
 	}
@@ -311,7 +432,7 @@ func (c *WorkflowConsumer) applyNode(ctx context.Context, projectID uuid.UUID, n
 		return nil
 	}
 
-	edges, err := c.workflowRepo.ListEdgesByWorkflow(ctx, node.WorkflowID)
+	edges, err := cache.getEdges(ctx, c.workflowRepo, node.WorkflowID)
 	if err != nil {
 		return fmt.Errorf("list edges: %w", err)
 	}
@@ -319,7 +440,7 @@ func (c *WorkflowConsumer) applyNode(ctx context.Context, projectID uuid.UUID, n
 		if e.SourceNodeID != node.ID {
 			continue
 		}
-		if err := c.tryFireEdge(ctx, projectID, e); err != nil {
+		if err := c.tryFireEdge(ctx, projectID, e, cache); err != nil {
 			c.log.Error("workflow consumer: failed to fire edge", "edge_id", e.ID, "err", err)
 		}
 	}
@@ -331,11 +452,11 @@ func (c *WorkflowConsumer) applyNode(ctx context.Context, projectID uuid.UUID, n
 // next status. If the chain has no unique terminal entry (shouldn't happen
 // for an active workflow, since Activate enforces it, but handled
 // defensively), the node is treated as not done rather than erroring.
-func (c *WorkflowConsumer) isNodeDone(ctx context.Context, node *workflowdom.Node, task *taskdom.Task) (bool, error) {
+func (c *WorkflowConsumer) isNodeDone(ctx context.Context, node *workflowdom.Node, task *taskdom.Task, cache *evalCache) (bool, error) {
 	if task.StatusID == nil {
 		return false, nil
 	}
-	transitions, err := c.workflowRepo.ListStatusTransitionsByWorkflow(ctx, node.WorkflowID)
+	transitions, err := cache.getTransitions(ctx, c.workflowRepo, node.WorkflowID)
 	if err != nil {
 		return false, err
 	}
@@ -349,8 +470,8 @@ func (c *WorkflowConsumer) isNodeDone(ctx context.Context, node *workflowdom.Nod
 // tryFireEdge evaluates the AND-join for edge's target node — ALL of the
 // target's incoming edges must have a done source — and, if satisfied,
 // applies event 2 using the target task's own current status.
-func (c *WorkflowConsumer) tryFireEdge(ctx context.Context, projectID uuid.UUID, edge *workflowdom.Edge) error {
-	target, err := c.workflowRepo.FindNodeByID(ctx, edge.TargetNodeID)
+func (c *WorkflowConsumer) tryFireEdge(ctx context.Context, projectID uuid.UUID, edge *workflowdom.Edge, cache *evalCache) error {
+	target, err := cache.getNode(ctx, c.workflowRepo, edge.TargetNodeID)
 	if err != nil {
 		return fmt.Errorf("find target node: %w", err)
 	}
@@ -360,15 +481,15 @@ func (c *WorkflowConsumer) tryFireEdge(ctx context.Context, projectID uuid.UUID,
 		return fmt.Errorf("list incoming edges: %w", err)
 	}
 	for _, in := range incoming {
-		srcNode, err := c.workflowRepo.FindNodeByID(ctx, in.SourceNodeID)
+		srcNode, err := cache.getNode(ctx, c.workflowRepo, in.SourceNodeID)
 		if err != nil {
 			return fmt.Errorf("find source node: %w", err)
 		}
-		srcTask, err := c.taskRepo.FindTaskByID(ctx, srcNode.TaskID)
+		srcTask, err := cache.getTask(ctx, c.taskRepo, srcNode.TaskID)
 		if err != nil {
 			return fmt.Errorf("find source task: %w", err)
 		}
-		done, err := c.isNodeDone(ctx, srcNode, srcTask)
+		done, err := c.isNodeDone(ctx, srcNode, srcTask, cache)
 		if err != nil {
 			return fmt.Errorf("check predecessor done: %w", err)
 		}
@@ -380,11 +501,11 @@ func (c *WorkflowConsumer) tryFireEdge(ctx context.Context, projectID uuid.UUID,
 		}
 	}
 
-	targetTask, err := c.taskRepo.FindTaskByID(ctx, target.TaskID)
+	targetTask, err := cache.getTask(ctx, c.taskRepo, target.TaskID)
 	if err != nil {
 		return fmt.Errorf("find target task: %w", err)
 	}
-	return c.applyStatusRule(ctx, projectID, target, targetTask, "predecessor_done")
+	return c.applyStatusRule(ctx, projectID, target, targetTask, "predecessor_done", cache)
 }
 
 // applyStatusRule looks up node's rule for task's current status and, if one
@@ -392,11 +513,17 @@ func (c *WorkflowConsumer) tryFireEdge(ctx context.Context, projectID uuid.UUID,
 // reassigns the task through the normal task service, records a
 // workflow.assigned activity, and publishes to StreamTaskAssignments so the
 // existing notification/agent-trigger pipeline picks it up uniformly.
-func (c *WorkflowConsumer) applyStatusRule(ctx context.Context, projectID uuid.UUID, node *workflowdom.Node, task *taskdom.Task, reason string) error {
+//
+// task is mutated in place on a successful reassignment (see the
+// UpdateTask call below) because it may be shared with other nodes/edges
+// evaluated for the same event (see evalCache): without that, a second
+// node's idempotency check below would read the assignee this call is in
+// the middle of changing, and unconditionally overwrite it again.
+func (c *WorkflowConsumer) applyStatusRule(ctx context.Context, projectID uuid.UUID, node *workflowdom.Node, task *taskdom.Task, reason string, cache *evalCache) error {
 	if task.StatusID == nil {
 		return nil
 	}
-	rules, err := c.workflowRepo.ListStatusRulesByWorkflow(ctx, node.WorkflowID)
+	rules, err := cache.getRules(ctx, c.workflowRepo, node.WorkflowID)
 	if err != nil {
 		return fmt.Errorf("list status rules: %w", err)
 	}
@@ -414,9 +541,15 @@ func (c *WorkflowConsumer) applyStatusRule(ctx context.Context, projectID uuid.U
 		return nil // already assigned — idempotent no-op
 	}
 
-	workflow, err := c.workflowRepo.FindWorkflowByID(ctx, node.WorkflowID)
+	workflow, err := cache.getWorkflow(ctx, c.workflowRepo, node.WorkflowID)
 	if err != nil {
 		return fmt.Errorf("find workflow: %w", err)
+	}
+	if workflow.Status != workflowdom.StatusActive {
+		// The workflow was archived or reverted to draft after this event
+		// started evaluating — don't complete an automation action against
+		// it. Not an error: the message is simply done being processed.
+		return nil
 	}
 
 	oldAssignee := task.AssigneeID
@@ -425,6 +558,7 @@ func (c *WorkflowConsumer) applyStatusRule(ctx context.Context, projectID uuid.U
 	if _, err := c.taskSvc.UpdateTask(ctx, projectID, task.ID, taskdom.UpdateTaskInput{AssigneeID: &newAssigneePtr}); err != nil {
 		return fmt.Errorf("update task assignee: %w", err)
 	}
+	task.AssigneeID = &newAssignee
 
 	if c.activityRec != nil {
 		content, _ := json.Marshal(map[string]any{
@@ -454,7 +588,7 @@ func (c *WorkflowConsumer) applyStatusRule(ctx context.Context, projectID uuid.U
 		if oldAssignee != nil {
 			payload["old_assignee_member_id"] = oldAssignee.String()
 		}
-		if transitions, err := c.workflowRepo.ListStatusTransitionsByWorkflow(ctx, node.WorkflowID); err == nil {
+		if transitions, err := cache.getTransitions(ctx, c.workflowRepo, node.WorkflowID); err == nil {
 			for _, tr := range transitions {
 				if tr.StatusID == *task.StatusID && tr.NextStatusID != nil {
 					if status, err := c.taskRepo.FindTaskStatusByID(ctx, *tr.NextStatusID); err == nil {

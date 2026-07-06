@@ -798,6 +798,11 @@ export interface AddWorkflowNodeInput {
 	pos_y?: number;
 }
 
+export interface UpdateWorkflowNodeInput {
+	pos_x?: number;
+	pos_y?: number;
+}
+
 export interface SetWorkflowStatusRuleInput {
 	status_id: string;
 	assignee_member_id: string;

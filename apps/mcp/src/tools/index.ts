@@ -7,6 +7,7 @@ import type {
 	PacaAPIViewsClient,
 	PacaAPIWorkflowClient,
 } from "../api/index.js";
+import { formatToolError } from "../utils/index.js";
 import {
 	getAttachmentTools,
 	handleAttachmentTool,
@@ -218,35 +219,21 @@ export async function handleToolCall(
 
 		// Automation workflow tools
 		if (
-			name === "list_workflows" ||
 			name === "get_workflow" ||
 			name === "create_workflow" ||
 			name === "update_workflow" ||
-			name === "delete_workflow" ||
-			name === "activate_workflow" ||
-			name === "archive_workflow" ||
-			name === "revert_workflow_to_draft" ||
-			name === "add_workflow_node" ||
-			name === "remove_workflow_node" ||
-			name === "set_workflow_status_rule" ||
-			name === "remove_workflow_status_rule" ||
-			name === "set_workflow_status_transition" ||
-			name === "remove_workflow_status_transition" ||
-			name === "add_workflow_edge" ||
-			name === "remove_workflow_edge"
+			name === "delete_workflow"
 		) {
 			return handleWorkflowTool(name, args, clients.workflowClient);
 		}
 
 		throw new Error(`Unknown tool: ${name}`);
 	} catch (error) {
-		const errorMessage =
-			error instanceof Error ? error.message : "Unknown error";
 		return {
 			content: [
 				{
 					type: "text",
-					text: `Error: ${errorMessage}`,
+					text: `Error: ${formatToolError(error)}`,
 				},
 			],
 			isError: true,

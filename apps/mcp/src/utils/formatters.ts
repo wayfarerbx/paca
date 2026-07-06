@@ -1,3 +1,4 @@
+import { ZodError } from "zod";
 import type {
 	Attachment,
 	CustomFieldDefinition,
@@ -12,6 +13,33 @@ import type {
 	TaskType,
 } from "../types/index.js";
 import { blocknoteToMarkdown } from "./converters.js";
+
+/**
+ * Formats a thrown error for the calling agent. A raw ZodError's .message is
+ * a JSON dump of every issue — for an array of N invalid items that's N
+ * near-identical blocks (e.g. 8 nodes missing posX/posY renders as 16+
+ * repeated issues), which buries the one actionable fact under noise. This
+ * collapses issues that differ only by array index into a single deduped
+ * line with a count, so the caller sees e.g. "nodes.set.*.posX: Required
+ * (x8)" instead of the same message eight times over.
+ */
+export function formatToolError(error: unknown): string {
+	if (error instanceof ZodError) {
+		const counts = new Map<string, number>();
+		for (const issue of error.issues) {
+			const path = issue.path
+				.map((segment) => (typeof segment === "number" ? "*" : segment))
+				.join(".");
+			const key = path ? `${path}: ${issue.message}` : issue.message;
+			counts.set(key, (counts.get(key) ?? 0) + 1);
+		}
+		const lines = [...counts.entries()].map(([key, count]) =>
+			count > 1 ? `${key} (x${count})` : key,
+		);
+		return `Invalid arguments:\n${lines.join("\n")}`;
+	}
+	return error instanceof Error ? error.message : "Unknown error";
+}
 
 /**
  * Formats a task object into a readable string.

@@ -7,6 +7,7 @@ import type {
 	SetWorkflowStatusTransitionInput,
 	SuccessEnvelope,
 	UpdateWorkflowInput,
+	UpdateWorkflowNodeInput,
 	Workflow,
 	WorkflowEdge,
 	WorkflowGraph,
@@ -177,6 +178,18 @@ export class PacaAPIWorkflowClient {
 	): Promise<WorkflowNode> {
 		return this.post(
 			`/api/v1/projects/${projectId}/workflows/${workflowId}/nodes`,
+			input,
+		);
+	}
+
+	async updateWorkflowNode(
+		projectId: string,
+		workflowId: string,
+		nodeId: string,
+		input: UpdateWorkflowNodeInput,
+	): Promise<WorkflowNode> {
+		return this.patch(
+			`/api/v1/projects/${projectId}/workflows/${workflowId}/nodes/${nodeId}`,
 			input,
 		);
 	}

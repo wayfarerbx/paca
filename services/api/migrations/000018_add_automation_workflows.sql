@@ -97,6 +97,26 @@ CREATE INDEX IF NOT EXISTS idx_workflow_edges_workflow ON workflow_edges (workfl
 CREATE INDEX IF NOT EXISTS idx_workflow_edges_source ON workflow_edges (source_node_id);
 CREATE INDEX IF NOT EXISTS idx_workflow_edges_target ON workflow_edges (target_node_id);
 
+-- agent_conversations.triggered_by_member_id was NOT NULL, but the
+-- automation-workflow engine (WorkflowConsumer) triggers agent conversations
+-- with no human member behind them -- only the fixed system-actor user,
+-- which is never itself a project member. Allow NULL to represent that
+-- state explicitly, with the same ON DELETE SET NULL FK workflows.created_by
+-- above uses.
+ALTER TABLE agent_conversations
+    ALTER COLUMN triggered_by_member_id DROP NOT NULL;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'fk_agent_conversations_triggered_by_member'
+    ) THEN
+        ALTER TABLE agent_conversations
+            ADD CONSTRAINT fk_agent_conversations_triggered_by_member
+                FOREIGN KEY (triggered_by_member_id) REFERENCES project_members(id) ON DELETE SET NULL;
+    END IF;
+END $$;
+
 -- Grant the new workflows.read/workflows.write permissions to existing
 -- project_roles rows for the built-in role names:
 --   - PROJECT_OWNER / PROJECT_MANAGER / PROJECT_MEMBER / PROJECT_VIEWER are

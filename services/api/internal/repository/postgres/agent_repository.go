@@ -89,7 +89,7 @@ type agentConversationRecord struct {
 	TaskID              *string    `db:"task_id"`
 	CommentID           *string    `db:"comment_id"`
 	ChatSessionID       *string    `db:"chat_session_id"`
-	TriggeredByMemberID string     `db:"triggered_by_member_id"`
+	TriggeredByMemberID *string    `db:"triggered_by_member_id"`
 	Status              string     `db:"status"`
 	ContainerID         *string    `db:"container_id"`
 	HostPort            *int       `db:"host_port"`
@@ -931,24 +931,23 @@ func envVarFromRecord(rec agentEnvVarRecord) *agentdom.AgentEnvironmentVariable 
 
 func conversationFromRecord(rec agentConversationRecord) *agentdom.AgentConversation {
 	c := &agentdom.AgentConversation{
-		ID:                  mustParseUUID(rec.ID),
-		AgentID:             mustParseUUID(rec.AgentID),
-		ProjectID:           mustParseUUID(rec.ProjectID),
-		TriggerType:         rec.TriggerType,
-		TriggeredByMemberID: mustParseUUID(rec.TriggeredByMemberID),
-		Status:              rec.Status,
-		ContainerID:         rec.ContainerID,
-		HostPort:            rec.HostPort,
-		IterationCount:      rec.IterationCount,
-		ErrorMessage:        rec.ErrorMessage,
-		RepoCloneURL:        rec.RepoCloneURL,
-		BranchName:          rec.BranchName,
-		PRUrl:               rec.PRUrl,
-		PersistenceDir:      rec.PersistenceDir,
-		StartedAt:           rec.StartedAt,
-		FinishedAt:          rec.FinishedAt,
-		CreatedAt:           rec.CreatedAt,
-		UpdatedAt:           rec.UpdatedAt,
+		ID:             mustParseUUID(rec.ID),
+		AgentID:        mustParseUUID(rec.AgentID),
+		ProjectID:      mustParseUUID(rec.ProjectID),
+		TriggerType:    rec.TriggerType,
+		Status:         rec.Status,
+		ContainerID:    rec.ContainerID,
+		HostPort:       rec.HostPort,
+		IterationCount: rec.IterationCount,
+		ErrorMessage:   rec.ErrorMessage,
+		RepoCloneURL:   rec.RepoCloneURL,
+		BranchName:     rec.BranchName,
+		PRUrl:          rec.PRUrl,
+		PersistenceDir: rec.PersistenceDir,
+		StartedAt:      rec.StartedAt,
+		FinishedAt:     rec.FinishedAt,
+		CreatedAt:      rec.CreatedAt,
+		UpdatedAt:      rec.UpdatedAt,
 	}
 	if rec.TaskID != nil {
 		id := mustParseUUID(*rec.TaskID)
@@ -962,6 +961,10 @@ func conversationFromRecord(rec agentConversationRecord) *agentdom.AgentConversa
 		id := mustParseUUID(*rec.ChatSessionID)
 		c.ChatSessionID = &id
 	}
+	if rec.TriggeredByMemberID != nil {
+		id := mustParseUUID(*rec.TriggeredByMemberID)
+		c.TriggeredByMemberID = &id
+	}
 	if rec.RepoPluginID != nil {
 		id := mustParseUUID(*rec.RepoPluginID)
 		c.RepoPluginID = &id
@@ -971,24 +974,23 @@ func conversationFromRecord(rec agentConversationRecord) *agentdom.AgentConversa
 
 func conversationToRecord(c *agentdom.AgentConversation) agentConversationRecord {
 	rec := agentConversationRecord{
-		ID:                  c.ID.String(),
-		AgentID:             c.AgentID.String(),
-		ProjectID:           c.ProjectID.String(),
-		TriggerType:         c.TriggerType,
-		TriggeredByMemberID: c.TriggeredByMemberID.String(),
-		Status:              c.Status,
-		ContainerID:         c.ContainerID,
-		HostPort:            c.HostPort,
-		IterationCount:      c.IterationCount,
-		ErrorMessage:        c.ErrorMessage,
-		RepoCloneURL:        c.RepoCloneURL,
-		BranchName:          c.BranchName,
-		PRUrl:               c.PRUrl,
-		PersistenceDir:      c.PersistenceDir,
-		StartedAt:           c.StartedAt,
-		FinishedAt:          c.FinishedAt,
-		CreatedAt:           c.CreatedAt,
-		UpdatedAt:           c.UpdatedAt,
+		ID:             c.ID.String(),
+		AgentID:        c.AgentID.String(),
+		ProjectID:      c.ProjectID.String(),
+		TriggerType:    c.TriggerType,
+		Status:         c.Status,
+		ContainerID:    c.ContainerID,
+		HostPort:       c.HostPort,
+		IterationCount: c.IterationCount,
+		ErrorMessage:   c.ErrorMessage,
+		RepoCloneURL:   c.RepoCloneURL,
+		BranchName:     c.BranchName,
+		PRUrl:          c.PRUrl,
+		PersistenceDir: c.PersistenceDir,
+		StartedAt:      c.StartedAt,
+		FinishedAt:     c.FinishedAt,
+		CreatedAt:      c.CreatedAt,
+		UpdatedAt:      c.UpdatedAt,
 	}
 	if c.TaskID != nil {
 		s := c.TaskID.String()
@@ -1001,6 +1003,10 @@ func conversationToRecord(c *agentdom.AgentConversation) agentConversationRecord
 	if c.ChatSessionID != nil {
 		s := c.ChatSessionID.String()
 		rec.ChatSessionID = &s
+	}
+	if c.TriggeredByMemberID != nil {
+		s := c.TriggeredByMemberID.String()
+		rec.TriggeredByMemberID = &s
 	}
 	if c.RepoPluginID != nil {
 		s := c.RepoPluginID.String()

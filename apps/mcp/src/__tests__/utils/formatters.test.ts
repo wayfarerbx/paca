@@ -7,6 +7,7 @@ vi.mock("../../utils/converters.js", () => ({
 	blocknoteToMarkdown: vi.fn(() => "mocked markdown"),
 }));
 
+import { ZodError } from "zod";
 import type {
 	Attachment,
 	CustomFieldDefinition,
@@ -26,6 +27,7 @@ import {
 	formatSprint,
 	formatTask,
 	formatTaskDetail,
+	formatToolError,
 } from "../../utils/formatters.js";
 
 // ---------------------------------------------------------------------------
@@ -603,5 +605,85 @@ describe("formatTaskDetail", () => {
 		const result = formatTaskDetail(baseTask);
 		expect(result).not.toContain("**Start Date:**");
 		expect(result).not.toContain("**Due Date:**");
+	});
+});
+
+// ---------------------------------------------------------------------------
+// formatToolError
+// ---------------------------------------------------------------------------
+
+describe("formatToolError", () => {
+	it("returns a plain Error's message unchanged", () => {
+		expect(formatToolError(new Error("boom"))).toBe("boom");
+	});
+
+	it("falls back to a generic message for a non-Error thrown value", () => {
+		expect(formatToolError("oops")).toBe("Unknown error");
+	});
+
+	it("collapses ZodError issues that differ only by array index into one deduped, counted line", () => {
+		const error = new ZodError([
+			{
+				code: "invalid_type",
+				expected: "number",
+				received: "undefined",
+				path: ["nodes", "set", 0, "posX"],
+				message: "Required",
+			} as any,
+			{
+				code: "invalid_type",
+				expected: "number",
+				received: "undefined",
+				path: ["nodes", "set", 1, "posX"],
+				message: "Required",
+			} as any,
+			{
+				code: "invalid_type",
+				expected: "number",
+				received: "undefined",
+				path: ["nodes", "set", 0, "posY"],
+				message: "Required",
+			} as any,
+		]);
+		const formatted = formatToolError(error);
+		expect(formatted).toBe(
+			"Invalid arguments:\nnodes.set.*.posX: Required (x2)\nnodes.set.*.posY: Required",
+		);
+	});
+
+	it("surfaces an unrecognized-key issue distinctly from missing-field issues", () => {
+		const error = new ZodError([
+			{
+				code: "invalid_type",
+				expected: "number",
+				received: "undefined",
+				path: ["nodes", "set", 0, "posX"],
+				message: "Required",
+			} as any,
+			{
+				code: "unrecognized_keys",
+				keys: ["position"],
+				path: ["nodes", "set", 0],
+				message: "Unrecognized key(s) in object: 'position'",
+			} as any,
+		]);
+		const formatted = formatToolError(error);
+		expect(formatted).toContain(
+			"nodes.set.*: Unrecognized key(s) in object: 'position'",
+		);
+		expect(formatted).toContain("nodes.set.*.posX: Required");
+	});
+
+	it("keeps a single issue's path unmodified (no trailing/leading dots)", () => {
+		const error = new ZodError([
+			{
+				code: "invalid_type",
+				expected: "string",
+				received: "undefined",
+				path: ["name"],
+				message: "Required",
+			} as any,
+		]);
+		expect(formatToolError(error)).toBe("Invalid arguments:\nname: Required");
 	});
 });

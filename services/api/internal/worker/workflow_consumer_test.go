@@ -25,6 +25,8 @@ type fakeGraphStore struct {
 	rules       map[uuid.UUID][]*workflowdom.StatusRule       // keyed by workflow ID
 	transitions map[uuid.UUID][]*workflowdom.StatusTransition // keyed by workflow ID
 	edges       []*workflowdom.Edge
+
+	transitionsCalls int // counts real ListStatusTransitionsByWorkflow calls, to assert evalCache hits
 }
 
 func newFakeGraphStore() *fakeGraphStore {
@@ -70,6 +72,7 @@ func (f *fakeGraphStore) ListStatusRulesByWorkflow(_ context.Context, workflowID
 }
 
 func (f *fakeGraphStore) ListStatusTransitionsByWorkflow(_ context.Context, workflowID uuid.UUID) ([]*workflowdom.StatusTransition, error) {
+	f.transitionsCalls++
 	return f.transitions[workflowID], nil
 }
 
@@ -332,7 +335,7 @@ func TestIsNodeDone_DerivesFromWorkflowTransitions(t *testing.T) {
 	node, task := f.addNode(w, &f.readyStatus.ID)
 	task.StatusID = &f.doneStatus.ID
 
-	done, err := f.consumer.isNodeDone(ctx, node, task)
+	done, err := f.consumer.isNodeDone(ctx, node, task, newEvalCache())
 	if err != nil {
 		t.Fatalf("isNodeDone: %v", err)
 	}
@@ -350,11 +353,98 @@ func TestIsNodeDone_FalseWhenChainHasNoUniqueTerminal(t *testing.T) {
 	node, task := f.addNode(w, &f.readyStatus.ID)
 	task.StatusID = &f.doneStatus.ID
 
-	done, err := f.consumer.isNodeDone(ctx, node, task)
+	done, err := f.consumer.isNodeDone(ctx, node, task, newEvalCache())
 	if err != nil {
 		t.Fatalf("isNodeDone: %v", err)
 	}
 	if done {
 		t.Fatalf("expected node to not be considered done when no unique terminal status is configured")
+	}
+}
+
+// TestProcessTaskStatusChange_SecondNodeSeesFreshAssigneeFromFirst guards
+// against a task that belongs to nodes in two different active workflows
+// getting reassigned twice in the same event: the second node's idempotency
+// check must see the first node's just-applied assignee rather than a
+// stale in-memory copy of the task.
+func TestProcessTaskStatusChange_SecondNodeSeesFreshAssigneeFromFirst(t *testing.T) {
+	f := newEngineFixture()
+	ctx := context.Background()
+	w1 := f.addWorkflow()
+	w2 := f.addWorkflow()
+	member := uuid.New()
+
+	task := &taskdom.Task{ID: uuid.New(), ProjectID: f.projectID, StatusID: &f.doneStatus.ID}
+	f.tasks.tasks[task.ID] = task
+	node1 := &workflowdom.Node{ID: uuid.New(), WorkflowID: w1.ID, TaskID: task.ID}
+	node2 := &workflowdom.Node{ID: uuid.New(), WorkflowID: w2.ID, TaskID: task.ID}
+	f.graph.nodes[node1.ID] = node1
+	f.graph.nodes[node2.ID] = node2
+	f.addRule(w1, f.doneStatus.ID, member)
+	f.addRule(w2, f.doneStatus.ID, member)
+
+	if err := f.consumer.processTaskStatusChange(ctx, f.projectID, task.ID); err != nil {
+		t.Fatalf("processTaskStatusChange: %v", err)
+	}
+
+	if f.tasks.updateCalls != 1 {
+		t.Fatalf("expected exactly 1 UpdateTask call — the second node's idempotency check should see the first node's assignment instead of a stale copy — got %d", f.tasks.updateCalls)
+	}
+}
+
+// TestApplyStatusRule_SkipsWhenWorkflowNoLongerActive guards against the
+// engine completing a reassignment against a workflow that was archived (or
+// reverted to draft) after ListActiveNodesByTaskID already returned this
+// node but before the mutating UpdateTask call runs.
+func TestApplyStatusRule_SkipsWhenWorkflowNoLongerActive(t *testing.T) {
+	f := newEngineFixture()
+	ctx := context.Background()
+	w := f.addWorkflow()
+	member := uuid.New()
+
+	node, task := f.addNode(w, &f.doneStatus.ID)
+	f.addRule(w, f.doneStatus.ID, member)
+
+	// Simulate archival landing in the window between the node being
+	// selected for evaluation and applyStatusRule actually running.
+	w.Status = workflowdom.StatusArchived
+
+	if err := f.consumer.applyStatusRule(ctx, f.projectID, node, task, "status_rule", newEvalCache()); err != nil {
+		t.Fatalf("applyStatusRule: %v", err)
+	}
+	if f.tasks.updateCalls != 0 {
+		t.Fatalf("expected no UpdateTask call once the workflow is no longer active, got %d", f.tasks.updateCalls)
+	}
+}
+
+// TestDiamond_ANDJoin_CachesTransitionsAcrossPredecessors guards against the
+// N+1 query pattern where checking an AND-join's predecessors re-fetches the
+// same workflow's status transitions once per predecessor (plus once more
+// for the node itself and once more for the next-status-name lookup).
+func TestDiamond_ANDJoin_CachesTransitionsAcrossPredecessors(t *testing.T) {
+	f := newEngineFixture()
+	ctx := context.Background()
+	w := f.addWorkflow()
+	downstreamMember := uuid.New()
+
+	nodeA, taskA := f.addNode(w, &f.doneStatus.ID)
+	nodeB, _ := f.addNode(w, &f.doneStatus.ID)
+	nodeC, _ := f.addNode(w, &f.readyStatus.ID)
+	f.addTransition(w, f.doneStatus.ID, nil) // doneStatus is this workflow's terminal/done status
+	f.addRule(w, f.readyStatus.ID, downstreamMember)
+	f.addEdge(w, nodeA, nodeC)
+	f.addEdge(w, nodeB, nodeC)
+
+	// Both predecessors already done: a single status-change event on A
+	// evaluates isNodeDone for A (directly) and for A and B again (inside
+	// tryFireEdge's AND-join loop) — all against the same workflow — plus
+	// applyStatusRule's next-status lookup for C. All of those should share
+	// one real repository call.
+	if err := f.consumer.processTaskStatusChange(ctx, f.projectID, taskA.ID); err != nil {
+		t.Fatalf("processTaskStatusChange: %v", err)
+	}
+
+	if f.graph.transitionsCalls != 1 {
+		t.Fatalf("expected the per-event cache to collapse repeated ListStatusTransitionsByWorkflow calls into 1, got %d", f.graph.transitionsCalls)
 	}
 }

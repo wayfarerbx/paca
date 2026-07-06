@@ -278,18 +278,98 @@ agent's own `workflows.read` / `workflows.write` project permissions
 (`apps/mcp/src/permissions.ts`), resolved at MCP-session startup — there is
 no separate per-agent capability flag.
 
-Tools: `list_workflows`, `get_workflow`, `create_workflow`,
-`update_workflow`, `delete_workflow`, `activate_workflow`,
-`archive_workflow`, `revert_workflow_to_draft`, `add_workflow_node`,
-`remove_workflow_node`, `set_workflow_status_rule`,
-`remove_workflow_status_rule`, `set_workflow_status_transition`,
-`remove_workflow_status_transition`, `add_workflow_edge`,
-`remove_workflow_edge`. Like other tools in this server, they take explicit
-UUIDs (task/status/member IDs obtained via `list_tasks` / `list_task_statuses`
-/ `list_project_members`) rather than resolving names themselves.
-`create_workflow` auto-seeds the default status-transition chain the same
-way the HTTP API does; `set_workflow_status_transition` customizes it
-afterward.
+Tools: `get_workflow`, `create_workflow`, `update_workflow`,
+`delete_workflow` — just 4, not one per REST endpoint. An earlier version of
+this integration exposed 16 tools (one per CRUD operation across workflows,
+nodes, status rules, status transitions, and edges), which turned out to
+confuse the calling agent about which one to reach for. The 4 remaining
+tools cover the same ground:
+
+- `get_workflow` — pass `workflowId` for one workflow's full graph, or omit
+  it to list workflows in the project (optionally filtered by `status`).
+  Merges the old `list_workflows` + `get_workflow`.
+- `create_workflow` — creates the workflow and, in the same call, can build
+  out its whole graph: `nodes`, `statusRules`, `statusTransitions`, `edges`,
+  plus an `activate` convenience flag.
+- `update_workflow` — renames/describes, changes lifecycle `status`
+  (`draft`/`active`/`archived`, replacing the old `activate_workflow`/
+  `archive_workflow`/`revert_workflow_to_draft`), and edits the graph via
+  `nodes`/`statusRules`/`statusTransitions`/`edges`, each taking `set`
+  (or `add`, for edges) and `remove`.
+- `delete_workflow` — unchanged.
+
+A second, deliberate change bundled into this: internal node/rule/
+transition/edge UUIDs are no longer agent-facing at all. Nodes are
+addressed by `taskId`, status rules/transitions by `statusId`, and edges by
+a `(sourceTaskId, targetTaskId)` pair — all values the agent already holds
+from `list_tasks` / `list_task_statuses` / `list_project_members`, so it
+never needs a `get_workflow` round-trip just to learn an ID before it can
+write. The MCP layer resolves these to the real node/rule/transition/edge
+IDs the REST API needs via one `getWorkflow` fetch, safe because of the
+same DB uniqueness constraints noted under [Data model](#data-model) (one
+node per task, one rule/transition per status, one edge per node pair).
+`create_workflow` still auto-seeds the default status-transition chain the
+same way the HTTP API does; `update_workflow`'s `statusTransitions.set`
+customizes it afterward.
+
+Unlike the REST API (where `pos_x`/`pos_y` are optional and default to
+`(0, 0)`), the MCP `nodes`/`nodes.set` item schema makes `posX`/`posY`
+required — the agent, not the MCP layer, is the one who knows where a node
+should sit, so it must always choose a position rather than relying on a
+fallback. The description also leads with an "every entry needs posX AND
+posY" callout at the top of `create_workflow`/`update_workflow`'s own
+description text (not just inside the nested node-item schema), since an
+agent that doesn't happen to inspect the nested schema closely would
+otherwise omit them on its first attempt and only add them after a
+validation-error retry.
+
+The tool description asks for a specific layered layout, not just "don't
+overlap": `posY` is the row/stage, matching the dependency order implied by
+the `edges` the agent is declaring — tasks with no predecessors (done first)
+go in the top row (`posY = 0`), and a task goes in a lower row than
+everything it depends on, so the graph reads top-to-bottom in execution
+order; `posX` is the lane *within* a row, so independent/parallel tasks at
+the same stage share one `posY` but get different `posX` values, reading as
+side-by-side columns. Minimum spacing (`RECOMMENDED_NODE_GAP_X`/`_Y` in
+`workflow-orchestration.ts`) is 300px horizontally / 200px vertically
+(canvas cards are a fixed 256px wide) — tuned by live feedback on the actual
+rendered canvas (X: 400 -> 600 -> 900 -> 1800 -> back to 400 -> halved to
+200 with Y -> up to 300; the two axes don't have to move together). The two
+constants are defined once and interpolated into
+both the tool-description text and `checkNodeSpacing` below, so a future
+adjustment is a single number, not a hunt across strings. The description
+also tells the agent not to place
+a node's position on the straight line between two other edge-connected
+nodes, so it doesn't visually sit on top of an unrelated edge. `get_workflow`
+lists every existing node's `(pos_x, pos_y)` in its text response (not just
+internally on the JSON graph) specifically so an agent extending an existing
+workflow can see and continue the established layout instead of guessing.
+
+Because prose-only guidance kept being ignored (agents chose small,
+evenly-spaced values like 200px regardless of the stated minimum),
+`create_workflow`/`update_workflow` also run `checkNodeSpacing` after
+applying a call's node positions: if any two nodes end up closer than the
+minimum on BOTH axes at once, the tool response includes an explicit
+warning naming the pair and the actual gap (e.g. "t1 (200, 0) and t2 (400,
+0) — 200px apart horizontally, 0px apart vertically"). This is advisory
+only — positions are still applied exactly as the agent requested, and nothing
+is auto-corrected; it exists to give the agent concrete, hard-to-ignore
+feedback instead of relying entirely on the tool description being read
+carefully.
+
+Within `create_workflow`/`update_workflow`, every entry in every list is
+applied independently — one bad node/rule/transition/edge doesn't block its
+siblings; the response reports per-item outcomes so the agent can retry
+just the failed piece. `update_workflow`'s `remove` operations are
+deliberately more lenient than the REST layer: removing a taskId/statusId/
+edge pair that doesn't currently resolve to anything is a no-op, not an
+error (the REST endpoints themselves still 404 on an unknown ID) — this
+makes it safe for an agent to resend the same `remove` list after a partial
+failure. Graph edits still require the workflow to be in `draft` state (see
+[Lifecycle](#lifecycle)); `update_workflow` applies a requested `status:
+"draft"` revert *before* any graph edits in the same call, and a requested
+`status: "active"`/`"archived"` transition *after* them, and only if
+nothing else in the call failed.
 
 ## Frontend
 

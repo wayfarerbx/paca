@@ -607,7 +607,7 @@ func (s *Service) StartChatSession(ctx context.Context, projectID, agentID, memb
 		return nil, nil, err
 	}
 
-	conv, err := s.createConversation(ctx, projectID, agentID, memberID, agentdom.AgentConversation{
+	conv, err := s.createConversation(ctx, projectID, agentID, &memberID, agentdom.AgentConversation{
 		TriggerType:   "chat_message",
 		ChatSessionID: &session.ID,
 	})
@@ -632,7 +632,7 @@ func (s *Service) SendChatMessage(ctx context.Context, projectID, sessionID, mem
 		return nil, agentdom.ErrChatSessionNotFound
 	}
 
-	conv, err := s.createConversation(ctx, projectID, session.AgentID, memberID, agentdom.AgentConversation{
+	conv, err := s.createConversation(ctx, projectID, session.AgentID, &memberID, agentdom.AgentConversation{
 		TriggerType:   "chat_message",
 		ChatSessionID: &sessionID,
 	})
@@ -675,7 +675,7 @@ func (s *Service) ListChatMessages(ctx context.Context, sessionID uuid.UUID, off
 // Internal helpers
 // -------------------------------------------------------------------------
 
-func (s *Service) createConversation(ctx context.Context, projectID, agentID, memberID uuid.UUID, template agentdom.AgentConversation) (*agentdom.AgentConversation, error) {
+func (s *Service) createConversation(ctx context.Context, projectID, agentID uuid.UUID, memberID *uuid.UUID, template agentdom.AgentConversation) (*agentdom.AgentConversation, error) {
 	now := time.Now()
 	conv := &agentdom.AgentConversation{
 		ID:                  uuid.New(),
@@ -723,8 +723,10 @@ func (s *Service) gatherRepoPluginIDs(ctx context.Context) []string {
 // when a task is assigned to an agent member. note, when non-empty, is
 // prepended to the agent's initial prompt as trigger.message — used by the
 // automation-workflow engine to tell the agent which status closes out its
-// step (e.g. "set the status to 'Done' when you finish").
-func (s *Service) TriggerTaskAssigned(ctx context.Context, projectID, agentID, taskID, triggeredByMemberID uuid.UUID, note string) (*agentdom.AgentConversation, error) {
+// step (e.g. "set the status to 'Done' when you finish"). triggeredByMemberID
+// is nil when the assignment came from the automation-workflow engine rather
+// than a human member.
+func (s *Service) TriggerTaskAssigned(ctx context.Context, projectID, agentID, taskID uuid.UUID, triggeredByMemberID *uuid.UUID, note string) (*agentdom.AgentConversation, error) {
 	repoPlugins := s.gatherRepoPlugins(ctx)
 	repoPluginIDs := make([]string, 0, len(repoPlugins))
 	for _, p := range repoPlugins {
@@ -750,10 +752,12 @@ func (s *Service) TriggerTaskAssigned(ctx context.Context, projectID, agentID, t
 		"project_id":      projectID.String(),
 		"agent_id":        agentID.String(),
 		"task_id":         taskID.String(),
-		"actor_member_id": triggeredByMemberID.String(),
 		"trigger_type":    "task_assigned",
 		"message":         note,
 		"repo_plugin_ids": strings.Join(repoPluginIDs, ","),
+	}
+	if triggeredByMemberID != nil {
+		payload["actor_member_id"] = triggeredByMemberID.String()
 	}
 	_ = s.publishTrigger(ctx, events.TopicAgentTaskAssigned, payload)
 	return conv, nil
@@ -775,7 +779,7 @@ func (s *Service) TriggerCommentMention(ctx context.Context, projectID, agentID,
 		repoPluginID = &id
 	}
 
-	conv, err := s.createConversation(ctx, projectID, agentID, triggeredByMemberID, agentdom.AgentConversation{
+	conv, err := s.createConversation(ctx, projectID, agentID, &triggeredByMemberID, agentdom.AgentConversation{
 		TriggerType:  "comment_mention",
 		TaskID:       &taskID,
 		CommentID:    &commentID,
@@ -814,7 +818,7 @@ func (s *Service) TriggerDescriptionWrite(ctx context.Context, projectID, agentI
 		repoPluginID = &id
 	}
 
-	conv, err := s.createConversation(ctx, projectID, agentID, triggeredByMemberID, agentdom.AgentConversation{
+	conv, err := s.createConversation(ctx, projectID, agentID, &triggeredByMemberID, agentdom.AgentConversation{
 		TriggerType:  "description_write",
 		TaskID:       &taskID,
 		RepoPluginID: repoPluginID,
