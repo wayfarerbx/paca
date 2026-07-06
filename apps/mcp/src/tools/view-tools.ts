@@ -105,7 +105,8 @@ export function getViewTools(): Tool[] {
 	return [
 		{
 			name: "list_views",
-			description: "List all views in a project. Use context='backlog' or context='timeline' to list non-sprint views. Use context='sprint' with sprintId to list views for a specific sprint.",
+			description:
+				"List all views in a project. Use context='backlog' or context='timeline' to list non-sprint views. Use context='sprint' with sprintId to list views for a specific sprint.",
 			inputSchema: {
 				type: "object",
 				properties: {
@@ -115,7 +116,8 @@ export function getViewTools(): Tool[] {
 					},
 					context: {
 						type: "string",
-						description: "The view context: 'sprint', 'backlog', or 'timeline'. Defaults to 'backlog'. Use 'sprint' together with sprintId to list sprint views.",
+						description:
+							"The view context: 'sprint', 'backlog', or 'timeline'. Defaults to 'backlog'. Use 'sprint' together with sprintId to list sprint views.",
 					},
 					sprintId: {
 						type: "string",
@@ -172,7 +174,8 @@ export function getViewTools(): Tool[] {
 					},
 					context: {
 						type: "string",
-						description: "The view context: 'sprint', 'backlog', or 'timeline'.",
+						description:
+							"The view context: 'sprint', 'backlog', or 'timeline'.",
 					},
 					sprintId: {
 						type: "string",
@@ -502,7 +505,11 @@ export async function handleViewTool(
 			const { projectId, context, sprintId } = ListViewsSchema.parse(args);
 			// Default to 'backlog' when no context is provided to avoid requiring sprint_id
 			const resolvedContext = context ?? "backlog";
-			const views = await client.listViews(projectId, resolvedContext, sprintId);
+			const views = await client.listViews(
+				projectId,
+				resolvedContext,
+				sprintId,
+			);
 			const formatted = formatList(views, formatView);
 			return {
 				content: [
@@ -539,8 +546,14 @@ export async function handleViewTool(
 		}
 
 		case "reorder_views": {
-			const { projectId, viewIds, context, sprintId } = ReorderViewsSchema.parse(args);
-			await client.reorderViews(projectId, { view_ids: viewIds }, context, sprintId);
+			const { projectId, viewIds, context, sprintId } =
+				ReorderViewsSchema.parse(args);
+			await client.reorderViews(
+				projectId,
+				{ view_ids: viewIds },
+				context,
+				sprintId,
+			);
 			return {
 				content: [
 					{

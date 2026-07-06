@@ -324,7 +324,7 @@ type AgentConversationResponse struct {
 	TriggerType         string     `json:"trigger_type"`
 	TaskID              *uuid.UUID `json:"task_id,omitempty"`
 	ChatSessionID       *uuid.UUID `json:"chat_session_id,omitempty"`
-	TriggeredByMemberID uuid.UUID  `json:"triggered_by_member_id"`
+	TriggeredByMemberID *uuid.UUID `json:"triggered_by_member_id,omitempty"`
 	Status              string     `json:"status"`
 	IterationCount      int        `json:"iteration_count"`
 	BranchName          *string    `json:"branch_name,omitempty"`

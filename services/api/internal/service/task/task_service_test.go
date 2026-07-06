@@ -1536,6 +1536,61 @@ func TestDeleteTaskStatus_NotFound(t *testing.T) {
 	}
 }
 
+// stubWorkflowStatusChecker lets tests control whether a status looks
+// referenced by a workflow without depending on the workflow package.
+type stubWorkflowStatusChecker struct {
+	used bool
+	err  error
+}
+
+func (s *stubWorkflowStatusChecker) StatusUsedByWorkflow(_ context.Context, _ uuid.UUID) (bool, error) {
+	return s.used, s.err
+}
+
+func TestDeleteTaskStatus_InUseByWorkflow_Blocked(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo).WithWorkflowStatusChecker(&stubWorkflowStatusChecker{used: true})
+	projectID := uuid.New()
+
+	st, _ := svc.CreateTaskStatus(ctx, taskdom.CreateTaskStatusInput{
+		ProjectID: projectID,
+		Name:      "Done",
+		Position:  10,
+		Category:  taskdom.StatusCategoryDone,
+	})
+
+	err := svc.DeleteTaskStatus(ctx, st.ProjectID, st.ID)
+	if err != taskdom.ErrStatusInUseByWorkflow {
+		t.Fatalf("expected ErrStatusInUseByWorkflow, got %v", err)
+	}
+
+	if _, getErr := svc.GetTaskStatus(ctx, st.ID); getErr != nil {
+		t.Errorf("status should not have been deleted, got GetTaskStatus error: %v", getErr)
+	}
+}
+
+func TestDeleteTaskStatus_NotUsedByWorkflow_Allowed(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo).WithWorkflowStatusChecker(&stubWorkflowStatusChecker{used: false})
+	projectID := uuid.New()
+
+	st, _ := svc.CreateTaskStatus(ctx, taskdom.CreateTaskStatusInput{
+		ProjectID: projectID,
+		Name:      "Done",
+		Position:  10,
+		Category:  taskdom.StatusCategoryDone,
+	})
+
+	if err := svc.DeleteTaskStatus(ctx, st.ProjectID, st.ID); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := svc.GetTaskStatus(ctx, st.ID); err != taskdom.ErrStatusNotFound {
+		t.Errorf("expected ErrStatusNotFound after delete, got %v", err)
+	}
+}
+
 func TestListTaskStatuses_MultiProject(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeTaskRepo()

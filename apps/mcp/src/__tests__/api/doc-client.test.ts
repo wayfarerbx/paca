@@ -4,7 +4,11 @@ import { PacaAPIDocClient } from "../../api/doc-client.js";
 const CONFIG = { baseURL: "https://api.example.com", apiKey: "key123" };
 
 function okEnvelope(data: any) {
-	return { ok: true, json: async () => ({ success: true, data }), text: async () => "" };
+	return {
+		ok: true,
+		json: async () => ({ success: true, data }),
+		text: async () => "",
+	};
 }
 
 function rawOk(data: any) {
@@ -12,7 +16,13 @@ function rawOk(data: any) {
 }
 
 function errorResponse(status = 400, body = "Bad Request") {
-	return { ok: false, status, statusText: body, text: async () => body, json: async () => ({}) };
+	return {
+		ok: false,
+		status,
+		statusText: body,
+		text: async () => body,
+		json: async () => ({}),
+	};
 }
 
 describe("PacaAPIDocClient", () => {
@@ -211,14 +221,18 @@ describe("PacaAPIDocClient", () => {
 	describe("getDocFileDownloadURL", () => {
 		it("returns .url from response", async () => {
 			const client = new PacaAPIDocClient(CONFIG);
-			fetchMock.mockResolvedValue(okEnvelope({ url: "https://cdn.example.com/doc.pdf" }));
+			fetchMock.mockResolvedValue(
+				okEnvelope({ url: "https://cdn.example.com/doc.pdf" }),
+			);
 			const result = await client.getDocFileDownloadURL("p1", "doc1", "file1");
 			expect(result).toBe("https://cdn.example.com/doc.pdf");
 		});
 
 		it("returns .downloadUrl as fallback", async () => {
 			const client = new PacaAPIDocClient(CONFIG);
-			fetchMock.mockResolvedValue(okEnvelope({ downloadUrl: "https://cdn.example.com/doc2.pdf" }));
+			fetchMock.mockResolvedValue(
+				okEnvelope({ downloadUrl: "https://cdn.example.com/doc2.pdf" }),
+			);
 			const result = await client.getDocFileDownloadURL("p1", "doc1", "file1");
 			expect(result).toBe("https://cdn.example.com/doc2.pdf");
 		});

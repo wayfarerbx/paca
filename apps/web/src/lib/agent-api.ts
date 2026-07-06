@@ -168,7 +168,7 @@ export interface AgentConversation {
 	task_id?: string | null;
 	comment_id?: string | null;
 	chat_session_id?: string | null;
-	triggered_by_member_id: string;
+	triggered_by_member_id?: string;
 	status: ConversationStatus;
 	iteration_count: number;
 	error_message?: string | null;

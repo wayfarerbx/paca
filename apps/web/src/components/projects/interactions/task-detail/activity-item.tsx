@@ -5,8 +5,8 @@ import {
 	isBlocksContent,
 	textToBlocks,
 } from "@/components/shared/comment-blocknote";
+import { timeAgo } from "@/lib/time-ago";
 import { cn } from "@/lib/utils";
-import { timeAgo } from "./helpers";
 import type { ActivityEntry } from "./types";
 
 export type ActivityNameMaps = {
@@ -188,6 +188,7 @@ export function ActivityItem({
 	names?: ActivityNameMaps;
 }) {
 	const { t } = useTranslation("projects");
+	const { t: tCommon } = useTranslation("common");
 	const isComment = entry.activity_type === "comment";
 	const displayName =
 		entry.actor_name || entry.actor_username || t("taskDetail.activity.system");
@@ -219,7 +220,7 @@ export function ActivityItem({
 								{displayName}
 							</span>
 							<span className="text-xs text-muted-foreground/50">
-								{timeAgo(entry.created_at, t)}
+								{timeAgo(entry.created_at, tCommon)}
 							</span>
 						</div>
 						{commentBlocks && commentBlocks.length > 0 ? (
@@ -241,7 +242,7 @@ export function ActivityItem({
 							{activityDescription(entry, names, t)}
 						</span>
 						<span className="text-xs text-muted-foreground/45">
-							{timeAgo(entry.created_at, t)}
+							{timeAgo(entry.created_at, tCommon)}
 						</span>
 					</div>
 				)}

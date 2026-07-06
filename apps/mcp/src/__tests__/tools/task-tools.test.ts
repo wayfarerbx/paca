@@ -64,7 +64,14 @@ describe("getTaskTools", () => {
 
 	it("includes all expected tool names", () => {
 		const names = getTaskTools().map((t) => t.name);
-		for (const n of ["list_tasks", "get_task", "get_task_by_number", "create_task", "update_task", "delete_task"]) {
+		for (const n of [
+			"list_tasks",
+			"get_task",
+			"get_task_by_number",
+			"create_task",
+			"update_task",
+			"delete_task",
+		]) {
 			expect(names).toContain(n);
 		}
 	});
@@ -91,38 +98,78 @@ describe("handleTaskTool – list_tasks", () => {
 
 	it("passes cursor and pageSize when provided", async () => {
 		const client = makeApiClient();
-		await handleTaskTool("list_tasks", { projectId: "p1", cursor: "abc", pageSize: 10 }, client);
-		expect(client.listTasks).toHaveBeenCalledWith("p1", expect.objectContaining({ cursor: "abc", pageSize: 10 }));
+		await handleTaskTool(
+			"list_tasks",
+			{ projectId: "p1", cursor: "abc", pageSize: 10 },
+			client,
+		);
+		expect(client.listTasks).toHaveBeenCalledWith(
+			"p1",
+			expect.objectContaining({ cursor: "abc", pageSize: 10 }),
+		);
 	});
 
 	it("passes filter params when provided", async () => {
 		const client = makeApiClient();
-		await handleTaskTool("list_tasks", { projectId: "p1", sprintId: "s1", statusId: "st1", assigneeId: "u1" }, client);
-		expect(client.listTasks).toHaveBeenCalledWith("p1", expect.objectContaining({ sprintId: "s1", statusId: "st1", assigneeId: "u1" }));
+		await handleTaskTool(
+			"list_tasks",
+			{ projectId: "p1", sprintId: "s1", statusId: "st1", assigneeId: "u1" },
+			client,
+		);
+		expect(client.listTasks).toHaveBeenCalledWith(
+			"p1",
+			expect.objectContaining({
+				sprintId: "s1",
+				statusId: "st1",
+				assigneeId: "u1",
+			}),
+		);
 	});
 
 	it("passes taskTypeIds and parentTaskId when provided", async () => {
 		const client = makeApiClient();
-		await handleTaskTool("list_tasks", { projectId: "p1", taskTypeIds: ["ty1", "ty2"], parentTaskId: "t0" }, client);
-		expect(client.listTasks).toHaveBeenCalledWith("p1", expect.objectContaining({ taskTypeIds: ["ty1", "ty2"], parentTaskId: "t0" }));
+		await handleTaskTool(
+			"list_tasks",
+			{ projectId: "p1", taskTypeIds: ["ty1", "ty2"], parentTaskId: "t0" },
+			client,
+		);
+		expect(client.listTasks).toHaveBeenCalledWith(
+			"p1",
+			expect.objectContaining({
+				taskTypeIds: ["ty1", "ty2"],
+				parentTaskId: "t0",
+			}),
+		);
 	});
 
 	it("includes task count in response", async () => {
-		const result = await handleTaskTool("list_tasks", { projectId: "p1" }, makeApiClient());
+		const result = await handleTaskTool(
+			"list_tasks",
+			{ projectId: "p1" },
+			makeApiClient(),
+		);
 		expect(result.content[0].text).toContain("Tasks (1 returned");
 	});
 
 	it("adds pagination hint when nextCursor is present", async () => {
 		const client = makeApiClient({
-			listTasks: vi.fn().mockResolvedValue({ items: [task], nextCursor: "next-page" }),
+			listTasks: vi
+				.fn()
+				.mockResolvedValue({ items: [task], nextCursor: "next-page" }),
 		});
-		const result = await handleTaskTool("list_tasks", { projectId: "p1" }, client);
+		const result = await handleTaskTool(
+			"list_tasks",
+			{ projectId: "p1" },
+			client,
+		);
 		expect(result.content[0].text).toContain("next-page");
 		expect(result.content[0].text).toContain("more available");
 	});
 
 	it("throws ZodError when projectId is missing", async () => {
-		await expect(handleTaskTool("list_tasks", {}, makeApiClient())).rejects.toThrow();
+		await expect(
+			handleTaskTool("list_tasks", {}, makeApiClient()),
+		).rejects.toThrow();
 	});
 });
 
@@ -147,7 +194,13 @@ describe("handleTaskTool – get_task", () => {
 		const extClient = makeExtendedClient();
 		const viewClient = makeViewsClient();
 		const client = makeApiClient();
-		await handleTaskTool("get_task", { projectId: "p1", taskId: "t1" }, client, extClient, viewClient);
+		await handleTaskTool(
+			"get_task",
+			{ projectId: "p1", taskId: "t1" },
+			client,
+			extClient,
+			viewClient,
+		);
 		expect(extClient.listTaskStatuses).toHaveBeenCalledWith("p1");
 		expect(extClient.listTaskTypes).toHaveBeenCalledWith("p1");
 		expect(viewClient.listTaskAttachments).toHaveBeenCalledWith("p1", "t1");
@@ -167,7 +220,8 @@ describe("handleTaskTool – get_task", () => {
 	it("fetches parent task when task has parent_task_id", async () => {
 		const taskWithParent = { ...task, parent_task_id: "parent-1" };
 		const client = makeApiClient({
-			getTask: vi.fn()
+			getTask: vi
+				.fn()
 				.mockResolvedValueOnce(taskWithParent)
 				.mockResolvedValueOnce({ ...task, id: "parent-1", title: "Parent" }),
 		});
@@ -184,7 +238,8 @@ describe("handleTaskTool – get_task", () => {
 	it("tolerates failure fetching parent task gracefully", async () => {
 		const taskWithParent = { ...task, parent_task_id: "bad-parent" };
 		const client = makeApiClient({
-			getTask: vi.fn()
+			getTask: vi
+				.fn()
 				.mockResolvedValueOnce(taskWithParent)
 				.mockRejectedValueOnce(new Error("not found")),
 		});
@@ -269,7 +324,9 @@ describe("handleTaskTool – create_task", () => {
 	});
 
 	it("throws ZodError when projectId or title is missing", async () => {
-		await expect(handleTaskTool("create_task", { projectId: "p1" }, makeApiClient())).rejects.toThrow();
+		await expect(
+			handleTaskTool("create_task", { projectId: "p1" }, makeApiClient()),
+		).rejects.toThrow();
 	});
 });
 
@@ -318,7 +375,11 @@ describe("handleTaskTool – update_task", () => {
 describe("handleTaskTool – delete_task", () => {
 	it("calls client.deleteTask with projectId and taskId", async () => {
 		const client = makeApiClient();
-		await handleTaskTool("delete_task", { projectId: "p1", taskId: "t1" }, client);
+		await handleTaskTool(
+			"delete_task",
+			{ projectId: "p1", taskId: "t1" },
+			client,
+		);
 		expect(client.deleteTask).toHaveBeenCalledWith("p1", "t1");
 	});
 

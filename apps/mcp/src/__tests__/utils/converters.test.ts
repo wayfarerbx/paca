@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { blocknoteToMarkdown, markdownToBlocknote } from "../../utils/converters.js";
+import {
+	blocknoteToMarkdown,
+	markdownToBlocknote,
+} from "../../utils/converters.js";
 
 // ---------------------------------------------------------------------------
 // blocknoteToMarkdown

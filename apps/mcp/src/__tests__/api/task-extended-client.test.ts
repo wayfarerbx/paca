@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../utils/index.js", () => ({
-	markdownToBlocknote: vi.fn((md: string) => [{ type: "paragraph", content: [{ type: "text", text: md }] }]),
+	markdownToBlocknote: vi.fn((md: string) => [
+		{ type: "paragraph", content: [{ type: "text", text: md }] },
+	]),
 }));
 
 import { PacaAPITaskExtendedClient } from "../../api/task-extended-client.js";
@@ -10,7 +12,11 @@ const CONFIG = { baseURL: "https://api.example.com", apiKey: "key123" };
 const CONFIG_WITH_AGENT = { ...CONFIG, agentId: "agent-1" };
 
 function okEnvelope(data: any) {
-	return { ok: true, json: async () => ({ success: true, data }), text: async () => "" };
+	return {
+		ok: true,
+		json: async () => ({ success: true, data }),
+		text: async () => "",
+	};
 }
 
 function rawOk(data: any) {
@@ -18,7 +24,13 @@ function rawOk(data: any) {
 }
 
 function errorResponse(status = 400, body = "Bad Request") {
-	return { ok: false, status, statusText: body, text: async () => body, json: async () => ({}) };
+	return {
+		ok: false,
+		status,
+		statusText: body,
+		text: async () => body,
+		json: async () => ({}),
+	};
 }
 
 describe("PacaAPITaskExtendedClient", () => {
@@ -133,7 +145,9 @@ describe("PacaAPITaskExtendedClient", () => {
 			const { markdownToBlocknote } = await import("../../utils/index.js");
 			const client = new PacaAPITaskExtendedClient(CONFIG);
 			fetchMock.mockResolvedValue(okEnvelope({ id: "c1" }));
-			await client.updateTaskComment("p1", "t1", "c1", { content: "Updated body" });
+			await client.updateTaskComment("p1", "t1", "c1", {
+				content: "Updated body",
+			});
 			expect(markdownToBlocknote).toHaveBeenCalledWith("Updated body");
 		});
 	});

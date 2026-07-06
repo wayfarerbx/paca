@@ -38,6 +38,7 @@ type Deps struct {
 	Plugin               *handler.PluginHandler
 	Agent                *handler.AgentHandler
 	Conversation         *handler.ConversationHandler
+	Workflow             *handler.WorkflowHandler
 	Log                  *slog.Logger
 }
 
@@ -224,6 +225,50 @@ func New(deps Deps) http.Handler {
 						Put("/{statusId}/set-default", deps.Task.SetDefaultTaskStatus)
 				})
 
+				// Automation workflows
+				if deps.Workflow != nil {
+					r.Route("/workflows", func(r chi.Router) {
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionWorkflowsRead)).
+							Get("/", deps.Workflow.ListWorkflows)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionWorkflowsWrite)).
+							Post("/", deps.Workflow.CreateWorkflow)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionWorkflowsRead)).
+							Get("/{workflowId}", deps.Workflow.GetWorkflow)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionWorkflowsWrite)).
+							Patch("/{workflowId}", deps.Workflow.UpdateWorkflow)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionWorkflowsWrite)).
+							Delete("/{workflowId}", deps.Workflow.DeleteWorkflow)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionWorkflowsWrite)).
+							Post("/{workflowId}/activate", deps.Workflow.ActivateWorkflow)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionWorkflowsWrite)).
+							Post("/{workflowId}/archive", deps.Workflow.ArchiveWorkflow)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionWorkflowsWrite)).
+							Post("/{workflowId}/revert-to-draft", deps.Workflow.RevertWorkflowToDraft)
+
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionWorkflowsWrite)).
+							Post("/{workflowId}/nodes", deps.Workflow.AddWorkflowNode)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionWorkflowsWrite)).
+							Patch("/{workflowId}/nodes/{nodeId}", deps.Workflow.UpdateWorkflowNode)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionWorkflowsWrite)).
+							Delete("/{workflowId}/nodes/{nodeId}", deps.Workflow.RemoveWorkflowNode)
+
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionWorkflowsWrite)).
+							Post("/{workflowId}/status-rules", deps.Workflow.SetWorkflowStatusRule)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionWorkflowsWrite)).
+							Delete("/{workflowId}/status-rules/{ruleId}", deps.Workflow.RemoveWorkflowStatusRule)
+
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionWorkflowsWrite)).
+							Post("/{workflowId}/status-transitions", deps.Workflow.SetWorkflowStatusTransition)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionWorkflowsWrite)).
+							Delete("/{workflowId}/status-transitions/{transitionId}", deps.Workflow.RemoveWorkflowStatusTransition)
+
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionWorkflowsWrite)).
+							Post("/{workflowId}/edges", deps.Workflow.AddWorkflowEdge)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionWorkflowsWrite)).
+							Delete("/{workflowId}/edges/{edgeId}", deps.Workflow.RemoveWorkflowEdge)
+					})
+				}
+
 				// Sprints
 				r.Route("/sprints", func(r chi.Router) {
 					r.With(httpmw.RequirePublicProjectOrPermissions(deps.ProjectVisibilitySvc, deps.Authorizer,
@@ -324,6 +369,14 @@ func New(deps Deps) http.Handler {
 						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionTasksWrite)).
 							Delete("/{linkId}", deps.Task.DeleteTaskLink)
 					})
+
+					// Workflows this task belongs to (read-only, for the task detail view)
+					if deps.Workflow != nil {
+						r.With(httpmw.RequirePublicProjectOrPermissions(deps.ProjectVisibilitySvc, deps.Authorizer,
+							httpmw.PermissionGroup{Scope: httpmw.GlobalScope(), Permissions: []authz.Permission{authz.PermissionProjectsRead}},
+							httpmw.PermissionGroup{Scope: httpmw.ProjectScopeFromParam("projectId"), Permissions: []authz.Permission{authz.PermissionWorkflowsRead}},
+						)).Get("/{taskId}/workflows", deps.Workflow.ListWorkflowsForTask)
+					}
 
 					// Attachments
 					r.Route("/{taskId}/attachments", func(r chi.Router) {

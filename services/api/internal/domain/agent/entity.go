@@ -96,14 +96,16 @@ type SkillTemplate struct {
 
 // AgentConversation tracks each OpenHands conversation session.
 type AgentConversation struct {
-	ID                  uuid.UUID
-	AgentID             uuid.UUID
-	ProjectID           uuid.UUID
-	TriggerType         string // task_assigned | comment_mention | chat_message
-	TaskID              *uuid.UUID
-	CommentID           *uuid.UUID
-	ChatSessionID       *uuid.UUID
-	TriggeredByMemberID uuid.UUID
+	ID            uuid.UUID
+	AgentID       uuid.UUID
+	ProjectID     uuid.UUID
+	TriggerType   string // task_assigned | comment_mention | chat_message
+	TaskID        *uuid.UUID
+	CommentID     *uuid.UUID
+	ChatSessionID *uuid.UUID
+	// TriggeredByMemberID is nil for conversations triggered by the
+	// automation-workflow engine, which has no human member behind it.
+	TriggeredByMemberID *uuid.UUID
 	Status              string // queued | running | finished | failed | stopped
 	ContainerID         *string
 	HostPort            *int

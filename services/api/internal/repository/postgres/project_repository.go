@@ -36,17 +36,6 @@ type projectRoleRecord struct {
 	UpdatedAt   time.Time `db:"updated_at"`
 }
 
-type projectMemberRecord struct {
-	ID            string     `db:"id"`
-	ProjectID     string     `db:"project_id"`
-	UserID        *string    `db:"user_id"`
-	ProjectRoleID string     `db:"project_role_id"`
-	MemberType    string     `db:"member_type"`
-	AgentID       *string    `db:"agent_id"`
-	CreatedAt     time.Time  `db:"created_at"`
-	DeletedAt     *time.Time `db:"deleted_at"`
-}
-
 // projectMemberReadRow is the result of the SELECT … JOIN query.
 type projectMemberReadRow struct {
 	ID            string     `db:"id"`

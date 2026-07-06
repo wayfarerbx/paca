@@ -655,13 +655,8 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 
 		// Enqueue an assignment event so the NotificationConsumer can create
 		// the in-app notification asynchronously (best-effort).
-		if h.publisher != nil && req.AssigneeID != nil {
-			_ = h.publisher.Append(r.Context(), events.StreamTaskAssignments, "task.assigned", map[string]any{
-				"task_id":                t.ID,
-				"project_id":             projectID,
-				"new_assignee_member_id": req.AssigneeID.String(),
-				"actor_user_id":          actorID.String(),
-			})
+		if req.AssigneeID != nil {
+			_ = events.PublishAssignmentChanged(r.Context(), h.publisher, t.ID, projectID, *req.AssigneeID, nil, actorID, nil)
 		}
 	}
 
@@ -738,17 +733,10 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 
 		// Enqueue an assignment event when the assignee changed so the
 		// NotificationConsumer can create the in-app notification asynchronously.
-		if h.publisher != nil && req.AssigneeID.Set && req.AssigneeID.Value != nil {
-			oldAssignee := uuidPtrToStr(oldTask.AssigneeID)
-			newAssignee := req.AssigneeID.Value.String()
-			if oldAssignee != newAssignee {
-				_ = h.publisher.Append(r.Context(), events.StreamTaskAssignments, "task.assigned", map[string]any{
-					"task_id":                taskID,
-					"project_id":             projectID,
-					"new_assignee_member_id": req.AssigneeID.Value.String(),
-					"old_assignee_member_id": oldAssignee,
-					"actor_user_id":          actorID.String(),
-				})
+		if req.AssigneeID.Set && req.AssigneeID.Value != nil {
+			assigneeChanged := oldTask.AssigneeID == nil || *oldTask.AssigneeID != *req.AssigneeID.Value
+			if assigneeChanged {
+				_ = events.PublishAssignmentChanged(r.Context(), h.publisher, taskID, projectID, *req.AssigneeID.Value, oldTask.AssigneeID, actorID, nil)
 			}
 		}
 	}

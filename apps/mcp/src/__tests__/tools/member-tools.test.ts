@@ -70,7 +70,11 @@ describe("getProjectRoleTools", () => {
 describe("handleProjectMemberTool – list_project_members", () => {
 	it("calls client.listProjectMembers with projectId", async () => {
 		const client = makeClient();
-		await handleProjectMemberTool("list_project_members", { projectId: "p1" }, client);
+		await handleProjectMemberTool(
+			"list_project_members",
+			{ projectId: "p1" },
+			client,
+		);
 		expect(client.listProjectMembers).toHaveBeenCalledWith("p1");
 	});
 
@@ -199,7 +203,11 @@ describe("handleProjectMemberTool – remove_project_member", () => {
 describe("handleProjectMemberTool – list_project_roles", () => {
 	it("calls client.listProjectRoles with projectId", async () => {
 		const client = makeClient();
-		await handleProjectMemberTool("list_project_roles", { projectId: "p1" }, client);
+		await handleProjectMemberTool(
+			"list_project_roles",
+			{ projectId: "p1" },
+			client,
+		);
 		expect(client.listProjectRoles).toHaveBeenCalledWith("p1");
 	});
 
@@ -223,7 +231,11 @@ describe("handleProjectMemberTool – create_project_role", () => {
 		const client = makeClient();
 		await handleProjectMemberTool(
 			"create_project_role",
-			{ projectId: "p1", name: "Dev", permissions: ["tasks.write", "tasks.read"] },
+			{
+				projectId: "p1",
+				name: "Dev",
+				permissions: ["tasks.write", "tasks.read"],
+			},
 			client,
 		);
 		expect(client.createProjectRole).toHaveBeenCalledWith("p1", {
@@ -252,7 +264,12 @@ describe("handleProjectMemberTool – update_project_role", () => {
 		const client = makeClient();
 		await handleProjectMemberTool(
 			"update_project_role",
-			{ projectId: "p1", roleId: "r1", name: "Senior Dev", permissions: ["tasks.*"] },
+			{
+				projectId: "p1",
+				roleId: "r1",
+				name: "Senior Dev",
+				permissions: ["tasks.*"],
+			},
 			client,
 		);
 		expect(client.updateProjectRole).toHaveBeenCalledWith("p1", "r1", {

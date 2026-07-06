@@ -4,7 +4,11 @@ vi.mock("../../utils/index.js", () => ({
 	formatList: vi.fn((items: any[], fn: any) => items.map(fn).join("---")),
 }));
 
-import { getCustomFieldTools, getViewTools, handleViewTool } from "../../tools/view-tools.js";
+import {
+	getCustomFieldTools,
+	getViewTools,
+	handleViewTool,
+} from "../../tools/view-tools.js";
 
 const view = {
 	id: "v1",
@@ -38,7 +42,9 @@ function makeClient(overrides: Record<string, any> = {}) {
 		getView: vi.fn().mockResolvedValue(view),
 		updateView: vi.fn().mockResolvedValue({ ...view, name: "Updated View" }),
 		deleteView: vi.fn().mockResolvedValue(undefined),
-		listTaskPositions: vi.fn().mockResolvedValue([{ task_id: "t1", position: 0 }]),
+		listTaskPositions: vi
+			.fn()
+			.mockResolvedValue([{ task_id: "t1", position: 0 }]),
 		bulkMoveTasks: vi.fn().mockResolvedValue(undefined),
 		listCustomFieldDefinitions: vi.fn().mockResolvedValue([customField]),
 		createCustomFieldDefinition: vi.fn().mockResolvedValue(customField),
@@ -78,12 +84,20 @@ describe("handleViewTool – list_views", () => {
 
 	it("uses provided context instead of default", async () => {
 		const client = makeClient();
-		await handleViewTool("list_views", { projectId: "p1", context: "sprint", sprintId: "s1" }, client);
+		await handleViewTool(
+			"list_views",
+			{ projectId: "p1", context: "sprint", sprintId: "s1" },
+			client,
+		);
 		expect(client.listViews).toHaveBeenCalledWith("p1", "sprint", "s1");
 	});
 
 	it("includes 'Views:' header in response", async () => {
-		const result = await handleViewTool("list_views", { projectId: "p1" }, makeClient());
+		const result = await handleViewTool(
+			"list_views",
+			{ projectId: "p1" },
+			makeClient(),
+		);
 		expect(result.content[0].text).toContain("Views:");
 		expect(result.content[0].text).toContain("Board View");
 	});
@@ -98,7 +112,12 @@ describe("handleViewTool – create_view", () => {
 		const client = makeClient();
 		await handleViewTool(
 			"create_view",
-			{ projectId: "p1", name: "Board View", context: "sprint", viewType: "board" },
+			{
+				projectId: "p1",
+				name: "Board View",
+				context: "sprint",
+				viewType: "board",
+			},
 			client,
 		);
 		expect(client.createView).toHaveBeenCalledWith(
@@ -109,8 +128,8 @@ describe("handleViewTool – create_view", () => {
 				view_type: "board",
 				sprint_id: null,
 			},
-			"sprint",   // context as query param
-			undefined,  // sprintId as query param
+			"sprint", // context as query param
+			undefined, // sprintId as query param
 		);
 	});
 
@@ -118,7 +137,13 @@ describe("handleViewTool – create_view", () => {
 		const client = makeClient();
 		await handleViewTool(
 			"create_view",
-			{ projectId: "p1", name: "V", context: "sprint", viewType: "board", sprintId: "s1" },
+			{
+				projectId: "p1",
+				name: "V",
+				context: "sprint",
+				viewType: "board",
+				sprintId: "s1",
+			},
 			client,
 		);
 		expect(client.createView).toHaveBeenCalledWith(
@@ -151,17 +176,32 @@ describe("handleViewTool – reorder_views", () => {
 			{ projectId: "p1", viewIds: ["v2", "v1"], context: "backlog" },
 			client,
 		);
-		expect(client.reorderViews).toHaveBeenCalledWith("p1", { view_ids: ["v2", "v1"] }, "backlog", undefined);
+		expect(client.reorderViews).toHaveBeenCalledWith(
+			"p1",
+			{ view_ids: ["v2", "v1"] },
+			"backlog",
+			undefined,
+		);
 	});
 
 	it("passes sprintId as query param when reordering sprint views", async () => {
 		const client = makeClient();
 		await handleViewTool(
 			"reorder_views",
-			{ projectId: "p1", viewIds: ["v2", "v1"], context: "sprint", sprintId: "s1" },
+			{
+				projectId: "p1",
+				viewIds: ["v2", "v1"],
+				context: "sprint",
+				sprintId: "s1",
+			},
 			client,
 		);
-		expect(client.reorderViews).toHaveBeenCalledWith("p1", { view_ids: ["v2", "v1"] }, "sprint", "s1");
+		expect(client.reorderViews).toHaveBeenCalledWith(
+			"p1",
+			{ view_ids: ["v2", "v1"] },
+			"sprint",
+			"s1",
+		);
 	});
 
 	it("includes 'reordered successfully' in response", async () => {
@@ -186,7 +226,11 @@ describe("handleViewTool – get_view", () => {
 	});
 
 	it("includes view name in response", async () => {
-		const result = await handleViewTool("get_view", { projectId: "p1", viewId: "v1" }, makeClient());
+		const result = await handleViewTool(
+			"get_view",
+			{ projectId: "p1", viewId: "v1" },
+			makeClient(),
+		);
 		expect(result.content[0].text).toContain("Board View");
 	});
 });
@@ -228,7 +272,11 @@ describe("handleViewTool – update_view", () => {
 describe("handleViewTool – delete_view", () => {
 	it("calls client.deleteView with projectId and viewId", async () => {
 		const client = makeClient();
-		await handleViewTool("delete_view", { projectId: "p1", viewId: "v1" }, client);
+		await handleViewTool(
+			"delete_view",
+			{ projectId: "p1", viewId: "v1" },
+			client,
+		);
 		expect(client.deleteView).toHaveBeenCalledWith("p1", "v1");
 	});
 
@@ -250,7 +298,11 @@ describe("handleViewTool – delete_view", () => {
 describe("handleViewTool – list_task_positions", () => {
 	it("calls client.listTaskPositions with projectId and viewId", async () => {
 		const client = makeClient();
-		await handleViewTool("list_task_positions", { projectId: "p1", viewId: "v1" }, client);
+		await handleViewTool(
+			"list_task_positions",
+			{ projectId: "p1", viewId: "v1" },
+			client,
+		);
 		expect(client.listTaskPositions).toHaveBeenCalledWith("p1", "v1");
 	});
 
@@ -304,7 +356,13 @@ describe("handleViewTool – move_task", () => {
 		const client = makeClient();
 		await handleViewTool(
 			"move_task",
-			{ projectId: "p1", viewId: "v1", taskId: "t1", targetViewId: "v2", targetPosition: 3 },
+			{
+				projectId: "p1",
+				viewId: "v1",
+				taskId: "t1",
+				targetViewId: "v2",
+				targetPosition: 3,
+			},
 			client,
 		);
 		expect(client.bulkMoveTasks).toHaveBeenCalledWith("p1", "v1", {
@@ -337,7 +395,11 @@ describe("handleViewTool – list_custom_fields", () => {
 	});
 
 	it("includes 'Custom Fields:' header and field display name in response", async () => {
-		const result = await handleViewTool("list_custom_fields", { projectId: "p1" }, makeClient());
+		const result = await handleViewTool(
+			"list_custom_fields",
+			{ projectId: "p1" },
+			makeClient(),
+		);
 		expect(result.content[0].text).toContain("Custom Fields:");
 		expect(result.content[0].text).toContain("Priority");
 	});
@@ -388,7 +450,11 @@ describe("handleViewTool – create_custom_field", () => {
 describe("handleViewTool – get_custom_field", () => {
 	it("calls client.getCustomFieldDefinition with projectId and fieldId", async () => {
 		const client = makeClient();
-		await handleViewTool("get_custom_field", { projectId: "p1", fieldId: "cf1" }, client);
+		await handleViewTool(
+			"get_custom_field",
+			{ projectId: "p1", fieldId: "cf1" },
+			client,
+		);
 		expect(client.getCustomFieldDefinition).toHaveBeenCalledWith("p1", "cf1");
 	});
 
@@ -414,12 +480,16 @@ describe("handleViewTool – update_custom_field", () => {
 			{ projectId: "p1", fieldId: "cf1", displayName: "New Priority" },
 			client,
 		);
-		expect(client.updateCustomFieldDefinition).toHaveBeenCalledWith("p1", "cf1", {
-			display_name: "New Priority",
-			field_type: undefined,
-			options: undefined,
-			is_required: undefined,
-		});
+		expect(client.updateCustomFieldDefinition).toHaveBeenCalledWith(
+			"p1",
+			"cf1",
+			{
+				display_name: "New Priority",
+				field_type: undefined,
+				options: undefined,
+				is_required: undefined,
+			},
+		);
 	});
 
 	it("includes 'updated successfully' in response", async () => {
@@ -439,8 +509,15 @@ describe("handleViewTool – update_custom_field", () => {
 describe("handleViewTool – delete_custom_field", () => {
 	it("calls client.deleteCustomFieldDefinition with projectId and fieldId", async () => {
 		const client = makeClient();
-		await handleViewTool("delete_custom_field", { projectId: "p1", fieldId: "cf1" }, client);
-		expect(client.deleteCustomFieldDefinition).toHaveBeenCalledWith("p1", "cf1");
+		await handleViewTool(
+			"delete_custom_field",
+			{ projectId: "p1", fieldId: "cf1" },
+			client,
+		);
+		expect(client.deleteCustomFieldDefinition).toHaveBeenCalledWith(
+			"p1",
+			"cf1",
+		);
 	});
 
 	it("includes 'deleted successfully' and fieldId in response", async () => {

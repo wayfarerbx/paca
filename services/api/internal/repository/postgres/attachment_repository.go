@@ -28,14 +28,6 @@ type fileRecord struct {
 	UpdatedAt         time.Time `db:"updated_at"`
 }
 
-type taskAttachmentRecord struct {
-	ID        string    `db:"id"`
-	TaskID    string    `db:"task_id"`
-	FileID    string    `db:"file_id"`
-	CreatedBy *string   `db:"created_by"`
-	CreatedAt time.Time `db:"created_at"`
-}
-
 // taskAttachmentWithFileRow is the flat join result for task attachment + file.
 type taskAttachmentWithFileRow struct {
 	// task_attachments columns

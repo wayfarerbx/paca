@@ -12,6 +12,7 @@ import (
 
 	"github.com/Paca-AI/api/internal/apierr"
 	agentdom "github.com/Paca-AI/api/internal/domain/agent"
+	projectdom "github.com/Paca-AI/api/internal/domain/project"
 	taskdom "github.com/Paca-AI/api/internal/domain/task"
 	agentsvc "github.com/Paca-AI/api/internal/service/agent"
 	"github.com/Paca-AI/api/internal/transport/http/dto"
@@ -29,6 +30,7 @@ type AgentHandler struct {
 	aiAgentURL  string
 	httpClient  *http.Client
 	activityRec agentActivityRecorder
+	memberRepo  projectdom.MemberRepository
 }
 
 // NewAgentHandler returns an AgentHandler wired to the agent service.
@@ -45,6 +47,34 @@ func NewAgentHandler(svc agentdom.Service, aiAgentURL string) *AgentHandler {
 func (h *AgentHandler) WithActivityRecorder(r agentActivityRecorder) *AgentHandler {
 	h.activityRec = r
 	return h
+}
+
+// WithMemberRepo attaches the project member repository used to resolve the
+// authenticated caller's project_members.id (see resolveMemberID).
+func (h *AgentHandler) WithMemberRepo(repo projectdom.MemberRepository) *AgentHandler {
+	h.memberRepo = repo
+	return h
+}
+
+// resolveMemberID maps the authenticated caller's user ID to their
+// project_members.id within projectID. agent_chat_sessions.member_id and
+// agent_conversations.triggered_by_member_id both store the acting project
+// member rather than the raw user ID -- the latter has a foreign key to
+// project_members(id) -- so callers must not use claims.Subject directly.
+func (h *AgentHandler) resolveMemberID(r *http.Request, projectID uuid.UUID) (uuid.UUID, error) {
+	if h.memberRepo == nil {
+		return uuid.Nil, apierr.New(apierr.CodeInternalError, "member resolver not available")
+	}
+	claims := middleware.ClaimsFrom(r)
+	userID, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		return uuid.Nil, apierr.New(apierr.CodeBadRequest, "invalid subject claim")
+	}
+	member, err := h.memberRepo.FindMemberByUserProject(r.Context(), userID, projectID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return member.ID, nil
 }
 
 // --- Agents -----------------------------------------------------------------
@@ -564,8 +594,11 @@ func (h *AgentHandler) ListChatSessions(w http.ResponseWriter, r *http.Request) 
 		presenter.Error(w, r, err)
 		return
 	}
-	claims := middleware.ClaimsFrom(r)
-	memberID, _ := uuid.Parse(claims.Subject)
+	memberID, err := h.resolveMemberID(r, projectID)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
 
 	sessions, err := h.svc.ListChatSessions(r.Context(), projectID, agentID, memberID)
 	if err != nil {
@@ -600,8 +633,11 @@ func (h *AgentHandler) StartChatSession(w http.ResponseWriter, r *http.Request) 
 		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "message is required"))
 		return
 	}
-	claims := middleware.ClaimsFrom(r)
-	memberID, _ := uuid.Parse(claims.Subject)
+	memberID, err := h.resolveMemberID(r, projectID)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
 
 	session, conv, err := h.svc.StartChatSession(r.Context(), projectID, agentID, memberID, req.Message)
 	if err != nil {
@@ -635,8 +671,11 @@ func (h *AgentHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
 		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "message is required"))
 		return
 	}
-	claims := middleware.ClaimsFrom(r)
-	memberID, _ := uuid.Parse(claims.Subject)
+	memberID, err := h.resolveMemberID(r, projectID)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
 
 	conv, err := h.svc.SendChatMessage(r.Context(), projectID, sessionID, memberID, req.Message)
 	if err != nil {
@@ -672,10 +711,13 @@ func (h *AgentHandler) WriteTaskDescriptionWithAI(w http.ResponseWriter, r *http
 		return
 	}
 
-	claims := middleware.ClaimsFrom(r)
-	callerID, _ := uuid.Parse(claims.Subject)
+	memberID, err := h.resolveMemberID(r, projectID)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
 
-	conv, err := h.svc.TriggerDescriptionWrite(r.Context(), projectID, req.AgentID, taskID, callerID)
+	conv, err := h.svc.TriggerDescriptionWrite(r.Context(), projectID, req.AgentID, taskID, memberID)
 	if err != nil {
 		presenter.Error(w, r, err)
 		return

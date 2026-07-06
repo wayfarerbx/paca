@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
 	Bot,
 	BriefcaseBusiness,
@@ -14,7 +14,6 @@ import {
 	GitBranch,
 	Loader2,
 	Lock,
-	MessageSquare,
 	MoreHorizontal,
 	Plus,
 	Search,
@@ -66,7 +65,10 @@ import {
 	llmModelsQueryOptions,
 	TRIGGER_PROMPTS,
 } from "@/lib/agent-api";
-import { projectRolesQueryOptions } from "@/lib/project-api";
+import {
+	projectQueryOptions,
+	projectRolesQueryOptions,
+} from "@/lib/project-api";
 import { cn } from "@/lib/utils";
 
 const CUSTOM = "__custom__";
@@ -641,6 +643,7 @@ function AgentCard({
 }) {
 	const { t } = useTranslation("projects");
 	const qc = useQueryClient();
+	const navigate = useNavigate();
 	const [confirmDelete, setConfirmDelete] = useState(false);
 
 	const deleteMutation = useMutation({
@@ -660,7 +663,17 @@ function AgentCard({
 
 	return (
 		<>
-			<div className="group relative flex flex-col gap-3 rounded-xl border border-border/60 bg-card p-5 transition-all hover:border-border hover:shadow-sm">
+			{/* biome-ignore lint/a11y/noStaticElementInteractions: card navigates to agent detail; the dropdown menu below stays keyboard-reachable on its own */}
+			{/* biome-ignore lint/a11y/useKeyWithClickEvents: click-to-navigate card; the agent name is also reachable via the configure menu item */}
+			<div
+				onClick={() =>
+					navigate({
+						to: "/projects/$projectId/agents/$agentId",
+						params: { projectId, agentId: agent.id },
+					})
+				}
+				className="group relative flex flex-col gap-3 rounded-xl border border-border/60 bg-card p-5 transition-all hover:border-border hover:shadow-sm cursor-pointer"
+			>
 				{/* Header */}
 				<div className="flex items-start justify-between gap-3">
 					<div className="flex items-center gap-3">
@@ -685,7 +698,10 @@ function AgentCard({
 						</Badge>
 						{canWrite && (
 							<DropdownMenu>
-								<DropdownMenuTrigger className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100">
+								<DropdownMenuTrigger
+									onClick={(e) => e.stopPropagation()}
+									className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-100"
+								>
 									<MoreHorizontal className="size-4" />
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align="end" className="w-40">
@@ -694,6 +710,7 @@ function AgentCard({
 											<Link
 												to="/projects/$projectId/agents/$agentId"
 												params={{ projectId, agentId: agent.id }}
+												onClick={(e) => e.stopPropagation()}
 											/>
 										}
 									>
@@ -703,7 +720,10 @@ function AgentCard({
 									<DropdownMenuSeparator />
 									<DropdownMenuItem
 										className="text-destructive focus:text-destructive"
-										onClick={() => setConfirmDelete(true)}
+										onClick={(e) => {
+											e.stopPropagation();
+											setConfirmDelete(true);
+										}}
 									>
 										<Trash2 className="size-3.5 mr-2" />
 										{t("agents.card.delete")}
@@ -727,16 +747,6 @@ function AgentCard({
 						</span>
 					)}
 				</div>
-
-				{/* Footer link */}
-				<Link
-					to="/projects/$projectId/agents/$agentId"
-					params={{ projectId, agentId: agent.id }}
-					className="mt-1 flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-				>
-					{t("agents.card.configureAndViewActivity")}
-					<ChevronRight className="size-3" />
-				</Link>
 			</div>
 
 			{/* Delete confirmation */}
@@ -784,48 +794,50 @@ function AgentsPage() {
 	const { hasProjectPermission } = useProjectPermissions(projectId);
 	const canWrite = hasProjectPermission("agents.write");
 
+	const { data: project } = useQuery(projectQueryOptions(projectId));
 	const { data: agents = [], isLoading } = useQuery(
 		agentsQueryOptions(projectId),
 	);
 	const [createOpen, setCreateOpen] = useState(false);
 
 	return (
-		<div className="flex flex-col flex-1 min-h-0">
+		<div className="flex flex-col">
 			{/* Header */}
-			<div className="relative overflow-hidden border-b border-border/50 shrink-0">
+			<div className="relative overflow-hidden border-b border-border/50">
 				<div
-					className="pointer-events-none absolute inset-0 opacity-40"
+					className="pointer-events-none absolute inset-0 opacity-50"
 					style={{
 						backgroundImage:
-							"radial-gradient(circle, color-mix(in oklch, var(--color-primary) 10%, transparent) 1px, transparent 1px)",
+							"radial-gradient(circle, color-mix(in oklch, var(--color-primary) 12%, transparent) 1px, transparent 1px)",
 						backgroundSize: "20px 20px",
+						maskImage:
+							"radial-gradient(ellipse 70% 100% at 0% 0%, black 20%, transparent 70%)",
 					}}
 				/>
-				<div className="relative flex items-center justify-between px-6 py-5">
-					<div className="flex items-center gap-3">
-						<div className="flex size-9 items-center justify-center rounded-lg bg-primary/10">
-							<Sparkles className="size-4 text-primary" />
-						</div>
-						<div>
-							<h1 className="text-lg font-semibold">
-								{t("agents.page.title")}
-							</h1>
-							<p className="text-xs text-muted-foreground mt-0.5">
-								{t("agents.page.subtitle")}
-							</p>
-						</div>
+				<div className="relative flex items-end justify-between px-6 py-8">
+					<div>
+						<h1 className="font-[Syne] text-2xl font-bold tracking-tight">
+							{t("agents.page.title")}
+						</h1>
+						<p className="mt-1 text-sm text-muted-foreground">
+							{project?.name} · {t("agents.page.subtitle")}
+						</p>
 					</div>
-					{canWrite && (
-						<Button size="sm" onClick={() => setCreateOpen(true)}>
-							<Plus className="size-4 mr-1.5" />
+					{canWrite ? (
+						<Button
+							size="sm"
+							className="gap-1.5 shadow-sm shadow-primary/20"
+							onClick={() => setCreateOpen(true)}
+						>
+							<Plus className="size-3.5" />
 							{t("agents.page.newAgent")}
 						</Button>
-					)}
+					) : null}
 				</div>
 			</div>
 
 			{/* Content */}
-			<div className="flex-1 overflow-auto p-6">
+			<div className="p-6">
 				{isLoading ? (
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 						{Array.from({ length: 3 }).map((_, i) => (
@@ -866,18 +878,6 @@ function AgentsPage() {
 					</div>
 				)}
 			</div>
-
-			{/* Chat shortcut section */}
-			{agents.length > 0 && (
-				<div className="border-t border-border/50 px-6 py-4 shrink-0">
-					<p className="text-xs text-muted-foreground flex items-center gap-1.5">
-						<MessageSquare className="size-3.5" />
-						{t("agents.page.chatShortcutPrefix")}{" "}
-						<strong>{t("agents.card.configureAndViewActivity")}</strong>{" "}
-						{t("agents.page.chatShortcutSuffix")}
-					</p>
-				</div>
-			)}
 
 			<CreateAgentDialog
 				projectId={projectId}

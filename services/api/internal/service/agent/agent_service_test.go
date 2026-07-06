@@ -878,7 +878,7 @@ func TestStartChatSession_Success(t *testing.T) {
 			return nil
 		},
 		createConversation: func(_ context.Context, conv *agentdom.AgentConversation) error {
-			if conv.AgentID != agentID || conv.ProjectID != projectID || conv.TriggeredByMemberID != memberID {
+			if conv.AgentID != agentID || conv.ProjectID != projectID || conv.TriggeredByMemberID == nil || *conv.TriggeredByMemberID != memberID {
 				t.Fatalf("unexpected conversation fields")
 			}
 			return nil
@@ -913,7 +913,7 @@ func TestSendChatMessage_Success(t *testing.T) {
 			return session, nil
 		},
 		createConversation: func(_ context.Context, conv *agentdom.AgentConversation) error {
-			if conv.AgentID != agentID || conv.ProjectID != projectID || conv.TriggeredByMemberID != memberID {
+			if conv.AgentID != agentID || conv.ProjectID != projectID || conv.TriggeredByMemberID == nil || *conv.TriggeredByMemberID != memberID {
 				t.Fatalf("unexpected conversation fields")
 			}
 			return nil
@@ -1031,7 +1031,7 @@ func TestTriggerTaskAssigned_Success(t *testing.T) {
 
 	repo := &mockAgentRepo{
 		createConversation: func(_ context.Context, conv *agentdom.AgentConversation) error {
-			if conv.AgentID != agentID || conv.ProjectID != projectID || conv.TriggeredByMemberID != memberID {
+			if conv.AgentID != agentID || conv.ProjectID != projectID || conv.TriggeredByMemberID == nil || *conv.TriggeredByMemberID != memberID {
 				t.Fatalf("unexpected conversation fields")
 			}
 			return nil
@@ -1041,7 +1041,7 @@ func TestTriggerTaskAssigned_Success(t *testing.T) {
 	pluginRepo := &mockPluginRepo{}
 	svc := New(repo, projRepo, nil, pluginRepo)
 
-	result, err := svc.TriggerTaskAssigned(context.Background(), projectID, agentID, taskID, memberID)
+	result, err := svc.TriggerTaskAssigned(context.Background(), projectID, agentID, taskID, &memberID, "")
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
@@ -1057,7 +1057,7 @@ func TestTriggerCommentMention_Success(t *testing.T) {
 
 	repo := &mockAgentRepo{
 		createConversation: func(_ context.Context, conv *agentdom.AgentConversation) error {
-			if conv.AgentID != agentID || conv.ProjectID != projectID || conv.TriggeredByMemberID != memberID {
+			if conv.AgentID != agentID || conv.ProjectID != projectID || conv.TriggeredByMemberID == nil || *conv.TriggeredByMemberID != memberID {
 				t.Fatalf("unexpected conversation fields")
 			}
 			return nil

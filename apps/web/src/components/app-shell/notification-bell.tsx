@@ -17,18 +17,7 @@ import {
 	type Notification,
 	notificationsQueryOptions,
 } from "@/lib/notification-api";
-
-function timeAgo(date: string, t: TFunction<"appShell">): string {
-	const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
-	if (seconds < 60) return t("notifications.timeAgo.justNow");
-	const minutes = Math.floor(seconds / 60);
-	if (minutes < 60)
-		return t("notifications.timeAgo.minutes", { count: minutes });
-	const hours = Math.floor(minutes / 60);
-	if (hours < 24) return t("notifications.timeAgo.hours", { count: hours });
-	const days = Math.floor(hours / 24);
-	return t("notifications.timeAgo.days", { count: days });
-}
+import { timeAgo } from "@/lib/time-ago";
 
 function notificationText(n: Notification, t: TFunction<"appShell">): string {
 	if (n.type === "assigned") {
@@ -47,6 +36,7 @@ function notificationText(n: Notification, t: TFunction<"appShell">): string {
 
 export function NotificationBell() {
 	const { t } = useTranslation("appShell");
+	const { t: tCommon } = useTranslation("common");
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
 	const { data } = useQuery(notificationsQueryOptions);
@@ -135,7 +125,7 @@ export function NotificationBell() {
 												{notificationText(n, t)}
 											</p>
 											<p className="mt-0.5 text-xs text-muted-foreground">
-												{n.project_name} · {timeAgo(n.created_at, t)}
+												{n.project_name} · {timeAgo(n.created_at, tCommon)}
 											</p>
 										</div>
 									</button>

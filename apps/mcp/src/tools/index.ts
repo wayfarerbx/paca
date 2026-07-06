@@ -5,7 +5,9 @@ import type {
 	PacaAPIExtendedClient,
 	PacaAPITaskExtendedClient,
 	PacaAPIViewsClient,
+	PacaAPIWorkflowClient,
 } from "../api/index.js";
+import { formatToolError } from "../utils/index.js";
 import {
 	getAttachmentTools,
 	handleAttachmentTool,
@@ -25,10 +27,7 @@ import {
 	getTaskActivityTools,
 	handleTaskActivityTool,
 } from "./task-activity-tools.js";
-import {
-	getTaskLinkTools,
-	handleTaskLinkTool,
-} from "./task-link-tools.js";
+import { getTaskLinkTools, handleTaskLinkTool } from "./task-link-tools.js";
 import { getTaskTools, handleTaskTool } from "./task-tools.js";
 import {
 	getTaskStatusTools,
@@ -40,6 +39,7 @@ import {
 	getViewTools,
 	handleViewTool,
 } from "./view-tools.js";
+import { getWorkflowTools, handleWorkflowTool } from "./workflow-tools.js";
 
 /**
  * Returns all available MCP tools.
@@ -59,6 +59,7 @@ export function getAllTools(): Tool[] {
 		...getAttachmentTools(),
 		...getTaskActivityTools(),
 		...getTaskLinkTools(),
+		...getWorkflowTools(),
 	];
 }
 
@@ -74,6 +75,7 @@ export async function handleToolCall(
 		viewsClient: PacaAPIViewsClient;
 		taskExtendedClient: PacaAPITaskExtendedClient;
 		docClient: PacaAPIDocClient;
+		workflowClient: PacaAPIWorkflowClient;
 	},
 ): Promise<any> {
 	const { name, arguments: args } = request.params;
@@ -215,15 +217,23 @@ export async function handleToolCall(
 			return handleTaskLinkTool(name, args, clients.taskExtendedClient);
 		}
 
+		// Automation workflow tools
+		if (
+			name === "get_workflow" ||
+			name === "create_workflow" ||
+			name === "update_workflow" ||
+			name === "delete_workflow"
+		) {
+			return handleWorkflowTool(name, args, clients.workflowClient);
+		}
+
 		throw new Error(`Unknown tool: ${name}`);
 	} catch (error) {
-		const errorMessage =
-			error instanceof Error ? error.message : "Unknown error";
 		return {
 			content: [
 				{
 					type: "text",
-					text: `Error: ${errorMessage}`,
+					text: `Error: ${formatToolError(error)}`,
 				},
 			],
 			isError: true,

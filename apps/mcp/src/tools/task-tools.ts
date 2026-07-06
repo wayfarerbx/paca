@@ -96,7 +96,8 @@ export function getTaskTools(): Tool[] {
 					},
 					sprintId: {
 						type: "string",
-						description: "Filter tasks by sprint ID. Pass null to list backlog tasks.",
+						description:
+							"Filter tasks by sprint ID. Pass null to list backlog tasks.",
 					},
 					statusId: {
 						type: "string",
@@ -346,10 +347,24 @@ export async function handleTaskTool(
 ): Promise<any> {
 	switch (toolName) {
 		case "list_tasks": {
-			const { projectId, cursor, pageSize, sprintId, statusId, assigneeId, taskTypeIds, parentTaskId } =
-				ListTasksSchema.parse(args);
+			const {
+				projectId,
+				cursor,
+				pageSize,
+				sprintId,
+				statusId,
+				assigneeId,
+				taskTypeIds,
+				parentTaskId,
+			} = ListTasksSchema.parse(args);
 			const result = await client.listTasks(projectId, {
-				cursor, pageSize, sprintId, statusId, assigneeId, taskTypeIds, parentTaskId,
+				cursor,
+				pageSize,
+				sprintId,
+				statusId,
+				assigneeId,
+				taskTypeIds,
+				parentTaskId,
 			});
 			const formatted = formatList(result.items, formatTask);
 			const hasMore = Boolean(result.nextCursor);

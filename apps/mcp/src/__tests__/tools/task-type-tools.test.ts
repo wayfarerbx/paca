@@ -41,12 +41,18 @@ function makeClient(overrides: Record<string, any> = {}) {
 		createTaskType: vi.fn().mockResolvedValue(taskType),
 		updateTaskType: vi.fn().mockResolvedValue({ ...taskType, name: "Epic" }),
 		deleteTaskType: vi.fn().mockResolvedValue(undefined),
-		setDefaultTaskType: vi.fn().mockResolvedValue({ ...taskType, is_default: true }),
+		setDefaultTaskType: vi
+			.fn()
+			.mockResolvedValue({ ...taskType, is_default: true }),
 		listTaskStatuses: vi.fn().mockResolvedValue([taskStatus]),
 		createTaskStatus: vi.fn().mockResolvedValue(taskStatus),
-		updateTaskStatus: vi.fn().mockResolvedValue({ ...taskStatus, name: "Done" }),
+		updateTaskStatus: vi
+			.fn()
+			.mockResolvedValue({ ...taskStatus, name: "Done" }),
 		deleteTaskStatus: vi.fn().mockResolvedValue(undefined),
-		setDefaultTaskStatus: vi.fn().mockResolvedValue({ ...taskStatus, is_default: true }),
+		setDefaultTaskStatus: vi
+			.fn()
+			.mockResolvedValue({ ...taskStatus, is_default: true }),
 		...overrides,
 	} as any;
 }
@@ -79,7 +85,11 @@ describe("handleTaskTypeTool – list_task_types", () => {
 	});
 
 	it("includes 'Task Types:' header and type name in response", async () => {
-		const result = await handleTaskTypeTool("list_task_types", { projectId: "p1" }, makeClient());
+		const result = await handleTaskTypeTool(
+			"list_task_types",
+			{ projectId: "p1" },
+			makeClient(),
+		);
 		expect(result.content[0].text).toContain("Task Types:");
 		expect(result.content[0].text).toContain("Story");
 	});
@@ -152,7 +162,11 @@ describe("handleTaskTypeTool – update_task_type", () => {
 describe("handleTaskTypeTool – delete_task_type", () => {
 	it("calls client.deleteTaskType with projectId and typeId", async () => {
 		const client = makeClient();
-		await handleTaskTypeTool("delete_task_type", { projectId: "p1", typeId: "ty1" }, client);
+		await handleTaskTypeTool(
+			"delete_task_type",
+			{ projectId: "p1", typeId: "ty1" },
+			client,
+		);
 		expect(client.deleteTaskType).toHaveBeenCalledWith("p1", "ty1");
 	});
 
@@ -223,7 +237,12 @@ describe("handleTaskTypeTool – create_task_status", () => {
 		const client = makeClient();
 		await handleTaskTypeTool(
 			"create_task_status",
-			{ projectId: "p1", name: "Review", color: "#purple", category: "inprogress" },
+			{
+				projectId: "p1",
+				name: "Review",
+				color: "#purple",
+				category: "inprogress",
+			},
 			client,
 		);
 		expect(client.createTaskStatus).toHaveBeenCalledWith("p1", {
@@ -281,7 +300,11 @@ describe("handleTaskTypeTool – update_task_status", () => {
 describe("handleTaskTypeTool – delete_task_status", () => {
 	it("calls client.deleteTaskStatus with projectId and statusId", async () => {
 		const client = makeClient();
-		await handleTaskTypeTool("delete_task_status", { projectId: "p1", statusId: "st1" }, client);
+		await handleTaskTypeTool(
+			"delete_task_status",
+			{ projectId: "p1", statusId: "st1" },
+			client,
+		);
 		expect(client.deleteTaskStatus).toHaveBeenCalledWith("p1", "st1");
 	});
 
@@ -327,6 +350,8 @@ describe("handleTaskTypeTool – set_default_task_status", () => {
 
 describe("handleTaskTypeTool – unknown tool", () => {
 	it("throws for an unknown tool name", async () => {
-		await expect(handleTaskTypeTool("unknown", {}, makeClient())).rejects.toThrow();
+		await expect(
+			handleTaskTypeTool("unknown", {}, makeClient()),
+		).rejects.toThrow();
 	});
 });

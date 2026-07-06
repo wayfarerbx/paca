@@ -24,6 +24,7 @@
 		"allProjects": "모든 프로젝트",
 		"project": "프로젝트",
 		"agents": "에이전트",
+		"automation": "자동화",
 		"team": "팀",
 		"settings": "설정"
 	},
@@ -58,15 +59,6 @@
 		"text": {
 			"assigned": "{{actor}}님이 작업 #{{taskNumber}} — {{taskTitle}}에 회원님을 배정했습니다",
 			"mentioned": "{{actor}}님이 #{{taskNumber}} — {{taskTitle}}에서 회원님을 멘션했습니다"
-		},
-		"timeAgo": {
-			"justNow": "방금 전",
-			"minutes_one": "{{count}}분 전",
-			"minutes_other": "{{count}}분 전",
-			"hours_one": "{{count}}시간 전",
-			"hours_other": "{{count}}시간 전",
-			"days_one": "{{count}}일 전",
-			"days_other": "{{count}}일 전"
 		}
 	},
 	"userMenu": {

@@ -5,7 +5,11 @@ const CONFIG = { baseURL: "https://api.example.com", apiKey: "key123" };
 const CONFIG_WITH_AGENT = { ...CONFIG, agentId: "agent-1" };
 
 function okEnvelope(data: any) {
-	return { ok: true, json: async () => ({ success: true, data }), text: async () => "" };
+	return {
+		ok: true,
+		json: async () => ({ success: true, data }),
+		text: async () => "",
+	};
 }
 
 function rawOk(data: any) {
@@ -13,7 +17,13 @@ function rawOk(data: any) {
 }
 
 function errorResponse(status = 400, body = "Bad Request") {
-	return { ok: false, status, statusText: body, text: async () => body, json: async () => ({}) };
+	return {
+		ok: false,
+		status,
+		statusText: body,
+		text: async () => body,
+		json: async () => ({}),
+	};
 }
 
 describe("PacaAPIExtendedClient", () => {
@@ -95,7 +105,10 @@ describe("PacaAPIExtendedClient", () => {
 		it("calls POST /api/v1/projects/:id/members", async () => {
 			const client = new PacaAPIExtendedClient(CONFIG);
 			fetchMock.mockResolvedValue(okEnvelope({ id: "m2" }));
-			const result = await client.addProjectMember("p1", { user_id: "u1", role_id: "r1" });
+			const result = await client.addProjectMember("p1", {
+				user_id: "u1",
+				role_id: "r1",
+			});
 			expect(fetchMock.mock.calls[0][0]).toContain("/members");
 			expect(fetchMock.mock.calls[0][1].method).toBe("POST");
 			expect(result).toEqual({ id: "m2" });
@@ -105,7 +118,9 @@ describe("PacaAPIExtendedClient", () => {
 	describe("getMyProjectPermissions", () => {
 		it("returns permissions from response", async () => {
 			const client = new PacaAPIExtendedClient(CONFIG);
-			fetchMock.mockResolvedValue(okEnvelope({ permissions: { "tasks.write": true } }));
+			fetchMock.mockResolvedValue(
+				okEnvelope({ permissions: { "tasks.write": true } }),
+			);
 			const result = await client.getMyProjectPermissions("p1");
 			expect(result).toEqual({ "tasks.write": true });
 		});
@@ -259,7 +274,11 @@ describe("PacaAPIExtendedClient", () => {
 		it("calls POST /api/v1/projects/:id/task-statuses", async () => {
 			const client = new PacaAPIExtendedClient(CONFIG);
 			fetchMock.mockResolvedValue(okEnvelope({ id: "st2" }));
-			await client.createTaskStatus("p1", { name: "Done", category: "done", position: 0 });
+			await client.createTaskStatus("p1", {
+				name: "Done",
+				category: "done",
+				position: 0,
+			});
 			expect(fetchMock.mock.calls[0][1].method).toBe("POST");
 		});
 	});
@@ -289,7 +308,9 @@ describe("PacaAPIExtendedClient", () => {
 			const client = new PacaAPIExtendedClient(CONFIG);
 			fetchMock.mockResolvedValue(okEnvelope({ id: "st1", is_default: true }));
 			await client.setDefaultTaskStatus("p1", "st1");
-			expect(fetchMock.mock.calls[0][0]).toContain("/task-statuses/st1/set-default");
+			expect(fetchMock.mock.calls[0][0]).toContain(
+				"/task-statuses/st1/set-default",
+			);
 			expect(fetchMock.mock.calls[0][1].method).toBe("PUT");
 		});
 	});
@@ -335,7 +356,9 @@ describe("PacaAPIExtendedClient", () => {
 		it("calls PATCH /api/v1/projects/:id/custom-fields/:fieldId", async () => {
 			const client = new PacaAPIExtendedClient(CONFIG);
 			fetchMock.mockResolvedValue(okEnvelope({ id: "cf1" }));
-			await client.updateCustomFieldDefinition("p1", "cf1", { display_name: "Priority V2" });
+			await client.updateCustomFieldDefinition("p1", "cf1", {
+				display_name: "Priority V2",
+			});
 			expect(fetchMock.mock.calls[0][0]).toContain("/custom-fields/cf1");
 			expect(fetchMock.mock.calls[0][1].method).toBe("PATCH");
 		});

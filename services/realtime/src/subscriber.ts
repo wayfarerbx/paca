@@ -9,8 +9,10 @@
 // -------
 // Events are routed to namespace-scoped Socket.IO rooms:
 //
-//   task.* events  →  project:<projectId>:tasks
-//   doc.*  events  →  project:<projectId>:docs
+//   task.*     events  →  project:<projectId>:tasks
+//   doc.*      events  →  project:<projectId>:docs
+//   workflow.* events  →  project:<projectId>:workflows (except
+//                          workflow.assigned, which is task-scoped)
 //
 // Sockets are pre-placed in the correct rooms at join time based on their
 // project permissions.  No per-message permission checks are needed here —

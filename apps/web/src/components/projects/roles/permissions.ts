@@ -7,6 +7,7 @@ import {
 	Settings,
 	Shield,
 	Users,
+	Workflow,
 } from "lucide-react";
 
 export interface KnownPermission {
@@ -114,6 +115,19 @@ export const PROJECT_KNOWN_PERMISSIONS = [
 		descriptionKey: "roles.permissions.agentsWrite.description",
 		domain: "agents",
 	},
+	// automation workflows
+	{
+		key: "workflows.read",
+		labelKey: "roles.permissions.workflowsRead.label",
+		descriptionKey: "roles.permissions.workflowsRead.description",
+		domain: "workflows",
+	},
+	{
+		key: "workflows.write",
+		labelKey: "roles.permissions.workflowsWrite.label",
+		descriptionKey: "roles.permissions.workflowsWrite.description",
+		domain: "workflows",
+	},
 ] as const satisfies KnownPermission[];
 
 export interface PermissionGroup {
@@ -150,4 +164,9 @@ export const PROJECT_PERMISSION_GROUPS = [
 		Icon: BookOpen,
 	},
 	{ domain: "agents", labelKey: "roles.permissionGroups.aiAgents", Icon: Bot },
+	{
+		domain: "workflows",
+		labelKey: "roles.permissionGroups.workflows",
+		Icon: Workflow,
+	},
 ] as const satisfies PermissionGroup[];

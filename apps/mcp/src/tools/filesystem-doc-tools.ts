@@ -131,20 +131,28 @@ function resolvePath(path: string, tree: DocTree): ResolvedPath | null {
 
 	for (let i = 0; i < parts.length - 1; i++) {
 		const name = parts[i];
-		const siblings: DocumentFolder[] = tree.foldersByParent.get(currentFolderId) || [];
-		const found: DocumentFolder | undefined = siblings.find((f: DocumentFolder) => f.name === name);
+		const siblings: DocumentFolder[] =
+			tree.foldersByParent.get(currentFolderId) || [];
+		const found: DocumentFolder | undefined = siblings.find(
+			(f: DocumentFolder) => f.name === name,
+		);
 		if (!found) return null;
 		currentFolderId = found.id;
 	}
 
 	const lastName = parts[parts.length - 1];
 
-	const siblingFolders: DocumentFolder[] = tree.foldersByParent.get(currentFolderId) || [];
-	const folder: DocumentFolder | undefined = siblingFolders.find((f: DocumentFolder) => f.name === lastName);
+	const siblingFolders: DocumentFolder[] =
+		tree.foldersByParent.get(currentFolderId) || [];
+	const folder: DocumentFolder | undefined = siblingFolders.find(
+		(f: DocumentFolder) => f.name === lastName,
+	);
 	if (folder) return { type: "folder", folder };
 
 	const siblingDocs: Document[] = tree.docsByFolder.get(currentFolderId) || [];
-	const doc: Document | undefined = siblingDocs.find((d: Document) => d.title === lastName);
+	const doc: Document | undefined = siblingDocs.find(
+		(d: Document) => d.title === lastName,
+	);
 	if (doc) return { type: "doc", doc };
 
 	return null;
@@ -159,8 +167,11 @@ async function ensureFolderPath(
 	let currentFolderId: string | null = null;
 
 	for (const name of folderNames) {
-		const siblings: DocumentFolder[] = tree.foldersByParent.get(currentFolderId) || [];
-		let folder: DocumentFolder | undefined = siblings.find((f: DocumentFolder) => f.name === name);
+		const siblings: DocumentFolder[] =
+			tree.foldersByParent.get(currentFolderId) || [];
+		let folder: DocumentFolder | undefined = siblings.find(
+			(f: DocumentFolder) => f.name === name,
+		);
 
 		if (!folder) {
 			folder = await docClient.createFolder(projectId, {
@@ -398,7 +409,10 @@ export async function handleFilesystemDocTool(
 			if (parts.length === 0) {
 				return {
 					content: [
-						{ type: "text", text: "Path must include at least a document name." },
+						{
+							type: "text",
+							text: "Path must include at least a document name.",
+						},
 					],
 					isError: true,
 				};
@@ -475,7 +489,10 @@ export async function handleFilesystemDocTool(
 			if (destParts.length === 0) {
 				return {
 					content: [
-						{ type: "text", text: "Destination path must include at least a name." },
+						{
+							type: "text",
+							text: "Destination path must include at least a name.",
+						},
 					],
 					isError: true,
 				};

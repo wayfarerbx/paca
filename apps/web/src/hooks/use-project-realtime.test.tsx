@@ -103,6 +103,45 @@ describe("useProjectRealtime", () => {
 		});
 	});
 
+	it("invalidates workflows and tasks query keys on workflow.* events", () => {
+		renderHook(() => useProjectRealtime("proj-abc"));
+
+		const [, listener] = mocks.socket.on.mock.calls[0] as [
+			string,
+			(event: { type: string; payload: Record<string, unknown> }) => void,
+		];
+
+		listener({ type: "workflow.node.added", payload: {} });
+
+		expect(mocks.invalidateQueries).toHaveBeenCalledWith({
+			queryKey: ["projects", "proj-abc", "workflows"],
+		});
+		expect(mocks.invalidateQueries).toHaveBeenCalledWith({
+			queryKey: ["projects", "proj-abc", "tasks"],
+		});
+	});
+
+	it("invalidates workflows and tasks query keys on workflow.assigned events", () => {
+		renderHook(() => useProjectRealtime("proj-abc"));
+
+		const [, listener] = mocks.socket.on.mock.calls[0] as [
+			string,
+			(event: { type: string; payload: Record<string, unknown> }) => void,
+		];
+
+		listener({
+			type: "workflow.assigned",
+			payload: { project_id: "proj-abc", task_id: "task-1" },
+		});
+
+		expect(mocks.invalidateQueries).toHaveBeenCalledWith({
+			queryKey: ["projects", "proj-abc", "workflows"],
+		});
+		expect(mocks.invalidateQueries).toHaveBeenCalledWith({
+			queryKey: ["projects", "proj-abc", "tasks"],
+		});
+	});
+
 	it("invalidates task github query key on github.branch.linked events", () => {
 		renderHook(() => useProjectRealtime("proj-abc"));
 
