@@ -225,7 +225,6 @@ type taskUpdatedContent struct {
 // predecessors — doesn't refetch the same workflow's rules/transitions, or
 // the same node/task row, once per node/edge.
 type evalCache struct {
-	workflows   map[uuid.UUID]*workflowdom.Workflow
 	rules       map[uuid.UUID][]*workflowdom.StatusRule
 	transitions map[uuid.UUID][]*workflowdom.StatusTransition
 	edges       map[uuid.UUID][]*workflowdom.Edge
@@ -235,25 +234,12 @@ type evalCache struct {
 
 func newEvalCache() *evalCache {
 	return &evalCache{
-		workflows:   make(map[uuid.UUID]*workflowdom.Workflow),
 		rules:       make(map[uuid.UUID][]*workflowdom.StatusRule),
 		transitions: make(map[uuid.UUID][]*workflowdom.StatusTransition),
 		edges:       make(map[uuid.UUID][]*workflowdom.Edge),
 		nodes:       make(map[uuid.UUID]*workflowdom.Node),
 		tasks:       make(map[uuid.UUID]*taskdom.Task),
 	}
-}
-
-func (e *evalCache) getWorkflow(ctx context.Context, repo workflowGraphReader, id uuid.UUID) (*workflowdom.Workflow, error) {
-	if w, ok := e.workflows[id]; ok {
-		return w, nil
-	}
-	w, err := repo.FindWorkflowByID(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	e.workflows[id] = w
-	return w, nil
 }
 
 func (e *evalCache) getRules(ctx context.Context, repo workflowGraphReader, workflowID uuid.UUID) ([]*workflowdom.StatusRule, error) {
@@ -541,7 +527,13 @@ func (c *WorkflowConsumer) applyStatusRule(ctx context.Context, projectID uuid.U
 		return nil // already assigned — idempotent no-op
 	}
 
-	workflow, err := cache.getWorkflow(ctx, c.workflowRepo, node.WorkflowID)
+	// Fetched fresh (not through evalCache) despite already being read
+	// earlier in this same event's fan-out: this check gates the mutating
+	// write just below, and a single event can cascade across many
+	// nodes/edges (an AND-join). Caching it for the whole event would let a
+	// workflow archived mid-fan-out keep being acted on by every node
+	// evaluated after the cache was first populated.
+	workflow, err := c.workflowRepo.FindWorkflowByID(ctx, node.WorkflowID)
 	if err != nil {
 		return fmt.Errorf("find workflow: %w", err)
 	}
@@ -576,30 +568,21 @@ func (c *WorkflowConsumer) applyStatusRule(ctx context.Context, projectID uuid.U
 		})
 	}
 
-	if c.publisher != nil {
-		payload := map[string]any{
-			"task_id":                task.ID.String(),
-			"project_id":             projectID.String(),
-			"new_assignee_member_id": newAssignee.String(),
-			"actor_user_id":          userdom.SystemActorUserID.String(),
-			"workflow_id":            workflow.ID.String(),
-			"workflow_name":          workflow.Name,
-		}
-		if oldAssignee != nil {
-			payload["old_assignee_member_id"] = oldAssignee.String()
-		}
-		if transitions, err := cache.getTransitions(ctx, c.workflowRepo, node.WorkflowID); err == nil {
-			for _, tr := range transitions {
-				if tr.StatusID == *task.StatusID && tr.NextStatusID != nil {
-					if status, err := c.taskRepo.FindTaskStatusByID(ctx, *tr.NextStatusID); err == nil {
-						payload["next_status_name"] = status.Name
-					}
-					break
+	extra := map[string]any{
+		"workflow_id":   workflow.ID.String(),
+		"workflow_name": workflow.Name,
+	}
+	if transitions, err := cache.getTransitions(ctx, c.workflowRepo, node.WorkflowID); err == nil {
+		for _, tr := range transitions {
+			if tr.StatusID == *task.StatusID && tr.NextStatusID != nil {
+				if status, err := c.taskRepo.FindTaskStatusByID(ctx, *tr.NextStatusID); err == nil {
+					extra["next_status_name"] = status.Name
 				}
+				break
 			}
 		}
-		_ = c.publisher.Append(ctx, events.StreamTaskAssignments, "task.assigned", payload)
 	}
+	_ = events.PublishAssignmentChanged(ctx, c.publisher, task.ID, projectID, newAssignee, oldAssignee, userdom.SystemActorUserID, extra)
 
 	return nil
 }

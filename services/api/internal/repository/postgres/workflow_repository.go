@@ -302,6 +302,9 @@ func (r *WorkflowRepository) CreateStatusRule(ctx context.Context, sr *workflowd
 		sr.ID.String(), sr.WorkflowID.String(), sr.StatusID.String(), sr.AssigneeMemberID.String(), sr.CreatedAt, sr.UpdatedAt,
 	)
 	if err != nil {
+		if isUniqueViolation(err) {
+			return workflowdom.ErrStatusRuleConflict
+		}
 		return fmt.Errorf("workflow repo: create status rule: %w", err)
 	}
 	return nil
@@ -386,6 +389,9 @@ func (r *WorkflowRepository) CreateStatusTransition(ctx context.Context, st *wor
 		st.ID.String(), st.WorkflowID.String(), st.StatusID.String(), nextStatusID, st.CreatedAt, st.UpdatedAt,
 	)
 	if err != nil {
+		if isUniqueViolation(err) {
+			return workflowdom.ErrStatusTransitionConflict
+		}
 		return fmt.Errorf("workflow repo: create status transition: %w", err)
 	}
 	return nil
@@ -593,6 +599,25 @@ func (r *WorkflowRepository) ListIncomingEdges(ctx context.Context, targetNodeID
 		out = append(out, e)
 	}
 	return out, nil
+}
+
+// StatusUsedByWorkflow reports whether statusID is referenced by any
+// workflow's status rules or status transitions (as either the current or
+// the next status), regardless of the workflow's lifecycle status — an
+// archived workflow can be reverted to draft and reactivated, so a status it
+// depends on must not be deletable out from under it.
+func (r *WorkflowRepository) StatusUsedByWorkflow(ctx context.Context, statusID uuid.UUID) (bool, error) {
+	const q = `
+		SELECT EXISTS (
+			SELECT 1 FROM workflow_status_rules WHERE status_id = $1
+			UNION ALL
+			SELECT 1 FROM workflow_status_transitions WHERE status_id = $1 OR next_status_id = $1
+		)`
+	var used bool
+	if err := r.db.GetContext(ctx, &used, q, statusID.String()); err != nil {
+		return false, fmt.Errorf("workflow repo: status used by workflow: %w", err)
+	}
+	return used, nil
 }
 
 // --- row-to-domain helpers --------------------------------------------------

@@ -268,57 +268,67 @@ export async function applyNodes(
 ): Promise<{ removed: CategoryResult; set: CategoryResult }> {
 	const { client, projectId, workflowId } = ctx;
 
+	// Each item below targets a distinct taskId (remove is de-duplicated via
+	// Set, set via dedupeByKey), so every call reads/writes a different
+	// indexes.taskToNode entry — safe to fire concurrently instead of
+	// paying for each REST round-trip sequentially.
 	const removedResult = emptyCategoryResult();
-	for (const taskId of remove ?? []) {
-		const nodeId = indexes.taskToNode.get(taskId);
-		if (!nodeId) {
-			pushResult(removedResult, {
-				key: taskId,
-				outcome: "skipped",
-				detail: "no node exists for this taskId in the workflow",
-			});
-			continue;
-		}
-		try {
-			await client.removeWorkflowNode(projectId, workflowId, nodeId);
-			indexes.taskToNode.delete(taskId);
-			pushResult(removedResult, { key: taskId, outcome: "removed" });
-		} catch (err) {
-			pushResult(removedResult, {
-				key: taskId,
-				outcome: "failed",
-				detail: extractApiErrorMessage(err),
-			});
-		}
-	}
+	await Promise.all(
+		[...new Set(remove ?? [])].map(async (taskId) => {
+			const nodeId = indexes.taskToNode.get(taskId);
+			if (!nodeId) {
+				pushResult(removedResult, {
+					key: taskId,
+					outcome: "skipped",
+					detail: "no node exists for this taskId in the workflow",
+				});
+				return;
+			}
+			try {
+				await client.removeWorkflowNode(projectId, workflowId, nodeId);
+				indexes.taskToNode.delete(taskId);
+				pushResult(removedResult, { key: taskId, outcome: "removed" });
+			} catch (err) {
+				pushResult(removedResult, {
+					key: taskId,
+					outcome: "failed",
+					detail: extractApiErrorMessage(err),
+				});
+			}
+		}),
+	);
 
 	const setResult = emptyCategoryResult();
-	for (const item of dedupeByKey(set ?? [], (i) => i.taskId)) {
-		const existingNodeId = indexes.taskToNode.get(item.taskId);
-		try {
-			if (existingNodeId) {
-				await client.updateWorkflowNode(projectId, workflowId, existingNodeId, {
-					pos_x: item.posX,
-					pos_y: item.posY,
+	await Promise.all(
+		dedupeByKey(set ?? [], (i) => i.taskId).map(async (item) => {
+			const existingNodeId = indexes.taskToNode.get(item.taskId);
+			try {
+				if (existingNodeId) {
+					await client.updateWorkflowNode(
+						projectId,
+						workflowId,
+						existingNodeId,
+						{ pos_x: item.posX, pos_y: item.posY },
+					);
+					pushResult(setResult, { key: item.taskId, outcome: "updated" });
+				} else {
+					const node = await client.addWorkflowNode(projectId, workflowId, {
+						task_id: item.taskId,
+						pos_x: item.posX,
+						pos_y: item.posY,
+					});
+					indexes.taskToNode.set(item.taskId, node.id);
+					pushResult(setResult, { key: item.taskId, outcome: "created" });
+				}
+			} catch (err) {
+				pushResult(setResult, {
+					key: item.taskId,
+					outcome: "failed",
+					detail: extractApiErrorMessage(err),
 				});
-				pushResult(setResult, { key: item.taskId, outcome: "updated" });
-			} else {
-				const node = await client.addWorkflowNode(projectId, workflowId, {
-					task_id: item.taskId,
-					pos_x: item.posX,
-					pos_y: item.posY,
-				});
-				indexes.taskToNode.set(item.taskId, node.id);
-				pushResult(setResult, { key: item.taskId, outcome: "created" });
 			}
-		} catch (err) {
-			pushResult(setResult, {
-				key: item.taskId,
-				outcome: "failed",
-				detail: extractApiErrorMessage(err),
-			});
-		}
-	}
+		}),
+	);
 
 	return { removed: removedResult, set: setResult };
 }
@@ -333,51 +343,57 @@ export async function applyStatusRules(
 ): Promise<{ removed: CategoryResult; set: CategoryResult }> {
 	const { client, projectId, workflowId } = ctx;
 
+	// See applyNodes: each item targets a distinct statusId, so these run
+	// concurrently instead of one REST round-trip at a time.
 	const removedResult = emptyCategoryResult();
-	for (const statusId of remove ?? []) {
-		const ruleId = indexes.statusToRule.get(statusId);
-		if (!ruleId) {
-			pushResult(removedResult, {
-				key: statusId,
-				outcome: "skipped",
-				detail: "no status rule exists for this statusId in the workflow",
-			});
-			continue;
-		}
-		try {
-			await client.removeWorkflowStatusRule(projectId, workflowId, ruleId);
-			indexes.statusToRule.delete(statusId);
-			pushResult(removedResult, { key: statusId, outcome: "removed" });
-		} catch (err) {
-			pushResult(removedResult, {
-				key: statusId,
-				outcome: "failed",
-				detail: extractApiErrorMessage(err),
-			});
-		}
-	}
+	await Promise.all(
+		[...new Set(remove ?? [])].map(async (statusId) => {
+			const ruleId = indexes.statusToRule.get(statusId);
+			if (!ruleId) {
+				pushResult(removedResult, {
+					key: statusId,
+					outcome: "skipped",
+					detail: "no status rule exists for this statusId in the workflow",
+				});
+				return;
+			}
+			try {
+				await client.removeWorkflowStatusRule(projectId, workflowId, ruleId);
+				indexes.statusToRule.delete(statusId);
+				pushResult(removedResult, { key: statusId, outcome: "removed" });
+			} catch (err) {
+				pushResult(removedResult, {
+					key: statusId,
+					outcome: "failed",
+					detail: extractApiErrorMessage(err),
+				});
+			}
+		}),
+	);
 
 	const setResult = emptyCategoryResult();
-	for (const item of dedupeByKey(set ?? [], (i) => i.statusId)) {
-		const existed = indexes.statusToRule.has(item.statusId);
-		try {
-			const rule = await client.setWorkflowStatusRule(projectId, workflowId, {
-				status_id: item.statusId,
-				assignee_member_id: item.assigneeMemberId,
-			});
-			indexes.statusToRule.set(item.statusId, rule.id);
-			pushResult(setResult, {
-				key: item.statusId,
-				outcome: existed ? "updated" : "created",
-			});
-		} catch (err) {
-			pushResult(setResult, {
-				key: item.statusId,
-				outcome: "failed",
-				detail: extractApiErrorMessage(err),
-			});
-		}
-	}
+	await Promise.all(
+		dedupeByKey(set ?? [], (i) => i.statusId).map(async (item) => {
+			const existed = indexes.statusToRule.has(item.statusId);
+			try {
+				const rule = await client.setWorkflowStatusRule(projectId, workflowId, {
+					status_id: item.statusId,
+					assignee_member_id: item.assigneeMemberId,
+				});
+				indexes.statusToRule.set(item.statusId, rule.id);
+				pushResult(setResult, {
+					key: item.statusId,
+					outcome: existed ? "updated" : "created",
+				});
+			} catch (err) {
+				pushResult(setResult, {
+					key: item.statusId,
+					outcome: "failed",
+					detail: extractApiErrorMessage(err),
+				});
+			}
+		}),
+	);
 
 	return { removed: removedResult, set: setResult };
 }
@@ -392,56 +408,66 @@ export async function applyStatusTransitions(
 ): Promise<{ removed: CategoryResult; set: CategoryResult }> {
 	const { client, projectId, workflowId } = ctx;
 
+	// See applyNodes: each item targets a distinct statusId, so these run
+	// concurrently instead of one REST round-trip at a time.
 	const removedResult = emptyCategoryResult();
-	for (const statusId of remove ?? []) {
-		const transitionId = indexes.statusToTransition.get(statusId);
-		if (!transitionId) {
-			pushResult(removedResult, {
-				key: statusId,
-				outcome: "skipped",
-				detail: "no status transition exists for this statusId in the workflow",
-			});
-			continue;
-		}
-		try {
-			await client.removeWorkflowStatusTransition(
-				projectId,
-				workflowId,
-				transitionId,
-			);
-			indexes.statusToTransition.delete(statusId);
-			pushResult(removedResult, { key: statusId, outcome: "removed" });
-		} catch (err) {
-			pushResult(removedResult, {
-				key: statusId,
-				outcome: "failed",
-				detail: extractApiErrorMessage(err),
-			});
-		}
-	}
+	await Promise.all(
+		[...new Set(remove ?? [])].map(async (statusId) => {
+			const transitionId = indexes.statusToTransition.get(statusId);
+			if (!transitionId) {
+				pushResult(removedResult, {
+					key: statusId,
+					outcome: "skipped",
+					detail:
+						"no status transition exists for this statusId in the workflow",
+				});
+				return;
+			}
+			try {
+				await client.removeWorkflowStatusTransition(
+					projectId,
+					workflowId,
+					transitionId,
+				);
+				indexes.statusToTransition.delete(statusId);
+				pushResult(removedResult, { key: statusId, outcome: "removed" });
+			} catch (err) {
+				pushResult(removedResult, {
+					key: statusId,
+					outcome: "failed",
+					detail: extractApiErrorMessage(err),
+				});
+			}
+		}),
+	);
 
 	const setResult = emptyCategoryResult();
-	for (const item of dedupeByKey(set ?? [], (i) => i.statusId)) {
-		const existed = indexes.statusToTransition.has(item.statusId);
-		try {
-			const transition = await client.setWorkflowStatusTransition(
-				projectId,
-				workflowId,
-				{ status_id: item.statusId, next_status_id: item.nextStatusId ?? null },
-			);
-			indexes.statusToTransition.set(item.statusId, transition.id);
-			pushResult(setResult, {
-				key: item.statusId,
-				outcome: existed ? "updated" : "created",
-			});
-		} catch (err) {
-			pushResult(setResult, {
-				key: item.statusId,
-				outcome: "failed",
-				detail: extractApiErrorMessage(err),
-			});
-		}
-	}
+	await Promise.all(
+		dedupeByKey(set ?? [], (i) => i.statusId).map(async (item) => {
+			const existed = indexes.statusToTransition.has(item.statusId);
+			try {
+				const transition = await client.setWorkflowStatusTransition(
+					projectId,
+					workflowId,
+					{
+						status_id: item.statusId,
+						next_status_id: item.nextStatusId ?? null,
+					},
+				);
+				indexes.statusToTransition.set(item.statusId, transition.id);
+				pushResult(setResult, {
+					key: item.statusId,
+					outcome: existed ? "updated" : "created",
+				});
+			} catch (err) {
+				pushResult(setResult, {
+					key: item.statusId,
+					outcome: "failed",
+					detail: extractApiErrorMessage(err),
+				});
+			}
+		}),
+	);
 
 	return { removed: removedResult, set: setResult };
 }
@@ -460,74 +486,81 @@ export async function applyEdges(
 ): Promise<{ removed: CategoryResult; added: CategoryResult }> {
 	const { client, projectId, workflowId } = ctx;
 
+	// See applyNodes: each item targets a distinct node pair (both add and
+	// remove are de-duplicated via dedupeByKey), so these run concurrently
+	// instead of one REST round-trip at a time.
 	const removedResult = emptyCategoryResult();
-	for (const ref of remove ?? []) {
-		const sourceNodeId = indexes.taskToNode.get(ref.sourceTaskId);
-		const targetNodeId = indexes.taskToNode.get(ref.targetTaskId);
-		if (!sourceNodeId || !targetNodeId) {
-			pushResult(removedResult, {
-				key: edgeLabel(ref),
-				outcome: "skipped",
-				detail:
-					"one or both tasks have no node in this workflow — edge is already effectively gone",
-			});
-			continue;
-		}
-		const edgeId = indexes.nodePairToEdge.get(
-			nodePairKey(sourceNodeId, targetNodeId),
-		);
-		if (!edgeId) {
-			pushResult(removedResult, {
-				key: edgeLabel(ref),
-				outcome: "skipped",
-				detail: "no edge exists between these tasks",
-			});
-			continue;
-		}
-		try {
-			await client.removeWorkflowEdge(projectId, workflowId, edgeId);
-			indexes.nodePairToEdge.delete(nodePairKey(sourceNodeId, targetNodeId));
-			pushResult(removedResult, { key: edgeLabel(ref), outcome: "removed" });
-		} catch (err) {
-			pushResult(removedResult, {
-				key: edgeLabel(ref),
-				outcome: "failed",
-				detail: extractApiErrorMessage(err),
-			});
-		}
-	}
+	await Promise.all(
+		dedupeByKey(remove ?? [], edgeLabel).map(async (ref) => {
+			const sourceNodeId = indexes.taskToNode.get(ref.sourceTaskId);
+			const targetNodeId = indexes.taskToNode.get(ref.targetTaskId);
+			if (!sourceNodeId || !targetNodeId) {
+				pushResult(removedResult, {
+					key: edgeLabel(ref),
+					outcome: "skipped",
+					detail:
+						"one or both tasks have no node in this workflow — edge is already effectively gone",
+				});
+				return;
+			}
+			const edgeId = indexes.nodePairToEdge.get(
+				nodePairKey(sourceNodeId, targetNodeId),
+			);
+			if (!edgeId) {
+				pushResult(removedResult, {
+					key: edgeLabel(ref),
+					outcome: "skipped",
+					detail: "no edge exists between these tasks",
+				});
+				return;
+			}
+			try {
+				await client.removeWorkflowEdge(projectId, workflowId, edgeId);
+				indexes.nodePairToEdge.delete(nodePairKey(sourceNodeId, targetNodeId));
+				pushResult(removedResult, { key: edgeLabel(ref), outcome: "removed" });
+			} catch (err) {
+				pushResult(removedResult, {
+					key: edgeLabel(ref),
+					outcome: "failed",
+					detail: extractApiErrorMessage(err),
+				});
+			}
+		}),
+	);
 
 	const addedResult = emptyCategoryResult();
-	for (const ref of dedupeByKey(add ?? [], edgeLabel)) {
-		const sourceNodeId = indexes.taskToNode.get(ref.sourceTaskId);
-		const targetNodeId = indexes.taskToNode.get(ref.targetTaskId);
-		if (!sourceNodeId || !targetNodeId) {
-			const missing = !sourceNodeId ? ref.sourceTaskId : ref.targetTaskId;
-			pushResult(addedResult, {
-				key: edgeLabel(ref),
-				outcome: "failed",
-				detail: `taskId ${missing} has no node in this workflow — add it via nodes first`,
-			});
-			continue;
-		}
-		try {
-			const edge = await client.addWorkflowEdge(projectId, workflowId, {
-				source_node_id: sourceNodeId,
-				target_node_id: targetNodeId,
-			});
-			indexes.nodePairToEdge.set(
-				nodePairKey(sourceNodeId, targetNodeId),
-				edge.id,
-			);
-			pushResult(addedResult, { key: edgeLabel(ref), outcome: "created" });
-		} catch (err) {
-			pushResult(addedResult, {
-				key: edgeLabel(ref),
-				outcome: "failed",
-				detail: extractApiErrorMessage(err),
-			});
-		}
-	}
+	await Promise.all(
+		dedupeByKey(add ?? [], edgeLabel).map(async (ref) => {
+			const sourceNodeId = indexes.taskToNode.get(ref.sourceTaskId);
+			const targetNodeId = indexes.taskToNode.get(ref.targetTaskId);
+			if (!sourceNodeId || !targetNodeId) {
+				const missing = !sourceNodeId ? ref.sourceTaskId : ref.targetTaskId;
+				pushResult(addedResult, {
+					key: edgeLabel(ref),
+					outcome: "failed",
+					detail: `taskId ${missing} has no node in this workflow — add it via nodes first`,
+				});
+				return;
+			}
+			try {
+				const edge = await client.addWorkflowEdge(projectId, workflowId, {
+					source_node_id: sourceNodeId,
+					target_node_id: targetNodeId,
+				});
+				indexes.nodePairToEdge.set(
+					nodePairKey(sourceNodeId, targetNodeId),
+					edge.id,
+				);
+				pushResult(addedResult, { key: edgeLabel(ref), outcome: "created" });
+			} catch (err) {
+				pushResult(addedResult, {
+					key: edgeLabel(ref),
+					outcome: "failed",
+					detail: extractApiErrorMessage(err),
+				});
+			}
+		}),
+	);
 
 	return { removed: removedResult, added: addedResult };
 }

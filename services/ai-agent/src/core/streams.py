@@ -105,7 +105,7 @@ class TriggerMessage:
     comment_id: str | None
     chat_session_id: str | None
     message: str
-    actor_member_id: str
+    actor_member_id: str | None
     repo_plugin_ids: list[str]
 
     @classmethod
@@ -122,7 +122,7 @@ class TriggerMessage:
             comment_id=fields.get("comment_id") or None,
             chat_session_id=fields.get("chat_session_id") or None,
             message=fields.get("message", ""),
-            actor_member_id=fields["actor_member_id"],
+            actor_member_id=fields.get("actor_member_id"),
             repo_plugin_ids=repo_plugin_ids,
         )
 

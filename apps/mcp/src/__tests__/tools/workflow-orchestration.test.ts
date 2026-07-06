@@ -533,6 +533,44 @@ describe("applyNodes", () => {
 				["good", "removed"],
 			]);
 		});
+
+		it("issues removeWorkflowNode calls for every taskId concurrently rather than one at a time", async () => {
+			let inFlight = 0;
+			let maxInFlight = 0;
+			const client = makeClient({
+				removeWorkflowNode: vi.fn().mockImplementation(async () => {
+					inFlight++;
+					maxInFlight = Math.max(maxInFlight, inFlight);
+					await new Promise((resolve) => setTimeout(resolve, 0));
+					inFlight--;
+				}),
+			});
+			const indexes = emptyGraphIndexes();
+			indexes.taskToNode.set("t1", "n1");
+			indexes.taskToNode.set("t2", "n2");
+			indexes.taskToNode.set("t3", "n3");
+			await applyNodes(makeCtx(client), undefined, ["t1", "t2", "t3"], indexes);
+			expect(maxInFlight).toBe(3);
+		});
+
+		it("de-duplicates a taskId repeated in remove, calling the client only once", async () => {
+			const client = makeClient({
+				removeWorkflowNode: vi.fn().mockResolvedValue(undefined),
+			});
+			const indexes = emptyGraphIndexes();
+			indexes.taskToNode.set("t1", "n1");
+			const { removed } = await applyNodes(
+				makeCtx(client),
+				undefined,
+				["t1", "t1"],
+				indexes,
+			);
+			expect(client.removeWorkflowNode).toHaveBeenCalledTimes(1);
+			expect(removed).toEqual({
+				items: [{ key: "t1", outcome: "removed" }],
+				hasFailure: false,
+			});
+		});
 	});
 
 	describe("set", () => {
@@ -1110,6 +1148,56 @@ describe("applyEdges", () => {
 				{ key: "t1 -> t2", outcome: "failed", detail: "boom" },
 			]);
 			expect(indexes.nodePairToEdge.get("n1|n2")).toBe("e1");
+		});
+
+		it("issues removeWorkflowEdge calls for every edge concurrently rather than one at a time", async () => {
+			let inFlight = 0;
+			let maxInFlight = 0;
+			const client = makeClient({
+				removeWorkflowEdge: vi.fn().mockImplementation(async () => {
+					inFlight++;
+					maxInFlight = Math.max(maxInFlight, inFlight);
+					await new Promise((resolve) => setTimeout(resolve, 0));
+					inFlight--;
+				}),
+			});
+			const indexes = emptyGraphIndexes();
+			indexes.taskToNode.set("t1", "n1");
+			indexes.taskToNode.set("t2", "n2");
+			indexes.taskToNode.set("t3", "n3");
+			indexes.nodePairToEdge.set("n1|n2", "e1");
+			indexes.nodePairToEdge.set("n2|n3", "e2");
+			await applyEdges(
+				makeCtx(client),
+				undefined,
+				[
+					{ sourceTaskId: "t1", targetTaskId: "t2" },
+					{ sourceTaskId: "t2", targetTaskId: "t3" },
+				],
+				indexes,
+			);
+			expect(maxInFlight).toBe(2);
+		});
+
+		it("de-duplicates a repeated edge ref in remove, calling the client only once", async () => {
+			const client = makeClient({
+				removeWorkflowEdge: vi.fn().mockResolvedValue(undefined),
+			});
+			const indexes = emptyGraphIndexes();
+			indexes.taskToNode.set("t1", "n1");
+			indexes.taskToNode.set("t2", "n2");
+			indexes.nodePairToEdge.set("n1|n2", "e1");
+			const { removed } = await applyEdges(
+				makeCtx(client),
+				undefined,
+				[
+					{ sourceTaskId: "t1", targetTaskId: "t2" },
+					{ sourceTaskId: "t1", targetTaskId: "t2" },
+				],
+				indexes,
+			);
+			expect(client.removeWorkflowEdge).toHaveBeenCalledTimes(1);
+			expect(removed.items).toEqual([{ key: "t1 -> t2", outcome: "removed" }]);
 		});
 	});
 

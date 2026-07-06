@@ -3,6 +3,7 @@ package workflowsvc
 
 import (
 	"context"
+	"errors"
 	"sort"
 	"strings"
 	"time"
@@ -289,6 +290,19 @@ func (s *Service) Activate(ctx context.Context, projectID, workflowID uuid.UUID)
 		return nil, workflowdom.ErrActivateDoneStatusUndetermined
 	}
 
+	// Both automation events reassign strictly by looking up the task's
+	// current status in this workflow's status rules — with zero rules,
+	// an active workflow would run forever without ever doing anything
+	// (see seedDefaultStatusRules, which silently seeds none when the
+	// project has no human member to default to).
+	rules, err := s.repo.ListStatusRulesByWorkflow(ctx, w.ID)
+	if err != nil {
+		return nil, err
+	}
+	if len(rules) == 0 {
+		return nil, workflowdom.ErrActivateNoStatusRules
+	}
+
 	w.Status = workflowdom.StatusActive
 	w.UpdatedAt = time.Now()
 	if err := s.repo.UpdateWorkflow(ctx, w); err != nil {
@@ -459,46 +473,57 @@ func (s *Service) SetStatusRule(ctx context.Context, projectID, workflowID uuid.
 		return nil, workflowdom.ErrStatusRuleCrossProject
 	}
 
-	existing, err := s.repo.ListStatusRulesByWorkflow(ctx, w.ID)
-	if err != nil {
-		return nil, err
-	}
-	for _, r := range existing {
-		if r.StatusID == in.StatusID {
-			r.AssigneeMemberID = in.AssigneeMemberID
-			r.UpdatedAt = time.Now()
-			if err := s.repo.UpdateStatusRule(ctx, r); err != nil {
-				return nil, err
-			}
-			s.publish(ctx, events.TopicWorkflowStatusRuleSet, map[string]any{
-				"project_id":  projectID.String(),
-				"workflow_id": w.ID.String(),
-				"rule_id":     r.ID.String(),
-				"status_id":   r.StatusID.String(),
-			})
-			return r, nil
+	// At most one retry: a concurrent SetStatusRule call for the same status
+	// can create the row between our list below and our create further down;
+	// on that conflict, loop once more so the second pass finds and updates
+	// the now-existing row instead of surfacing a raw duplicate-key error
+	// from what is meant to behave as an upsert.
+	for attempt := 0; attempt < 2; attempt++ {
+		existing, err := s.repo.ListStatusRulesByWorkflow(ctx, w.ID)
+		if err != nil {
+			return nil, err
 		}
-	}
+		for _, r := range existing {
+			if r.StatusID == in.StatusID {
+				r.AssigneeMemberID = in.AssigneeMemberID
+				r.UpdatedAt = time.Now()
+				if err := s.repo.UpdateStatusRule(ctx, r); err != nil {
+					return nil, err
+				}
+				s.publish(ctx, events.TopicWorkflowStatusRuleSet, map[string]any{
+					"project_id":  projectID.String(),
+					"workflow_id": w.ID.String(),
+					"rule_id":     r.ID.String(),
+					"status_id":   r.StatusID.String(),
+				})
+				return r, nil
+			}
+		}
 
-	now := time.Now()
-	r := &workflowdom.StatusRule{
-		ID:               uuid.New(),
-		WorkflowID:       w.ID,
-		StatusID:         in.StatusID,
-		AssigneeMemberID: in.AssigneeMemberID,
-		CreatedAt:        now,
-		UpdatedAt:        now,
+		now := time.Now()
+		r := &workflowdom.StatusRule{
+			ID:               uuid.New(),
+			WorkflowID:       w.ID,
+			StatusID:         in.StatusID,
+			AssigneeMemberID: in.AssigneeMemberID,
+			CreatedAt:        now,
+			UpdatedAt:        now,
+		}
+		if err := s.repo.CreateStatusRule(ctx, r); err != nil {
+			if errors.Is(err, workflowdom.ErrStatusRuleConflict) && attempt == 0 {
+				continue
+			}
+			return nil, err
+		}
+		s.publish(ctx, events.TopicWorkflowStatusRuleSet, map[string]any{
+			"project_id":  projectID.String(),
+			"workflow_id": w.ID.String(),
+			"rule_id":     r.ID.String(),
+			"status_id":   r.StatusID.String(),
+		})
+		return r, nil
 	}
-	if err := s.repo.CreateStatusRule(ctx, r); err != nil {
-		return nil, err
-	}
-	s.publish(ctx, events.TopicWorkflowStatusRuleSet, map[string]any{
-		"project_id":  projectID.String(),
-		"workflow_id": w.ID.String(),
-		"rule_id":     r.ID.String(),
-		"status_id":   r.StatusID.String(),
-	})
-	return r, nil
+	return nil, workflowdom.ErrStatusRuleConflict
 }
 
 // RemoveStatusRule deletes a status rule from the workflow.
@@ -549,46 +574,53 @@ func (s *Service) SetStatusTransition(ctx context.Context, projectID, workflowID
 		}
 	}
 
-	existing, err := s.repo.ListStatusTransitionsByWorkflow(ctx, w.ID)
-	if err != nil {
-		return nil, err
-	}
-	for _, t := range existing {
-		if t.StatusID == in.StatusID {
-			t.NextStatusID = in.NextStatusID
-			t.UpdatedAt = time.Now()
-			if err := s.repo.UpdateStatusTransition(ctx, t); err != nil {
-				return nil, err
-			}
-			s.publish(ctx, events.TopicWorkflowStatusTransitionSet, map[string]any{
-				"project_id":    projectID.String(),
-				"workflow_id":   w.ID.String(),
-				"transition_id": t.ID.String(),
-				"status_id":     t.StatusID.String(),
-			})
-			return t, nil
+	// See SetStatusRule for why this loops at most twice.
+	for attempt := 0; attempt < 2; attempt++ {
+		existing, err := s.repo.ListStatusTransitionsByWorkflow(ctx, w.ID)
+		if err != nil {
+			return nil, err
 		}
-	}
+		for _, t := range existing {
+			if t.StatusID == in.StatusID {
+				t.NextStatusID = in.NextStatusID
+				t.UpdatedAt = time.Now()
+				if err := s.repo.UpdateStatusTransition(ctx, t); err != nil {
+					return nil, err
+				}
+				s.publish(ctx, events.TopicWorkflowStatusTransitionSet, map[string]any{
+					"project_id":    projectID.String(),
+					"workflow_id":   w.ID.String(),
+					"transition_id": t.ID.String(),
+					"status_id":     t.StatusID.String(),
+				})
+				return t, nil
+			}
+		}
 
-	now := time.Now()
-	t := &workflowdom.StatusTransition{
-		ID:           uuid.New(),
-		WorkflowID:   w.ID,
-		StatusID:     in.StatusID,
-		NextStatusID: in.NextStatusID,
-		CreatedAt:    now,
-		UpdatedAt:    now,
+		now := time.Now()
+		t := &workflowdom.StatusTransition{
+			ID:           uuid.New(),
+			WorkflowID:   w.ID,
+			StatusID:     in.StatusID,
+			NextStatusID: in.NextStatusID,
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		}
+		if err := s.repo.CreateStatusTransition(ctx, t); err != nil {
+			if errors.Is(err, workflowdom.ErrStatusTransitionConflict) && attempt == 0 {
+				continue
+			}
+			return nil, err
+		}
+		s.publish(ctx, events.TopicWorkflowStatusTransitionSet, map[string]any{
+			"project_id":    projectID.String(),
+			"workflow_id":   w.ID.String(),
+			"transition_id": t.ID.String(),
+			"status_id":     t.StatusID.String(),
+		})
+		return t, nil
 	}
-	if err := s.repo.CreateStatusTransition(ctx, t); err != nil {
-		return nil, err
-	}
-	s.publish(ctx, events.TopicWorkflowStatusTransitionSet, map[string]any{
-		"project_id":    projectID.String(),
-		"workflow_id":   w.ID.String(),
-		"transition_id": t.ID.String(),
-		"status_id":     t.StatusID.String(),
-	})
-	return t, nil
+	return nil, workflowdom.ErrStatusTransitionConflict
 }
 
 // RemoveStatusTransition deletes a status-transition entry from the workflow.

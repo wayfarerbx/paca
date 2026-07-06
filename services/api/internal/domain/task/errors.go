@@ -19,6 +19,7 @@ var (
 	ErrStatusNameInvalid     = errors.New("task status: name is empty or invalid")
 	ErrStatusCategoryInvalid = errors.New("task status: invalid category value")
 	ErrStatusReorderInvalid  = errors.New("task status: provided status IDs do not match the project's statuses")
+	ErrStatusInUseByWorkflow = errors.New("task status: still referenced by an automation workflow")
 
 	ErrCustomFieldNotFound    = errors.New("custom field: not found")
 	ErrCustomFieldKeyInvalid  = errors.New("custom field: key is empty or invalid")

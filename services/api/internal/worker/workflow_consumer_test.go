@@ -27,6 +27,13 @@ type fakeGraphStore struct {
 	edges       []*workflowdom.Edge
 
 	transitionsCalls int // counts real ListStatusTransitionsByWorkflow calls, to assert evalCache hits
+
+	findWorkflowCalls int
+	// archiveAfterFindWorkflowCall, if non-zero, flips every workflow to
+	// archived right after the Nth FindWorkflowByID call returns — used to
+	// simulate a concurrent archive landing mid-way through one event's
+	// node/edge fan-out.
+	archiveAfterFindWorkflowCall int
 }
 
 func newFakeGraphStore() *fakeGraphStore {
@@ -43,7 +50,12 @@ func (f *fakeGraphStore) FindWorkflowByID(_ context.Context, id uuid.UUID) (*wor
 	if !ok {
 		return nil, workflowdom.ErrNotFound
 	}
-	return w, nil
+	f.findWorkflowCalls++
+	cp := *w // snapshot: later archiving must not retroactively change what this call already returned
+	if f.archiveAfterFindWorkflowCall != 0 && f.findWorkflowCalls == f.archiveAfterFindWorkflowCall {
+		w.Status = workflowdom.StatusArchived
+	}
+	return &cp, nil
 }
 
 func (f *fakeGraphStore) FindNodeByID(_ context.Context, id uuid.UUID) (*workflowdom.Node, error) {
@@ -414,6 +426,47 @@ func TestApplyStatusRule_SkipsWhenWorkflowNoLongerActive(t *testing.T) {
 	}
 	if f.tasks.updateCalls != 0 {
 		t.Fatalf("expected no UpdateTask call once the workflow is no longer active, got %d", f.tasks.updateCalls)
+	}
+}
+
+// TestApplyStatusRule_ArchivedMidFanOut_StopsLaterNodes guards against the
+// workflow's active/archived status being memoized for the whole event: one
+// processTaskStatusChange call can fan out across several nodes/edges (an
+// AND-join cascade), and each node's applyStatusRule call must see the
+// workflow's current status, not whatever the first node in the fan-out saw.
+func TestApplyStatusRule_ArchivedMidFanOut_StopsLaterNodes(t *testing.T) {
+	f := newEngineFixture()
+	ctx := context.Background()
+	w := f.addWorkflow()
+	memberA := uuid.New()
+	downstreamMember := uuid.New()
+
+	nodeA, taskA := f.addNode(w, &f.doneStatus.ID)
+	nodeB, taskB := f.addNode(w, &f.readyStatus.ID)
+	f.addTransition(w, f.doneStatus.ID, nil)         // doneStatus is this workflow's terminal/done status
+	f.addRule(w, f.doneStatus.ID, memberA)           // nodeA's own reassignment (event 1)
+	f.addRule(w, f.readyStatus.ID, downstreamMember) // nodeB's reassignment once nodeA is done (event 2)
+	f.addEdge(w, nodeA, nodeB)
+
+	// Simulate the workflow being archived (e.g. via the HTTP handler)
+	// right after nodeA's own gate check reads "active" but before nodeB's
+	// predecessor-done gate check runs later in this same event's fan-out.
+	f.graph.archiveAfterFindWorkflowCall = 1
+
+	if err := f.consumer.processTaskStatusChange(ctx, f.projectID, taskA.ID); err != nil {
+		t.Fatalf("processTaskStatusChange: %v", err)
+	}
+
+	gotA := f.tasks.tasks[taskA.ID]
+	if gotA.AssigneeID == nil || *gotA.AssigneeID != memberA {
+		t.Fatalf("expected nodeA's own reassignment to complete before the archive landed, got %+v", gotA.AssigneeID)
+	}
+	gotB := f.tasks.tasks[taskB.ID]
+	if gotB.AssigneeID != nil {
+		t.Fatalf("expected nodeB to NOT be reassigned once the workflow was archived mid-fan-out, got %v", *gotB.AssigneeID)
+	}
+	if f.tasks.updateCalls != 1 {
+		t.Fatalf("expected exactly 1 UpdateTask call (nodeA only, before the archive), got %d", f.tasks.updateCalls)
 	}
 }
 

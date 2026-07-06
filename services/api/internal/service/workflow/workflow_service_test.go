@@ -27,6 +27,15 @@ type fakeWorkflowRepo struct {
 	rules       map[uuid.UUID]*workflowdom.StatusRule
 	transitions map[uuid.UUID]*workflowdom.StatusTransition
 	edges       map[uuid.UUID]*workflowdom.Edge
+
+	// simulateRuleConflictOnce/simulateTransitionConflictOnce let a test
+	// emulate two concurrent SetStatusRule/SetStatusTransition callers
+	// racing: the next CreateStatusRule/CreateStatusTransition call inserts
+	// a "concurrently created" row for the same status behind the caller's
+	// back and returns the conflict error a real unique-constraint violation
+	// would produce, instead of actually creating the caller's row.
+	simulateRuleConflictOnce       bool
+	simulateTransitionConflictOnce bool
 }
 
 func newFakeWorkflowRepo() *fakeWorkflowRepo {
@@ -175,6 +184,13 @@ func (r *fakeWorkflowRepo) DeleteNode(_ context.Context, id uuid.UUID) error {
 func (r *fakeWorkflowRepo) CreateStatusRule(_ context.Context, sr *workflowdom.StatusRule) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if r.simulateRuleConflictOnce {
+		r.simulateRuleConflictOnce = false
+		concurrent := *sr
+		concurrent.ID = uuid.New()
+		r.rules[concurrent.ID] = &concurrent
+		return workflowdom.ErrStatusRuleConflict
+	}
 	cp := *sr
 	r.rules[sr.ID] = &cp
 	return nil
@@ -228,6 +244,13 @@ func (r *fakeWorkflowRepo) DeleteStatusRule(_ context.Context, id uuid.UUID) err
 func (r *fakeWorkflowRepo) CreateStatusTransition(_ context.Context, st *workflowdom.StatusTransition) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if r.simulateTransitionConflictOnce {
+		r.simulateTransitionConflictOnce = false
+		concurrent := *st
+		concurrent.ID = uuid.New()
+		r.transitions[concurrent.ID] = &concurrent
+		return workflowdom.ErrStatusTransitionConflict
+	}
 	cp := *st
 	r.transitions[st.ID] = &cp
 	return nil
@@ -586,6 +609,10 @@ func TestAddNode_RejectsWhenNotDraft(t *testing.T) {
 	if _, err := f.svc.SetStatusTransition(ctx, f.projectID, w.ID, workflowdom.SetStatusTransitionInput{StatusID: done.ID}); err != nil {
 		t.Fatalf("SetStatusTransition: %v", err)
 	}
+	member := f.addMember(f.projectID)
+	if _, err := f.svc.SetStatusRule(ctx, f.projectID, w.ID, workflowdom.SetStatusRuleInput{StatusID: done.ID, AssigneeMemberID: member.ID}); err != nil {
+		t.Fatalf("SetStatusRule: %v", err)
+	}
 	if _, err := f.svc.Activate(ctx, f.projectID, w.ID); err != nil {
 		t.Fatalf("Activate: %v", err)
 	}
@@ -716,6 +743,10 @@ func TestActivate_SucceedsWithDerivedDoneStatus(t *testing.T) {
 	if _, err := f.svc.SetStatusTransition(ctx, f.projectID, w.ID, workflowdom.SetStatusTransitionInput{StatusID: done.ID}); err != nil {
 		t.Fatalf("SetStatusTransition done (terminal): %v", err)
 	}
+	member := f.addMember(f.projectID)
+	if _, err := f.svc.SetStatusRule(ctx, f.projectID, w.ID, workflowdom.SetStatusRuleInput{StatusID: ready.ID, AssigneeMemberID: member.ID}); err != nil {
+		t.Fatalf("SetStatusRule: %v", err)
+	}
 
 	a, _ := f.svc.AddNode(ctx, f.projectID, w.ID, workflowdom.AddNodeInput{TaskID: f.addTask(f.projectID).ID})
 	b, _ := f.svc.AddNode(ctx, f.projectID, w.ID, workflowdom.AddNodeInput{TaskID: f.addTask(f.projectID).ID})
@@ -746,6 +777,30 @@ func TestActivate_RejectsWhenTaskMissingFromProject(t *testing.T) {
 	_, err := f.svc.Activate(ctx, f.projectID, w.ID)
 	if !errors.Is(err, workflowdom.ErrActivateTaskMissing) {
 		t.Fatalf("expected ErrActivateTaskMissing, got %v", err)
+	}
+}
+
+// TestActivate_RejectsNoStatusRules guards against a workflow activating
+// with zero status rules: both automation events reassign strictly by
+// status-rule lookup, so such a workflow would run forever without ever
+// doing anything (see the all-agent-project case in
+// TestCreateWorkflow_SkipsDefaultStatusRules_WhenNoHumanMemberExists, where
+// seedDefaultStatusRules silently seeds none).
+func TestActivate_RejectsNoStatusRules(t *testing.T) {
+	f := newFixture()
+	w := mustCreateWorkflow(t, f)
+	ctx := context.Background()
+	if _, err := f.svc.AddNode(ctx, f.projectID, w.ID, workflowdom.AddNodeInput{TaskID: f.addTask(f.projectID).ID}); err != nil {
+		t.Fatalf("AddNode: %v", err)
+	}
+	done := f.addStatus(f.projectID, taskdom.StatusCategoryDone)
+	if _, err := f.svc.SetStatusTransition(ctx, f.projectID, w.ID, workflowdom.SetStatusTransitionInput{StatusID: done.ID}); err != nil {
+		t.Fatalf("SetStatusTransition: %v", err)
+	}
+
+	_, err := f.svc.Activate(ctx, f.projectID, w.ID)
+	if !errors.Is(err, workflowdom.ErrActivateNoStatusRules) {
+		t.Fatalf("expected ErrActivateNoStatusRules, got %v", err)
 	}
 }
 
@@ -802,6 +857,41 @@ func TestSetStatusRule_UpsertsExistingRule(t *testing.T) {
 	}
 }
 
+func TestSetStatusRule_RetriesOnConcurrentCreateConflict(t *testing.T) {
+	f := newFixture()
+	w := mustCreateWorkflow(t, f)
+	ctx := context.Background()
+	if _, err := f.svc.AddNode(ctx, f.projectID, w.ID, workflowdom.AddNodeInput{TaskID: f.addTask(f.projectID).ID}); err != nil {
+		t.Fatalf("AddNode: %v", err)
+	}
+	status := f.addStatus(f.projectID, taskdom.StatusCategoryTodo)
+	member := f.addMember(f.projectID)
+
+	// Simulate another request's SetStatusRule call winning the race and
+	// creating the row first; our CreateStatusRule call should get the
+	// conflict error and retry, finding and updating that row instead of
+	// surfacing a raw duplicate-key error to the caller.
+	f.repo.simulateRuleConflictOnce = true
+
+	rule, err := f.svc.SetStatusRule(ctx, f.projectID, w.ID, workflowdom.SetStatusRuleInput{
+		StatusID: status.ID, AssigneeMemberID: member.ID,
+	})
+	if err != nil {
+		t.Fatalf("SetStatusRule: expected the conflict to be retried transparently, got error: %v", err)
+	}
+	if rule.AssigneeMemberID != member.ID {
+		t.Fatalf("expected the retried update to set the requested assignee, got %v", rule.AssigneeMemberID)
+	}
+
+	rules, err := f.repo.ListStatusRulesByWorkflow(ctx, w.ID)
+	if err != nil {
+		t.Fatalf("ListStatusRulesByWorkflow: %v", err)
+	}
+	if len(rules) != 1 {
+		t.Fatalf("expected exactly one rule after retry, got %d", len(rules))
+	}
+}
+
 func TestRevertToDraft_ReenablesEditing(t *testing.T) {
 	f := newFixture()
 	w := mustCreateWorkflow(t, f)
@@ -812,6 +902,10 @@ func TestRevertToDraft_ReenablesEditing(t *testing.T) {
 	done := f.addStatus(f.projectID, taskdom.StatusCategoryDone)
 	if _, err := f.svc.SetStatusTransition(ctx, f.projectID, w.ID, workflowdom.SetStatusTransitionInput{StatusID: done.ID}); err != nil {
 		t.Fatalf("SetStatusTransition: %v", err)
+	}
+	member := f.addMember(f.projectID)
+	if _, err := f.svc.SetStatusRule(ctx, f.projectID, w.ID, workflowdom.SetStatusRuleInput{StatusID: done.ID, AssigneeMemberID: member.ID}); err != nil {
+		t.Fatalf("SetStatusRule: %v", err)
 	}
 	if _, err := f.svc.Activate(ctx, f.projectID, w.ID); err != nil {
 		t.Fatalf("Activate: %v", err)
@@ -841,6 +935,10 @@ func TestRevertToDraft_RejectsArchived(t *testing.T) {
 	done := f.addStatus(f.projectID, taskdom.StatusCategoryDone)
 	if _, err := f.svc.SetStatusTransition(ctx, f.projectID, w.ID, workflowdom.SetStatusTransitionInput{StatusID: done.ID}); err != nil {
 		t.Fatalf("SetStatusTransition: %v", err)
+	}
+	member := f.addMember(f.projectID)
+	if _, err := f.svc.SetStatusRule(ctx, f.projectID, w.ID, workflowdom.SetStatusRuleInput{StatusID: done.ID, AssigneeMemberID: member.ID}); err != nil {
+		t.Fatalf("SetStatusRule: %v", err)
 	}
 	if _, err := f.svc.Activate(ctx, f.projectID, w.ID); err != nil {
 		t.Fatalf("Activate: %v", err)
@@ -883,6 +981,36 @@ func TestSetStatusTransition_UpsertsExistingEntry(t *testing.T) {
 	}
 	if len(transitions) != 1 {
 		t.Fatalf("expected exactly one transition after upsert, got %d", len(transitions))
+	}
+}
+
+func TestSetStatusTransition_RetriesOnConcurrentCreateConflict(t *testing.T) {
+	f := newFixture()
+	w := mustCreateWorkflow(t, f)
+	ctx := context.Background()
+	status := f.addStatus(f.projectID, taskdom.StatusCategoryTodo)
+	next := f.addStatus(f.projectID, taskdom.StatusCategoryDone)
+
+	// Simulate another request's SetStatusTransition call winning the race
+	// and creating the row first.
+	f.repo.simulateTransitionConflictOnce = true
+
+	transition, err := f.svc.SetStatusTransition(ctx, f.projectID, w.ID, workflowdom.SetStatusTransitionInput{
+		StatusID: status.ID, NextStatusID: &next.ID,
+	})
+	if err != nil {
+		t.Fatalf("SetStatusTransition: expected the conflict to be retried transparently, got error: %v", err)
+	}
+	if transition.NextStatusID == nil || *transition.NextStatusID != next.ID {
+		t.Fatalf("expected the retried update to set the requested next status, got %+v", transition.NextStatusID)
+	}
+
+	transitions, err := f.repo.ListStatusTransitionsByWorkflow(ctx, w.ID)
+	if err != nil {
+		t.Fatalf("ListStatusTransitionsByWorkflow: %v", err)
+	}
+	if len(transitions) != 1 {
+		t.Fatalf("expected exactly one transition after retry, got %d", len(transitions))
 	}
 }
 

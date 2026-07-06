@@ -49,6 +49,15 @@ def test_missing_optional_fields_default_to_none_and_empty():
     assert msg.repo_plugin_ids == []
 
 
+def test_missing_actor_member_id_defaults_to_none():
+    """Workflow-triggered assignments have no human actor, so the API omits
+    this field entirely rather than sending an empty string."""
+    fields = _fields()
+    del fields["actor_member_id"]
+    msg = TriggerMessage.from_stream_entry("2-1", fields)
+    assert msg.actor_member_id is None
+
+
 def test_empty_repo_plugin_ids_string_becomes_empty_list():
     msg = TriggerMessage.from_stream_entry("3-0", _fields(repo_plugin_ids=""))
     assert msg.repo_plugin_ids == []

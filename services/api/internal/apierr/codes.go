@@ -94,6 +94,8 @@ const (
 	CodeTaskStatusCategoryInvalid Code = "TASK_STATUS_CATEGORY_INVALID"
 	// CodeTaskStatusReorderInvalid indicates the provided status IDs do not match the project's statuses.
 	CodeTaskStatusReorderInvalid Code = "TASK_STATUS_REORDER_INVALID"
+	// CodeTaskStatusInUseByWorkflow indicates the status is still referenced by an automation workflow.
+	CodeTaskStatusInUseByWorkflow Code = "TASK_STATUS_IN_USE_BY_WORKFLOW"
 
 	// CodeSprintNotFound indicates the requested sprint does not exist.
 	CodeSprintNotFound Code = "SPRINT_NOT_FOUND"
@@ -295,12 +297,16 @@ const (
 	CodeWorkflowStatusRuleNotFound Code = "WORKFLOW_STATUS_RULE_NOT_FOUND"
 	// CodeWorkflowStatusRuleCrossProject indicates the status or member does not belong to the workflow's project.
 	CodeWorkflowStatusRuleCrossProject Code = "WORKFLOW_STATUS_RULE_CROSS_PROJECT"
+	// CodeWorkflowStatusRuleConflict indicates a concurrent request already set this status rule.
+	CodeWorkflowStatusRuleConflict Code = "WORKFLOW_STATUS_RULE_CONFLICT"
 	// CodeWorkflowStatusTransitionNotFound indicates the requested status transition does not exist.
 	CodeWorkflowStatusTransitionNotFound Code = "WORKFLOW_STATUS_TRANSITION_NOT_FOUND"
 	// CodeWorkflowStatusTransitionCrossProject indicates the status does not belong to the workflow's project.
 	CodeWorkflowStatusTransitionCrossProject Code = "WORKFLOW_STATUS_TRANSITION_CROSS_PROJECT"
 	// CodeWorkflowStatusTransitionSelfLoop indicates an attempt to make a status transition to itself.
 	CodeWorkflowStatusTransitionSelfLoop Code = "WORKFLOW_STATUS_TRANSITION_SELF_LOOP"
+	// CodeWorkflowStatusTransitionConflict indicates a concurrent request already set this status transition.
+	CodeWorkflowStatusTransitionConflict Code = "WORKFLOW_STATUS_TRANSITION_CONFLICT"
 	// CodeWorkflowEdgeNotFound indicates the requested edge does not exist.
 	CodeWorkflowEdgeNotFound Code = "WORKFLOW_EDGE_NOT_FOUND"
 	// CodeWorkflowEdgeSelfLoop indicates an attempt to link a node to itself.
@@ -321,6 +327,8 @@ const (
 	CodeWorkflowActivateDoneStatusUndetermined Code = "WORKFLOW_ACTIVATE_DONE_STATUS_UNDETERMINED"
 	// CodeWorkflowActivateTaskMissing indicates a node references a task that no longer exists in the project.
 	CodeWorkflowActivateTaskMissing Code = "WORKFLOW_ACTIVATE_TASK_MISSING"
+	// CodeWorkflowActivateNoStatusRules indicates the workflow has no status rules, so activating it would never reassign anything.
+	CodeWorkflowActivateNoStatusRules Code = "WORKFLOW_ACTIVATE_NO_STATUS_RULES"
 )
 
 // Error carries a machine-readable Code alongside a human-readable Message.

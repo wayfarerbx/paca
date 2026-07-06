@@ -155,6 +155,8 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusBadRequest, apierr.CodeTaskStatusCategoryInvalid
 	case errors.Is(err, taskdom.ErrStatusReorderInvalid):
 		return http.StatusBadRequest, apierr.CodeTaskStatusReorderInvalid
+	case errors.Is(err, taskdom.ErrStatusInUseByWorkflow):
+		return http.StatusConflict, apierr.CodeTaskStatusInUseByWorkflow
 	case errors.Is(err, sprintdom.ErrSprintNotFound):
 		return http.StatusNotFound, apierr.CodeSprintNotFound
 	case errors.Is(err, sprintdom.ErrSprintNameInvalid):
@@ -305,12 +307,16 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusNotFound, apierr.CodeWorkflowStatusRuleNotFound
 	case errors.Is(err, workflowdom.ErrStatusRuleCrossProject):
 		return http.StatusBadRequest, apierr.CodeWorkflowStatusRuleCrossProject
+	case errors.Is(err, workflowdom.ErrStatusRuleConflict):
+		return http.StatusConflict, apierr.CodeWorkflowStatusRuleConflict
 	case errors.Is(err, workflowdom.ErrStatusTransitionNotFound):
 		return http.StatusNotFound, apierr.CodeWorkflowStatusTransitionNotFound
 	case errors.Is(err, workflowdom.ErrStatusTransitionCrossProject):
 		return http.StatusBadRequest, apierr.CodeWorkflowStatusTransitionCrossProject
 	case errors.Is(err, workflowdom.ErrStatusTransitionSelfLoop):
 		return http.StatusBadRequest, apierr.CodeWorkflowStatusTransitionSelfLoop
+	case errors.Is(err, workflowdom.ErrStatusTransitionConflict):
+		return http.StatusConflict, apierr.CodeWorkflowStatusTransitionConflict
 	case errors.Is(err, workflowdom.ErrEdgeNotFound):
 		return http.StatusNotFound, apierr.CodeWorkflowEdgeNotFound
 	case errors.Is(err, workflowdom.ErrEdgeSelfLoop):
@@ -331,6 +337,8 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusBadRequest, apierr.CodeWorkflowActivateDoneStatusUndetermined
 	case errors.Is(err, workflowdom.ErrActivateTaskMissing):
 		return http.StatusBadRequest, apierr.CodeWorkflowActivateTaskMissing
+	case errors.Is(err, workflowdom.ErrActivateNoStatusRules):
+		return http.StatusBadRequest, apierr.CodeWorkflowActivateNoStatusRules
 	default:
 		return http.StatusInternalServerError, apierr.CodeInternalError
 	}
@@ -422,7 +430,8 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodeSprintAlreadyComplete,
 		apierr.CodeTaskLinkDuplicate,
 		apierr.CodeCustomFieldKeyTaken,
-		apierr.CodeTaskTypeNameReserved:
+		apierr.CodeTaskTypeNameReserved,
+		apierr.CodeTaskStatusInUseByWorkflow:
 		return http.StatusConflict
 	case apierr.CodeTaskTypeIsSystem:
 		return http.StatusForbidden
@@ -505,7 +514,9 @@ func httpStatusForCode(code apierr.Code) int {
 	case apierr.CodeWorkflowNodeDuplicateTask,
 		apierr.CodeWorkflowEdgeDuplicate,
 		apierr.CodeWorkflowNotDraft,
-		apierr.CodeWorkflowNotActive:
+		apierr.CodeWorkflowNotActive,
+		apierr.CodeWorkflowStatusRuleConflict,
+		apierr.CodeWorkflowStatusTransitionConflict:
 		return http.StatusConflict
 	case apierr.CodeWorkflowNameInvalid,
 		apierr.CodeWorkflowNodeTaskCrossProject,
@@ -517,7 +528,8 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodeWorkflowEdgeCycle,
 		apierr.CodeWorkflowActivateNoNodes,
 		apierr.CodeWorkflowActivateDoneStatusUndetermined,
-		apierr.CodeWorkflowActivateTaskMissing:
+		apierr.CodeWorkflowActivateTaskMissing,
+		apierr.CodeWorkflowActivateNoStatusRules:
 		return http.StatusBadRequest
 	case apierr.CodeBadRequest:
 		return http.StatusBadRequest
