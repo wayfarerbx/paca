@@ -798,7 +798,6 @@ async function handleWorkflowToolInner(
 								: await workflowClient.archiveWorkflow(projectId, workflowId);
 						lines.push(`Workflow is now ${workflow.status}.`);
 					} catch (err) {
-						hadFailure = true;
 						lines.push(
 							`Could not ${status === "active" ? "activate" : "archive"}: ${extractApiErrorMessage(err)}`,
 						);
