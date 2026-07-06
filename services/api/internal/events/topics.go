@@ -97,6 +97,28 @@ const (
 	TopicAgentActionEvent          = "agent.action"
 	TopicAgentObservationEvent     = "agent.observation"
 	TopicAgentMessageEvent         = "agent.message"
+
+	// --- Automation workflow events ------------------------------------------
+	// Published directly to ChannelRealtime by workflowsvc.Service whenever a
+	// workflow's graph or lifecycle changes, so every connected client viewing
+	// that project's automation builder stays in sync. Note: workflow.assigned
+	// (the automation engine reassigning a task) is a separate, task-scoped
+	// event defined as taskdom.ActivityTypeWorkflowAssigned, not here.
+	TopicWorkflowCreated                 = "workflow.created"
+	TopicWorkflowUpdated                 = "workflow.updated"
+	TopicWorkflowDeleted                 = "workflow.deleted"
+	TopicWorkflowActivated               = "workflow.activated"
+	TopicWorkflowArchived                = "workflow.archived"
+	TopicWorkflowRevertedToDraft         = "workflow.reverted_to_draft"
+	TopicWorkflowNodeAdded               = "workflow.node.added"
+	TopicWorkflowNodeUpdated             = "workflow.node.updated"
+	TopicWorkflowNodeRemoved             = "workflow.node.removed"
+	TopicWorkflowEdgeAdded               = "workflow.edge.added"
+	TopicWorkflowEdgeRemoved             = "workflow.edge.removed"
+	TopicWorkflowStatusRuleSet           = "workflow.status_rule.set"
+	TopicWorkflowStatusRuleRemoved       = "workflow.status_rule.removed"
+	TopicWorkflowStatusTransitionSet     = "workflow.status_transition.set"
+	TopicWorkflowStatusTransitionRemoved = "workflow.status_transition.removed"
 )
 
 // Streams for AI Agent pipeline.

@@ -484,7 +484,7 @@ func newFixture() *fixture {
 		repo:       repo,
 		taskLookup: taskLookup,
 		memberRepo: memberRepo,
-		svc:        workflowsvc.New(repo, taskLookup, memberRepo),
+		svc:        workflowsvc.New(repo, taskLookup, memberRepo, nil),
 		projectID:  uuid.New(),
 	}
 }

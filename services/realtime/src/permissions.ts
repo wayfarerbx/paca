@@ -3,22 +3,24 @@
 // Instead of checking permissions on every received message, sockets are placed
 // into namespace-scoped rooms at join time:
 //
-//   project:<projectId>:tasks  — receives all task.* events
-//   project:<projectId>:docs   — receives all doc.* events
+//   project:<projectId>:tasks      — receives all task.* events
+//   project:<projectId>:docs       — receives all doc.* events
+//   project:<projectId>:workflows  — receives all workflow.* graph events
 //
 // Room membership is determined once when the client emits "join": the server
 // fetches the user's project permissions, then joins only the rooms the user is
 // allowed to see.  The Pub/Sub subscriber routes events directly to the correct
 // room with a plain io.to(room).emit() — no per-socket checks needed.
 
-// EventNamespace identifies the two permission-gated sub-domains.
-export type EventNamespace = "tasks" | "docs";
+// EventNamespace identifies the three permission-gated sub-domains.
+export type EventNamespace = "tasks" | "docs" | "workflows";
 
 // NAMESPACE_PERMISSIONS maps each namespace to the project permission required
 // to receive events in that namespace.
 export const NAMESPACE_PERMISSIONS: Record<EventNamespace, string> = {
 	tasks: "tasks.read",
 	docs: "docs.read",
+	workflows: "workflows.read",
 };
 
 // projectRoomName returns the Socket.IO room name for a project + namespace pair.
@@ -40,6 +42,14 @@ export function eventNamespace(type: string): EventNamespace | undefined {
 	// agent.* events are task-scoped (conversation started/finished/events) and
 	// require the same tasks.read permission.
 	if (type.startsWith("agent.")) return "tasks";
+	// workflow.assigned is task-scoped (the automation engine reassigning a
+	// task) — special-cased ahead of the generic workflow.* rule below so it
+	// routes on tasks.read rather than workflows.read.
+	if (type === "workflow.assigned") return "tasks";
+	// All other workflow.* events describe changes to the workflow graph
+	// itself (nodes, edges, rules, transitions, lifecycle) and require
+	// workflows.read — a permission distinct from tasks.read.
+	if (type.startsWith("workflow.")) return "workflows";
 	return undefined;
 }
 

@@ -161,7 +161,7 @@ func New(cfg *config.Config) (*App, error) {
 	docActivityService := docsvc.NewActivityService(docRepo, projectRepo, publisher).
 		WithNotificationService(notificationService)
 	docActivityConsumer := worker.NewDocActivityConsumer(redisClient, docRepo, projectRepo, log)
-	workflowService := workflowsvc.New(workflowRepo, taskRepo, projectRepo)
+	workflowService := workflowsvc.New(workflowRepo, taskRepo, projectRepo, publisher)
 	workflowConsumer := worker.NewWorkflowConsumer(redisClient, workflowRepo, taskRepo, taskService, activityService, publisher, log)
 
 	// Object storage — defaults to MinIO; switches to AWS S3 when STORAGE_PROVIDER=s3.

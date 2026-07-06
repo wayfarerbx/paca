@@ -10,6 +10,8 @@ import (
 	projectdom "github.com/Paca-AI/api/internal/domain/project"
 	taskdom "github.com/Paca-AI/api/internal/domain/task"
 	workflowdom "github.com/Paca-AI/api/internal/domain/workflow"
+	"github.com/Paca-AI/api/internal/events"
+	"github.com/Paca-AI/api/internal/platform/messaging"
 	"github.com/google/uuid"
 )
 
@@ -35,11 +37,26 @@ type Service struct {
 	repo       workflowdom.Repository
 	taskRepo   taskLookup
 	memberRepo memberLookup
+	publisher  *messaging.Publisher
 }
 
 // New returns a Service backed by repo, taskRepo, and memberRepo.
-func New(repo workflowdom.Repository, taskRepo taskLookup, memberRepo memberLookup) *Service {
-	return &Service{repo: repo, taskRepo: taskRepo, memberRepo: memberRepo}
+// publisher may be nil; real-time events are then skipped silently.
+func New(repo workflowdom.Repository, taskRepo taskLookup, memberRepo memberLookup, publisher *messaging.Publisher) *Service {
+	return &Service{repo: repo, taskRepo: taskRepo, memberRepo: memberRepo, publisher: publisher}
+}
+
+// publish sends a real-time pub/sub notification for a workflow-graph
+// change. Errors are silently swallowed so a messaging failure never blocks
+// the primary HTTP response.
+func (s *Service) publish(ctx context.Context, topic string, payload map[string]any) {
+	if s.publisher == nil {
+		return
+	}
+	_ = s.publisher.Publish(ctx, events.ChannelRealtime, map[string]any{
+		"type":    topic,
+		"payload": payload,
+	})
 }
 
 // --- Workflow lifecycle -------------------------------------------------------
@@ -92,6 +109,10 @@ func (s *Service) CreateWorkflow(ctx context.Context, in workflowdom.CreateWorkf
 		return nil, err
 	}
 	s.seedDefaults(ctx, w)
+	s.publish(ctx, events.TopicWorkflowCreated, map[string]any{
+		"project_id":  w.ProjectID.String(),
+		"workflow_id": w.ID.String(),
+	})
 	return w, nil
 }
 
@@ -202,6 +223,10 @@ func (s *Service) UpdateWorkflow(ctx context.Context, projectID, workflowID uuid
 	if err := s.repo.UpdateWorkflow(ctx, w); err != nil {
 		return nil, err
 	}
+	s.publish(ctx, events.TopicWorkflowUpdated, map[string]any{
+		"project_id":  projectID.String(),
+		"workflow_id": w.ID.String(),
+	})
 	return w, nil
 }
 
@@ -211,7 +236,14 @@ func (s *Service) DeleteWorkflow(ctx context.Context, projectID, workflowID uuid
 	if err != nil {
 		return err
 	}
-	return s.repo.DeleteWorkflow(ctx, w.ID)
+	if err := s.repo.DeleteWorkflow(ctx, w.ID); err != nil {
+		return err
+	}
+	s.publish(ctx, events.TopicWorkflowDeleted, map[string]any{
+		"project_id":  projectID.String(),
+		"workflow_id": w.ID.String(),
+	})
+	return nil
 }
 
 // Activate transitions a draft workflow to active, after validating the
@@ -262,6 +294,10 @@ func (s *Service) Activate(ctx context.Context, projectID, workflowID uuid.UUID)
 	if err := s.repo.UpdateWorkflow(ctx, w); err != nil {
 		return nil, err
 	}
+	s.publish(ctx, events.TopicWorkflowActivated, map[string]any{
+		"project_id":  projectID.String(),
+		"workflow_id": w.ID.String(),
+	})
 	return w, nil
 }
 
@@ -280,6 +316,10 @@ func (s *Service) Archive(ctx context.Context, projectID, workflowID uuid.UUID) 
 	if err := s.repo.UpdateWorkflow(ctx, w); err != nil {
 		return nil, err
 	}
+	s.publish(ctx, events.TopicWorkflowArchived, map[string]any{
+		"project_id":  projectID.String(),
+		"workflow_id": w.ID.String(),
+	})
 	return w, nil
 }
 
@@ -303,6 +343,10 @@ func (s *Service) RevertToDraft(ctx context.Context, projectID, workflowID uuid.
 	if err := s.repo.UpdateWorkflow(ctx, w); err != nil {
 		return nil, err
 	}
+	s.publish(ctx, events.TopicWorkflowRevertedToDraft, map[string]any{
+		"project_id":  projectID.String(),
+		"workflow_id": w.ID.String(),
+	})
 	return w, nil
 }
 
@@ -336,6 +380,12 @@ func (s *Service) AddNode(ctx context.Context, projectID, workflowID uuid.UUID, 
 	if err := s.repo.CreateNode(ctx, n); err != nil {
 		return nil, err
 	}
+	s.publish(ctx, events.TopicWorkflowNodeAdded, map[string]any{
+		"project_id":  projectID.String(),
+		"workflow_id": w.ID.String(),
+		"node_id":     n.ID.String(),
+		"task_id":     n.TaskID.String(),
+	})
 	return n, nil
 }
 
@@ -360,6 +410,11 @@ func (s *Service) UpdateNode(ctx context.Context, projectID, workflowID, nodeID 
 	if err := s.repo.UpdateNode(ctx, n); err != nil {
 		return nil, err
 	}
+	s.publish(ctx, events.TopicWorkflowNodeUpdated, map[string]any{
+		"project_id":  projectID.String(),
+		"workflow_id": w.ID.String(),
+		"node_id":     n.ID.String(),
+	})
 	return n, nil
 }
 
@@ -373,7 +428,15 @@ func (s *Service) RemoveNode(ctx context.Context, projectID, workflowID, nodeID 
 	if err != nil {
 		return err
 	}
-	return s.repo.DeleteNode(ctx, n.ID)
+	if err := s.repo.DeleteNode(ctx, n.ID); err != nil {
+		return err
+	}
+	s.publish(ctx, events.TopicWorkflowNodeRemoved, map[string]any{
+		"project_id":  projectID.String(),
+		"workflow_id": w.ID.String(),
+		"node_id":     n.ID.String(),
+	})
+	return nil
 }
 
 // --- Status rules ---------------------------------------------------------
@@ -407,6 +470,12 @@ func (s *Service) SetStatusRule(ctx context.Context, projectID, workflowID uuid.
 			if err := s.repo.UpdateStatusRule(ctx, r); err != nil {
 				return nil, err
 			}
+			s.publish(ctx, events.TopicWorkflowStatusRuleSet, map[string]any{
+				"project_id":  projectID.String(),
+				"workflow_id": w.ID.String(),
+				"rule_id":     r.ID.String(),
+				"status_id":   r.StatusID.String(),
+			})
 			return r, nil
 		}
 	}
@@ -423,6 +492,12 @@ func (s *Service) SetStatusRule(ctx context.Context, projectID, workflowID uuid.
 	if err := s.repo.CreateStatusRule(ctx, r); err != nil {
 		return nil, err
 	}
+	s.publish(ctx, events.TopicWorkflowStatusRuleSet, map[string]any{
+		"project_id":  projectID.String(),
+		"workflow_id": w.ID.String(),
+		"rule_id":     r.ID.String(),
+		"status_id":   r.StatusID.String(),
+	})
 	return r, nil
 }
 
@@ -439,7 +514,15 @@ func (s *Service) RemoveStatusRule(ctx context.Context, projectID, workflowID, r
 	if r.WorkflowID != w.ID {
 		return workflowdom.ErrStatusRuleNotFound
 	}
-	return s.repo.DeleteStatusRule(ctx, r.ID)
+	if err := s.repo.DeleteStatusRule(ctx, r.ID); err != nil {
+		return err
+	}
+	s.publish(ctx, events.TopicWorkflowStatusRuleRemoved, map[string]any{
+		"project_id":  projectID.String(),
+		"workflow_id": w.ID.String(),
+		"rule_id":     r.ID.String(),
+	})
+	return nil
 }
 
 // --- Status transitions ----------------------------------------------------
@@ -477,6 +560,12 @@ func (s *Service) SetStatusTransition(ctx context.Context, projectID, workflowID
 			if err := s.repo.UpdateStatusTransition(ctx, t); err != nil {
 				return nil, err
 			}
+			s.publish(ctx, events.TopicWorkflowStatusTransitionSet, map[string]any{
+				"project_id":    projectID.String(),
+				"workflow_id":   w.ID.String(),
+				"transition_id": t.ID.String(),
+				"status_id":     t.StatusID.String(),
+			})
 			return t, nil
 		}
 	}
@@ -493,6 +582,12 @@ func (s *Service) SetStatusTransition(ctx context.Context, projectID, workflowID
 	if err := s.repo.CreateStatusTransition(ctx, t); err != nil {
 		return nil, err
 	}
+	s.publish(ctx, events.TopicWorkflowStatusTransitionSet, map[string]any{
+		"project_id":    projectID.String(),
+		"workflow_id":   w.ID.String(),
+		"transition_id": t.ID.String(),
+		"status_id":     t.StatusID.String(),
+	})
 	return t, nil
 }
 
@@ -509,7 +604,15 @@ func (s *Service) RemoveStatusTransition(ctx context.Context, projectID, workflo
 	if t.WorkflowID != w.ID {
 		return workflowdom.ErrStatusTransitionNotFound
 	}
-	return s.repo.DeleteStatusTransition(ctx, t.ID)
+	if err := s.repo.DeleteStatusTransition(ctx, t.ID); err != nil {
+		return err
+	}
+	s.publish(ctx, events.TopicWorkflowStatusTransitionRemoved, map[string]any{
+		"project_id":    projectID.String(),
+		"workflow_id":   w.ID.String(),
+		"transition_id": t.ID.String(),
+	})
+	return nil
 }
 
 // --- Edges ----------------------------------------------------------------
@@ -551,6 +654,13 @@ func (s *Service) AddEdge(ctx context.Context, projectID, workflowID uuid.UUID, 
 	if err := s.repo.CreateEdge(ctx, e); err != nil {
 		return nil, err
 	}
+	s.publish(ctx, events.TopicWorkflowEdgeAdded, map[string]any{
+		"project_id":     projectID.String(),
+		"workflow_id":    w.ID.String(),
+		"edge_id":        e.ID.String(),
+		"source_node_id": e.SourceNodeID.String(),
+		"target_node_id": e.TargetNodeID.String(),
+	})
 	return e, nil
 }
 
@@ -567,7 +677,15 @@ func (s *Service) RemoveEdge(ctx context.Context, projectID, workflowID, edgeID 
 	if e.WorkflowID != w.ID {
 		return workflowdom.ErrEdgeNotFound
 	}
-	return s.repo.DeleteEdge(ctx, e.ID)
+	if err := s.repo.DeleteEdge(ctx, e.ID); err != nil {
+		return err
+	}
+	s.publish(ctx, events.TopicWorkflowEdgeRemoved, map[string]any{
+		"project_id":  projectID.String(),
+		"workflow_id": w.ID.String(),
+		"edge_id":     e.ID.String(),
+	})
+	return nil
 }
 
 // --- helpers ----------------------------------------------------------------

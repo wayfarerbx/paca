@@ -208,7 +208,7 @@ func newE2EEnv(t *testing.T) *e2eEnv {
 	activityRepo := pgRepo.NewTaskActivityRepository(db)
 	activityService := tasksvc.NewActivityService(activityRepo, projectRepo, publisher)
 	workflowRepo := pgRepo.NewWorkflowRepository(db)
-	workflowService := workflowsvc.New(workflowRepo, taskRepo, projectRepo)
+	workflowService := workflowsvc.New(workflowRepo, taskRepo, projectRepo, publisher)
 	var attachmentService *attachmentsvc.Service
 	if sharedMinIOEndpoint != "" {
 		minIOEndpoint := sharedMinIOEndpoint
