@@ -379,9 +379,9 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
         llm = build_llm(agent_config)
         # User-configured skills win on a name collision with a default.
         skills = merge_skills_by_name(build_skills(agent_config.skills), load_default_skills())
-        trigger_skill = trigger_skills.get_trigger_skill(trigger.trigger_type, trigger.task_id)
-        if trigger_skill is not None:
-            skills.append(trigger_skill)
+        trigger_skills.append_trigger_skill(
+            skills, trigger.trigger_type, trigger.task_id, trigger.conversation_id
+        )
         mcp_config = build_mcp_config(
             agent_config.mcp_servers, agent_config.agent_id, trigger.project_id
         )

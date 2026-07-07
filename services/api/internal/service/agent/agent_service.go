@@ -335,6 +335,26 @@ func (s *Service) DeleteMCPServer(ctx context.Context, agentID, serverID uuid.UU
 // Skills
 // -------------------------------------------------------------------------
 
+// reservedSkillNames are names the ai-agent service assigns itself, per
+// conversation trigger type, as fixed scaffolding (services/ai-agent/src/agent/trigger_skills.py).
+// They are always appended to an agent's skill list and are not meant to be
+// user-editable; a user-created skill with one of these names would collide
+// and fail conversation setup (AgentContext rejects duplicate skill names).
+// Keep in sync with trigger_skills.py's get_trigger_skill().
+var reservedSkillNames = map[string]bool{
+	"paca-trigger-task-assigned":     true,
+	"paca-trigger-doc-comment":       true,
+	"paca-trigger-chat":              true,
+	"paca-trigger-description-write": true,
+}
+
+func validateSkillName(name string) error {
+	if reservedSkillNames[name] {
+		return agentdom.ErrSkillNameReserved
+	}
+	return nil
+}
+
 // ListSkills returns all skills for the given agent.
 func (s *Service) ListSkills(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentSkill, error) {
 	return s.repo.ListSkills(ctx, agentID)
@@ -342,11 +362,15 @@ func (s *Service) ListSkills(ctx context.Context, agentID uuid.UUID) ([]*agentdo
 
 // AddSkill creates a new skill for the given agent.
 func (s *Service) AddSkill(ctx context.Context, agentID uuid.UUID, in agentdom.AddSkillInput) (*agentdom.AgentSkill, error) {
+	name := strings.TrimSpace(in.SkillName)
+	if err := validateSkillName(name); err != nil {
+		return nil, err
+	}
 	now := time.Now()
 	skill := &agentdom.AgentSkill{
 		ID:           uuid.New(),
 		AgentID:      agentID,
-		SkillName:    strings.TrimSpace(in.SkillName),
+		SkillName:    name,
 		SkillSource:  in.SkillSource,
 		SkillContent: in.SkillContent,
 		SourceURL:    in.SourceURL,

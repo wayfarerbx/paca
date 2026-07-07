@@ -658,10 +658,7 @@ describe("handleWorkflowTool - update_workflow nodes", () => {
 		const client = makeWorkflowClient({
 			getWorkflow: vi.fn().mockResolvedValue(
 				makeGraph({
-					nodes: [
-						makeNode("n1", "e1", 0, 0),
-						makeNode("n2", "e2", step, 0),
-					],
+					nodes: [makeNode("n1", "e1", 0, 0), makeNode("n2", "e2", step, 0)],
 				}),
 			),
 		});
@@ -679,6 +676,40 @@ describe("handleWorkflowTool - update_workflow nodes", () => {
 		expect(result.content[0].text).toContain("Warning:");
 		expect(result.content[0].text).toContain("e1");
 		expect(result.content[0].text).toContain("e2");
+	});
+
+	// Regression test for an edge case in the fix above: a nodes.set entry
+	// that FAILS for a pre-existing node must not vanish from the spacing
+	// check — it still occupies its old (unchanged) position on the canvas,
+	// so that position must still be compared against everything else.
+	it("still checks a pre-existing node's old position when its own reposition attempt fails", async () => {
+		const step = Math.floor(RECOMMENDED_NODE_GAP_X / 2);
+		const client = makeWorkflowClient({
+			getWorkflow: vi.fn().mockResolvedValue(
+				makeGraph({
+					nodes: [makeNode("n1", "t1", 0, 0)],
+				}),
+			),
+			updateWorkflowNode: vi.fn().mockRejectedValue(new Error("boom")),
+		});
+		const result = await handleWorkflowTool(
+			"update_workflow",
+			{
+				projectId: "p1",
+				workflowId: "wf1",
+				nodes: {
+					set: [
+						{ taskId: "t1", posX: 5, posY: 0 },
+						{ taskId: "t2", posX: step, posY: 0 },
+					],
+				},
+			},
+			client,
+		);
+		expect(result.content[0].text).toContain("failed");
+		expect(result.content[0].text).toContain("Warning:");
+		expect(result.content[0].text).toContain("t1");
+		expect(result.content[0].text).toContain("t2");
 	});
 
 	it("removes a node by taskId", async () => {

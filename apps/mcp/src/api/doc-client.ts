@@ -1,7 +1,6 @@
 import type {
 	CreateFolderInput,
 	DocumentActivity,
-	DocumentComment,
 	DocumentFolder,
 	DocumentSnapshot,
 	PacaConfig,
@@ -166,7 +165,7 @@ export class PacaAPIDocClient {
 		projectId: string,
 		docId: string,
 		content: string,
-	): Promise<DocumentComment> {
+	): Promise<DocumentActivity> {
 		const contentBlocks = content ? markdownToBlocknote(content) : null;
 		return this.post(`/api/v1/projects/${projectId}/docs/${docId}/comments`, {
 			content: contentBlocks,
@@ -178,7 +177,7 @@ export class PacaAPIDocClient {
 		docId: string,
 		commentId: string,
 		content: string,
-	): Promise<DocumentComment> {
+	): Promise<DocumentActivity> {
 		const contentBlocks = content ? markdownToBlocknote(content) : null;
 		return this.patch(
 			`/api/v1/projects/${projectId}/docs/${docId}/comments/${commentId}`,

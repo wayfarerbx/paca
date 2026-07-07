@@ -9,7 +9,11 @@ concatenation into the system prompt.
 
 from __future__ import annotations
 
+import logging
+
 from openhands.sdk.context import Skill
+
+logger = logging.getLogger(__name__)
 
 _TASK_PROMPT = (
     "## Current invocation: task assignment or task comment\n\n"
@@ -92,16 +96,47 @@ def get_trigger_skill(trigger_type: str, task_id: str | None) -> Skill | None:
     on its own via <available_skills>.
     """
     if trigger_type == "agent.task_assigned":
-        return Skill(name="trigger-task-assigned", content=_TASK_PROMPT, trigger=None)
+        return Skill(name="paca-trigger-task-assigned", content=_TASK_PROMPT, trigger=None)
     if trigger_type == "agent.comment_mention":
         # task_id is set for task-comment mentions; absent for doc-comment mentions.
         if task_id:
-            return Skill(name="trigger-task-assigned", content=_TASK_PROMPT, trigger=None)
-        return Skill(name="trigger-doc-comment", content=_DOC_COMMENT_PROMPT, trigger=None)
+            return Skill(name="paca-trigger-task-assigned", content=_TASK_PROMPT, trigger=None)
+        return Skill(name="paca-trigger-doc-comment", content=_DOC_COMMENT_PROMPT, trigger=None)
     if trigger_type == "agent.chat_message":
-        return Skill(name="trigger-chat", content=_CHAT_PROMPT, trigger=None)
+        return Skill(name="paca-trigger-chat", content=_CHAT_PROMPT, trigger=None)
     if trigger_type == "agent.description_write":
         return Skill(
-            name="trigger-description-write", content=_DESCRIPTION_WRITE_PROMPT, trigger=None
+            name="paca-trigger-description-write",
+            content=_DESCRIPTION_WRITE_PROMPT,
+            trigger=None,
         )
     return None
+
+
+def append_trigger_skill(
+    skills: list[Skill], trigger_type: str, task_id: str | None, conversation_id: str
+) -> None:
+    """Resolve this conversation's trigger skill and append it to `skills`, in place.
+
+    The API rejects new agent skills named after a reserved trigger skill
+    (see reservedSkillNames in services/api's agent_service.go), but that's
+    enforced at skill-creation time — it can't see conversation state, so it
+    can't stop a collision from happening. Guard here too, as the last line
+    of defense: `AgentContext` hard-errors on ANY duplicate skill name, and a
+    collision would otherwise fail every conversation of this trigger type
+    for the agent. Skip (with a warning) rather than crash — an existing
+    user-configured skill should win, same as it already does against a
+    same-named *default* skill in `merge_skills_by_name`.
+    """
+    trigger_skill = get_trigger_skill(trigger_type, task_id)
+    if trigger_skill is None:
+        return
+    if any(s.name == trigger_skill.name for s in skills):
+        logger.warning(
+            "Conversation %s: skipping trigger skill %r — a configured skill "
+            "already uses this reserved name",
+            conversation_id,
+            trigger_skill.name,
+        )
+        return
+    skills.append(trigger_skill)
