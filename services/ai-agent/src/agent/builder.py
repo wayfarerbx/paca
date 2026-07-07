@@ -31,8 +31,10 @@ def load_default_skills() -> tuple[Skill, ...]:
     disk each time.
     """
     repo_skills, knowledge_skills, agent_skills = load_skills_from_dir(_DEFAULT_SKILLS_DIR)
-    return tuple(repo_skills.values()) + tuple(knowledge_skills.values()) + tuple(
-        agent_skills.values()
+    return (
+        tuple(repo_skills.values())
+        + tuple(knowledge_skills.values())
+        + tuple(agent_skills.values())
     )
 
 
