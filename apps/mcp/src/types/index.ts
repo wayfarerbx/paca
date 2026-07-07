@@ -295,16 +295,10 @@ export interface DocumentActivityListResult {
 }
 
 // ==================== Document Comments ====================
-
-export interface DocumentComment {
-	id: string;
-	document_id: string;
-	user_id: string;
-	user_name: string;
-	content: string;
-	created_at: string;
-	updated_at: string;
-}
+// The API's add/update comment endpoints both respond with the same
+// DocActivityResponse DTO as list-activities (actor_id/actor_name/
+// actor_username, not a separate user_id/user_name shape), so comment
+// methods are typed as DocumentActivity rather than a distinct interface.
 
 // ==================== Project Members ====================
 

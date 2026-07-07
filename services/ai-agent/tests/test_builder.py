@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.agent.builder import build_llm, build_mcp_config, build_skills
+from src.agent.builder import build_llm, build_mcp_config, build_skills, load_default_skills
 from src.models.agent import AgentConfig, AgentMCPServerRow, AgentSkillRow
 
 # ─── Fixtures / helpers ───────────────────────────────────────────────────────
@@ -19,10 +19,6 @@ def _agent_config(
         agent_id="agent-1",
         project_id="proj-1",
         system_prompt=None,
-        task_trigger_prompt="",
-        doc_comment_trigger_prompt="",
-        chat_trigger_prompt="",
-        description_write_trigger_prompt="",
         llm_provider=provider,
         llm_model=model,
         llm_api_key_secret_ref="secret-ref",
@@ -193,6 +189,52 @@ def test_skill_without_triggers_has_no_trigger():
     row = _skill(triggers=[])
     skills = build_skills([row])
     assert skills[0].trigger is None
+
+
+def test_skill_with_triggers_gains_slash_keyword():
+    row = _skill(name="my-skill", triggers=["review"])
+    skills = build_skills([row])
+    assert "/my-skill" in skills[0].trigger.keywords
+    assert "review" in skills[0].trigger.keywords
+
+
+def test_skill_with_triggers_does_not_duplicate_slash_keyword():
+    row = _skill(name="my-skill", triggers=["/my-skill", "review"])
+    skills = build_skills([row])
+    assert skills[0].trigger.keywords.count("/my-skill") == 1
+
+
+# ─── load_default_skills ──────────────────────────────────────────────────────
+
+
+def test_load_default_skills_is_non_empty():
+    skills = load_default_skills()
+    assert len(skills) > 0
+
+
+def test_load_default_skills_paca_is_always_active():
+    skills = load_default_skills()
+    paca = next(s for s in skills if s.name == "paca")
+    assert paca.trigger is None
+    assert paca.is_agentskills_format is False
+
+
+def test_load_default_skills_specialized_skills_are_model_selectable():
+    skills = load_default_skills()
+    paca_do = next(s for s in skills if s.name == "paca-do")
+    assert paca_do.is_agentskills_format is True
+    assert "/paca-do" in paca_do.trigger.keywords
+
+
+def test_load_default_skills_includes_workflow_skill():
+    skills = load_default_skills()
+    paca_workflow = next(s for s in skills if s.name == "paca-workflow")
+    assert paca_workflow.is_agentskills_format is True
+    assert "/paca-workflow" in paca_workflow.trigger.keywords
+
+
+def test_load_default_skills_is_cached():
+    assert load_default_skills() is load_default_skills()
 
 
 # ─── build_mcp_config ─────────────────────────────────────────────────────────

@@ -286,6 +286,28 @@ describe("checkNodeSpacing", () => {
 		checkNodeSpacing(positions);
 		expect(positions).toEqual(snapshot);
 	});
+
+	// Regression coverage for the reported bug: a workflow built across
+	// several update_workflow calls could have two nodes added in different
+	// calls end up too close together (e.g. 250px, under the 300px minimum)
+	// with no warning ever firing, because the two were never in the same
+	// call's `positions` array together. The fix is at the call site (pass
+	// the full graph, not just the nodes this call touches) rather than in
+	// this function, so this just confirms a node newly added to a larger
+	// list is still caught wherever it sits in that list.
+	it("warns when a node anywhere in a larger positions list is too close to another", () => {
+		const gap = Math.floor(RECOMMENDED_NODE_GAP_X / 2);
+		const positions = [
+			{ taskId: "pre-existing", posX: 0, posY: 0 },
+			{ taskId: "unrelated", posX: 10_000, posY: 10_000 },
+			{ taskId: "newly-added", posX: gap, posY: 0 },
+		];
+		const warning = checkNodeSpacing(positions);
+		expect(warning).not.toBeNull();
+		expect(warning).toContain("pre-existing");
+		expect(warning).toContain("newly-added");
+		expect(warning).not.toContain("unrelated");
+	});
 });
 
 // ---------------------------------------------------------------------------

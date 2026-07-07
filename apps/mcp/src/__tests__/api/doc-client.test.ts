@@ -1,4 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("../../utils/index.js", () => ({
+	markdownToBlocknote: vi.fn((md: string) => [
+		{ type: "paragraph", content: [{ type: "text", text: md }] },
+	]),
+}));
+
 import { PacaAPIDocClient } from "../../api/doc-client.js";
 
 const CONFIG = { baseURL: "https://api.example.com", apiKey: "key123" };
@@ -183,24 +190,30 @@ describe("PacaAPIDocClient", () => {
 	// ---------------------------------------------------------------------------
 
 	describe("addDocumentComment", () => {
-		it("calls POST /api/v1/projects/:id/docs/:docId/comments with text field", async () => {
+		it("calls POST /api/v1/projects/:id/docs/:docId/comments with content converted to blocknote blocks", async () => {
 			const client = new PacaAPIDocClient(CONFIG);
 			fetchMock.mockResolvedValue(okEnvelope({ id: "c1" }));
 			await client.addDocumentComment("p1", "doc1", "Hello world");
 			expect(fetchMock.mock.calls[0][0]).toContain("/docs/doc1/comments");
 			expect(fetchMock.mock.calls[0][1].method).toBe("POST");
 			const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-			expect(body.text).toBe("Hello world");
+			expect(body.content).toEqual([
+				{ type: "paragraph", content: [{ type: "text", text: "Hello world" }] },
+			]);
 		});
 	});
 
 	describe("updateDocumentComment", () => {
-		it("calls PATCH /api/v1/projects/:id/docs/:docId/comments/:commentId", async () => {
+		it("calls PATCH /api/v1/projects/:id/docs/:docId/comments/:commentId with content converted to blocknote blocks", async () => {
 			const client = new PacaAPIDocClient(CONFIG);
 			fetchMock.mockResolvedValue(okEnvelope({ id: "c1" }));
 			await client.updateDocumentComment("p1", "doc1", "c1", "Updated");
 			expect(fetchMock.mock.calls[0][0]).toContain("/comments/c1");
 			expect(fetchMock.mock.calls[0][1].method).toBe("PATCH");
+			const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+			expect(body.content).toEqual([
+				{ type: "paragraph", content: [{ type: "text", text: "Updated" }] },
+			]);
 		});
 	});
 

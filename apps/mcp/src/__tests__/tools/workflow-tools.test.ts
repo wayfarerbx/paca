@@ -619,6 +619,99 @@ describe("handleWorkflowTool - update_workflow nodes", () => {
 		expect(result.content[0].text).not.toContain("Warning:");
 	});
 
+	// Regression test for a reported bug: a workflow built across several
+	// update_workflow calls had two nodes end up 250px apart (under the
+	// 300px minimum) with no warning, because the two nodes were never in
+	// the same call's `nodes.set` array together — t1 already existed in
+	// the graph (added by an earlier call); this call only sets t2, close
+	// to t1's *existing* position, so the warning must compare against the
+	// pre-edit graph, not just the nodes this call happens to touch.
+	it("warns when a newly added node is too close to a pre-existing node from an earlier call", async () => {
+		const step = Math.floor(RECOMMENDED_NODE_GAP_X / 2);
+		const client = makeWorkflowClient({
+			getWorkflow: vi.fn().mockResolvedValue(
+				makeGraph({
+					nodes: [makeNode("n1", "t1", 0, 0)],
+				}),
+			),
+		});
+		const result = await handleWorkflowTool(
+			"update_workflow",
+			{
+				projectId: "p1",
+				workflowId: "wf1",
+				nodes: { set: [{ taskId: "t2", posX: step, posY: 0 }] },
+			},
+			client,
+		);
+		expect(client.addWorkflowNode).toHaveBeenCalledTimes(1);
+		expect(result.content[0].text).toContain("Warning:");
+		expect(result.content[0].text).toContain("t1");
+		expect(result.content[0].text).toContain("t2");
+	});
+
+	it("also surfaces pre-existing crowding between two untouched nodes, since the check now covers the whole graph", async () => {
+		// e1/e2 are already crowded before this call and neither is in
+		// nodes.set — checking the full graph (the simpler, chosen design)
+		// means this still gets flagged rather than staying invisible forever.
+		const step = Math.floor(RECOMMENDED_NODE_GAP_X / 2);
+		const client = makeWorkflowClient({
+			getWorkflow: vi.fn().mockResolvedValue(
+				makeGraph({
+					nodes: [makeNode("n1", "e1", 0, 0), makeNode("n2", "e2", step, 0)],
+				}),
+			),
+		});
+		const result = await handleWorkflowTool(
+			"update_workflow",
+			{
+				projectId: "p1",
+				workflowId: "wf1",
+				nodes: {
+					set: [{ taskId: "t3", posX: 10_000, posY: 10_000 }],
+				},
+			},
+			client,
+		);
+		expect(result.content[0].text).toContain("Warning:");
+		expect(result.content[0].text).toContain("e1");
+		expect(result.content[0].text).toContain("e2");
+	});
+
+	// Regression test for an edge case in the fix above: a nodes.set entry
+	// that FAILS for a pre-existing node must not vanish from the spacing
+	// check — it still occupies its old (unchanged) position on the canvas,
+	// so that position must still be compared against everything else.
+	it("still checks a pre-existing node's old position when its own reposition attempt fails", async () => {
+		const step = Math.floor(RECOMMENDED_NODE_GAP_X / 2);
+		const client = makeWorkflowClient({
+			getWorkflow: vi.fn().mockResolvedValue(
+				makeGraph({
+					nodes: [makeNode("n1", "t1", 0, 0)],
+				}),
+			),
+			updateWorkflowNode: vi.fn().mockRejectedValue(new Error("boom")),
+		});
+		const result = await handleWorkflowTool(
+			"update_workflow",
+			{
+				projectId: "p1",
+				workflowId: "wf1",
+				nodes: {
+					set: [
+						{ taskId: "t1", posX: 5, posY: 0 },
+						{ taskId: "t2", posX: step, posY: 0 },
+					],
+				},
+			},
+			client,
+		);
+		expect(result.content[0].text).toContain("failed");
+		expect(result.content[0].text).toContain("Warning:");
+		expect(result.content[0].text).toContain("t1");
+		expect(result.content[0].text).toContain("t2");
+	});
+
 	it("removes a node by taskId", async () => {
 		const client = makeWorkflowClient({
 			getWorkflow: vi

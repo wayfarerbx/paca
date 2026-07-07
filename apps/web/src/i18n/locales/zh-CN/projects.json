@@ -87,14 +87,6 @@
 				"apiKeyUpdateLabel": "更新 API 密钥",
 				"apiKeyUpdateHint": "（留空以保留当前密钥）",
 				"baseUrlLabel": "基础 URL",
-				"triggerPrompts": {
-					"title": "自动附加的触发提示词",
-					"hint": "根据智能体的调用方式，运行时会自动附加到系统提示词中。",
-					"taskAssignment": "任务分配 / 任务评论",
-					"docCommentMention": "文档评论 @提及",
-					"directChat": "直接聊天",
-					"writeDescription": "使用 AI 编写任务描述"
-				},
 				"capabilities": "能力",
 				"cloneRepositories": "克隆代码仓库",
 				"cloneRepositoriesHint": "允许智能体在本地 git clone 代码仓库",

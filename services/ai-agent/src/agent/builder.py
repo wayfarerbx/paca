@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import logging
+from functools import lru_cache
+from pathlib import Path
 
 from openhands.sdk import LLM
 from openhands.sdk.context import KeywordTrigger, Skill
+from openhands.sdk.skills import load_skills_from_dir
 from pydantic import SecretStr
 
 from .. import llm_catalog
@@ -13,6 +16,26 @@ from ..config import settings
 from ..models.agent import AgentConfig, AgentMCPServerRow, AgentSkillRow
 
 logger = logging.getLogger(__name__)
+
+# services/ai-agent/src/skills — bundled into the Docker image by the
+# Dockerfile's existing `COPY src/ ./src/` line.
+_DEFAULT_SKILLS_DIR = Path(__file__).resolve().parent.parent / "skills"
+
+
+@lru_cache(maxsize=1)
+def load_default_skills() -> tuple[Skill, ...]:
+    """Load Paca's default skill set, bundled under src/skills/.
+
+    The directory is static per deployment, so this is cached after the
+    first call — safe to call on every conversation without re-parsing
+    disk each time.
+    """
+    repo_skills, knowledge_skills, agent_skills = load_skills_from_dir(_DEFAULT_SKILLS_DIR)
+    return (
+        tuple(repo_skills.values())
+        + tuple(knowledge_skills.values())
+        + tuple(agent_skills.values())
+    )
 
 
 def build_llm(agent_config: AgentConfig) -> LLM:
@@ -51,13 +74,27 @@ def build_llm(agent_config: AgentConfig) -> LLM:
 
 
 def build_skills(db_skills: list[AgentSkillRow]) -> list[Skill]:
-    """Convert DB skill rows into OpenHands SDK Skill objects."""
+    """Convert DB skill rows into OpenHands SDK Skill objects.
+
+    A skill with no configured triggers keeps `trigger=None` (always-active,
+    matching existing behavior) rather than gaining a slash keyword — slash
+    invocation only makes sense for skills that were already opted into
+    trigger-based (on-demand) activation, since an always-active skill's
+    content is already in context on every turn.
+    """
     result = []
     for row in db_skills:
         if not row.is_enabled:
             continue
-        trigger = KeywordTrigger(keywords=row.triggers) if row.triggers else None
         content = row.skill_content or ""
+        if row.triggers:
+            keywords = list(row.triggers)
+            slash = f"/{row.skill_name}"
+            if slash not in keywords:
+                keywords.append(slash)
+            trigger = KeywordTrigger(keywords=keywords)
+        else:
+            trigger = None
         result.append(Skill(name=row.skill_name, content=content, trigger=trigger))
     return result
 

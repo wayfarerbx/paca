@@ -4,10 +4,23 @@ from __future__ import annotations
 
 from ..core.streams import TriggerMessage
 
+_ACTION_TYPE_LABELS = {
+    "agent.task_assigned": "Task assignment",
+    "agent.chat_message": "Direct chat message",
+    "agent.description_write": "Write task description",
+}
+
+
+def _action_type_label(trigger: TriggerMessage) -> str:
+    if trigger.trigger_type == "agent.comment_mention":
+        # task_id is set for task-comment mentions; absent for doc-comment mentions.
+        return "Task comment mention" if trigger.task_id else "Document comment mention"
+    return _ACTION_TYPE_LABELS.get(trigger.trigger_type, trigger.trigger_type)
+
 
 def build_initial_prompt(trigger: TriggerMessage, all_repos: list[dict] | None = None) -> str:
     """Construct the first message sent to the agent."""
-    lines = [trigger.message]
+    lines = [f"Action type: {_action_type_label(trigger)}", "", trigger.message]
     if trigger.task_id:
         lines.append(f"\nTask ID: {trigger.task_id}")
     if trigger.comment_id:

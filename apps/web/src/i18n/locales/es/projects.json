@@ -87,14 +87,6 @@
 				"apiKeyUpdateLabel": "Actualización de clave de API",
 				"apiKeyUpdateHint": "(deja en blanco para mantener la actual)",
 				"baseUrlLabel": "URL base",
-				"triggerPrompts": {
-					"title": "Prompts de activación añadidos automáticamente",
-					"hint": "Se añaden automáticamente al prompt del sistema en tiempo de ejecución según cómo se invoque al agente.",
-					"taskAssignment": "Asignación de tarea / comentario de tarea",
-					"docCommentMention": "Mención @ en comentario de documentación",
-					"directChat": "Chat directo",
-					"writeDescription": "Redactar descripción de tarea con IA"
-				},
 				"capabilities": "Capacidades",
 				"cloneRepositories": "Clonar repositorios",
 				"cloneRepositoriesHint": "Permitir que el agente clone repositorios localmente con git",

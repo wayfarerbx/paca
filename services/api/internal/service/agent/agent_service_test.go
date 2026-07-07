@@ -742,6 +742,39 @@ func TestAddSkill_Success(t *testing.T) {
 	assert.Equal(t, "Test Skill", result.SkillName)
 }
 
+func TestAddSkill_ReservedName_ReturnsError(t *testing.T) {
+	reservedNames := []string{
+		"paca-trigger-task-assigned",
+		"paca-trigger-doc-comment",
+		"paca-trigger-chat",
+		"paca-trigger-description-write",
+	}
+
+	for _, name := range reservedNames {
+		t.Run(name, func(t *testing.T) {
+			agentID := uuid.New()
+			repo := &mockAgentRepo{
+				createSkill: func(_ context.Context, _ *agentdom.AgentSkill) error {
+					t.Fatal("createSkill should not be called for a reserved name")
+					return nil
+				},
+			}
+			projRepo := &mockProjectRepo{}
+			pluginRepo := &mockPluginRepo{}
+			svc := New(repo, projRepo, nil, pluginRepo)
+
+			result, err := svc.AddSkill(context.Background(), agentID, agentdom.AddSkillInput{
+				SkillName:    name,
+				SkillSource:  "file",
+				SkillContent: "skill content",
+			})
+
+			assert.Nil(t, result)
+			assert.ErrorIs(t, err, agentdom.ErrSkillNameReserved)
+		})
+	}
+}
+
 func TestGetConversation_Success(t *testing.T) {
 	projectID := uuid.New()
 	conversationID := uuid.New()

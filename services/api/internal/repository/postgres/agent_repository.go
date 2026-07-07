@@ -18,31 +18,27 @@ import (
 // -------------------------------------------------------------------------
 
 type agentRecord struct {
-	ID                            string     `db:"id"`
-	ProjectID                     string     `db:"project_id"`
-	Name                          string     `db:"name"`
-	Handle                        string     `db:"handle"`
-	AvatarURL                     *string    `db:"avatar_url"`
-	LLMProvider                   string     `db:"llm_provider"`
-	LLMModel                      string     `db:"llm_model"`
-	LLMAPIKeySecret               string     `db:"llm_api_key_secret"`
-	LLMBaseURL                    string     `db:"llm_base_url"`
-	SystemPrompt                  string     `db:"system_prompt"`
-	TaskTriggerPrompt             string     `db:"task_trigger_prompt"`
-	DocCommentTriggerPrompt       string     `db:"doc_comment_trigger_prompt"`
-	ChatTriggerPrompt             string     `db:"chat_trigger_prompt"`
-	DescriptionWriteTriggerPrompt string     `db:"description_write_trigger_prompt"`
-	CanCloneRepos                 bool       `db:"can_clone_repos"`
-	CanCreatePRs                  bool       `db:"can_create_prs"`
-	MaxIterations                 int        `db:"max_iterations"`
-	TimeoutMinutes                int        `db:"timeout_minutes"`
-	GitCommitterName              string     `db:"git_committer_name"`
-	GitCommitterEmail             string     `db:"git_committer_email"`
-	CreatedBy                     *string    `db:"created_by"`
-	CreatedAt                     time.Time  `db:"created_at"`
-	UpdatedAt                     time.Time  `db:"updated_at"`
-	DeletedAt                     *time.Time `db:"deleted_at"`
-	MemberID                      *string    `db:"member_id"` // populated when joining with project_members
+	ID                string     `db:"id"`
+	ProjectID         string     `db:"project_id"`
+	Name              string     `db:"name"`
+	Handle            string     `db:"handle"`
+	AvatarURL         *string    `db:"avatar_url"`
+	LLMProvider       string     `db:"llm_provider"`
+	LLMModel          string     `db:"llm_model"`
+	LLMAPIKeySecret   string     `db:"llm_api_key_secret"`
+	LLMBaseURL        string     `db:"llm_base_url"`
+	SystemPrompt      string     `db:"system_prompt"`
+	CanCloneRepos     bool       `db:"can_clone_repos"`
+	CanCreatePRs      bool       `db:"can_create_prs"`
+	MaxIterations     int        `db:"max_iterations"`
+	TimeoutMinutes    int        `db:"timeout_minutes"`
+	GitCommitterName  string     `db:"git_committer_name"`
+	GitCommitterEmail string     `db:"git_committer_email"`
+	CreatedBy         *string    `db:"created_by"`
+	CreatedAt         time.Time  `db:"created_at"`
+	UpdatedAt         time.Time  `db:"updated_at"`
+	DeletedAt         *time.Time `db:"deleted_at"`
+	MemberID          *string    `db:"member_id"` // populated when joining with project_members
 }
 
 type agentMCPServerRecord struct {
@@ -142,8 +138,7 @@ func NewAgentRepository(db *sqlx.DB) *AgentRepository {
 }
 
 const agentSelectCols = `a.id, a.project_id, a.name, a.handle, a.avatar_url, a.llm_provider, a.llm_model,
-	a.llm_api_key_secret, a.llm_base_url, a.system_prompt, a.task_trigger_prompt,
-	a.doc_comment_trigger_prompt, a.chat_trigger_prompt, a.description_write_trigger_prompt,
+	a.llm_api_key_secret, a.llm_base_url, a.system_prompt,
 	a.can_clone_repos, a.can_create_prs, a.max_iterations, a.timeout_minutes,
 	a.git_committer_name, a.git_committer_email, a.created_by, a.created_at, a.updated_at, a.deleted_at,
 	pm.id AS member_id`
@@ -228,15 +223,13 @@ func (r *AgentRepository) CreateAgent(ctx context.Context, a *agentdom.Agent) er
 	rec := agentToRecord(a)
 	_, err := r.db.ExecContext(ctx, `
 		INSERT INTO agents (id, project_id, name, handle, avatar_url, llm_provider, llm_model,
-		  llm_api_key_secret, llm_base_url, system_prompt, task_trigger_prompt,
-		  doc_comment_trigger_prompt, chat_trigger_prompt, description_write_trigger_prompt,
+		  llm_api_key_secret, llm_base_url, system_prompt,
 		  can_clone_repos, can_create_prs, max_iterations, timeout_minutes,
 		  git_committer_name, git_committer_email, created_by, created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
 		rec.ID, rec.ProjectID, rec.Name, rec.Handle, rec.AvatarURL,
 		rec.LLMProvider, rec.LLMModel, rec.LLMAPIKeySecret, rec.LLMBaseURL,
-		rec.SystemPrompt, rec.TaskTriggerPrompt, rec.DocCommentTriggerPrompt,
-		rec.ChatTriggerPrompt, rec.DescriptionWriteTriggerPrompt,
+		rec.SystemPrompt,
 		rec.CanCloneRepos, rec.CanCreatePRs, rec.MaxIterations, rec.TimeoutMinutes,
 		rec.GitCommitterName, rec.GitCommitterEmail, rec.CreatedBy, rec.CreatedAt, rec.UpdatedAt,
 	)
@@ -251,14 +244,12 @@ func (r *AgentRepository) UpdateAgent(ctx context.Context, a *agentdom.Agent) er
 		_, err := tx.ExecContext(ctx, `
 			UPDATE agents SET
 			  name=$1, handle=$2, avatar_url=$3, llm_provider=$4, llm_model=$5, llm_base_url=$6,
-			  system_prompt=$7, task_trigger_prompt=$8, doc_comment_trigger_prompt=$9,
-			  chat_trigger_prompt=$10, description_write_trigger_prompt=$11,
-			  can_clone_repos=$12, can_create_prs=$13, max_iterations=$14, timeout_minutes=$15,
-			  git_committer_name=$16, git_committer_email=$17, updated_at=$18
-			WHERE id=$19`,
+			  system_prompt=$7,
+			  can_clone_repos=$8, can_create_prs=$9, max_iterations=$10, timeout_minutes=$11,
+			  git_committer_name=$12, git_committer_email=$13, updated_at=$14
+			WHERE id=$15`,
 			a.Name, a.Handle, a.AvatarURL, a.LLMProvider, a.LLMModel, a.LLMBaseURL,
-			a.SystemPrompt, a.TaskTriggerPrompt, a.DocCommentTriggerPrompt,
-			a.ChatTriggerPrompt, a.DescriptionWriteTriggerPrompt,
+			a.SystemPrompt,
 			a.CanCloneRepos, a.CanCreatePRs, a.MaxIterations, a.TimeoutMinutes,
 			a.GitCommitterName, a.GitCommitterEmail, time.Now(), a.ID.String(),
 		)
@@ -291,15 +282,13 @@ func (r *AgentRepository) CreateAgentWithMembership(ctx context.Context, a *agen
 		rec := agentToRecord(a)
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO agents (id, project_id, name, handle, avatar_url, llm_provider, llm_model,
-			  llm_api_key_secret, llm_base_url, system_prompt, task_trigger_prompt,
-			  doc_comment_trigger_prompt, chat_trigger_prompt, description_write_trigger_prompt,
+			  llm_api_key_secret, llm_base_url, system_prompt,
 			  can_clone_repos, can_create_prs, max_iterations, timeout_minutes,
 			  git_committer_name, git_committer_email, created_by, created_at, updated_at)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)`,
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
 			rec.ID, rec.ProjectID, rec.Name, rec.Handle, rec.AvatarURL,
 			rec.LLMProvider, rec.LLMModel, rec.LLMAPIKeySecret, rec.LLMBaseURL,
-			rec.SystemPrompt, rec.TaskTriggerPrompt, rec.DocCommentTriggerPrompt,
-			rec.ChatTriggerPrompt, rec.DescriptionWriteTriggerPrompt,
+			rec.SystemPrompt,
 			rec.CanCloneRepos, rec.CanCreatePRs, rec.MaxIterations, rec.TimeoutMinutes,
 			rec.GitCommitterName, rec.GitCommitterEmail, rec.CreatedBy, rec.CreatedAt, rec.UpdatedAt,
 		)
@@ -765,29 +754,25 @@ func (r *AgentRepository) UpdateChatSession(ctx context.Context, s *agentdom.Age
 
 func agentFromReadRow(row agentRecord) *agentdom.Agent {
 	a := &agentdom.Agent{
-		ID:                            mustParseUUID(row.ID),
-		ProjectID:                     mustParseUUID(row.ProjectID),
-		Name:                          row.Name,
-		Handle:                        row.Handle,
-		AvatarURL:                     row.AvatarURL,
-		LLMProvider:                   row.LLMProvider,
-		LLMModel:                      row.LLMModel,
-		LLMAPIKeySecret:               row.LLMAPIKeySecret,
-		LLMBaseURL:                    row.LLMBaseURL,
-		SystemPrompt:                  row.SystemPrompt,
-		TaskTriggerPrompt:             row.TaskTriggerPrompt,
-		DocCommentTriggerPrompt:       row.DocCommentTriggerPrompt,
-		ChatTriggerPrompt:             row.ChatTriggerPrompt,
-		DescriptionWriteTriggerPrompt: row.DescriptionWriteTriggerPrompt,
-		CanCloneRepos:                 row.CanCloneRepos,
-		CanCreatePRs:                  row.CanCreatePRs,
-		MaxIterations:                 row.MaxIterations,
-		TimeoutMinutes:                row.TimeoutMinutes,
-		GitCommitterName:              row.GitCommitterName,
-		GitCommitterEmail:             row.GitCommitterEmail,
-		CreatedAt:                     row.CreatedAt,
-		UpdatedAt:                     row.UpdatedAt,
-		DeletedAt:                     row.DeletedAt,
+		ID:                mustParseUUID(row.ID),
+		ProjectID:         mustParseUUID(row.ProjectID),
+		Name:              row.Name,
+		Handle:            row.Handle,
+		AvatarURL:         row.AvatarURL,
+		LLMProvider:       row.LLMProvider,
+		LLMModel:          row.LLMModel,
+		LLMAPIKeySecret:   row.LLMAPIKeySecret,
+		LLMBaseURL:        row.LLMBaseURL,
+		SystemPrompt:      row.SystemPrompt,
+		CanCloneRepos:     row.CanCloneRepos,
+		CanCreatePRs:      row.CanCreatePRs,
+		MaxIterations:     row.MaxIterations,
+		TimeoutMinutes:    row.TimeoutMinutes,
+		GitCommitterName:  row.GitCommitterName,
+		GitCommitterEmail: row.GitCommitterEmail,
+		CreatedAt:         row.CreatedAt,
+		UpdatedAt:         row.UpdatedAt,
+		DeletedAt:         row.DeletedAt,
 	}
 	if row.CreatedBy != nil {
 		id := mustParseUUID(*row.CreatedBy)
@@ -802,28 +787,24 @@ func agentFromReadRow(row agentRecord) *agentdom.Agent {
 
 func agentToRecord(a *agentdom.Agent) agentRecord {
 	rec := agentRecord{
-		ID:                            a.ID.String(),
-		ProjectID:                     a.ProjectID.String(),
-		Name:                          a.Name,
-		Handle:                        a.Handle,
-		AvatarURL:                     a.AvatarURL,
-		LLMProvider:                   a.LLMProvider,
-		LLMModel:                      a.LLMModel,
-		LLMAPIKeySecret:               a.LLMAPIKeySecret,
-		LLMBaseURL:                    a.LLMBaseURL,
-		SystemPrompt:                  a.SystemPrompt,
-		TaskTriggerPrompt:             a.TaskTriggerPrompt,
-		DocCommentTriggerPrompt:       a.DocCommentTriggerPrompt,
-		ChatTriggerPrompt:             a.ChatTriggerPrompt,
-		DescriptionWriteTriggerPrompt: a.DescriptionWriteTriggerPrompt,
-		CanCloneRepos:                 a.CanCloneRepos,
-		CanCreatePRs:                  a.CanCreatePRs,
-		MaxIterations:                 a.MaxIterations,
-		TimeoutMinutes:                a.TimeoutMinutes,
-		GitCommitterName:              a.GitCommitterName,
-		GitCommitterEmail:             a.GitCommitterEmail,
-		CreatedAt:                     a.CreatedAt,
-		UpdatedAt:                     a.UpdatedAt,
+		ID:                a.ID.String(),
+		ProjectID:         a.ProjectID.String(),
+		Name:              a.Name,
+		Handle:            a.Handle,
+		AvatarURL:         a.AvatarURL,
+		LLMProvider:       a.LLMProvider,
+		LLMModel:          a.LLMModel,
+		LLMAPIKeySecret:   a.LLMAPIKeySecret,
+		LLMBaseURL:        a.LLMBaseURL,
+		SystemPrompt:      a.SystemPrompt,
+		CanCloneRepos:     a.CanCloneRepos,
+		CanCreatePRs:      a.CanCreatePRs,
+		MaxIterations:     a.MaxIterations,
+		TimeoutMinutes:    a.TimeoutMinutes,
+		GitCommitterName:  a.GitCommitterName,
+		GitCommitterEmail: a.GitCommitterEmail,
+		CreatedAt:         a.CreatedAt,
+		UpdatedAt:         a.UpdatedAt,
 	}
 	if a.CreatedBy != nil {
 		s := a.CreatedBy.String()

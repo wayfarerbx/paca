@@ -13,6 +13,10 @@ import {
 	handleAttachmentTool,
 } from "./attachment-tools.js";
 import {
+	getDocActivityTools,
+	handleDocActivityTool,
+} from "./doc-activity-tools.js";
+import {
 	getFilesystemDocTools,
 	handleFilesystemDocTool,
 } from "./filesystem-doc-tools.js";
@@ -60,6 +64,7 @@ export function getAllTools(): Tool[] {
 		...getTaskActivityTools(),
 		...getTaskLinkTools(),
 		...getWorkflowTools(),
+		...getDocActivityTools(),
 	];
 }
 
@@ -225,6 +230,16 @@ export async function handleToolCall(
 			name === "delete_workflow"
 		) {
 			return handleWorkflowTool(name, args, clients.workflowClient);
+		}
+
+		// Document activity tools
+		if (
+			name === "list_doc_activities" ||
+			name === "add_doc_comment" ||
+			name === "update_doc_comment" ||
+			name === "delete_doc_comment"
+		) {
+			return handleDocActivityTool(name, args, clients.docClient);
 		}
 
 		throw new Error(`Unknown tool: ${name}`);

@@ -14,10 +14,10 @@ You are clarifying a task or specification in Paca. Use Paca MCP tools throughou
 
 1. Resolve the target from the user's message:
    - `#42` or `ABC-42` → `get_task_by_number`
-   - Paca URL → parse IDs → `get_task` or `get_document`
-   - Doc title / keyword → `list_documents` → `get_document`
+   - Paca task URL → parse the task ID → `get_task`
+   - Doc title / keyword / path → `list_docs` → `read_doc`
    - **If the task or document is not found**, tell the user clearly ("Task #99 was not found in project X") and ask them to verify the reference.
-2. Call `list_documents` and read documents that provide context for this task — requirements, architecture, BDD scenarios, prior decisions. Reading broadly here means you won't ask questions the docs already answer.
+2. Call `list_docs` and read documents that provide context for this task — requirements, architecture, BDD scenarios, prior decisions. Reading broadly here means you won't ask questions the docs already answer.
 3. If it's a task, call `list_task_activities` to read prior comments, decisions, and any clarifications already given.
 
 ## Step 2 — Identify ambiguities
@@ -52,7 +52,7 @@ Present a numbered list of at most 6 questions, grouped by theme (scope / edge c
 
 Once the user answers:
 - **Task**: call `update_task` with an improved description including explicit acceptance criteria. Don't just append — rewrite the description so it stands alone without this conversation.
-- **Document**: call `update_document` with the resolved content and any new decisions recorded as a "Decisions" section.
+- **Document**: call `write_doc` with the resolved content and any new decisions recorded as a "Decisions" section.
 
 Do not create a new document — update the existing one.
 
@@ -69,6 +69,6 @@ Report back: what was clarified and the task/doc number and title that was updat
 ## Tool reference
 
 **Tasks:** `get_task` · `get_task_by_number` · `update_task` · `list_tasks`  
-**Comments:** `list_task_activities`  
-**Documents:** `get_document` · `update_document` · `list_documents`  
+**Comments:** `add_task_comment` · `list_task_activities` · `add_doc_comment` · `list_doc_activities`  
+**Documents:** `read_doc` · `write_doc` · `list_docs`  
 **Projects:** `list_projects`

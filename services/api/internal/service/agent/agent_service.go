@@ -99,28 +99,24 @@ func (s *Service) CreateAgent(ctx context.Context, projectID uuid.UUID, in agent
 
 	now := time.Now()
 	a := &agentdom.Agent{
-		ID:                            uuid.New(),
-		ProjectID:                     projectID,
-		Name:                          name,
-		Handle:                        handle,
-		LLMProvider:                   in.LLMProvider,
-		LLMModel:                      in.LLMModel,
-		LLMAPIKeySecret:               encryptedKey,
-		LLMBaseURL:                    in.LLMBaseURL,
-		SystemPrompt:                  in.SystemPrompt,
-		TaskTriggerPrompt:             in.TaskTriggerPrompt,
-		DocCommentTriggerPrompt:       in.DocCommentTriggerPrompt,
-		ChatTriggerPrompt:             in.ChatTriggerPrompt,
-		DescriptionWriteTriggerPrompt: in.DescriptionWriteTriggerPrompt,
-		CanCloneRepos:                 in.CanCloneRepos,
-		CanCreatePRs:                  in.CanCreatePRs,
-		MaxIterations:                 in.MaxIterations,
-		TimeoutMinutes:                in.TimeoutMinutes,
-		GitCommitterName:              in.GitCommitterName,
-		GitCommitterEmail:             in.GitCommitterEmail,
-		CreatedBy:                     in.CreatedBy,
-		CreatedAt:                     now,
-		UpdatedAt:                     now,
+		ID:                uuid.New(),
+		ProjectID:         projectID,
+		Name:              name,
+		Handle:            handle,
+		LLMProvider:       in.LLMProvider,
+		LLMModel:          in.LLMModel,
+		LLMAPIKeySecret:   encryptedKey,
+		LLMBaseURL:        in.LLMBaseURL,
+		SystemPrompt:      in.SystemPrompt,
+		CanCloneRepos:     in.CanCloneRepos,
+		CanCreatePRs:      in.CanCreatePRs,
+		MaxIterations:     in.MaxIterations,
+		TimeoutMinutes:    in.TimeoutMinutes,
+		GitCommitterName:  in.GitCommitterName,
+		GitCommitterEmail: in.GitCommitterEmail,
+		CreatedBy:         in.CreatedBy,
+		CreatedAt:         now,
+		UpdatedAt:         now,
 	}
 	const maxIterationsLimit = 500
 	const defaultMaxIterations = 500
@@ -193,18 +189,6 @@ func (s *Service) UpdateAgent(ctx context.Context, projectID, agentID uuid.UUID,
 	}
 	if in.SystemPrompt != nil {
 		a.SystemPrompt = *in.SystemPrompt
-	}
-	if in.TaskTriggerPrompt != nil {
-		a.TaskTriggerPrompt = *in.TaskTriggerPrompt
-	}
-	if in.DocCommentTriggerPrompt != nil {
-		a.DocCommentTriggerPrompt = *in.DocCommentTriggerPrompt
-	}
-	if in.ChatTriggerPrompt != nil {
-		a.ChatTriggerPrompt = *in.ChatTriggerPrompt
-	}
-	if in.DescriptionWriteTriggerPrompt != nil {
-		a.DescriptionWriteTriggerPrompt = *in.DescriptionWriteTriggerPrompt
 	}
 	if in.CanCloneRepos != nil {
 		a.CanCloneRepos = *in.CanCloneRepos
@@ -351,6 +335,26 @@ func (s *Service) DeleteMCPServer(ctx context.Context, agentID, serverID uuid.UU
 // Skills
 // -------------------------------------------------------------------------
 
+// reservedSkillNames are names the ai-agent service assigns itself, per
+// conversation trigger type, as fixed scaffolding (services/ai-agent/src/agent/trigger_skills.py).
+// They are always appended to an agent's skill list and are not meant to be
+// user-editable; a user-created skill with one of these names would collide
+// and fail conversation setup (AgentContext rejects duplicate skill names).
+// Keep in sync with trigger_skills.py's get_trigger_skill().
+var reservedSkillNames = map[string]bool{
+	"paca-trigger-task-assigned":     true,
+	"paca-trigger-doc-comment":       true,
+	"paca-trigger-chat":              true,
+	"paca-trigger-description-write": true,
+}
+
+func validateSkillName(name string) error {
+	if reservedSkillNames[name] {
+		return agentdom.ErrSkillNameReserved
+	}
+	return nil
+}
+
 // ListSkills returns all skills for the given agent.
 func (s *Service) ListSkills(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentSkill, error) {
 	return s.repo.ListSkills(ctx, agentID)
@@ -358,11 +362,15 @@ func (s *Service) ListSkills(ctx context.Context, agentID uuid.UUID) ([]*agentdo
 
 // AddSkill creates a new skill for the given agent.
 func (s *Service) AddSkill(ctx context.Context, agentID uuid.UUID, in agentdom.AddSkillInput) (*agentdom.AgentSkill, error) {
+	name := strings.TrimSpace(in.SkillName)
+	if err := validateSkillName(name); err != nil {
+		return nil, err
+	}
 	now := time.Now()
 	skill := &agentdom.AgentSkill{
 		ID:           uuid.New(),
 		AgentID:      agentID,
-		SkillName:    strings.TrimSpace(in.SkillName),
+		SkillName:    name,
 		SkillSource:  in.SkillSource,
 		SkillContent: in.SkillContent,
 		SourceURL:    in.SourceURL,

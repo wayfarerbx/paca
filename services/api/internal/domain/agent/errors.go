@@ -19,8 +19,9 @@ var (
 
 // Skill errors
 var (
-	ErrSkillNotFound  = errors.New("skill not found")
-	ErrSkillNameTaken = errors.New("skill name already in use on this agent")
+	ErrSkillNotFound     = errors.New("skill not found")
+	ErrSkillNameTaken    = errors.New("skill name already in use on this agent")
+	ErrSkillNameReserved = errors.New("skill name is reserved for internal agent scaffolding")
 )
 
 // Environment variable errors

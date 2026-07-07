@@ -264,6 +264,8 @@ const (
 	CodeAgentMCPServerNotFound Code = "AGENT_MCP_SERVER_NOT_FOUND"
 	// CodeAgentSkillNotFound indicates the requested skill does not exist.
 	CodeAgentSkillNotFound Code = "AGENT_SKILL_NOT_FOUND"
+	// CodeAgentSkillNameReserved indicates the skill name collides with a name reserved for internal agent scaffolding.
+	CodeAgentSkillNameReserved Code = "AGENT_SKILL_NAME_RESERVED"
 	// CodeAgentConversationNotFound indicates the requested conversation does not exist.
 	CodeAgentConversationNotFound Code = "AGENT_CONVERSATION_NOT_FOUND"
 	// CodeAgentConversationNotRunning indicates the conversation is not in a runnable state.

@@ -763,9 +763,35 @@ async function handleWorkflowToolInner(
 						if (block) lines.push(block);
 					}
 
-					const spacingWarning = checkNodeSpacing(
-						successfullyPositionedNodes(nodes?.set, nodesResult.set),
+					// Check the newly set nodes against the FULL graph — not just
+					// against each other — so a node added in an earlier
+					// update_workflow call still gets caught (see checkNodeSpacing's
+					// doc comment for why this matters). A node is only excluded
+					// from its OLD position when it was removed or successfully
+					// repositioned this call — a nodes.set entry that FAILS for a
+					// pre-existing node (e.g. an invalid taskId) must not vanish
+					// from the check entirely; it keeps its old, still-current
+					// position instead.
+					const removedTaskIds = new Set(nodes?.remove ?? []);
+					const newlyPositioned = successfullyPositionedNodes(
+						nodes?.set,
+						nodesResult.set,
 					);
+					const successfulTaskIds = new Set(
+						newlyPositioned.map((n) => n.taskId),
+					);
+					const remainingAtOldPosition: PositionedNode[] = graph.nodes
+						.filter(
+							(n) =>
+								!successfulTaskIds.has(n.task_id) &&
+								!removedTaskIds.has(n.task_id),
+						)
+						.map((n) => ({ taskId: n.task_id, posX: n.pos_x, posY: n.pos_y }));
+
+					const spacingWarning = checkNodeSpacing([
+						...remainingAtOldPosition,
+						...newlyPositioned,
+					]);
 					if (spacingWarning) lines.push(spacingWarning);
 
 					if (

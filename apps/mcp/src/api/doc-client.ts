@@ -1,13 +1,13 @@
 import type {
 	CreateFolderInput,
 	DocumentActivity,
-	DocumentComment,
 	DocumentFolder,
 	DocumentSnapshot,
 	PacaConfig,
 	SuccessEnvelope,
 	UpdateFolderInput,
 } from "../types/index.js";
+import { markdownToBlocknote } from "../utils/index.js";
 
 /**
  * Extended API client for Document features.
@@ -165,9 +165,10 @@ export class PacaAPIDocClient {
 		projectId: string,
 		docId: string,
 		content: string,
-	): Promise<DocumentComment> {
+	): Promise<DocumentActivity> {
+		const contentBlocks = content ? markdownToBlocknote(content) : null;
 		return this.post(`/api/v1/projects/${projectId}/docs/${docId}/comments`, {
-			text: content,
+			content: contentBlocks,
 		});
 	}
 
@@ -176,10 +177,11 @@ export class PacaAPIDocClient {
 		docId: string,
 		commentId: string,
 		content: string,
-	): Promise<DocumentComment> {
+	): Promise<DocumentActivity> {
+		const contentBlocks = content ? markdownToBlocknote(content) : null;
 		return this.patch(
 			`/api/v1/projects/${projectId}/docs/${docId}/comments/${commentId}`,
-			{ text: content },
+			{ content: contentBlocks },
 		);
 	}
 

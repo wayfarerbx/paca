@@ -87,14 +87,6 @@
 				"apiKeyUpdateLabel": "Mise à jour de la clé API",
 				"apiKeyUpdateHint": "(laisser vide pour conserver l'actuelle)",
 				"baseUrlLabel": "URL de base",
-				"triggerPrompts": {
-					"title": "Invites de déclenchement ajoutées automatiquement",
-					"hint": "Ajoutées automatiquement à l'invite système au moment de l'exécution, selon la manière dont l'agent est invoqué.",
-					"taskAssignment": "Attribution de tâche / commentaire de tâche",
-					"docCommentMention": "Mention @ dans un commentaire de documentation",
-					"directChat": "Discussion directe",
-					"writeDescription": "Rédaction de description de tâche avec l'IA"
-				},
 				"capabilities": "Capacités",
 				"cloneRepositories": "Cloner des dépôts",
 				"cloneRepositoriesHint": "Autoriser l'agent à cloner des dépôts git localement",
