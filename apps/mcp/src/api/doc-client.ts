@@ -8,6 +8,7 @@ import type {
 	SuccessEnvelope,
 	UpdateFolderInput,
 } from "../types/index.js";
+import { markdownToBlocknote } from "../utils/index.js";
 
 /**
  * Extended API client for Document features.
@@ -166,8 +167,9 @@ export class PacaAPIDocClient {
 		docId: string,
 		content: string,
 	): Promise<DocumentComment> {
+		const contentBlocks = content ? markdownToBlocknote(content) : null;
 		return this.post(`/api/v1/projects/${projectId}/docs/${docId}/comments`, {
-			text: content,
+			content: contentBlocks,
 		});
 	}
 
@@ -177,9 +179,10 @@ export class PacaAPIDocClient {
 		commentId: string,
 		content: string,
 	): Promise<DocumentComment> {
+		const contentBlocks = content ? markdownToBlocknote(content) : null;
 		return this.patch(
 			`/api/v1/projects/${projectId}/docs/${docId}/comments/${commentId}`,
-			{ text: content },
+			{ content: contentBlocks },
 		);
 	}
 

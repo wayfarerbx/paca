@@ -7,7 +7,7 @@ from src.core.streams import TriggerMessage
 def _trigger(**kwargs) -> TriggerMessage:
     defaults = dict(
         stream_id="1-1",
-        trigger_type="task_assigned",
+        trigger_type="agent.task_assigned",
         conversation_id="conv-123",
         agent_id="agent-456",
         project_id="proj-789",
@@ -24,6 +24,35 @@ def _trigger(**kwargs) -> TriggerMessage:
 def test_message_included():
     result = build_initial_prompt(_trigger(message="Do something"))
     assert "Do something" in result
+
+
+def test_action_type_task_assigned():
+    result = build_initial_prompt(_trigger(trigger_type="agent.task_assigned"))
+    assert "Action type: Task assignment" in result
+
+
+def test_action_type_task_comment_mention():
+    result = build_initial_prompt(
+        _trigger(trigger_type="agent.comment_mention", task_id="task-1")
+    )
+    assert "Action type: Task comment mention" in result
+
+
+def test_action_type_doc_comment_mention():
+    result = build_initial_prompt(
+        _trigger(trigger_type="agent.comment_mention", task_id=None)
+    )
+    assert "Action type: Document comment mention" in result
+
+
+def test_action_type_chat_message():
+    result = build_initial_prompt(_trigger(trigger_type="agent.chat_message"))
+    assert "Action type: Direct chat message" in result
+
+
+def test_action_type_description_write():
+    result = build_initial_prompt(_trigger(trigger_type="agent.description_write"))
+    assert "Action type: Write task description" in result
 
 
 def test_task_id_included_when_set():

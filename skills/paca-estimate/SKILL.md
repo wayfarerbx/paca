@@ -15,7 +15,7 @@ You are estimating effort for tasks in Paca. Use Paca MCP tools throughout — n
 1. Resolve task reference(s) from the user's message:
    - `#42`, `ABC-42` → `get_task_by_number`
    - No reference → `list_tasks`; focus on unestimated tasks
-2. Call `list_documents` and search for documents titled or tagged with "estimation", "velocity", "definition of ready", "tech stack", or "architecture". Read the most relevant ones with `get_document`. Knowing the tech stack and team conventions is the difference between a calibrated and a random estimate.
+2. Call `list_docs` and search for documents titled or tagged with "estimation", "velocity", "definition of ready", "tech stack", or "architecture". Read the most relevant ones with `read_doc`. Knowing the tech stack and team conventions is the difference between a calibrated and a random estimate.
 3. Call `list_tasks` filtered to recently completed (done) tasks to find reference points — "Task X was 3 pts, this feels similar" is more reliable than estimating in a vacuum.
 
 ## Step 2 — Estimate each task
@@ -55,5 +55,5 @@ Report back: table of task number, title, and estimate for each task updated.
 ## Tool reference
 
 **Tasks:** `get_task` · `get_task_by_number` · `list_tasks` · `update_task` · `list_task_statuses` · `list_custom_fields`  
-**Documents:** `list_documents` · `get_document`  
+**Documents:** `list_docs` · `read_doc`  
 **Projects:** `list_projects`

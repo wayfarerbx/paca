@@ -87,14 +87,6 @@
 				"apiKeyUpdateLabel": "Cập nhật khóa API",
 				"apiKeyUpdateHint": "(để trống để giữ khóa hiện tại)",
 				"baseUrlLabel": "URL cơ sở",
-				"triggerPrompts": {
-					"title": "Trigger prompt tự động thêm",
-					"hint": "Tự động thêm vào system prompt khi chạy, tùy theo cách agent được gọi.",
-					"taskAssignment": "Giao nhiệm vụ / bình luận nhiệm vụ",
-					"docCommentMention": "@nhắc đến trong bình luận tài liệu",
-					"directChat": "Trò chuyện trực tiếp",
-					"writeDescription": "Viết mô tả nhiệm vụ bằng AI"
-				},
 				"capabilities": "Khả năng",
 				"cloneRepositories": "Clone kho mã",
 				"cloneRepositoriesHint": "Cho phép agent git clone kho mã về máy cục bộ",

@@ -87,14 +87,6 @@
 				"apiKeyUpdateLabel": "API Key Update",
 				"apiKeyUpdateHint": "(leave blank to keep current)",
 				"baseUrlLabel": "Base URL",
-				"triggerPrompts": {
-					"title": "Auto-appended trigger prompts",
-					"hint": "Automatically appended to the system prompt at runtime based on how the agent is invoked.",
-					"taskAssignment": "Task assignment / task comment",
-					"docCommentMention": "Documentation comment @mention",
-					"directChat": "Direct chat",
-					"writeDescription": "Write task description with AI"
-				},
 				"capabilities": "Capabilities",
 				"cloneRepositories": "Clone repositories",
 				"cloneRepositoriesHint": "Allow agent to git clone repos locally",

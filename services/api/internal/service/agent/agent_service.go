@@ -99,28 +99,24 @@ func (s *Service) CreateAgent(ctx context.Context, projectID uuid.UUID, in agent
 
 	now := time.Now()
 	a := &agentdom.Agent{
-		ID:                            uuid.New(),
-		ProjectID:                     projectID,
-		Name:                          name,
-		Handle:                        handle,
-		LLMProvider:                   in.LLMProvider,
-		LLMModel:                      in.LLMModel,
-		LLMAPIKeySecret:               encryptedKey,
-		LLMBaseURL:                    in.LLMBaseURL,
-		SystemPrompt:                  in.SystemPrompt,
-		TaskTriggerPrompt:             in.TaskTriggerPrompt,
-		DocCommentTriggerPrompt:       in.DocCommentTriggerPrompt,
-		ChatTriggerPrompt:             in.ChatTriggerPrompt,
-		DescriptionWriteTriggerPrompt: in.DescriptionWriteTriggerPrompt,
-		CanCloneRepos:                 in.CanCloneRepos,
-		CanCreatePRs:                  in.CanCreatePRs,
-		MaxIterations:                 in.MaxIterations,
-		TimeoutMinutes:                in.TimeoutMinutes,
-		GitCommitterName:              in.GitCommitterName,
-		GitCommitterEmail:             in.GitCommitterEmail,
-		CreatedBy:                     in.CreatedBy,
-		CreatedAt:                     now,
-		UpdatedAt:                     now,
+		ID:                uuid.New(),
+		ProjectID:         projectID,
+		Name:              name,
+		Handle:            handle,
+		LLMProvider:       in.LLMProvider,
+		LLMModel:          in.LLMModel,
+		LLMAPIKeySecret:   encryptedKey,
+		LLMBaseURL:        in.LLMBaseURL,
+		SystemPrompt:      in.SystemPrompt,
+		CanCloneRepos:     in.CanCloneRepos,
+		CanCreatePRs:      in.CanCreatePRs,
+		MaxIterations:     in.MaxIterations,
+		TimeoutMinutes:    in.TimeoutMinutes,
+		GitCommitterName:  in.GitCommitterName,
+		GitCommitterEmail: in.GitCommitterEmail,
+		CreatedBy:         in.CreatedBy,
+		CreatedAt:         now,
+		UpdatedAt:         now,
 	}
 	const maxIterationsLimit = 500
 	const defaultMaxIterations = 500
@@ -193,18 +189,6 @@ func (s *Service) UpdateAgent(ctx context.Context, projectID, agentID uuid.UUID,
 	}
 	if in.SystemPrompt != nil {
 		a.SystemPrompt = *in.SystemPrompt
-	}
-	if in.TaskTriggerPrompt != nil {
-		a.TaskTriggerPrompt = *in.TaskTriggerPrompt
-	}
-	if in.DocCommentTriggerPrompt != nil {
-		a.DocCommentTriggerPrompt = *in.DocCommentTriggerPrompt
-	}
-	if in.ChatTriggerPrompt != nil {
-		a.ChatTriggerPrompt = *in.ChatTriggerPrompt
-	}
-	if in.DescriptionWriteTriggerPrompt != nil {
-		a.DescriptionWriteTriggerPrompt = *in.DescriptionWriteTriggerPrompt
 	}
 	if in.CanCloneRepos != nil {
 		a.CanCloneRepos = *in.CanCloneRepos

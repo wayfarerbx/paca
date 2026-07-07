@@ -87,14 +87,6 @@
 				"apiKeyUpdateLabel": "API 키 업데이트",
 				"apiKeyUpdateHint": "(현재 값을 유지하려면 비워 두세요)",
 				"baseUrlLabel": "기본 URL",
-				"triggerPrompts": {
-					"title": "자동 추가 트리거 프롬프트",
-					"hint": "에이전트가 호출되는 방식에 따라 런타임에 시스템 프롬프트에 자동으로 추가됩니다.",
-					"taskAssignment": "작업 배정 / 작업 댓글",
-					"docCommentMention": "문서 댓글 @멘션",
-					"directChat": "직접 채팅",
-					"writeDescription": "AI로 작업 설명 작성"
-				},
 				"capabilities": "기능",
 				"cloneRepositories": "저장소 클론",
 				"cloneRepositoriesHint": "에이전트가 로컬에서 저장소를 git clone할 수 있도록 허용",

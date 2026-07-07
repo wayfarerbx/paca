@@ -13,7 +13,7 @@ You are planning a sprint in Paca. Use Paca MCP tools throughout — never creat
 ## Step 1 — Load project context
 
 1. Call `list_projects` and identify the relevant project.
-2. Call `list_documents` and search for documents with keywords like "roadmap", "goals", "OKR", "retrospective", or "planning". Read the most relevant ones with `get_document`. What the last sprint achieved and what the project's current goals are will shape which tasks belong in this sprint.
+2. Call `list_docs` and search for documents with keywords like "roadmap", "goals", "OKR", "retrospective", or "planning". Read the most relevant ones with `read_doc`. What the last sprint achieved and what the project's current goals are will shape which tasks belong in this sprint.
 3. Call `list_sprints` to see existing sprints (active, upcoming, completed).
 4. Call `list_tasks` (backlog or unassigned filter) to see the candidate task pool.
 
@@ -47,7 +47,7 @@ Once confirmed:
 2. Assign each task to the sprint with `update_task` (set `sprintId`)
 3. Set or update the sprint goal with `update_sprint`
 
-Optionally create or update a sprint planning note in Paca Docs (`create_document` / `update_document`) with the sprint goal, task list, capacity, and velocity reference.
+Optionally create or update a sprint planning note in Paca Docs (`write_doc`) with the sprint goal, task list, capacity, and velocity reference.
 
 Report back: sprint name, dates, task count, total estimate, capacity used, and sprint goal.
 
@@ -63,5 +63,5 @@ Report back: sprint name, dates, task count, total estimate, capacity used, and 
 
 **Sprints:** `list_sprints` · `get_sprint` · `create_sprint` · `update_sprint` · `complete_sprint`  
 **Tasks:** `list_tasks` · `get_task` · `update_task` · `bulk_move_tasks`  
-**Documents:** `list_documents` · `get_document` · `create_document` · `update_document`  
+**Documents:** `list_docs` · `read_doc` · `write_doc`  
 **Projects:** `list_projects`

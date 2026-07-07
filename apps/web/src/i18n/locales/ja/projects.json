@@ -87,14 +87,6 @@
 				"apiKeyUpdateLabel": "APIキーの更新",
 				"apiKeyUpdateHint": "（変更しない場合は空欄のまま）",
 				"baseUrlLabel": "ベースURL",
-				"triggerPrompts": {
-					"title": "自動付加トリガープロンプト",
-					"hint": "エージェントの呼び出され方に応じて、実行時にシステムプロンプトへ自動的に追加されます。",
-					"taskAssignment": "タスク割り当て・タスクコメント",
-					"docCommentMention": "ドキュメントコメントでの@メンション",
-					"directChat": "ダイレクトチャット",
-					"writeDescription": "AIによるタスク説明の作成"
-				},
 				"capabilities": "能力",
 				"cloneRepositories": "リポジトリのクローン",
 				"cloneRepositoriesHint": "エージェントによるローカルへのgit clone を許可",

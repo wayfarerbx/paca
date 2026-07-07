@@ -9,30 +9,26 @@ import (
 
 // Agent represents an AI agent belonging to a project.
 type Agent struct {
-	ID                            uuid.UUID
-	ProjectID                     uuid.UUID
-	Name                          string
-	Handle                        string
-	AvatarURL                     *string
-	LLMProvider                   string
-	LLMModel                      string
-	LLMAPIKeySecret               string // reference to secrets store entry
-	LLMBaseURL                    string
-	SystemPrompt                  string
-	TaskTriggerPrompt             string
-	DocCommentTriggerPrompt       string
-	ChatTriggerPrompt             string
-	DescriptionWriteTriggerPrompt string
-	CanCloneRepos                 bool
-	CanCreatePRs                  bool
-	MaxIterations                 int
-	TimeoutMinutes                int
-	GitCommitterName              string
-	GitCommitterEmail             string
-	CreatedBy                     *uuid.UUID
-	CreatedAt                     time.Time
-	UpdatedAt                     time.Time
-	DeletedAt                     *time.Time
+	ID                uuid.UUID
+	ProjectID         uuid.UUID
+	Name              string
+	Handle            string
+	AvatarURL         *string
+	LLMProvider       string
+	LLMModel          string
+	LLMAPIKeySecret   string // reference to secrets store entry
+	LLMBaseURL        string
+	SystemPrompt      string
+	CanCloneRepos     bool
+	CanCreatePRs      bool
+	MaxIterations     int
+	TimeoutMinutes    int
+	GitCommitterName  string
+	GitCommitterEmail string
+	CreatedBy         *uuid.UUID
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	DeletedAt         *time.Time
 	// Member ID in project_members (populated on create / list)
 	MemberID   *uuid.UUID
 	MCPServers []*AgentMCPServer

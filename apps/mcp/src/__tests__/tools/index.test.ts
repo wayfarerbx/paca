@@ -83,8 +83,18 @@ vi.mock("../../tools/workflow-tools.js", () => ({
 		.fn()
 		.mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
 }));
+vi.mock("../../tools/doc-activity-tools.js", () => ({
+	getDocActivityTools: vi.fn(() => [
+		{ name: "list_doc_activities" },
+		{ name: "add_doc_comment" },
+	]),
+	handleDocActivityTool: vi
+		.fn()
+		.mockResolvedValue({ content: [{ type: "text", text: "ok" }] }),
+}));
 
 import { handleAttachmentTool } from "../../tools/attachment-tools.js";
+import { handleDocActivityTool } from "../../tools/doc-activity-tools.js";
 import { handleFilesystemDocTool } from "../../tools/filesystem-doc-tools.js";
 import { getAllTools, handleToolCall } from "../../tools/index.js";
 import { handleProjectMemberTool } from "../../tools/member-tools.js";
@@ -133,6 +143,7 @@ describe("getAllTools", () => {
 		expect(names).toContain("list_task_attachments");
 		expect(names).toContain("list_task_activities");
 		expect(names).toContain("get_workflow");
+		expect(names).toContain("list_doc_activities");
 	});
 });
 
@@ -347,6 +358,26 @@ describe("handleToolCall – workflow tool routing", () => {
 			"delete_workflow",
 			{},
 			stubClients.workflowClient,
+		);
+	});
+});
+
+describe("handleToolCall – doc activity routing", () => {
+	it("routes list_doc_activities to handleDocActivityTool", async () => {
+		await handleToolCall(makeRequest("list_doc_activities"), stubClients);
+		expect(handleDocActivityTool).toHaveBeenCalledWith(
+			"list_doc_activities",
+			{},
+			stubClients.docClient,
+		);
+	});
+
+	it("routes add_doc_comment to handleDocActivityTool", async () => {
+		await handleToolCall(makeRequest("add_doc_comment"), stubClients);
+		expect(handleDocActivityTool).toHaveBeenCalledWith(
+			"add_doc_comment",
+			{},
+			stubClients.docClient,
 		);
 	});
 });

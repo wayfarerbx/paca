@@ -11,6 +11,7 @@ import httpx
 from openhands.sdk import Agent, AgentContext, Conversation
 from openhands.sdk.conversation.state import ConversationExecutionStatus
 from openhands.sdk.conversation.visualizer import ConversationVisualizerBase
+from openhands.sdk.skills import merge_skills_by_name
 from openhands.tools import get_default_tools
 
 from ..config import settings
@@ -19,7 +20,8 @@ from ..core.registry import active_conversations, stop_events
 from ..core.streams import TriggerMessage
 from ..models.agent import AgentConfig
 from ..repositories import conversation_repository
-from .builder import build_llm, build_mcp_config, build_skills
+from . import trigger_skills
+from .builder import build_llm, build_mcp_config, build_skills, load_default_skills
 from .docker_workspace import docker_sandbox
 from .prompt import build_initial_prompt
 from .repo_tools import make_repository_tool_specs
@@ -375,7 +377,11 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
 
     try:
         llm = build_llm(agent_config)
-        skills = build_skills(agent_config.skills)
+        # User-configured skills win on a name collision with a default.
+        skills = merge_skills_by_name(build_skills(agent_config.skills), load_default_skills())
+        trigger_skill = trigger_skills.get_trigger_skill(trigger.trigger_type, trigger.task_id)
+        if trigger_skill is not None:
+            skills.append(trigger_skill)
         mcp_config = build_mcp_config(
             agent_config.mcp_servers, agent_config.agent_id, trigger.project_id
         )
@@ -386,23 +392,18 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
         # project ID or call list_projects to discover it.
         system_suffix += _build_project_context_suffix(trigger.project_id)
 
-        # Documentation workflow — always read project docs first, always write to Paca.
+        # Documentation lives in Paca — never create local files, and always
+        # read it before acting (it holds architecture/conventions/prior
+        # decisions no skill-specific instruction should let you skip).
+        # Detailed write-back workflow is covered by the always-active
+        # `paca` skill and the specialized `paca-doc` skill.
         system_suffix += (
-            "\n\n## IMPORTANT: Documentation Workflow\n"
-            f"This project's documentation is managed in Paca"
-            f" (project ID: `{trigger.project_id}`).\n\n"
-            "**Before starting any task**, read the project documentation:\n"
-            f"1. Call `list_docs` with `projectId='{trigger.project_id}'`"
-            " to see the full documentation tree.\n"
-            "2. Call `read_doc` on relevant documents to understand"
-            " the project context before proceeding.\n\n"
-            "**When writing documentation**, always use the Paca MCP tools"
-            " — never create local markdown files:\n"
-            "- Call `list_docs` to check whether a document already exists at the intended path.\n"
-            "- If it exists: `write_doc` will update it automatically.\n"
-            "- If it does not exist: `write_doc` will create it"
-            " and any missing folders automatically.\n"
-            "- Use paths like `'Architecture/API Design'` — folder structure is handled for you.\n"
+            "\n\n## Documentation\n"
+            "This project's documentation is managed in Paca — use "
+            "`list_docs` / `read_doc` / `write_doc`. Never create local "
+            "markdown files. **Read the relevant documentation before doing "
+            "anything else** — it defines the project's architecture, "
+            "conventions, and prior decisions.\n"
         )
 
         has_repos = len(trigger.repo_plugin_ids) > 0 and agent_config.can_clone_repos
@@ -415,42 +416,14 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
         )
         if has_repos:
             system_suffix += (
-                "\n\n## IMPORTANT: Repository Access & Workflow\n"
-                "This project has linked repositories. Follow these steps in order:\n\n"
-                "1. Call list_repositories to see available repositories and get their IDs.\n"
-                "2. Call clone_repository with the plugin_id and repo_id from step 1.\n"
-                "   The repository will be cloned to /workspace/repo (the default target_dir).\n"
-                "3. Create a new feature branch before making any changes:\n"
-                "   git -C /workspace/repo checkout -b <branch-name>\n"
-                "4. Make your code changes, then commit them:\n"
-                "   git -C /workspace/repo add -A && git -C /workspace/repo commit -m '<message>'\n"
-                "5. Call push_branch with the plugin_id, repo_id,"
-                " and the branch name to publish the branch.\n\n"
-                "Do NOT skip step 5 — always push your branch when finished.\n\n"
-                "Creating, listing, reviewing, and commenting on pull/merge requests is "
-                "handled by the repository plugin's own tools. "
+                "\n\n## Repository Access\n"
+                "This project has linked repositories: `list_repositories` → "
+                "`clone_repository` (clones to /workspace/repo). Create a "
+                "feature branch before changing anything, commit your work, "
+                "then call `push_branch` — do NOT skip this step. PR "
+                "creation, review, and comments are handled by the "
+                "repository plugin's own tools.\n"
             )
-
-        # Append the trigger-specific prompt last so it takes precedence.
-        # These prompts are stored on the agent and sourced from TRIGGER_PROMPTS
-        # defined in the frontend (apps/web/src/lib/agent-api.ts).
-        if trigger.trigger_type == "agent.task_assigned":
-            if agent_config.task_trigger_prompt:
-                system_suffix += "\n\n" + agent_config.task_trigger_prompt
-        elif trigger.trigger_type == "agent.comment_mention":
-            # task_id is set for task-comment mentions; absent for doc-comment mentions.
-            if trigger.task_id:
-                if agent_config.task_trigger_prompt:
-                    system_suffix += "\n\n" + agent_config.task_trigger_prompt
-            else:
-                if agent_config.doc_comment_trigger_prompt:
-                    system_suffix += "\n\n" + agent_config.doc_comment_trigger_prompt
-        elif trigger.trigger_type == "agent.chat_message":
-            if agent_config.chat_trigger_prompt:
-                system_suffix += "\n\n" + agent_config.chat_trigger_prompt
-        elif trigger.trigger_type == "agent.description_write":
-            if agent_config.description_write_trigger_prompt:
-                system_suffix += "\n\n" + agent_config.description_write_trigger_prompt
 
         agent_context = AgentContext(skills=skills, system_message_suffix=system_suffix)
 
