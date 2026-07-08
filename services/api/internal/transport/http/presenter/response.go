@@ -523,6 +523,7 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodeWorkflowEdgeDuplicate,
 		apierr.CodeWorkflowNotDraft,
 		apierr.CodeWorkflowNotActive,
+		apierr.CodeWorkflowArchived,
 		apierr.CodeWorkflowStatusRuleConflict,
 		apierr.CodeWorkflowStatusTransitionConflict:
 		return http.StatusConflict
