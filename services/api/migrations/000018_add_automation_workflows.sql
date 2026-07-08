@@ -106,6 +106,21 @@ CREATE INDEX IF NOT EXISTS idx_workflow_edges_target ON workflow_edges (target_n
 ALTER TABLE agent_conversations
     ALTER COLUMN triggered_by_member_id DROP NOT NULL;
 
+-- The triggered_by_member_id column was created in 000008 without a FK
+-- constraint, so production databases may contain rows whose
+-- triggered_by_member_id no longer references an existing project_members row
+-- (e.g. the member was hard-deleted or the membership was removed). Adding
+-- the FK constraint below would fail on those rows with SQLSTATE 23503.
+-- Nullify orphaned references before adding the constraint; this is safe now
+-- that the column is nullable.
+UPDATE agent_conversations ac
+SET triggered_by_member_id = NULL,
+    updated_at = NOW()
+WHERE triggered_by_member_id IS NOT NULL
+  AND NOT EXISTS (
+      SELECT 1 FROM project_members pm WHERE pm.id = ac.triggered_by_member_id
+  );
+
 DO $$
 BEGIN
     IF NOT EXISTS (
