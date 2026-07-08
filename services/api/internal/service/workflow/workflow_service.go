@@ -338,7 +338,7 @@ func (s *Service) Archive(ctx context.Context, projectID, workflowID uuid.UUID) 
 }
 
 // RevertToDraft moves an active workflow back to draft, stopping the engine
-// and re-enabling graph edits. Archived workflows cannot be reverted, since
+// from evaluating it. Archived workflows cannot be reverted, since
 // silently making an archived workflow editable again would be confusing —
 // callers must delete it (or build a new one) instead.
 func (s *Service) RevertToDraft(ctx context.Context, projectID, workflowID uuid.UUID) (*workflowdom.Workflow, error) {
@@ -368,7 +368,7 @@ func (s *Service) RevertToDraft(ctx context.Context, projectID, workflowID uuid.
 
 // AddNode adds an existing task as a node in the workflow.
 func (s *Service) AddNode(ctx context.Context, projectID, workflowID uuid.UUID, in workflowdom.AddNodeInput) (*workflowdom.Node, error) {
-	w, err := s.requireDraftOwnedWorkflow(ctx, projectID, workflowID)
+	w, err := s.requireEditableOwnedWorkflow(ctx, projectID, workflowID)
 	if err != nil {
 		return nil, err
 	}
@@ -405,7 +405,7 @@ func (s *Service) AddNode(ctx context.Context, projectID, workflowID uuid.UUID, 
 
 // UpdateNode updates a node's canvas position.
 func (s *Service) UpdateNode(ctx context.Context, projectID, workflowID, nodeID uuid.UUID, in workflowdom.UpdateNodeInput) (*workflowdom.Node, error) {
-	w, err := s.requireDraftOwnedWorkflow(ctx, projectID, workflowID)
+	w, err := s.requireEditableOwnedWorkflow(ctx, projectID, workflowID)
 	if err != nil {
 		return nil, err
 	}
@@ -434,7 +434,7 @@ func (s *Service) UpdateNode(ctx context.Context, projectID, workflowID, nodeID 
 
 // RemoveNode deletes a node (and its edges/status-rules, via FK cascade).
 func (s *Service) RemoveNode(ctx context.Context, projectID, workflowID, nodeID uuid.UUID) error {
-	w, err := s.requireDraftOwnedWorkflow(ctx, projectID, workflowID)
+	w, err := s.requireEditableOwnedWorkflow(ctx, projectID, workflowID)
 	if err != nil {
 		return err
 	}
@@ -457,7 +457,7 @@ func (s *Service) RemoveNode(ctx context.Context, projectID, workflowID, nodeID 
 
 // SetStatusRule creates or updates the workflow's status->assignee rule for a status.
 func (s *Service) SetStatusRule(ctx context.Context, projectID, workflowID uuid.UUID, in workflowdom.SetStatusRuleInput) (*workflowdom.StatusRule, error) {
-	w, err := s.requireDraftOwnedWorkflow(ctx, projectID, workflowID)
+	w, err := s.requireEditableOwnedWorkflow(ctx, projectID, workflowID)
 	if err != nil {
 		return nil, err
 	}
@@ -528,7 +528,7 @@ func (s *Service) SetStatusRule(ctx context.Context, projectID, workflowID uuid.
 
 // RemoveStatusRule deletes a status rule from the workflow.
 func (s *Service) RemoveStatusRule(ctx context.Context, projectID, workflowID, ruleID uuid.UUID) error {
-	w, err := s.requireDraftOwnedWorkflow(ctx, projectID, workflowID)
+	w, err := s.requireEditableOwnedWorkflow(ctx, projectID, workflowID)
 	if err != nil {
 		return err
 	}
@@ -557,7 +557,7 @@ func (s *Service) RemoveStatusRule(ctx context.Context, projectID, workflowID, r
 // it. NextStatusID nil marks StatusID as terminal (the workflow's done
 // status).
 func (s *Service) SetStatusTransition(ctx context.Context, projectID, workflowID uuid.UUID, in workflowdom.SetStatusTransitionInput) (*workflowdom.StatusTransition, error) {
-	w, err := s.requireDraftOwnedWorkflow(ctx, projectID, workflowID)
+	w, err := s.requireEditableOwnedWorkflow(ctx, projectID, workflowID)
 	if err != nil {
 		return nil, err
 	}
@@ -625,7 +625,7 @@ func (s *Service) SetStatusTransition(ctx context.Context, projectID, workflowID
 
 // RemoveStatusTransition deletes a status-transition entry from the workflow.
 func (s *Service) RemoveStatusTransition(ctx context.Context, projectID, workflowID, transitionID uuid.UUID) error {
-	w, err := s.requireDraftOwnedWorkflow(ctx, projectID, workflowID)
+	w, err := s.requireEditableOwnedWorkflow(ctx, projectID, workflowID)
 	if err != nil {
 		return err
 	}
@@ -652,7 +652,7 @@ func (s *Service) RemoveStatusTransition(ctx context.Context, projectID, workflo
 // AddEdge links two nodes, rejecting self-loops and anything that would
 // create a cycle in the workflow's dependency graph.
 func (s *Service) AddEdge(ctx context.Context, projectID, workflowID uuid.UUID, in workflowdom.AddEdgeInput) (*workflowdom.Edge, error) {
-	w, err := s.requireDraftOwnedWorkflow(ctx, projectID, workflowID)
+	w, err := s.requireEditableOwnedWorkflow(ctx, projectID, workflowID)
 	if err != nil {
 		return nil, err
 	}
@@ -698,7 +698,7 @@ func (s *Service) AddEdge(ctx context.Context, projectID, workflowID uuid.UUID, 
 
 // RemoveEdge deletes an edge.
 func (s *Service) RemoveEdge(ctx context.Context, projectID, workflowID, edgeID uuid.UUID) error {
-	w, err := s.requireDraftOwnedWorkflow(ctx, projectID, workflowID)
+	w, err := s.requireEditableOwnedWorkflow(ctx, projectID, workflowID)
 	if err != nil {
 		return err
 	}
@@ -733,13 +733,19 @@ func (s *Service) findOwnedWorkflow(ctx context.Context, projectID, workflowID u
 	return w, nil
 }
 
-func (s *Service) requireDraftOwnedWorkflow(ctx context.Context, projectID, workflowID uuid.UUID) (*workflowdom.Workflow, error) {
+// requireEditableOwnedWorkflow looks up an owned workflow and rejects graph
+// mutations once it's archived. Draft and active workflows are both
+// editable; the engine always reads the graph fresh per event with
+// graceful fallbacks for missing rules/edges/transitions, so an in-flight
+// edit to an active workflow degrades to a stale read on the current event
+// rather than crashing or corrupting state.
+func (s *Service) requireEditableOwnedWorkflow(ctx context.Context, projectID, workflowID uuid.UUID) (*workflowdom.Workflow, error) {
 	w, err := s.findOwnedWorkflow(ctx, projectID, workflowID)
 	if err != nil {
 		return nil, err
 	}
-	if w.Status != workflowdom.StatusDraft {
-		return nil, workflowdom.ErrNotDraft
+	if w.Status == workflowdom.StatusArchived {
+		return nil, workflowdom.ErrArchived
 	}
 	return w, nil
 }

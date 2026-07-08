@@ -597,7 +597,7 @@ func TestAddNode_RejectsCrossProjectTask(t *testing.T) {
 	}
 }
 
-func TestAddNode_RejectsWhenNotDraft(t *testing.T) {
+func TestAddNode_AllowedWhenActive_RejectsWhenArchived(t *testing.T) {
 	f := newFixture()
 	w := mustCreateWorkflow(t, f)
 	ctx := context.Background()
@@ -618,9 +618,17 @@ func TestAddNode_RejectsWhenNotDraft(t *testing.T) {
 	}
 
 	otherTask := f.addTask(f.projectID)
-	_, err := f.svc.AddNode(context.Background(), f.projectID, w.ID, workflowdom.AddNodeInput{TaskID: otherTask.ID})
-	if !errors.Is(err, workflowdom.ErrNotDraft) {
-		t.Fatalf("expected ErrNotDraft, got %v", err)
+	if _, err := f.svc.AddNode(ctx, f.projectID, w.ID, workflowdom.AddNodeInput{TaskID: otherTask.ID}); err != nil {
+		t.Fatalf("expected AddNode to succeed while active, got %v", err)
+	}
+
+	if _, err := f.svc.Archive(ctx, f.projectID, w.ID); err != nil {
+		t.Fatalf("Archive: %v", err)
+	}
+	thirdTask := f.addTask(f.projectID)
+	_, err := f.svc.AddNode(ctx, f.projectID, w.ID, workflowdom.AddNodeInput{TaskID: thirdTask.ID})
+	if !errors.Is(err, workflowdom.ErrArchived) {
+		t.Fatalf("expected ErrArchived, got %v", err)
 	}
 }
 

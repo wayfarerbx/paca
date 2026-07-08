@@ -41,10 +41,13 @@ const (
 	// the automation engine ignores it.
 	StatusDraft Status = "draft"
 	// StatusActive means the automation engine evaluates this workflow on
-	// every relevant task status change. Editing is disallowed.
+	// every relevant task status change. The graph can still be edited while
+	// active; the engine reads it fresh per event with graceful fallbacks,
+	// so an edit takes effect on the next event rather than requiring a
+	// draft/reactivate round-trip.
 	StatusActive Status = "active"
-	// StatusArchived is a terminal-ish state: the engine ignores it, and it
-	// can be reverted to draft to resume editing.
+	// StatusArchived is a terminal-ish state: the engine ignores it, editing
+	// is disallowed, and it can be reverted to draft to resume editing.
 	StatusArchived Status = "archived"
 )
 

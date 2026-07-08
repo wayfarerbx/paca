@@ -335,6 +335,8 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusConflict, apierr.CodeWorkflowNotDraft
 	case errors.Is(err, workflowdom.ErrNotActive):
 		return http.StatusConflict, apierr.CodeWorkflowNotActive
+	case errors.Is(err, workflowdom.ErrArchived):
+		return http.StatusConflict, apierr.CodeWorkflowArchived
 	case errors.Is(err, workflowdom.ErrActivateNoNodes):
 		return http.StatusBadRequest, apierr.CodeWorkflowActivateNoNodes
 	case errors.Is(err, workflowdom.ErrActivateDoneStatusUndetermined):

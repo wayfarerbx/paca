@@ -1068,45 +1068,34 @@ describe("handleWorkflowTool - update_workflow lifecycle", () => {
 		expect(revertCallOrder).toBeLessThan(fetchCallOrder);
 	});
 
-	it("repositions an existing node on an active workflow via the documented two-call pattern", async () => {
-		// Models a user cleaning up a chaotic layout on an already-active
-		// workflow: one call reverts to draft AND repositions in the same
-		// round-trip, then a second call reactivates. Repositioning is not
-		// exempt from the draft requirement even though it's purely visual —
-		// see the update_workflow tool description.
+	it("repositions an existing node directly on an active workflow, no revert needed", async () => {
+		// Graph edits — including a position-only change — work directly
+		// against an active workflow now; only 'archived' locks the graph.
 		const client = makeWorkflowClient({
-			getWorkflow: vi
-				.fn()
-				.mockResolvedValue(
-					makeGraph({ nodes: [makeNode("n1", "t1", 999, 999)] }),
-				),
+			getWorkflow: vi.fn().mockResolvedValue(
+				makeGraph({
+					workflow: { ...workflow, status: "active" },
+					nodes: [makeNode("n1", "t1", 999, 999)],
+				}),
+			),
 		});
 
-		const first = await handleWorkflowTool(
+		const result = await handleWorkflowTool(
 			"update_workflow",
 			{
 				projectId: "p1",
 				workflowId: "wf1",
-				status: "draft",
 				nodes: { set: [{ taskId: "t1", posX: 50, posY: 50 }] },
 			},
 			client,
 		);
-		expect(client.revertWorkflowToDraft).toHaveBeenCalledWith("p1", "wf1");
+		expect(client.revertWorkflowToDraft).not.toHaveBeenCalled();
+		expect(client.activateWorkflow).not.toHaveBeenCalled();
 		expect(client.updateWorkflowNode).toHaveBeenCalledWith("p1", "wf1", "n1", {
 			pos_x: 50,
 			pos_y: 50,
 		});
-		expect(client.activateWorkflow).not.toHaveBeenCalled();
-		expect(first.content[0].text).toContain("1 updated");
-
-		const second = await handleWorkflowTool(
-			"update_workflow",
-			{ projectId: "p1", workflowId: "wf1", status: "active" },
-			client,
-		);
-		expect(client.activateWorkflow).toHaveBeenCalledWith("p1", "wf1");
-		expect(second.content[0].text).toContain("now active");
+		expect(result.content[0].text).toContain("1 updated");
 	});
 
 	it("skips graph edits entirely when the revert-to-draft fails", async () => {
@@ -1131,7 +1120,7 @@ describe("handleWorkflowTool - update_workflow lifecycle", () => {
 		expect(result.content[0].text).toContain("Skipped all graph edits");
 	});
 
-	it("auto-reverts an active workflow, applies the edit, and re-activates — all in one call, no status param needed", async () => {
+	it("applies graph edits directly to an active workflow, no status param needed", async () => {
 		const client = makeWorkflowClient({
 			getWorkflow: vi
 				.fn()
@@ -1148,18 +1137,17 @@ describe("handleWorkflowTool - update_workflow lifecycle", () => {
 			},
 			client,
 		);
-		expect(client.revertWorkflowToDraft).toHaveBeenCalledWith("p1", "wf1");
+		expect(client.revertWorkflowToDraft).not.toHaveBeenCalled();
 		expect(client.addWorkflowNode).toHaveBeenCalledWith("p1", "wf1", {
 			task_id: "t1",
 			pos_x: 0,
 			pos_y: 0,
 		});
-		expect(client.activateWorkflow).toHaveBeenCalledWith("p1", "wf1");
-		expect(result.content[0].text).toContain("Temporarily reverted to draft");
-		expect(result.content[0].text).toContain("now active");
+		expect(client.activateWorkflow).not.toHaveBeenCalled();
+		expect(result.content[0].text).not.toContain("reverted");
 	});
 
-	it("still skips graph edits for an archived workflow, since it can't be auto-reverted", async () => {
+	it("skips graph edits for an archived workflow", async () => {
 		const client = makeWorkflowClient({
 			getWorkflow: vi
 				.fn()
@@ -1176,17 +1164,13 @@ describe("handleWorkflowTool - update_workflow lifecycle", () => {
 			},
 			client,
 		);
-		// Auto-revert only applies when the workflow is currently 'active' —
-		// archived workflows can never be reverted (by design), so this falls
-		// straight through to the generic not-draft skip instead of wasting a
-		// call attempting (and failing) a revert.
 		expect(client.revertWorkflowToDraft).not.toHaveBeenCalled();
 		expect(client.addWorkflowNode).not.toHaveBeenCalled();
 		expect(client.activateWorkflow).not.toHaveBeenCalled();
-		expect(result.content[0].text).toContain("not 'draft'");
+		expect(result.content[0].text).toContain("archived");
 	});
 
-	it("leaves the workflow in draft (does not auto-reactivate) when a graph edit fails during auto-revert", async () => {
+	it("reports a failed graph edit on an active workflow without touching lifecycle", async () => {
 		const client = makeWorkflowClient({
 			getWorkflow: vi
 				.fn()
@@ -1204,11 +1188,12 @@ describe("handleWorkflowTool - update_workflow lifecycle", () => {
 			},
 			client,
 		);
+		expect(client.revertWorkflowToDraft).not.toHaveBeenCalled();
 		expect(client.activateWorkflow).not.toHaveBeenCalled();
-		expect(result.content[0].text).toContain("Left the workflow in draft");
+		expect(result.content[0].text).toContain("boom");
 	});
 
-	it("respects an explicit status instead of auto-restoring — e.g. status: 'draft' leaves it in draft", async () => {
+	it("status: 'draft' pauses automation and applies edits, staying in draft afterward", async () => {
 		// getWorkflow reflects the POST-revert state here (draft, the
 		// makeWorkflowClient default), same as the real API would return once
 		// the explicit revertWorkflowToDraft call below has already landed.
