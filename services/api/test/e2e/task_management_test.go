@@ -151,6 +151,204 @@ func TestE2ESprintManagement_CRUD(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// Sprint partial-update semantics
+//
+// Regression coverage: PATCH /sprints/:sprintId used to unconditionally
+// overwrite start_date/end_date/goal with whatever the request carried, even
+// when the client omitted those fields entirely — silently wiping them on
+// any PATCH that only meant to change e.g. the name. See UpdateSprintInput
+// in internal/domain/sprint/service.go.
+// ---------------------------------------------------------------------------
+
+func TestE2ESprintManagement_PartialUpdatePreservesFields(t *testing.T) {
+	env := newE2EEnv(t)
+	seedTaskMemberUser(t, env, "sprint-patch-user", "sprintpatchpass1")
+	client, token := taskMemberLogin(t, env, "sprint-patch-user", "sprintpatchpass1")
+	projID := createProjectForTasksViaAPI(t, env, client, token)
+
+	sprintsURL := fmt.Sprintf("%s/api/v1/projects/%s/sprints", env.base, projID)
+
+	const (
+		startDate = "2026-01-01T00:00:00Z"
+		endDate   = "2026-01-15T00:00:00Z"
+		goal      = "Ship the thing"
+	)
+	var sprintID string
+
+	t.Run("create_sprint_with_dates_and_goal", func(t *testing.T) {
+		body := jsonBody(t, map[string]any{
+			"name":       "Sprint With Dates",
+			"status":     "planned",
+			"start_date": startDate,
+			"end_date":   endDate,
+			"goal":       goal,
+		})
+		req := mustRequest(env.ctx, t, http.MethodPost, sprintsURL, body)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusCreated)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+		sprintID, _ = data["id"].(string)
+		if sprintID == "" {
+			t.Fatal("expected non-empty sprint id")
+		}
+		if g, _ := data["goal"].(string); g != goal {
+			t.Fatalf("expected goal %q at creation, got %v", goal, data["goal"])
+		}
+	})
+
+	t.Run("patch_name_only_preserves_dates_and_goal", func(t *testing.T) {
+		body := jsonBody(t, map[string]any{"name": "Sprint With Dates Renamed"})
+		req := mustRequest(env.ctx, t, http.MethodPatch,
+			fmt.Sprintf("%s/%s", sprintsURL, sprintID), body)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+
+		if name, _ := data["name"].(string); name != "Sprint With Dates Renamed" {
+			t.Errorf("expected renamed sprint, got %q", name)
+		}
+		if g, _ := data["goal"].(string); g != goal {
+			t.Errorf("expected goal to remain %q after a name-only PATCH, got %v", goal, data["goal"])
+		}
+		if gotStart, _ := data["start_date"].(string); gotStart == "" {
+			t.Error("expected start_date to remain set after a name-only PATCH, got empty")
+		}
+		if gotEnd, _ := data["end_date"].(string); gotEnd == "" {
+			t.Error("expected end_date to remain set after a name-only PATCH, got empty")
+		}
+	})
+
+	t.Run("explicit_null_clears_goal_without_touching_dates", func(t *testing.T) {
+		body := jsonBody(t, map[string]any{"goal": nil})
+		req := mustRequest(env.ctx, t, http.MethodPatch,
+			fmt.Sprintf("%s/%s", sprintsURL, sprintID), body)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+
+		if g := data["goal"]; g != nil {
+			t.Errorf("expected goal to be cleared, got %v", g)
+		}
+		if gotStart, _ := data["start_date"].(string); gotStart == "" {
+			t.Error("expected start_date to remain set after clearing goal")
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
+// Task type partial-update semantics
+//
+// Regression coverage: PATCH /task-types/:typeId used to unconditionally
+// overwrite icon/color/description with whatever the request carried, even
+// when the client omitted those fields entirely. See UpdateTaskTypeInput in
+// internal/domain/task/service.go.
+// ---------------------------------------------------------------------------
+
+func TestE2ETaskTypeManagement_PartialUpdatePreservesFields(t *testing.T) {
+	env := newE2EEnv(t)
+	seedTaskMemberUser(t, env, "task-type-patch-user", "tasktypepass1")
+	client, token := taskMemberLogin(t, env, "task-type-patch-user", "tasktypepass1")
+	projID := createProjectForTasksViaAPI(t, env, client, token)
+
+	taskTypesURL := fmt.Sprintf("%s/api/v1/projects/%s/task-types", env.base, projID)
+
+	const (
+		icon        = "rocket"
+		color       = "#ff0000"
+		description = "A feature request"
+	)
+	var typeID string
+
+	t.Run("create_task_type_with_icon_color_description", func(t *testing.T) {
+		body := jsonBody(t, map[string]any{
+			"name":        "Feature",
+			"icon":        icon,
+			"color":       color,
+			"description": description,
+		})
+		req := mustRequest(env.ctx, t, http.MethodPost, taskTypesURL, body)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusCreated)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+		typeID, _ = data["id"].(string)
+		if typeID == "" {
+			t.Fatal("expected non-empty task type id")
+		}
+	})
+
+	t.Run("patch_name_only_preserves_icon_color_description", func(t *testing.T) {
+		body := jsonBody(t, map[string]any{"name": "Feature Request"})
+		req := mustRequest(env.ctx, t, http.MethodPatch,
+			fmt.Sprintf("%s/%s", taskTypesURL, typeID), body)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+
+		if name, _ := data["name"].(string); name != "Feature Request" {
+			t.Errorf("expected renamed task type, got %q", name)
+		}
+		if i, _ := data["icon"].(string); i != icon {
+			t.Errorf("expected icon to remain %q after a name-only PATCH, got %v", icon, data["icon"])
+		}
+		if c, _ := data["color"].(string); c != color {
+			t.Errorf("expected color to remain %q after a name-only PATCH, got %v", color, data["color"])
+		}
+		if d, _ := data["description"].(string); d != description {
+			t.Errorf("expected description to remain %q after a name-only PATCH, got %v", description, data["description"])
+		}
+	})
+
+	t.Run("explicit_null_clears_icon_without_touching_color_or_description", func(t *testing.T) {
+		body := jsonBody(t, map[string]any{"icon": nil})
+		req := mustRequest(env.ctx, t, http.MethodPatch,
+			fmt.Sprintf("%s/%s", taskTypesURL, typeID), body)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp := mustDo(t, client, req)
+		defer func() { _ = resp.Body.Close() }()
+		assertStatus(t, resp, http.StatusOK)
+		var env2 envelope
+		decodeJSON(t, resp, &env2)
+		data := assertDataMap(t, env2)
+
+		if icon := data["icon"]; icon != nil {
+			t.Errorf("expected icon to be cleared, got %v", icon)
+		}
+		if c, _ := data["color"].(string); c != color {
+			t.Errorf("expected color to remain %q, got %v", color, data["color"])
+		}
+		if d, _ := data["description"].(string); d != description {
+			t.Errorf("expected description to remain %q, got %v", description, data["description"])
+		}
+	})
+}
+
+// ---------------------------------------------------------------------------
 // Task CRUD
 // ---------------------------------------------------------------------------
 

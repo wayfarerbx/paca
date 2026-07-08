@@ -125,9 +125,9 @@ func (h *TaskHandler) UpdateTaskType(w http.ResponseWriter, r *http.Request) {
 
 	t, err := h.svc.UpdateTaskType(r.Context(), projectID, typeID, taskdom.UpdateTaskTypeInput{
 		Name:        req.Name,
-		Icon:        req.Icon,
-		Color:       req.Color,
-		Description: req.Description,
+		Icon:        req.Icon.Ptr(),
+		Color:       req.Color.Ptr(),
+		Description: req.Description.Ptr(),
 	})
 	if err != nil {
 		presenter.Error(w, r, err)

@@ -129,9 +129,9 @@ func (h *SprintHandler) UpdateSprint(w http.ResponseWriter, r *http.Request) {
 
 	s, err := h.svc.UpdateSprint(r.Context(), projectID, sprintID, sprintdom.UpdateSprintInput{
 		Name:      req.Name,
-		StartDate: req.StartDate,
-		EndDate:   req.EndDate,
-		Goal:      req.Goal,
+		StartDate: req.StartDate.Ptr(),
+		EndDate:   req.EndDate.Ptr(),
+		Goal:      req.Goal.Ptr(),
 		Status:    req.Status,
 	})
 	if err != nil {
