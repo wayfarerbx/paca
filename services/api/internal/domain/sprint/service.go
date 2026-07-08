@@ -39,12 +39,17 @@ type CreateSprintInput struct {
 	Status    SprintStatus
 }
 
-// UpdateSprintInput carries mutable sprint fields.
+// UpdateSprintInput carries mutable sprint fields for a PATCH operation.
+// Name is applied when non-empty. For StartDate, EndDate, and Goal, the
+// double pointer encodes three states:
+//   - nil outer pointer  → field was absent in the request; do NOT overwrite
+//   - non-nil outer pointer, inner pointer nil  → explicitly set to null (clear)
+//   - non-nil outer pointer, inner pointer non-nil  → set to the given value
 type UpdateSprintInput struct {
 	Name      string
-	StartDate *time.Time
-	EndDate   *time.Time
-	Goal      *string
+	StartDate **time.Time
+	EndDate   **time.Time
+	Goal      **string
 	Status    *SprintStatus
 }
 

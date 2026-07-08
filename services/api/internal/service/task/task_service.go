@@ -95,9 +95,15 @@ func (s *Service) UpdateTaskType(ctx context.Context, projectID, id uuid.UUID, i
 	if name := strings.TrimSpace(in.Name); name != "" {
 		t.Name = name
 	}
-	t.Icon = in.Icon
-	t.Color = in.Color
-	t.Description = in.Description
+	if in.Icon != nil {
+		t.Icon = *in.Icon
+	}
+	if in.Color != nil {
+		t.Color = *in.Color
+	}
+	if in.Description != nil {
+		t.Description = *in.Description
+	}
 	t.UpdatedAt = time.Now()
 
 	if err := s.repo.UpdateTaskType(ctx, t); err != nil {

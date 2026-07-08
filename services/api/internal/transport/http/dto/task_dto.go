@@ -179,11 +179,13 @@ type CreateTaskTypeRequest struct {
 }
 
 // UpdateTaskTypeRequest is the body for PATCH /projects/:projectId/task-types/:typeId.
+// Icon, Color, and Description use the Optional* wrapper types so an absent
+// field leaves the stored value unchanged, distinct from an explicit JSON null.
 type UpdateTaskTypeRequest struct {
-	Name        string  `json:"name"`
-	Icon        *string `json:"icon"`
-	Color       *string `json:"color"`
-	Description *string `json:"description"`
+	Name        string         `json:"name"`
+	Icon        OptionalString `json:"icon"`
+	Color       OptionalString `json:"color"`
+	Description OptionalString `json:"description"`
 }
 
 // TaskTypeResponse is the public representation of a task type.
