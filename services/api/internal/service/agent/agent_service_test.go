@@ -41,6 +41,7 @@ type mockAgentRepo struct {
 	findLatestConversationBySession func(ctx context.Context, chatSessionID uuid.UUID) (*agentdom.AgentConversation, error)
 	createConversation              func(ctx context.Context, conv *agentdom.AgentConversation) error
 	updateConversationStatus        func(ctx context.Context, id uuid.UUID, status string) error
+	claimConversationStatus         func(ctx context.Context, id uuid.UUID, fromStatus, toStatus string) (bool, error)
 	updateConversation              func(ctx context.Context, conv *agentdom.AgentConversation) error
 	listConversationEvents          func(ctx context.Context, conversationID uuid.UUID, offset, limit int) ([]*agentdom.AgentConversationEvent, int64, error)
 	createConversationEvent         func(ctx context.Context, event *agentdom.AgentConversationEvent) error
@@ -258,6 +259,13 @@ func (m *mockAgentRepo) UpdateConversationStatus(ctx context.Context, id uuid.UU
 		return m.updateConversationStatus(ctx, id, status)
 	}
 	return nil
+}
+
+func (m *mockAgentRepo) ClaimConversationStatus(ctx context.Context, id uuid.UUID, fromStatus, toStatus string) (bool, error) {
+	if m.claimConversationStatus != nil {
+		return m.claimConversationStatus(ctx, id, fromStatus, toStatus)
+	}
+	return true, nil
 }
 
 func (m *mockAgentRepo) UpdateConversation(ctx context.Context, conv *agentdom.AgentConversation) error {
@@ -1001,9 +1009,17 @@ func TestPauseConversation_NotRunning(t *testing.T) {
 func TestHeartbeat_Success(t *testing.T) {
 	projectID := uuid.New()
 	conversationID := uuid.New()
+	conversation := &agentdom.AgentConversation{
+		ID:        conversationID,
+		ProjectID: projectID,
+		Status:    "running",
+	}
 	updateCalled := false
 
 	repo := &mockAgentRepo{
+		findConversationByID: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentConversation, error) {
+			return conversation, nil
+		},
 		updateConversationStatus: func(_ context.Context, _ uuid.UUID, _ string) error {
 			updateCalled = true
 			return nil
@@ -1015,9 +1031,36 @@ func TestHeartbeat_Success(t *testing.T) {
 
 	err := svc.Heartbeat(context.Background(), projectID, conversationID)
 
-	// Heartbeat fires every ~30s per open tab — no Postgres round trip.
+	// Heartbeat fires every ~30s per open tab — no Postgres round trip beyond
+	// the ownership lookup.
 	assert.NoError(t, err)
 	assert.False(t, updateCalled)
+}
+
+func TestHeartbeat_WrongProject(t *testing.T) {
+	projectID := uuid.New()
+	wrongProjectID := uuid.New()
+	conversationID := uuid.New()
+	conversation := &agentdom.AgentConversation{
+		ID:        conversationID,
+		ProjectID: wrongProjectID,
+		Status:    "running",
+	}
+
+	repo := &mockAgentRepo{
+		findConversationByID: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentConversation, error) {
+			return conversation, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	pluginRepo := &mockPluginRepo{}
+	svc := New(repo, projRepo, nil, pluginRepo)
+
+	err := svc.Heartbeat(context.Background(), projectID, conversationID)
+
+	// A conversation belonging to a different project must not be kept alive
+	// by a heartbeat scoped to this project.
+	assert.ErrorIs(t, err, agentdom.ErrConversationNotFound)
 }
 
 func TestListChatSessions_Success(t *testing.T) {
@@ -1134,12 +1177,20 @@ func TestSendChatMessage_ResumesPausedConversation(t *testing.T) {
 	}
 
 	createCalled := false
+	var claimedFrom, claimedTo string
 	repo := &mockAgentRepo{
 		findChatSessionByID: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentChatSession, error) {
 			return session, nil
 		},
 		findLatestConversationBySession: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentConversation, error) {
 			return paused, nil
+		},
+		claimConversationStatus: func(_ context.Context, id uuid.UUID, from, to string) (bool, error) {
+			if id != pausedConvID {
+				t.Fatalf("unexpected conversation id claimed: %s", id)
+			}
+			claimedFrom, claimedTo = from, to
+			return true, nil
 		},
 		createConversation: func(_ context.Context, _ *agentdom.AgentConversation) error {
 			createCalled = true
@@ -1158,6 +1209,84 @@ func TestSendChatMessage_ResumesPausedConversation(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, createCalled, "resuming a paused conversation must not create a new one")
 	assert.Equal(t, pausedConvID, resultConv.ID)
+	assert.Equal(t, "paused", claimedFrom)
+	assert.Equal(t, "running", claimedTo)
+}
+
+func TestSendChatMessage_ResumeRaceLoses(t *testing.T) {
+	projectID := uuid.New()
+	agentID := uuid.New()
+	memberID := uuid.New()
+	sessionID := uuid.New()
+	pausedConvID := uuid.New()
+	session := &agentdom.AgentChatSession{
+		ID:        sessionID,
+		AgentID:   agentID,
+		ProjectID: projectID,
+	}
+	paused := &agentdom.AgentConversation{
+		ID:            pausedConvID,
+		AgentID:       agentID,
+		ProjectID:     projectID,
+		ChatSessionID: &sessionID,
+		Status:        "paused",
+	}
+
+	repo := &mockAgentRepo{
+		findChatSessionByID: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentChatSession, error) {
+			return session, nil
+		},
+		findLatestConversationBySession: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentConversation, error) {
+			return paused, nil
+		},
+		claimConversationStatus: func(_ context.Context, _ uuid.UUID, _, _ string) (bool, error) {
+			// Another concurrent request already claimed the resume.
+			return false, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	pluginRepo := &mockPluginRepo{}
+	svc := New(repo, projRepo, nil, pluginRepo)
+
+	_, err := svc.SendChatMessage(context.Background(), projectID, sessionID, memberID, "Continuing…")
+
+	assert.ErrorIs(t, err, agentdom.ErrConversationBusy)
+}
+
+func TestSendChatMessage_BusyWhenQueued(t *testing.T) {
+	projectID := uuid.New()
+	agentID := uuid.New()
+	memberID := uuid.New()
+	sessionID := uuid.New()
+	session := &agentdom.AgentChatSession{
+		ID:        sessionID,
+		AgentID:   agentID,
+		ProjectID: projectID,
+	}
+	queued := &agentdom.AgentConversation{
+		ID:        uuid.New(),
+		AgentID:   agentID,
+		ProjectID: projectID,
+		Status:    "queued",
+	}
+
+	repo := &mockAgentRepo{
+		findChatSessionByID: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentChatSession, error) {
+			return session, nil
+		},
+		findLatestConversationBySession: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentConversation, error) {
+			return queued, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	pluginRepo := &mockPluginRepo{}
+	svc := New(repo, projRepo, nil, pluginRepo)
+
+	// A conversation that hasn't been dequeued yet must not let a second
+	// message create a duplicate conversation/sandbox for the same session.
+	_, err := svc.SendChatMessage(context.Background(), projectID, sessionID, memberID, "Are you there?")
+
+	assert.ErrorIs(t, err, agentdom.ErrConversationBusy)
 }
 
 func TestSendChatMessage_BusyWhenRunning(t *testing.T) {

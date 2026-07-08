@@ -180,7 +180,8 @@
 			"chatSession": "聊天会话",
 			"taskSession": "任务会话",
 			"pr": "PR",
-			"conversationEnded": "此对话已结束。"
+			"conversationEnded": "此对话已结束。",
+			"textOnlyMessage": "仅支持文本消息。"
 		},
 		"thread": {
 			"composerPlaceholder": "给代理发消息…",

@@ -129,8 +129,19 @@ export function useProjectRealtime(projectId: string): void {
 
 		socket.on("event", handleEvent);
 
+		// Socket.IO's "connect" event fires on every automatic reconnect, not
+		// just the initial connection. A reconnect starts a new server-side
+		// session with no room membership until we "join" again — without
+		// this, a network blip silently stops delivering invalidations while
+		// the socket still reports connected.
+		function handleConnect() {
+			joinProject(projectId);
+		}
+		socket.on("connect", handleConnect);
+
 		return () => {
 			socket.off("event", handleEvent);
+			socket.off("connect", handleConnect);
 			leaveProject(projectId);
 		};
 	}, [projectId, queryClient]);

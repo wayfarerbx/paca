@@ -129,19 +129,25 @@ function ToolFallbackDuration({
 function ToolFallbackTrigger({
 	toolName,
 	status,
+	isError,
 	className,
 	...props
 }: React.ComponentProps<typeof CollapsibleTrigger> & {
 	toolName: string;
 	status?: ToolCallMessagePartStatus;
+	isError?: boolean;
 }) {
 	const { t } = useTranslation("projects");
 	const statusType = status?.type ?? "complete";
 	const isRunning = statusType === "running";
 	const isCancelled =
 		status?.type === "incomplete" && status.reason === "cancelled";
+	// A tool call with a result is always reported "complete" by the runtime
+	// regardless of whether that result was an error (see ToolCallMessagePart
+	// .isError) — check it separately to still show a failure indicator.
+	const isFailed = isError === true && statusType === "complete";
 
-	const Icon = statusIconMap[statusType];
+	const Icon = isFailed ? XCircleIcon : statusIconMap[statusType];
 	const labelPrefix = t(
 		isCancelled ? "agents.thread.cancelledTool" : "agents.thread.usedTool",
 	);
@@ -160,6 +166,7 @@ function ToolFallbackTrigger({
 				className={cn(
 					"aui-tool-fallback-trigger-icon size-4 shrink-0",
 					isCancelled && "text-muted-foreground",
+					isFailed && "text-destructive",
 					isRunning && "animate-spin [animation-duration:0.6s]",
 				)}
 			/>
@@ -256,10 +263,12 @@ function ToolFallbackArgs({
 
 function ToolFallbackResult({
 	result,
+	isError,
 	className,
 	...props
 }: React.ComponentProps<"div"> & {
 	result?: unknown;
+	isError?: boolean;
 }) {
 	const { t } = useTranslation("projects");
 	if (result === undefined) return null;
@@ -270,10 +279,22 @@ function ToolFallbackResult({
 			className={cn("aui-tool-fallback-result", className)}
 			{...props}
 		>
-			<p className="aui-tool-fallback-result-header text-muted-foreground text-xs font-medium">
-				{t("agents.thread.resultLabel")}
+			<p
+				className={cn(
+					"aui-tool-fallback-result-header text-xs font-medium",
+					isError ? "text-destructive" : "text-muted-foreground",
+				)}
+			>
+				{t(isError ? "agents.thread.errorLabel" : "agents.thread.resultLabel")}
 			</p>
-			<pre className="aui-tool-fallback-result-content bg-muted/50 text-foreground/90 mt-1 rounded-md p-2.5 text-xs whitespace-pre-wrap">
+			<pre
+				className={cn(
+					"aui-tool-fallback-result-content mt-1 rounded-md p-2.5 text-xs whitespace-pre-wrap",
+					isError
+						? "bg-destructive/10 text-destructive border-destructive/30 border"
+						: "bg-muted/50 text-foreground/90",
+				)}
+			>
 				{typeof result === "string" ? result : JSON.stringify(result, null, 2)}
 			</pre>
 		</div>
@@ -556,6 +577,7 @@ const ToolFallbackImpl: ToolCallMessagePartComponent = ({
 	toolName,
 	argsText,
 	result,
+	isError,
 	status,
 	addResult,
 	resume,
@@ -577,7 +599,11 @@ const ToolFallbackImpl: ToolCallMessagePartComponent = ({
 
 	return (
 		<ToolFallbackRoot open={open} onOpenChange={setOpen}>
-			<ToolFallbackTrigger toolName={toolName} status={status} />
+			<ToolFallbackTrigger
+				toolName={toolName}
+				status={status}
+				isError={isError}
+			/>
 			<ToolFallbackContent>
 				<ToolFallbackError status={status} />
 				<ToolFallbackArgs
@@ -593,7 +619,9 @@ const ToolFallbackImpl: ToolCallMessagePartComponent = ({
 						respondToApproval={respondToApproval}
 					/>
 				)}
-				{!isCancelled && <ToolFallbackResult result={result} />}
+				{!isCancelled && (
+					<ToolFallbackResult result={result} isError={isError} />
+				)}
 			</ToolFallbackContent>
 		</ToolFallbackRoot>
 	);

@@ -21,7 +21,7 @@ from src.agent.executor import (
     teardown_paused_chat_sandbox,
 )
 from src.core import streams as stream_store
-from src.core.registry import ChatSandboxState, chat_sandboxes
+from src.core.registry import ChatSandboxState, chat_sandboxes, stop_events
 from src.core.streams import TriggerMessage
 from src.repositories import conversation_repository
 
@@ -254,11 +254,13 @@ def test_reconciler_does_not_reprocess_events_from_earlier_turns(bg_loop, mock_p
 
 @pytest.fixture(autouse=True)
 def _clear_chat_sandboxes():
-    """chat_sandboxes is a module-level dict shared across tests — reset it
-    before and after each test so state doesn't leak between them."""
+    """chat_sandboxes/stop_events are module-level dicts shared across tests —
+    reset them before and after each test so state doesn't leak between them."""
     chat_sandboxes.clear()
+    stop_events.clear()
     yield
     chat_sandboxes.clear()
+    stop_events.clear()
 
 
 def _fake_sandbox_state(conversation_id: str, project_id: str = "proj-1") -> ChatSandboxState:
@@ -321,6 +323,21 @@ async def test_teardown_paused_chat_sandbox_returns_false_when_absent(mock_teard
     mock_teardown.assert_not_called()
 
 
+async def test_teardown_paused_chat_sandbox_skips_in_flight_conversation(mock_teardown):
+    """A turn actively running for this conversation must not have its
+    sandbox yanked by the idle reaper or a stray "agent.stop" fallback — only
+    the turn itself (run_conversation) may retire this chat_sandboxes entry."""
+    chat_sandboxes["conv-1"] = _fake_sandbox_state("conv-1")
+    stop_events["conv-1"] = threading.Event()
+
+    result = await teardown_paused_chat_sandbox("conv-1")
+
+    assert result is False
+    assert "conv-1" in chat_sandboxes
+    mock_teardown.assert_not_called()
+    conversation_repository.update_conversation_status.assert_not_awaited()
+
+
 def test_find_idle_chat_sandboxes_selects_only_entries_past_timeout():
     chat_sandboxes["fresh"] = ChatSandboxState(
         handle=object(),  # type: ignore[arg-type]
@@ -347,6 +364,24 @@ def test_find_idle_chat_sandboxes_empty_when_none_idle():
         project_id="proj-1",
         last_active_at=999.0,
     )
+
+    idle = _find_idle_chat_sandboxes(now=1000.0, timeout_seconds=500.0)
+
+    assert idle == []
+
+
+def test_find_idle_chat_sandboxes_excludes_in_flight_conversation():
+    """last_active_at isn't updated while a turn is running (only at turn-end
+    and by heartbeats), so a long-running resumed turn can look stale by
+    timestamp alone — it must still be excluded while stop_events shows it's
+    actually in flight."""
+    chat_sandboxes["stale-but-running"] = ChatSandboxState(
+        handle=object(),  # type: ignore[arg-type]
+        sdk_conversation_id="sdk-1",
+        project_id="proj-1",
+        last_active_at=0.0,
+    )
+    stop_events["stale-but-running"] = threading.Event()
 
     idle = _find_idle_chat_sandboxes(now=1000.0, timeout_seconds=500.0)
 

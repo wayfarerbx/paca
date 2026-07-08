@@ -37,10 +37,7 @@ import {
 	useContext,
 } from "react";
 import { useTranslation } from "react-i18next";
-import {
-	ComposerAttachments,
-	UserMessageAttachments,
-} from "@/components/assistant-ui/attachment";
+import { UserMessageAttachments } from "@/components/assistant-ui/attachment";
 import { ThreadFollowupSuggestions } from "@/components/assistant-ui/follow-up-suggestions";
 import { MarkdownText } from "@/components/assistant-ui/markdown-text";
 import {
@@ -238,15 +235,15 @@ const Composer: FC = () => {
 	const { t } = useTranslation("projects");
 	return (
 		<ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">
-			<ComposerPrimitive.AttachmentDropzone
-				render={
-					<div
-						data-slot="aui_composer-shell"
-						className="border-border/60 data-[dragging=true]:border-ring focus-within:border-border dark:border-muted-foreground/15 dark:focus-within:border-muted-foreground/30 flex w-full flex-col gap-2 rounded-(--composer-radius) border bg-(--composer-bg) p-(--composer-padding) shadow-[0_4px_16px_-8px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.04)] transition-[border-color,box-shadow] focus-within:shadow-[0_6px_24px_-8px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.05)] data-[dragging=true]:border-dashed data-[dragging=true]:bg-[color-mix(in_oklab,var(--color-accent)_50%,var(--color-background))] dark:shadow-none"
-					/>
-				}
+			{/* No AttachmentDropzone/ComposerAttachments here — onNew only
+			 * accepts a single text part (see conversation-view.tsx /
+			 * ai-chat-float.tsx), so accepting dropped files here would be a
+			 * dead end: the composer would show them as attached, then send
+			 * would reject the message. */}
+			<div
+				data-slot="aui_composer-shell"
+				className="border-border/60 focus-within:border-border dark:border-muted-foreground/15 dark:focus-within:border-muted-foreground/30 flex w-full flex-col gap-2 rounded-(--composer-radius) border bg-(--composer-bg) p-(--composer-padding) shadow-[0_4px_16px_-8px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.04)] transition-[border-color,box-shadow] focus-within:shadow-[0_6px_24px_-8px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.05)] dark:shadow-none"
 			>
-				<ComposerAttachments />
 				<ComposerPrimitive.Input
 					placeholder={t("agents.thread.composerPlaceholder")}
 					className="aui-composer-input caret-primary placeholder:text-muted-foreground/80 max-h-32 min-h-10 w-full resize-none bg-transparent px-2.5 py-1 text-sm outline-none"
@@ -256,7 +253,7 @@ const Composer: FC = () => {
 					aria-label={t("agents.thread.messageInputAriaLabel")}
 				/>
 				<ComposerAction />
-			</ComposerPrimitive.AttachmentDropzone>
+			</div>
 		</ComposerPrimitive.Root>
 	);
 };

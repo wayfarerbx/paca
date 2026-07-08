@@ -712,6 +712,16 @@ async def teardown_paused_chat_sandbox(conversation_id: str) -> bool:
 
     Returns True if a sandbox was found and torn down.
     """
+    if conversation_id in stop_events:
+        # A turn is actively in flight for this conversation (registered for
+        # the turn's full duration — see run_conversation) — chat_sandboxes
+        # still holds its entry (looked up via .get(), not popped, in
+        # _run_sync) but tearing it down here would yank the sandbox out
+        # from under the running turn. Only the turn itself may retire this
+        # entry once it finishes. This guards both callers: the idle reaper
+        # (which only checks last_active_at, not liveness) and the
+        # "agent.stop" fallback in worker._handle_control.
+        return False
     entry = chat_sandboxes.pop(conversation_id, None)
     if entry is None:
         return False
@@ -732,12 +742,15 @@ def _find_idle_chat_sandboxes(now: float, timeout_seconds: float) -> list[str]:
 
     Pure function over the current `chat_sandboxes` registry — split out from
     `reap_idle_chat_sandboxes` so the idle-selection logic is testable without
-    driving the sleep loop.
+    driving the sleep loop. Excludes conversations with an in-flight turn
+    (present in `stop_events`) — their sandbox entry may look stale by
+    `last_active_at` alone (that field isn't updated while a turn is
+    running, only at turn-end and by heartbeats), but they are not idle.
     """
     return [
         cid
         for cid, entry in list(chat_sandboxes.items())
-        if now - entry.last_active_at > timeout_seconds
+        if now - entry.last_active_at > timeout_seconds and cid not in stop_events
     ]
 
 

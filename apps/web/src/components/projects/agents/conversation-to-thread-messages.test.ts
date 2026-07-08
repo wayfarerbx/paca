@@ -70,6 +70,46 @@ function observationEvent(opts: {
 	};
 }
 
+function agentErrorEvent(opts: {
+	toolCallId: string;
+	toolName: string;
+	error: string;
+}): AgentConversationEvent {
+	return {
+		id: `evt-${nextIndex}`,
+		conversation_id: "conv-1",
+		event_index: nextIndex++,
+		event_type: "AgentErrorEvent",
+		event_source: "agent",
+		payload: {
+			tool_call_id: opts.toolCallId,
+			tool_name: opts.toolName,
+			error: opts.error,
+		},
+		created_at: "2026-01-01T00:00:03.000Z",
+	};
+}
+
+function userRejectObservation(opts: {
+	toolCallId: string;
+	toolName: string;
+	rejectionReason: string;
+}): AgentConversationEvent {
+	return {
+		id: `evt-${nextIndex}`,
+		conversation_id: "conv-1",
+		event_index: nextIndex++,
+		event_type: "UserRejectObservation",
+		event_source: "agent",
+		payload: {
+			tool_call_id: opts.toolCallId,
+			tool_name: opts.toolName,
+			rejection_reason: opts.rejectionReason,
+		},
+		created_at: "2026-01-01T00:00:03.000Z",
+	};
+}
+
 describe("eventsToThreadMessages", () => {
 	it("converts a text-only turn into user + assistant messages", () => {
 		const events = [userMessage("hi"), agentReply("hello!")];
@@ -204,5 +244,99 @@ describe("eventsToThreadMessages", () => {
 		const messages = eventsToThreadMessages(events, false);
 
 		expect(messages[1].status).toEqual({ type: "complete", reason: "stop" });
+	});
+
+	it("resolves an open tool-call with an error when the tool fails (AgentErrorEvent)", () => {
+		const events = [
+			userMessage("run the broken tool"),
+			actionEvent({ toolCallId: "call-1", toolName: "flaky_tool" }),
+			agentErrorEvent({
+				toolCallId: "call-1",
+				toolName: "flaky_tool",
+				error: "connection reset",
+			}),
+		];
+
+		const messages = eventsToThreadMessages(events, false);
+
+		const assistant = messages[1];
+		const parts = assistant.content as unknown as Array<
+			Record<string, unknown>
+		>;
+		expect(parts).toHaveLength(1);
+		expect(parts[0]).toMatchObject({
+			type: "tool-call",
+			toolCallId: "call-1",
+			result: "connection reset",
+			isError: true,
+		});
+	});
+
+	it("resolves an open tool-call with an error when the user rejects it (UserRejectObservation)", () => {
+		const events = [
+			userMessage("delete everything"),
+			actionEvent({ toolCallId: "call-1", toolName: "delete_repo" }),
+			userRejectObservation({
+				toolCallId: "call-1",
+				toolName: "delete_repo",
+				rejectionReason: "User rejected the action",
+			}),
+		];
+
+		const messages = eventsToThreadMessages(events, false);
+
+		const assistant = messages[1];
+		const parts = assistant.content as unknown as Array<
+			Record<string, unknown>
+		>;
+		expect(parts).toHaveLength(1);
+		expect(parts[0]).toMatchObject({
+			type: "tool-call",
+			toolCallId: "call-1",
+			result: "User rejected the action",
+			isError: true,
+		});
+	});
+
+	it("appends a standalone errored tool-call part when an AgentErrorEvent has no matching open call", () => {
+		const events = [
+			agentErrorEvent({
+				toolCallId: "orphan-1",
+				toolName: "mystery_tool",
+				error: "boom",
+			}),
+		];
+
+		const messages = eventsToThreadMessages(events, false);
+
+		expect(messages).toHaveLength(1);
+		const parts = messages[0].content as unknown as Array<
+			Record<string, unknown>
+		>;
+		expect(parts).toHaveLength(1);
+		expect(parts[0]).toMatchObject({
+			type: "tool-call",
+			toolCallId: "orphan-1",
+			result: "boom",
+			isError: true,
+		});
+	});
+
+	it("does not mark a successful ObservationEvent's tool-call as an error", () => {
+		const events = [
+			actionEvent({ toolCallId: "call-1", toolName: "list_repositories" }),
+			observationEvent({
+				toolCallId: "call-1",
+				toolName: "list_repositories",
+				result: "repo-a",
+			}),
+		];
+
+		const messages = eventsToThreadMessages(events, false);
+
+		const parts = messages[0].content as unknown as Array<
+			Record<string, unknown>
+		>;
+		expect(parts[0]).not.toHaveProperty("isError");
 	});
 });

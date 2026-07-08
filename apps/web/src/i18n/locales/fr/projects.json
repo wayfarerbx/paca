@@ -180,7 +180,8 @@
 			"chatSession": "Session de discussion",
 			"taskSession": "Session de tâche",
 			"pr": "PR",
-			"conversationEnded": "Cette conversation est terminée."
+			"conversationEnded": "Cette conversation est terminée.",
+			"textOnlyMessage": "Seuls les messages texte sont pris en charge."
 		},
 		"thread": {
 			"composerPlaceholder": "Message à l'agent…",

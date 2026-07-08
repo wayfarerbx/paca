@@ -180,7 +180,8 @@
 			"chatSession": "채팅 세션",
 			"taskSession": "작업 세션",
 			"pr": "PR",
-			"conversationEnded": "이 대화가 종료되었습니다."
+			"conversationEnded": "이 대화가 종료되었습니다.",
+			"textOnlyMessage": "텍스트 메시지만 지원됩니다."
 		},
 		"thread": {
 			"composerPlaceholder": "에이전트에게 메시지…",

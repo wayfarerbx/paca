@@ -180,7 +180,8 @@
 			"chatSession": "Chat session",
 			"taskSession": "Task session",
 			"pr": "PR",
-			"conversationEnded": "This conversation has ended."
+			"conversationEnded": "This conversation has ended.",
+			"textOnlyMessage": "Only text messages are supported."
 		},
 		"thread": {
 			"composerPlaceholder": "Message agent…",

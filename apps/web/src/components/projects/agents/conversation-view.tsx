@@ -144,7 +144,7 @@ export function ConversationView({
 			throw new Error(t("agents.conversationView.conversationEnded"));
 		}
 		if (message.content.length !== 1 || message.content[0]?.type !== "text") {
-			throw new Error("Only text messages are supported");
+			throw new Error(t("agents.conversationView.textOnlyMessage"));
 		}
 		const result = await sendChatMessage(
 			projectId,

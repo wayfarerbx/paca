@@ -650,6 +650,23 @@ func (r *AgentRepository) UpdateConversationStatus(ctx context.Context, id uuid.
 	return err
 }
 
+// ClaimConversationStatus atomically moves a conversation from fromStatus to
+// toStatus. Only one caller racing on the same conversation observes true.
+func (r *AgentRepository) ClaimConversationStatus(ctx context.Context, id uuid.UUID, fromStatus, toStatus string) (bool, error) {
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE agent_conversations SET status=$1, updated_at=$2 WHERE id=$3 AND status=$4`,
+		toStatus, time.Now(), id.String(), fromStatus,
+	)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return n == 1, nil
+}
+
 // UpdateConversation saves the full conversation record.
 func (r *AgentRepository) UpdateConversation(ctx context.Context, c *agentdom.AgentConversation) error {
 	rec := conversationToRecord(c)

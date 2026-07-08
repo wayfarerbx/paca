@@ -140,7 +140,7 @@ export function AIChatFloat({ projectId }: AIChatFloatProps) {
 
 	const onNew = async (message: AppendMessage) => {
 		if (message.content.length !== 1 || message.content[0]?.type !== "text") {
-			throw new Error("Only text messages are supported");
+			throw new Error(t("agents.conversationView.textOnlyMessage"));
 		}
 		const text = message.content[0].text;
 

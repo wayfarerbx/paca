@@ -593,8 +593,14 @@ func (s *Service) PauseConversation(ctx context.Context, projectID, conversation
 // Heartbeat refreshes a chat conversation's idle timer. Fires on a ~30s
 // interval per open browser tab (see apps/web) — deliberately does not touch
 // Postgres; ai-agent cross-checks project_id in-memory before honoring it
-// (see worker._handle_control in services/ai-agent).
+// (see worker._handle_control in services/ai-agent). GetConversation is
+// still called here so the API layer itself enforces project ownership,
+// rather than resting the whole authorization boundary on ai-agent's
+// in-memory check.
 func (s *Service) Heartbeat(ctx context.Context, projectID, conversationID uuid.UUID) error {
+	if _, err := s.GetConversation(ctx, projectID, conversationID); err != nil {
+		return err
+	}
 	return s.publishTrigger(ctx, events.TopicAgentHeartbeat, map[string]any{
 		"conversation_id": conversationID.String(),
 		"project_id":      projectID.String(),
@@ -681,12 +687,34 @@ func (s *Service) SendChatMessage(ctx context.Context, projectID, sessionID, mem
 		return nil, err
 	}
 
-	if latest != nil && agentdom.ConversationStatus(latest.Status) == agentdom.ConversationStatusRunning {
-		return nil, agentdom.ErrConversationBusy
+	conv := latest
+	if latest != nil {
+		switch agentdom.ConversationStatus(latest.Status) {
+		case agentdom.ConversationStatusRunning, agentdom.ConversationStatusQueued:
+			// Still mid-turn (or not yet picked up by the worker) — reject
+			// instead of racing a second conversation/sandbox into existence
+			// for the same chat session.
+			return nil, agentdom.ErrConversationBusy
+		case agentdom.ConversationStatusPaused:
+			// Resume — claim the conversation atomically so two concurrent
+			// replies can't both win and double-publish a resume trigger for
+			// the same conversation_id. The loser is told to retry as busy
+			// rather than silently racing ai-agent's sandbox reattachment.
+			claimed, err := s.repo.ClaimConversationStatus(ctx, latest.ID,
+				string(agentdom.ConversationStatusPaused), string(agentdom.ConversationStatusRunning))
+			if err != nil {
+				return nil, err
+			}
+			if !claimed {
+				return nil, agentdom.ErrConversationBusy
+			}
+		default:
+			// Terminal status — fall through to create a new conversation.
+			conv = nil
+		}
 	}
 
-	conv := latest
-	if conv == nil || agentdom.ConversationStatus(conv.Status) != agentdom.ConversationStatusPaused {
+	if conv == nil {
 		conv, err = s.createConversation(ctx, projectID, session.AgentID, &memberID, agentdom.AgentConversation{
 			TriggerType:   "chat_message",
 			ChatSessionID: &sessionID,
@@ -696,10 +724,7 @@ func (s *Service) SendChatMessage(ctx context.Context, projectID, sessionID, mem
 		}
 	}
 	// else: resume — reuse the same conversation_id so ai-agent reattaches
-	// to the sandbox it kept alive rather than cold-starting a new one. Its
-	// status flips back to "running" once the worker dequeues the trigger
-	// (run_conversation's first step), same as a cold start's "queued" ->
-	// "running" flip — no status write needed here.
+	// to the sandbox it kept alive rather than cold-starting a new one.
 
 	if err := s.publishChatTrigger(ctx, session.AgentID, conv.ID, sessionID, projectID, memberID, message, s.gatherRepoPluginIDs(ctx)); err != nil {
 		return nil, err

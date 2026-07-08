@@ -27,6 +27,7 @@ type MutableToolCallPart = {
 	toolName: string;
 	argsText: string;
 	result?: unknown;
+	isError?: boolean;
 };
 
 type MutablePart =
@@ -156,13 +157,25 @@ export function eventsToThreadMessages(
 			continue;
 		}
 
-		if (t === "ObservationEvent") {
+		// ObservationEvent (tool succeeded), AgentErrorEvent (tool/scaffold
+		// error), and UserRejectObservation (user/hook rejected the call) are
+		// all responses to a tool call — each carries tool_call_id and must
+		// resolve the matching open tool-call part, or it's left "running"
+		// forever with no indication anything happened.
+		if (
+			t === "ObservationEvent" ||
+			t === "AgentErrorEvent" ||
+			t === "UserRejectObservation"
+		) {
+			const isError = t !== "ObservationEvent";
 			const obs = p.observation as Record<string, unknown> | undefined;
 			const resultText =
 				(obs &&
 					(extractContentText(obs.content) ??
 						(typeof obs.message === "string" ? obs.message : null))) ??
 				extractContentText(p.content) ??
+				(typeof p.error === "string" ? p.error : null) ??
+				(typeof p.rejection_reason === "string" ? p.rejection_reason : null) ??
 				(typeof p.message === "string" ? p.message : null) ??
 				(typeof p.output === "string" ? p.output : null) ??
 				"";
@@ -176,6 +189,7 @@ export function eventsToThreadMessages(
 
 			if (openPart) {
 				openPart.result = resultText;
+				if (isError) openPart.isError = true;
 			} else {
 				// No matching open tool-call in this turn (history gap) — append
 				// a standalone, already-complete tool-call part.
@@ -188,6 +202,7 @@ export function eventsToThreadMessages(
 					toolName,
 					argsText: "",
 					result: resultText,
+					...(isError ? { isError: true } : {}),
 				});
 			}
 			continue;
