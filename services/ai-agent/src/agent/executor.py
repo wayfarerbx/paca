@@ -584,9 +584,7 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
                 conversation = Conversation(
                     agent=agent,
                     workspace=workspace,
-                    conversation_id=(
-                        resume_state.sdk_conversation_id if resume_state else None
-                    ),
+                    conversation_id=(resume_state.sdk_conversation_id if resume_state else None),
                     callbacks=[_make_event_callback(trigger, loop, counter, seen_events)],
                     max_iteration_per_run=agent_config.max_iterations,
                     visualizer=_QuietVisualizer(),
@@ -670,9 +668,7 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
 
             return stopped, errored, shutdown
 
-        stopped, errored, shutdown = await asyncio.get_event_loop().run_in_executor(
-            None, _run_sync
-        )
+        stopped, errored, shutdown = await asyncio.get_event_loop().run_in_executor(None, _run_sync)
         result = _post_turn_status(is_chat, stopped, errored, shutdown)
         if result is not None:
             status, event_type = result

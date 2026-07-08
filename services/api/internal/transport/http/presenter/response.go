@@ -358,7 +358,8 @@ func httpStatusForCode(code apierr.Code) int {
 		return http.StatusUnauthorized
 	case apierr.CodeUserNotFound:
 		return http.StatusNotFound
-	case apierr.CodeUsernameTaken:
+	case apierr.CodeUsernameTaken,
+		apierr.CodeAgentConversationBusy:
 		return http.StatusConflict
 	case apierr.CodeForbidden:
 		return http.StatusForbidden

@@ -63,8 +63,7 @@ async def get_seen_event_ids(conversation_id: str) -> set[str]:
     """
     pool = await get_pool()
     rows = await pool.fetch(
-        "SELECT payload->>'id' AS sdk_id FROM agent_conversation_events"
-        " WHERE conversation_id = $1",
+        "SELECT payload->>'id' AS sdk_id FROM agent_conversation_events WHERE conversation_id = $1",
         conversation_id,
     )
     return {row["sdk_id"] for row in rows if row["sdk_id"] is not None}

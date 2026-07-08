@@ -6,12 +6,18 @@ package agentdom
 type ConversationStatus string
 
 const (
-	ConversationStatusQueued   ConversationStatus = "queued"
-	ConversationStatusRunning  ConversationStatus = "running"
-	ConversationStatusPaused   ConversationStatus = "paused"
+	// ConversationStatusQueued indicates a conversation is waiting to be processed.
+	ConversationStatusQueued ConversationStatus = "queued"
+	// ConversationStatusRunning indicates a conversation is actively being processed.
+	ConversationStatusRunning ConversationStatus = "running"
+	// ConversationStatusPaused indicates a conversation is temporarily paused.
+	ConversationStatusPaused ConversationStatus = "paused"
+	// ConversationStatusFinished indicates a conversation has completed successfully.
 	ConversationStatusFinished ConversationStatus = "finished"
-	ConversationStatusFailed   ConversationStatus = "failed"
-	ConversationStatusStopped  ConversationStatus = "stopped"
+	// ConversationStatusFailed indicates a conversation has failed.
+	ConversationStatusFailed ConversationStatus = "failed"
+	// ConversationStatusStopped indicates a conversation was stopped by the user.
+	ConversationStatusStopped ConversationStatus = "stopped"
 )
 
 // IsTerminal reports whether this status ends the conversation's lifecycle.
