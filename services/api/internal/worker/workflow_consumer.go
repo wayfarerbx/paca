@@ -222,10 +222,18 @@ type taskUpdatedContent struct {
 // evalCache memoizes repository lookups shared across the nodes and edges
 // evaluated within a single processTaskStatusChange call, so a task
 // belonging to several active-workflow nodes — or an AND-join with several
-// predecessors — doesn't refetch the same workflow's rules/transitions, or
-// the same node/task row, once per node/edge.
+// predecessors — doesn't refetch the same workflow's transitions, or the
+// same node/task row, once per node/edge.
+//
+// Status rules are deliberately NOT memoized here, even within one event: a
+// rule's assignee can now be edited while its workflow stays active (see
+// requireEditableOwnedWorkflow in the API service), so a Go-map cache scoped
+// to this event has no way to learn about a concurrent edit landing
+// mid-fan-out. Rules are still cached — just one layer down, in
+// workflowsvc.CachedRepository, which is shared with the API's write path
+// and correctly invalidated on every SetStatusRule/RemoveStatusRule instead
+// of trusting a TTL or an event boundary — see applyStatusRule.
 type evalCache struct {
-	rules       map[uuid.UUID][]*workflowdom.StatusRule
 	transitions map[uuid.UUID][]*workflowdom.StatusTransition
 	edges       map[uuid.UUID][]*workflowdom.Edge
 	nodes       map[uuid.UUID]*workflowdom.Node
@@ -234,24 +242,11 @@ type evalCache struct {
 
 func newEvalCache() *evalCache {
 	return &evalCache{
-		rules:       make(map[uuid.UUID][]*workflowdom.StatusRule),
 		transitions: make(map[uuid.UUID][]*workflowdom.StatusTransition),
 		edges:       make(map[uuid.UUID][]*workflowdom.Edge),
 		nodes:       make(map[uuid.UUID]*workflowdom.Node),
 		tasks:       make(map[uuid.UUID]*taskdom.Task),
 	}
-}
-
-func (e *evalCache) getRules(ctx context.Context, repo workflowGraphReader, workflowID uuid.UUID) ([]*workflowdom.StatusRule, error) {
-	if r, ok := e.rules[workflowID]; ok {
-		return r, nil
-	}
-	r, err := repo.ListStatusRulesByWorkflow(ctx, workflowID)
-	if err != nil {
-		return nil, err
-	}
-	e.rules[workflowID] = r
-	return r, nil
 }
 
 func (e *evalCache) getTransitions(ctx context.Context, repo workflowGraphReader, workflowID uuid.UUID) ([]*workflowdom.StatusTransition, error) {
@@ -509,7 +504,16 @@ func (c *WorkflowConsumer) applyStatusRule(ctx context.Context, projectID uuid.U
 	if task.StatusID == nil {
 		return nil
 	}
-	rules, err := cache.getRules(ctx, c.workflowRepo, node.WorkflowID)
+
+	// Not memoized in evalCache: a rule's assignee can now be edited while
+	// the workflow stays active, so a single event's fan-out (e.g. an A->B
+	// chain) must not let a later node's lookup reuse an earlier node's
+	// now-superseded snapshot of the rule list. This still reads through
+	// workflowsvc.CachedRepository under the hood (see bootstrap wiring),
+	// which caches the same list across events too — the difference is that
+	// its cache is invalidated the moment a rule is written, rather than
+	// held for the lifetime of whatever Go value last read it.
+	rules, err := c.workflowRepo.ListStatusRulesByWorkflow(ctx, node.WorkflowID)
 	if err != nil {
 		return fmt.Errorf("list status rules: %w", err)
 	}

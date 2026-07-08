@@ -11,10 +11,10 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Loader2,
+	Pause,
 	Pencil,
 	Play,
 	Plus,
-	RotateCcw,
 	Save,
 	X,
 } from "lucide-react";
@@ -117,7 +117,9 @@ function WorkflowBuilderPage() {
 	);
 
 	const isDraft = graph?.workflow.status === "draft";
-	const canEditGraph = canManage && isDraft;
+	const isArchived = graph?.workflow.status === "archived";
+	// The graph is editable in both draft and active; only archived locks it.
+	const canEditGraph = canManage && !isArchived;
 
 	function reportError(err: unknown) {
 		setErrorMessage(
@@ -272,7 +274,7 @@ function WorkflowBuilderPage() {
 							<h1 className="font-semibold text-sm truncate">
 								{graph.workflow.name}
 							</h1>
-							{canManage && isDraft && (
+							{canManage && !isArchived && (
 								<button
 									type="button"
 									onClick={() => {
@@ -342,20 +344,16 @@ function WorkflowBuilderPage() {
 							disabled={revertMutation.isPending}
 							onClick={() => revertMutation.mutate()}
 						>
-							<RotateCcw className="size-3.5 mr-1.5" />
-							{t("automation.builder.editAsDraft")}
+							<Pause className="size-3.5 mr-1.5" />
+							{t("automation.builder.deactivate")}
 						</Button>
 					)}
 				</div>
 			</div>
 
-			{!isDraft && (
+			{isArchived && (
 				<div className="px-4 py-2 bg-muted/30 border-b border-border/30 text-xs text-muted-foreground shrink-0">
-					{t(
-						graph.workflow.status === "archived"
-							? "automation.builder.readOnlyNoticeArchived"
-							: "automation.builder.readOnlyNotice",
-					)}
+					{t("automation.builder.readOnlyNoticeArchived")}
 				</div>
 			)}
 

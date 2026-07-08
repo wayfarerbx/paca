@@ -36,6 +36,8 @@ type fakeWorkflowRepo struct {
 	// would produce, instead of actually creating the caller's row.
 	simulateRuleConflictOnce       bool
 	simulateTransitionConflictOnce bool
+
+	listStatusRulesCalls int // counts real ListStatusRulesByWorkflow calls, to assert CachedRepository hits/invalidations
 }
 
 func newFakeWorkflowRepo() *fakeWorkflowRepo {
@@ -210,6 +212,7 @@ func (r *fakeWorkflowRepo) FindStatusRuleByID(_ context.Context, id uuid.UUID) (
 func (r *fakeWorkflowRepo) ListStatusRulesByWorkflow(_ context.Context, workflowID uuid.UUID) ([]*workflowdom.StatusRule, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.listStatusRulesCalls++
 	var out []*workflowdom.StatusRule
 	for _, sr := range r.rules {
 		if sr.WorkflowID == workflowID {
@@ -597,7 +600,7 @@ func TestAddNode_RejectsCrossProjectTask(t *testing.T) {
 	}
 }
 
-func TestAddNode_RejectsWhenNotDraft(t *testing.T) {
+func TestAddNode_AllowedWhenActive_RejectsWhenArchived(t *testing.T) {
 	f := newFixture()
 	w := mustCreateWorkflow(t, f)
 	ctx := context.Background()
@@ -618,9 +621,17 @@ func TestAddNode_RejectsWhenNotDraft(t *testing.T) {
 	}
 
 	otherTask := f.addTask(f.projectID)
-	_, err := f.svc.AddNode(context.Background(), f.projectID, w.ID, workflowdom.AddNodeInput{TaskID: otherTask.ID})
-	if !errors.Is(err, workflowdom.ErrNotDraft) {
-		t.Fatalf("expected ErrNotDraft, got %v", err)
+	if _, err := f.svc.AddNode(ctx, f.projectID, w.ID, workflowdom.AddNodeInput{TaskID: otherTask.ID}); err != nil {
+		t.Fatalf("expected AddNode to succeed while active, got %v", err)
+	}
+
+	if _, err := f.svc.Archive(ctx, f.projectID, w.ID); err != nil {
+		t.Fatalf("Archive: %v", err)
+	}
+	thirdTask := f.addTask(f.projectID)
+	_, err := f.svc.AddNode(ctx, f.projectID, w.ID, workflowdom.AddNodeInput{TaskID: thirdTask.ID})
+	if !errors.Is(err, workflowdom.ErrArchived) {
+		t.Fatalf("expected ErrArchived, got %v", err)
 	}
 }
 

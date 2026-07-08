@@ -837,7 +837,7 @@ func TestE2EWorkflowManagement_Lifecycle(t *testing.T) {
 		}
 	})
 
-	t.Run("draft_only_mutations_rejected_while_active", func(t *testing.T) {
+	t.Run("node_mutations_allowed_while_active", func(t *testing.T) {
 		body := jsonBody(t, map[string]any{"pos_x": 1.0, "pos_y": 1.0})
 		req := mustRequest(env.ctx, t, http.MethodPatch,
 			fmt.Sprintf("%s/api/v1/projects/%s/workflows/%s/nodes/%s", env.base, projID, workflowID, nodeID), body)
@@ -845,8 +845,7 @@ func TestE2EWorkflowManagement_Lifecycle(t *testing.T) {
 		req.Header.Set("Authorization", "Bearer "+token)
 		resp := mustDo(t, client, req)
 		defer func() { _ = resp.Body.Close() }()
-		assertStatus(t, resp, http.StatusConflict)
-		assertErrorCode(t, resp, "WORKFLOW_NOT_DRAFT")
+		assertStatus(t, resp, http.StatusOK)
 	})
 
 	t.Run("rename_allowed_while_active", func(t *testing.T) {
@@ -922,6 +921,17 @@ func TestE2EWorkflowManagement_Lifecycle(t *testing.T) {
 		if status, _ := data["status"].(string); status != "archived" {
 			t.Errorf("expected status archived, got %q", status)
 		}
+
+		// Unlike active, an archived workflow's graph is locked again.
+		body := jsonBody(t, map[string]any{"pos_x": 2.0, "pos_y": 2.0})
+		reqNode := mustRequest(env.ctx, t, http.MethodPatch,
+			fmt.Sprintf("%s/api/v1/projects/%s/workflows/%s/nodes/%s", env.base, projID, workflowID, nodeID), body)
+		reqNode.Header.Set("Content-Type", "application/json")
+		reqNode.Header.Set("Authorization", "Bearer "+token)
+		respNode := mustDo(t, client, reqNode)
+		defer func() { _ = respNode.Body.Close() }()
+		assertStatus(t, respNode, http.StatusConflict)
+		assertErrorCode(t, respNode, "WORKFLOW_ARCHIVED")
 
 		// Archived workflows cannot be reverted directly (must delete/recreate).
 		req2 := mustRequest(env.ctx, t, http.MethodPost,

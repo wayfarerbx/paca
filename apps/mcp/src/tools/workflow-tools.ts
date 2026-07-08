@@ -273,8 +273,8 @@ export function getWorkflowTools(): Tool[] {
 			description:
 				"IMPORTANT: every nodes.set entry must include posX AND posY (both required numbers), even when you are ONLY repositioning a node that already exists — decide on positions before calling this tool. There is no valid entry with just taskId, and omitting them just wastes a round trip on a validation error. Lay nodes out top-to-bottom by dependency order (posY = stage/row, matching the edges — earlier/no-predecessor tasks on top, later/dependent tasks below) and side-by-side for parallel tasks at the same stage (same posY, different posX); call get_workflow first to see every existing node's current position (and any edges) before repositioning, so the result stays consistent with the rest of the graph. See the posX/posY field descriptions below for exact spacing.\n\n" +
 				"Update a workflow: rename/describe it, change its lifecycle status, and/or edit its graph (nodes, status rules, status transitions, edges) — all in one call. Like create_workflow, everything is addressed by taskId/statusId (no internal node/rule/transition/edge IDs needed); use get_workflow first if you need to see the workflow's current graph.\n\n" +
-				"Every graph edit below (nodes/statusRules/statusTransitions/edges) technically requires the workflow to be in 'draft' state — including a nodes.set entry that ONLY repositions an existing node, which is NOT exempt just because it's purely visual. You don't need to manage this yourself, though: if you omit status entirely and the workflow is currently active, this call automatically reverts it to draft, applies every edit below, and re-activates it before returning — all in this ONE call. So for the common case ('just reposition/edit these nodes'), call this with only nodes/statusRules/statusTransitions/edges set and nothing else; do not call this tool once per node, pass every node you're touching as one nodes.set array in a single call.\n\n" +
-				"Only pass status yourself when you actually want a different END state than what the workflow already had: 'draft' to revert AND stay in draft (e.g. you want to review before reactivating yourself later — this also unlocks edits in the same call, same as the automatic case above); 'active' to activate a currently-draft workflow (requires at least one node and exactly one status with no next status configured); 'archived' to archive a currently-active one (archived workflows can never be reverted — delete or build a new one instead). When status is given, it's applied around the edits the same way (draft first, active/archived last) but the workflow is left in whatever you asked for instead of being auto-restored.\n\n" +
+				"Graph edits (nodes/statusRules/statusTransitions/edges) work whether the workflow is 'draft' or 'active' — including a nodes.set entry that ONLY repositions an existing node. Only 'archived' locks the graph (delete or build a new one instead). Do not call this tool once per node; pass every node you're touching as one nodes.set array in a single call.\n\n" +
+				"Pass status when you want a different lifecycle state than the workflow currently has: 'draft' to pause the automation engine while keeping the workflow editable (e.g. reviewing changes before reactivating yourself); 'active' to activate a currently-draft workflow (requires at least one node and exactly one status with no next status configured); 'archived' to archive a currently-active one (archived workflows can never be reverted — delete or build a new one instead). When status is given, it's applied around the edits the same way (draft first, active/archived last).\n\n" +
 				"nodes/statusRules/statusTransitions/edges each take set/remove (edges use add instead of set, since an edge has nothing to update — only exists or not): 'set' creates the entry if it doesn't exist yet, or updates it in place if it does (e.g. re-positioning an existing node, or changing a rule's assignee). 'remove' deletes it — removing a taskId/statusId/edge pair that doesn't currently exist is a no-op, not an error, so it's safe to retry. Every item in every list is attempted independently; one item failing (e.g. one bad edge) doesn't block its siblings.",
 			inputSchema: {
 				type: "object",
@@ -292,7 +292,7 @@ export function getWorkflowTools(): Tool[] {
 					nodes: {
 						type: "object",
 						description:
-							"Add/reposition or remove nodes, addressed by taskId. Put every node you're touching in ONE nodes.set array — e.g. repositioning 5 nodes is 1 update_workflow call with 5 entries, not 5 separate calls. (Requires 'draft' state, same as any other graph edit, but you don't need to handle that yourself — see the tool description above.)",
+							"Add/reposition or remove nodes, addressed by taskId. Put every node you're touching in ONE nodes.set array — e.g. repositioning 5 nodes is 1 update_workflow call with 5 entries, not 5 separate calls. Works in both 'draft' and 'active' state; only 'archived' locks it (see the tool description above).",
 						properties: {
 							set: {
 								type: "array",
@@ -651,12 +651,6 @@ async function handleWorkflowToolInner(
 			const touchesGraph = Boolean(
 				nodes || statusRules || statusTransitions || edges,
 			);
-			// Set when this call transparently reverts an active workflow to
-			// draft on the caller's behalf (see below) — signals that we
-			// should restore it to active afterward, so the caller doesn't
-			// have to know about the draft requirement at all for the common
-			// case of "just edit the graph, I don't care about lifecycle".
-			let autoRevertedFromActive = false;
 			if (touchesGraph && blockedByRevert) {
 				hadFailure = true;
 				lines.push(
@@ -673,43 +667,12 @@ async function handleWorkflowToolInner(
 					);
 				}
 
-				// Every graph edit — including a node.set entry that ONLY
-				// repositions an existing node — requires 'draft', with no
-				// exception for position-only changes. Rather than making the
-				// caller explicitly pass status: "draft" (and then a SEPARATE
-				// follow-up call to reactivate) just to reposition a couple of
-				// nodes, auto-revert here whenever no explicit status was
-				// requested and the workflow is currently active, then restore
-				// it to active at the end of this same call once the edits are
-				// applied. If status was explicitly requested, respect that
-				// instead of second-guessing it.
-				if (
-					graph &&
-					status === undefined &&
-					graph.workflow.status === "active"
-				) {
-					try {
-						graph.workflow = await workflowClient.revertWorkflowToDraft(
-							projectId,
-							workflowId,
-						);
-						autoRevertedFromActive = true;
-						lines.push(
-							"Temporarily reverted to draft to apply the graph edits below (will re-activate once they're done).",
-						);
-					} catch (err) {
-						hadFailure = true;
-						lines.push(
-							`Skipped all graph edits — could not revert to draft: ${extractApiErrorMessage(err)}`,
-						);
-						graph = undefined;
-					}
-				}
-
-				if (graph && graph.workflow.status !== "draft") {
+				// Graph edits work in both 'draft' and 'active' — only 'archived'
+				// locks the graph.
+				if (graph && graph.workflow.status === "archived") {
 					hadFailure = true;
 					lines.push(
-						`Skipped all graph edits because the workflow is currently '${graph.workflow.status}', not 'draft'. Pass status: "draft" in this call to unlock edits.`,
+						"Skipped all graph edits because the workflow is archived — archived workflows can't be edited.",
 					);
 				} else if (graph) {
 					const indexes = buildGraphIndexes(graph);
@@ -826,29 +789,6 @@ async function handleWorkflowToolInner(
 					} catch (err) {
 						lines.push(
 							`Could not ${status === "active" ? "activate" : "archive"}: ${extractApiErrorMessage(err)}`,
-						);
-					}
-				}
-			} else if (autoRevertedFromActive) {
-				// No explicit status was requested, so restore the workflow to
-				// the active state it was in before we temporarily reverted it
-				// above — the caller asked for a graph edit, not a lifecycle
-				// change, and shouldn't end up with the workflow stuck in draft
-				// (and its automation paused) as a side effect of that edit.
-				if (hadFailure) {
-					lines.push(
-						'Left the workflow in draft since a graph edit above failed — fix the failure and retry, or activate manually (status: "active") once ready.',
-					);
-				} else {
-					try {
-						const workflow = await workflowClient.activateWorkflow(
-							projectId,
-							workflowId,
-						);
-						lines.push(`Workflow is now ${workflow.status}.`);
-					} catch (err) {
-						lines.push(
-							`Graph edits succeeded, but re-activating afterward failed: ${extractApiErrorMessage(err)}. The workflow is currently in draft — activate it manually once fixed.`,
 						);
 					}
 				}

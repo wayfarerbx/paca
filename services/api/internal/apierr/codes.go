@@ -321,10 +321,12 @@ const (
 	CodeWorkflowEdgeCycle Code = "WORKFLOW_EDGE_CYCLE"
 	// CodeWorkflowEdgeDuplicate indicates the edge already exists.
 	CodeWorkflowEdgeDuplicate Code = "WORKFLOW_EDGE_DUPLICATE"
-	// CodeWorkflowNotDraft indicates the workflow can only be edited while in draft.
+	// CodeWorkflowNotDraft indicates the workflow can only be activated while in draft.
 	CodeWorkflowNotDraft Code = "WORKFLOW_NOT_DRAFT"
 	// CodeWorkflowNotActive indicates the workflow is not active.
 	CodeWorkflowNotActive Code = "WORKFLOW_NOT_ACTIVE"
+	// CodeWorkflowArchived indicates the workflow's graph can no longer be edited once archived.
+	CodeWorkflowArchived Code = "WORKFLOW_ARCHIVED"
 	// CodeWorkflowActivateNoNodes indicates an empty workflow cannot be activated.
 	CodeWorkflowActivateNoNodes Code = "WORKFLOW_ACTIVATE_NO_NODES"
 	// CodeWorkflowActivateDoneStatusUndetermined indicates the workflow's status-transition chain doesn't have exactly one terminal (done) status.

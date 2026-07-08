@@ -120,12 +120,14 @@ A workflow is always in one of three states:
 | State      | Meaning                                                        |
 |------------|-----------------------------------------------------------------|
 | `draft`    | Freely editable (nodes, edges, status rules, status transitions). Engine ignores it. |
-| `active`   | Engine evaluates it on every relevant task status change. Graph is locked — no node/edge/status-rule/status-transition mutations. |
-| `archived` | Engine ignores it. Terminal-ish; can be reverted to draft.       |
+| `active`   | Engine evaluates it on every relevant task status change. Graph is still freely editable — the engine reads it fresh per event with graceful fallbacks for a rule/edge/transition that's missing or mid-edit, so a concurrent change just takes effect on the next event. |
+| `archived` | Engine ignores it. Graph is locked — no node/edge/status-rule/status-transition mutations. Terminal-ish; can be reverted to draft. |
 
 Transitions: `draft → active` (`Activate`, validated — see below),
-`active → archived` (`Archive`), `active|archived → draft` (`RevertToDraft`,
-re-enables editing). Renaming/describing a workflow is allowed in any state.
+`active → archived` (`Archive`), `active → draft` (`RevertToDraft`, pauses
+the engine; archived workflows cannot be reverted). Renaming/describing a
+workflow, and all graph mutations, are allowed in `draft` and `active`; only
+`archived` locks editing.
 
 **Activation validation**: at least one node; the graph is still a DAG
 (defensive re-check); every node's task still exists in the project (hasn't
@@ -222,8 +224,9 @@ at a time, matching how the status-rule handoffs actually work.
 
 All endpoints are under `/api/v1/projects/:projectId/workflows`. Read routes
 require `workflows.read`; everything else requires `workflows.write`. Node,
-edge, status-rule, and status-transition mutations additionally require the
-workflow to be in `draft` state.
+edge, status-rule, and status-transition mutations are allowed in `draft` and
+`active`; once a workflow is `archived` they're rejected with 409
+`WORKFLOW_ARCHIVED`.
 
 ```
 GET    /workflows                                  list (optional ?status=draft|active|archived)
@@ -233,7 +236,7 @@ PATCH  /workflows/:workflowId                        rename / re-describe
 DELETE /workflows/:workflowId                        soft-delete
 POST   /workflows/:workflowId/activate               draft → active
 POST   /workflows/:workflowId/archive                active → archived
-POST   /workflows/:workflowId/revert-to-draft        active|archived → draft
+POST   /workflows/:workflowId/revert-to-draft        active → draft
 
 POST   /workflows/:workflowId/nodes                                    add a task as a node
 PATCH  /workflows/:workflowId/nodes/:nodeId                             move (pos_x/pos_y)
@@ -365,11 +368,14 @@ deliberately more lenient than the REST layer: removing a taskId/statusId/
 edge pair that doesn't currently resolve to anything is a no-op, not an
 error (the REST endpoints themselves still 404 on an unknown ID) — this
 makes it safe for an agent to resend the same `remove` list after a partial
-failure. Graph edits still require the workflow to be in `draft` state (see
-[Lifecycle](#lifecycle)); `update_workflow` applies a requested `status:
-"draft"` revert *before* any graph edits in the same call, and a requested
-`status: "active"`/`"archived"` transition *after* them, and only if
-nothing else in the call failed.
+failure. Graph edits work in both `draft` and `active`; only `archived`
+locks them (see [Lifecycle](#lifecycle)) — an agent can reposition/add/
+remove nodes, edges, status rules, and status transitions on a running
+workflow in a single `update_workflow` call with no lifecycle juggling.
+`update_workflow` still applies a requested `status: "draft"` revert
+*before* any graph edits in the same call (e.g. to pause the engine while
+editing) and a requested `status: "active"`/`"archived"` transition *after*
+them, and only if nothing else in the call failed.
 
 ## Frontend
 

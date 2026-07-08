@@ -55,8 +55,9 @@ type CreateWorkflowInput struct {
 }
 
 // UpdateWorkflowInput carries the mutable metadata fields of a workflow.
-// Renaming/describing is allowed regardless of lifecycle status; only the
-// graph itself (nodes/edges/rules) is draft-only.
+// Renaming/describing is allowed regardless of lifecycle status; the graph
+// itself (nodes/edges/rules) is editable in draft and active, and locked
+// only once the workflow is archived.
 type UpdateWorkflowInput struct {
 	Name        *string
 	Description *string
