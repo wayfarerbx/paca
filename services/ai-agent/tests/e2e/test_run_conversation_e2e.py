@@ -111,6 +111,9 @@ def persistence(monkeypatch) -> MockedPersistence:
     monkeypatch.setattr(
         conversation_repository, "get_next_event_index", AsyncMock(return_value=0)
     )
+    monkeypatch.setattr(
+        conversation_repository, "get_seen_event_ids", AsyncMock(return_value=set())
+    )
     monkeypatch.setattr(stream_store, "publish_event", AsyncMock())
     monkeypatch.setattr(stream_store, "publish_realtime", mocks.publish_realtime)
     return mocks
