@@ -708,7 +708,7 @@ func (s *Service) SendChatMessage(ctx context.Context, projectID, sessionID, mem
 			if !claimed {
 				return nil, agentdom.ErrConversationBusy
 			}
-		default:
+		case agentdom.ConversationStatusFinished, agentdom.ConversationStatusFailed, agentdom.ConversationStatusStopped:
 			// Terminal status — fall through to create a new conversation.
 			conv = nil
 		}
