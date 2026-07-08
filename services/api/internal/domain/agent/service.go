@@ -55,7 +55,15 @@ type ConversationService interface {
 	ListConversations(ctx context.Context, in ListConversationsFilter) ([]*AgentConversation, int64, error)
 	GetConversation(ctx context.Context, projectID, conversationID uuid.UUID) (*AgentConversation, error)
 	ListConversationEvents(ctx context.Context, conversationID uuid.UUID, offset, limit int) ([]*AgentConversationEvent, int64, error)
+	// StopConversation interrupts (if running) and permanently tears down the
+	// conversation's sandbox. Unchanged from before.
 	StopConversation(ctx context.Context, projectID, conversationID uuid.UUID) error
+	// PauseConversation interrupts the in-flight turn only — the sandbox
+	// stays alive and the conversation can be replied to again once it pauses.
+	PauseConversation(ctx context.Context, projectID, conversationID uuid.UUID) error
+	// Heartbeat refreshes a chat conversation's idle timer; called
+	// periodically by the frontend while a conversation is loaded in a tab.
+	Heartbeat(ctx context.Context, projectID, conversationID uuid.UUID) error
 	SendConversationMessage(ctx context.Context, projectID, conversationID uuid.UUID, message string, memberID uuid.UUID) error
 }
 

@@ -37,6 +37,9 @@ var (
 	ErrConversationNotFound       = errors.New("conversation not found")
 	ErrConversationNotRunning     = errors.New("conversation is not running")
 	ErrConversationAlreadyStopped = errors.New("conversation is already stopped")
+	// ErrConversationBusy is returned when a chat reply is sent while the
+	// session's current conversation is still mid-turn (status "running").
+	ErrConversationBusy = errors.New("agent is still responding to the previous message")
 )
 
 // Chat session errors

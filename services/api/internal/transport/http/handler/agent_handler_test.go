@@ -92,7 +92,9 @@ func (m *mockAgentSvc) GetConversation(_ context.Context, _, _ uuid.UUID) (*agen
 func (m *mockAgentSvc) ListConversationEvents(_ context.Context, _ uuid.UUID, _, _ int) ([]*agentdom.AgentConversationEvent, int64, error) {
 	return nil, 0, nil
 }
-func (m *mockAgentSvc) StopConversation(_ context.Context, _, _ uuid.UUID) error { return nil }
+func (m *mockAgentSvc) StopConversation(_ context.Context, _, _ uuid.UUID) error  { return nil }
+func (m *mockAgentSvc) PauseConversation(_ context.Context, _, _ uuid.UUID) error { return nil }
+func (m *mockAgentSvc) Heartbeat(_ context.Context, _, _ uuid.UUID) error         { return nil }
 func (m *mockAgentSvc) SendConversationMessage(_ context.Context, _, _ uuid.UUID, _ string, _ uuid.UUID) error {
 	return nil
 }

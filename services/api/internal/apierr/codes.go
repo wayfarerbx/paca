@@ -272,6 +272,8 @@ const (
 	CodeAgentConversationNotRunning Code = "AGENT_CONVERSATION_NOT_RUNNING"
 	// CodeAgentConversationAlreadyStopped indicates the conversation is already stopped/finished.
 	CodeAgentConversationAlreadyStopped Code = "AGENT_CONVERSATION_ALREADY_STOPPED"
+	// CodeAgentConversationBusy indicates a chat reply was sent while the agent is still responding to the previous one.
+	CodeAgentConversationBusy Code = "AGENT_CONVERSATION_BUSY"
 	// CodeAgentChatSessionNotFound indicates the requested chat session does not exist.
 	CodeAgentChatSessionNotFound Code = "AGENT_CHAT_SESSION_NOT_FOUND"
 	// CodeAgentEnvVarNotFound indicates the requested environment variable does not exist.

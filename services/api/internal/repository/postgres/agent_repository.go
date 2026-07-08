@@ -609,6 +609,24 @@ func (r *AgentRepository) FindConversationByID(ctx context.Context, id uuid.UUID
 	return conversationFromRecord(rec), nil
 }
 
+// FindLatestConversationByChatSession returns the most recently created
+// conversation for a chat session, or (nil, nil) if none exists yet.
+func (r *AgentRepository) FindLatestConversationByChatSession(ctx context.Context, chatSessionID uuid.UUID) (*agentdom.AgentConversation, error) {
+	var rec agentConversationRecord
+	err := r.db.GetContext(ctx, &rec,
+		`SELECT `+conversationCols+` FROM agent_conversations
+		 WHERE chat_session_id = $1 ORDER BY created_at DESC LIMIT 1`,
+		chatSessionID.String(),
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return conversationFromRecord(rec), nil
+}
+
 // CreateConversation inserts a new conversation record.
 func (r *AgentRepository) CreateConversation(ctx context.Context, c *agentdom.AgentConversation) error {
 	rec := conversationToRecord(c)
@@ -630,6 +648,23 @@ func (r *AgentRepository) CreateConversation(ctx context.Context, c *agentdom.Ag
 func (r *AgentRepository) UpdateConversationStatus(ctx context.Context, id uuid.UUID, status string) error {
 	_, err := r.db.ExecContext(ctx, `UPDATE agent_conversations SET status=$1, updated_at=$2 WHERE id=$3`, status, time.Now(), id.String())
 	return err
+}
+
+// ClaimConversationStatus atomically moves a conversation from fromStatus to
+// toStatus. Only one caller racing on the same conversation observes true.
+func (r *AgentRepository) ClaimConversationStatus(ctx context.Context, id uuid.UUID, fromStatus, toStatus string) (bool, error) {
+	res, err := r.db.ExecContext(ctx,
+		`UPDATE agent_conversations SET status=$1, updated_at=$2 WHERE id=$3 AND status=$4`,
+		toStatus, time.Now(), id.String(), fromStatus,
+	)
+	if err != nil {
+		return false, err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return n == 1, nil
 }
 
 // UpdateConversation saves the full conversation record.

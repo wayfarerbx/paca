@@ -16,15 +16,27 @@ from openhands.tools import get_default_tools
 
 from ..config import settings
 from ..core import streams as stream_store
-from ..core.registry import active_conversations, stop_events
+from ..core.registry import (
+    ChatSandboxState,
+    active_conversations,
+    chat_sandboxes,
+    pause_events,
+    stop_events,
+)
 from ..core.streams import TriggerMessage
 from ..models.agent import AgentConfig
+from ..models.conversation_status import ConversationStatus
 from ..repositories import conversation_repository
 from . import trigger_skills
 from .builder import build_llm, build_mcp_config, build_skills, load_default_skills
-from .docker_workspace import docker_sandbox
+from .docker_workspace import start_sandbox, stop_sandbox
 from .prompt import build_initial_prompt
 from .repo_tools import make_repository_tool_specs
+
+# The trigger_type Go publishes for direct-chat messages (agent_service.go's
+# publishChatTrigger). Chat conversations keep their sandbox alive between
+# turns instead of tearing it down — see `run_conversation` below.
+CHAT_MESSAGE_TRIGGER_TYPE = "chat_message"
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +54,11 @@ _ERROR_STATUSES = frozenset(
 # than that to bound the WS-dead-thread persistence gap (see
 # _wait_for_done_or_stop), but not on every 2s tick.
 _RECONCILE_INTERVAL = 10.0
+
+# Granularity for checking stop_event/pause_event in _wait_for_done_or_stop,
+# decoupled from poll_interval (which paces the REST status check) so either
+# event wakes the loop promptly instead of waiting up to a full poll_interval.
+_EVENT_TICK_INTERVAL = 0.5
 
 
 def _get_conversation_error_detail(conversation) -> str | None:
@@ -65,36 +82,54 @@ def _get_conversation_error_detail(conversation) -> str | None:
 def _wait_for_done_or_stop(
     conversation,
     stop_event: threading.Event,
+    pause_event: threading.Event,
     reconcile,
     poll_interval: float = 2.0,
     timeout: float = 3600.0,
-) -> tuple[bool, bool]:
-    """Poll the remote conversation until it finishes or a stop is signaled.
+) -> tuple[bool, bool, bool]:
+    """Poll the remote conversation until it finishes or a stop/pause is signaled.
 
-    Returns (stopped, errored):
-      stopped  — True if the loop exited because a stop was requested.
+    Returns (stopped, errored, shutdown):
+      stopped  — True if the loop exited because stop_event or pause_event fired.
       errored  — True if the conversation ended with ERROR or STUCK status.
+      shutdown — True if it was stop_event (full shutdown) rather than
+                 pause_event (interrupt-only) that fired.
     """
     start = time.monotonic()
     last_reconcile = start
+    last_status_check = start - poll_interval  # force an immediate first check
     while True:
-        # stop_event.wait() blocks for up to poll_interval seconds, returning
-        # True immediately if the event is already set.
-        if stop_event.wait(timeout=poll_interval):
+        # Tick on a short interval so either event wakes this loop promptly;
+        # the REST status check below is separately paced by poll_interval so
+        # this doesn't increase load on the sandbox.
+        if stop_event.wait(timeout=_EVENT_TICK_INTERVAL) or pause_event.is_set():
+            shutdown = stop_event.is_set()
             try:
-                conversation.pause()
+                # interrupt() (not pause()) — pause() waits for the current
+                # LLM/tool call to finish before taking effect, which can
+                # stretch out for as long as that step takes (a long shell
+                # command, a slow completion) and makes the stop/pause button
+                # look like it did nothing. interrupt() cancels the in-flight
+                # request immediately; the remote conversation still ends up
+                # "paused" and resumable either way (confirmed against the
+                # agent-server's own /interrupt route description).
+                conversation.interrupt()
             except Exception as exc:
-                logger.warning("Failed to pause conversation on stop request: %s", exc)
+                logger.warning("Failed to interrupt conversation on stop request: %s", exc)
             # Catch up on anything the dead WS thread missed before we stop
             # watching this conversation entirely.
             reconcile(conversation)
-            return True, False
+            return True, False, shutdown
 
         now = time.monotonic()
         if now - start > timeout:
             logger.warning("Conversation polling timed out after %.0f seconds", timeout)
             reconcile(conversation)
-            return False, False
+            return False, False, False
+
+        if now - last_status_check < poll_interval:
+            continue
+        last_status_check = now
 
         try:
             # RemoteState caches execution_status from WebSocket events and only
@@ -129,9 +164,47 @@ def _wait_for_done_or_stop(
                 # Final catch-up so the run never ends with an un-persisted
                 # tail from the last reconcile_interval stretch.
                 reconcile(conversation)
-                return False, errored
+                return False, errored, False
         except Exception as exc:
             logger.debug("Failed to read conversation execution status: %s", exc)
+
+
+def _keep_sandbox_alive(is_chat: bool, errored: bool, shutdown: bool) -> bool:
+    """Whether a chat sandbox should stay registered in chat_sandboxes after a turn ends.
+
+    True for a natural finish and for an interrupt-only pause; False for an
+    error, a real (full-teardown) stop, or any non-chat trigger (those never
+    pause between turns).
+    """
+    return is_chat and not errored and not shutdown
+
+
+def _post_turn_status(
+    is_chat: bool, stopped: bool, errored: bool, shutdown: bool
+) -> tuple[ConversationStatus, str] | None:
+    """Status + realtime event type to write after a turn ends.
+
+    Returns None when the caller already owns the status write: a real
+    (full-teardown) stop is initiated by Go's StopConversation, which
+    synchronously writes "stopped" before publishing the trigger, so Python
+    does not need to (and a race where the turn finishes before the stop
+    signal lands is handled by the idle reaper, not here).
+    """
+    if shutdown:
+        return None
+    if errored:
+        return ConversationStatus.FAILED, "agent.conversation.failed"
+    if stopped:
+        # Interrupt-only. Chat conversations pause (sandbox stays alive,
+        # mirroring a natural per-turn finish); non-chat triggers have no
+        # pause-between-turns concept and their sandbox was already torn
+        # down in _run_sync.
+        if is_chat:
+            return ConversationStatus.PAUSED, "agent.conversation.paused"
+        return ConversationStatus.STOPPED, "agent.conversation.stopped"
+    if is_chat:
+        return ConversationStatus.PAUSED, "agent.conversation.paused"
+    return ConversationStatus.FINISHED, "agent.conversation.finished"
 
 
 # ─── Custom visualizer ────────────────────────────────────────────────────────
@@ -197,11 +270,17 @@ def _gather_repo_sources(trigger: TriggerMessage) -> list[RepoInfoSource]:
 
 
 class _AtomicCounter:
-    """Thread-safe monotonic counter for ordering persisted events."""
+    """Thread-safe monotonic counter for ordering persisted events.
 
-    def __init__(self) -> None:
+    Must be seeded with the conversation's next unused event_index (see
+    conversation_repository.get_next_event_index) rather than always
+    starting at 0 — event_index is unique per conversation for its entire
+    lifetime, not just the current turn.
+    """
+
+    def __init__(self, start: int = 0) -> None:
         self._lock = threading.Lock()
-        self._value = 0
+        self._value = start
 
     def next(self) -> int:
         with self._lock:
@@ -216,11 +295,17 @@ class _SeenEvents:
     Shared between the live WebSocket callback and the reconciliation
     fallback in `_wait_for_done_or_stop` so that an event is persisted
     exactly once no matter which path first observes it.
+
+    Must be seeded with the SDK ids already persisted in earlier turns (see
+    conversation_repository.get_seen_event_ids) on a resumed chat turn — a
+    fresh, empty set would not recognize those ids, and reconcile() re-walks
+    the *entire* remote SDK event history (not just this turn's), so every
+    old event would be persisted again under a new event_index.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, initial_ids: set[str] | None = None) -> None:
         self._lock = threading.Lock()
-        self._ids: set[str] = set()
+        self._ids: set[str] = set(initial_ids) if initial_ids else set()
 
     def mark_new(self, event_id: str) -> bool:
         """Return True and record the id if it hasn't been seen before."""
@@ -364,16 +449,39 @@ def _build_project_context_suffix(project_id: str) -> str:
 
 
 async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -> None:
-    """Execute a single agent conversation end-to-end."""
-    loop = asyncio.get_event_loop()
-    counter = _AtomicCounter()
-    seen_events = _SeenEvents()
-    stop_event = threading.Event()
-    logger.info("Starting conversation %s (agent=%s)", trigger.conversation_id, trigger.agent_id)
-    await conversation_repository.update_conversation_status(trigger.conversation_id, "running")
+    """Execute a single agent conversation end-to-end.
 
-    # Register the stop event so the worker can signal us via stream control messages.
+    Chat-message conversations are special: instead of always cold-starting a
+    sandbox and destroying it once this turn finishes, they check
+    `chat_sandboxes` for a live sandbox from a previous turn in the same
+    conversation and reattach to it. On a natural (non-stopped, non-errored)
+    finish, the sandbox is kept alive and registered for the *next* turn
+    instead of being torn down — see the end of `_run_sync` below.
+    """
+    is_chat = trigger.trigger_type == CHAT_MESSAGE_TRIGGER_TYPE
+    loop = asyncio.get_event_loop()
+    # Seed from the conversation's existing history, not 0 — on a resumed
+    # chat turn, starting back at 0 would collide with event_index values
+    # already used by earlier turns and get silently dropped on insert (see
+    # _AtomicCounter's docstring).
+    next_index = await conversation_repository.get_next_event_index(trigger.conversation_id)
+    counter = _AtomicCounter(next_index)
+    # Seed from events already persisted in earlier turns — see _SeenEvents'
+    # docstring for why an empty set here would re-persist the whole prior
+    # history as duplicates on every resumed chat turn.
+    seen_ids = await conversation_repository.get_seen_event_ids(trigger.conversation_id)
+    seen_events = _SeenEvents(seen_ids)
+    stop_event = threading.Event()
+    pause_event = threading.Event()
+    logger.info("Starting conversation %s (agent=%s)", trigger.conversation_id, trigger.agent_id)
+    await conversation_repository.update_conversation_status(
+        trigger.conversation_id, ConversationStatus.RUNNING
+    )
+
+    # Register the stop/pause events so the worker can signal us via stream
+    # control messages: stop_event -> shutdown, pause_event -> interrupt-only.
     stop_events[trigger.conversation_id] = stop_event
+    pause_events[trigger.conversation_id] = pause_event
 
     try:
         llm = build_llm(agent_config)
@@ -427,14 +535,22 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
 
         agent_context = AgentContext(skills=skills, system_message_suffix=system_suffix)
 
-        def _run_sync() -> bool:
-            """Returns True if the run was stopped, False if it finished naturally."""
-            with docker_sandbox(
-                trigger.conversation_id,
-                git_committer_name=agent_config.git_committer_name,
-                git_committer_email=agent_config.git_committer_email,
-                env=agent_config.env_vars,
-            ) as workspace:
+        def _run_sync() -> tuple[bool, bool, bool]:
+            """Returns (stopped, errored, shutdown) — see `_wait_for_done_or_stop`."""
+            resume_state = chat_sandboxes.get(trigger.conversation_id) if is_chat else None
+
+            if resume_state is not None:
+                handle = resume_state.handle
+            else:
+                handle = start_sandbox(
+                    trigger.conversation_id,
+                    git_committer_name=agent_config.git_committer_name,
+                    git_committer_email=agent_config.git_committer_email,
+                    env=agent_config.env_vars,
+                )
+            workspace = handle.workspace
+
+            try:
                 agent_kwargs: dict = {"llm": llm, "agent_context": agent_context}
                 if mcp_config.get("mcpServers"):
                     agent_kwargs["mcp_config"] = mcp_config
@@ -449,90 +565,127 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
 
                 agent = Agent(**agent_kwargs)
                 # RemoteWorkspace → RemoteConversation; persistence_dir is not
-                # supported for remote conversations (state lives in the sandbox).
-                # Do not pass conversation_id: the sandbox server assigns its own
-                # UUID internally.  Passing our application ID causes the server
-                # to return 400 on subsequent GET /api/conversations/{id} calls
-                # (the sandbox only handles IDs it generated itself).  Event
-                # callbacks persist to our DB using trigger.conversation_id
-                # directly, so the mapping stays correct regardless.
+                # supported for remote conversations (state lives in the
+                # sandbox). On a cold start, do not pass conversation_id: the
+                # sandbox server assigns its own UUID internally (passing our
+                # application ID causes the server to 400 on subsequent GETs
+                # — it only handles IDs it generated itself). Event callbacks
+                # persist to our DB using trigger.conversation_id directly, so
+                # the mapping stays correct regardless. On a chat resume, we
+                # *do* pass the previously-remembered sandbox-assigned id so
+                # the SDK reattaches to the same server-side conversation
+                # (and its history) instead of creating a new one.
+                #
+                # delete_on_close=False for chat: conversation.close() below
+                # runs after every turn (to stop the WS thread), including
+                # turns that end in a pause rather than a real stop — it must
+                # not delete the sandbox-side conversation the next turn
+                # needs to reattach to.
                 conversation = Conversation(
                     agent=agent,
                     workspace=workspace,
+                    conversation_id=(resume_state.sdk_conversation_id if resume_state else None),
                     callbacks=[_make_event_callback(trigger, loop, counter, seen_events)],
                     max_iteration_per_run=agent_config.max_iterations,
                     visualizer=_QuietVisualizer(),
+                    delete_on_close=(not is_chat),
                 )
 
-                # Register so the worker's stop handler can find this conversation.
+                # Register so the worker's stop handler can find this
+                # conversation while this turn is in-flight.
                 active_conversations[trigger.conversation_id] = conversation
                 try:
-                    all_repos_info = None
-                    if has_repos:
-                        try:
-                            repo_sources = _gather_repo_sources(trigger)
-                            all_repos: list[dict] = []
-                            for source in repo_sources:
-                                for repo in source.repositories:
-                                    all_repos.append(
-                                        {
-                                            "plugin_id": source.plugin_id,
-                                            "repo_id": repo["id"],
-                                            "full_name": repo["full_name"],
-                                            "owner": repo["owner"],
-                                            "repo_name": repo["repo_name"],
-                                            "clone_url": repo["clone_url"],
-                                        }
-                                    )
-                            if all_repos:
-                                all_repos_info = all_repos
-                        except Exception as exc:
-                            logger.warning("Failed to gather repository info: %s", exc)
+                    if resume_state is not None:
+                        # Reply text only — the agent already has full context.
+                        conversation.send_message(trigger.message)
+                    else:
+                        all_repos_info = None
+                        if has_repos:
+                            try:
+                                repo_sources = _gather_repo_sources(trigger)
+                                all_repos: list[dict] = []
+                                for source in repo_sources:
+                                    for repo in source.repositories:
+                                        all_repos.append(
+                                            {
+                                                "plugin_id": source.plugin_id,
+                                                "repo_id": repo["id"],
+                                                "full_name": repo["full_name"],
+                                                "owner": repo["owner"],
+                                                "repo_name": repo["repo_name"],
+                                                "clone_url": repo["clone_url"],
+                                            }
+                                        )
+                                if all_repos:
+                                    all_repos_info = all_repos
+                            except Exception as exc:
+                                logger.warning("Failed to gather repository info: %s", exc)
 
-                    conversation.send_message(build_initial_prompt(trigger, all_repos_info))
-                    # Use non-blocking run so our polling loop can be interrupted
-                    # by a stop signal without waiting for the SDK timeout.
+                        conversation.send_message(build_initial_prompt(trigger, all_repos_info))
+
+                    # Use non-blocking run so our polling loop can be
+                    # interrupted by a stop signal without waiting for the
+                    # SDK timeout.
                     conversation.run(blocking=False)
                     reconcile = _make_reconciler(trigger, loop, counter, seen_events)
-                    return _wait_for_done_or_stop(conversation, stop_event, reconcile)
+                    stopped, errored, shutdown = _wait_for_done_or_stop(
+                        conversation, stop_event, pause_event, reconcile
+                    )
                 finally:
                     active_conversations.pop(trigger.conversation_id, None)
                     # Stop the SDK's WebSocket client thread so it does not
-                    # linger after the sandbox container is stopped.  Without
-                    # this, Docker may recycle the container IP before the
-                    # thread exits, causing the thread to send requests for the
-                    # old conversation ID to the new container and get 400s.
+                    # linger once we let go of `conversation`. For chat turns
+                    # this does NOT delete the sandbox-side conversation
+                    # (delete_on_close is False above) or touch the container
+                    # — only a real stop/error tears those down, below.
                     try:
                         conversation.close()
                     except Exception as exc:
                         logger.debug("Failed to close conversation: %s", exc)
+            except Exception:
+                # Something went wrong before we could decide pause-vs-
+                # teardown (e.g. Agent/Conversation construction itself
+                # failed) — don't leak the sandbox, then re-raise so the
+                # caller's except-block marks this conversation "failed".
+                chat_sandboxes.pop(trigger.conversation_id, None)
+                stop_sandbox(handle)
+                raise
 
-        stopped, errored = await asyncio.get_event_loop().run_in_executor(None, _run_sync)
-        if not stopped:
-            if errored:
-                await conversation_repository.update_conversation_status(
-                    trigger.conversation_id, "failed"
-                )
-                await stream_store.publish_realtime(
+            if _keep_sandbox_alive(is_chat, errored, shutdown):
+                # Natural finish or interrupt-only pause — keep the sandbox
+                # alive, waiting for the next reply.
+                chat_sandboxes[trigger.conversation_id] = ChatSandboxState(
+                    handle=handle,
+                    sdk_conversation_id=conversation.id,
                     project_id=trigger.project_id,
-                    conversation_id=trigger.conversation_id,
-                    event_type="agent.conversation.failed",
+                    last_active_at=time.monotonic(),
                 )
             else:
-                await conversation_repository.update_conversation_status(
-                    trigger.conversation_id, "finished"
-                )
-                await stream_store.publish_realtime(
-                    project_id=trigger.project_id,
-                    conversation_id=trigger.conversation_id,
-                    event_type="agent.conversation.finished",
-                )
+                # Real teardown: explicit stop, an error, or (for non-chat
+                # triggers) always — those never pause between turns.
+                chat_sandboxes.pop(trigger.conversation_id, None)
+                stop_sandbox(handle)
+
+            return stopped, errored, shutdown
+
+        stopped, errored, shutdown = await asyncio.get_event_loop().run_in_executor(None, _run_sync)
+        result = _post_turn_status(is_chat, stopped, errored, shutdown)
+        if result is not None:
+            status, event_type = result
+            await conversation_repository.update_conversation_status(
+                trigger.conversation_id, status
+            )
+            await stream_store.publish_realtime(
+                project_id=trigger.project_id,
+                conversation_id=trigger.conversation_id,
+                event_type=event_type,
+            )
 
     except Exception as exc:
-        if not stop_event.is_set():
+        if not stop_event.is_set() and not pause_event.is_set():
             logger.exception("Conversation %s failed: %s", trigger.conversation_id, exc)
             await conversation_repository.update_conversation_status(
-                trigger.conversation_id, "failed", error_message=str(exc)
+                trigger.conversation_id, ConversationStatus.FAILED, error_message=str(exc)
             )
             await stream_store.publish_realtime(
                 project_id=trigger.project_id,
@@ -542,3 +695,81 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
 
     finally:
         stop_events.pop(trigger.conversation_id, None)
+        pause_events.pop(trigger.conversation_id, None)
+
+
+# ─── Paused chat sandbox teardown ─────────────────────────────────────────────
+
+
+async def teardown_paused_chat_sandbox(conversation_id: str) -> bool:
+    """Tear down a paused (idle, no in-flight run) chat sandbox, if one exists.
+
+    Used for two cases where a chat sandbox needs to go away *between* turns
+    (i.e. there is no in-flight `run_conversation` task to signal via
+    `stop_events` — that path is `worker._handle_control`'s "agent.stop"
+    branch): the user explicitly stopped the chat, or the idle reaper
+    reclaimed it.
+
+    Returns True if a sandbox was found and torn down.
+    """
+    if conversation_id in stop_events:
+        # A turn is actively in flight for this conversation (registered for
+        # the turn's full duration — see run_conversation) — chat_sandboxes
+        # still holds its entry (looked up via .get(), not popped, in
+        # _run_sync) but tearing it down here would yank the sandbox out
+        # from under the running turn. Only the turn itself may retire this
+        # entry once it finishes. This guards both callers: the idle reaper
+        # (which only checks last_active_at, not liveness) and the
+        # "agent.stop" fallback in worker._handle_control.
+        return False
+    entry = chat_sandboxes.pop(conversation_id, None)
+    if entry is None:
+        return False
+    stop_sandbox(entry.handle)
+    await conversation_repository.update_conversation_status(
+        conversation_id, ConversationStatus.STOPPED
+    )
+    await stream_store.publish_realtime(
+        project_id=entry.project_id,
+        conversation_id=conversation_id,
+        event_type="agent.conversation.stopped",
+    )
+    return True
+
+
+def _find_idle_chat_sandboxes(now: float, timeout_seconds: float) -> list[str]:
+    """Return conversation_ids whose chat sandbox has been idle too long.
+
+    Pure function over the current `chat_sandboxes` registry — split out from
+    `reap_idle_chat_sandboxes` so the idle-selection logic is testable without
+    driving the sleep loop. Excludes conversations with an in-flight turn
+    (present in `stop_events`) — their sandbox entry may look stale by
+    `last_active_at` alone (that field isn't updated while a turn is
+    running, only at turn-end and by heartbeats), but they are not idle.
+    """
+    return [
+        cid
+        for cid, entry in list(chat_sandboxes.items())
+        if now - entry.last_active_at > timeout_seconds and cid not in stop_events
+    ]
+
+
+async def reap_idle_chat_sandboxes() -> None:
+    """Background loop: periodically tear down chat sandboxes idle too long.
+
+    This is the disconnect-detection mechanism: the frontend refreshes
+    last_active_at via "agent.heartbeat" control messages roughly every 30s
+    while a conversation is loaded in a tab, so a sandbox only goes idle here
+    once heartbeats actually stop (tab closed, crash, network loss). Runs
+    until cancelled — started alongside the worker loop in `main.py`'s
+    lifespan.
+    """
+    timeout_seconds = settings.chat_sandbox_idle_timeout_minutes * 60
+    while True:
+        await asyncio.sleep(20)
+        for cid in _find_idle_chat_sandboxes(time.monotonic(), timeout_seconds):
+            logger.info("Reaping idle chat sandbox for conversation %s", cid)
+            try:
+                await teardown_paused_chat_sandbox(cid)
+            except Exception:
+                logger.exception("Failed to reap idle chat sandbox for conversation %s", cid)

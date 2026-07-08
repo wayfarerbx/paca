@@ -106,6 +106,14 @@ def persistence(monkeypatch) -> MockedPersistence:
     )
     monkeypatch.setattr(conversation_repository, "insert_conversation_event", mocks.insert_event)
     monkeypatch.setattr(conversation_repository, "update_conversation_status", mocks.update_status)
+    # No prior events for these single-turn e2e scenarios — the counter
+    # starts at 0, same as before get_next_event_index existed.
+    monkeypatch.setattr(
+        conversation_repository, "get_next_event_index", AsyncMock(return_value=0)
+    )
+    monkeypatch.setattr(
+        conversation_repository, "get_seen_event_ids", AsyncMock(return_value=set())
+    )
     monkeypatch.setattr(stream_store, "publish_event", AsyncMock())
     monkeypatch.setattr(stream_store, "publish_realtime", mocks.publish_realtime)
     return mocks

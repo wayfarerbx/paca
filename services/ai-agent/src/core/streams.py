@@ -90,7 +90,9 @@ _TRIGGER_TYPES = {
 
 # Control message types that direct an *existing* conversation.
 _CONTROL_TYPES = {
-    "agent.stop",
+    "agent.stop",  # interrupt (if any) + destroy the sandbox — unchanged from before
+    "agent.pause",  # interrupt the in-flight turn only; sandbox untouched
+    "agent.heartbeat",  # keep-alive ping; refreshes the chat sandbox idle timer
 }
 
 
@@ -129,10 +131,10 @@ class TriggerMessage:
 
 @dataclass
 class ControlMessage:
-    """A stop directive for an already-running conversation."""
+    """A stop/pause/heartbeat directive for an already-running conversation."""
 
     stream_id: str
-    control_type: str  # e.g. "agent.stop"
+    control_type: str  # one of _CONTROL_TYPES
     conversation_id: str
     project_id: str
 

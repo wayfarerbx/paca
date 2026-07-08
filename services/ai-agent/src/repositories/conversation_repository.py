@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from ..core.db import get_pool
+from ..models.conversation_status import ConversationStatus
 
 
 async def update_conversation_status(
     conversation_id: str,
-    status: str,
+    status: ConversationStatus,
     error_message: str | None = None,
 ) -> None:
     pool = await get_pool()
@@ -28,6 +29,44 @@ async def update_conversation_status(
             status,
             conversation_id,
         )
+
+
+async def get_next_event_index(conversation_id: str) -> int:
+    """Return the next unused event_index for a conversation.
+
+    event_index is unique per conversation_id (see the
+    uq_agent_conversation_events_index constraint) and spans the
+    conversation's entire lifetime, not just the current turn — a resumed
+    chat conversation's next turn must continue numbering from where the
+    previous turn left off. Starting back at 0 would collide with indices
+    already used by earlier turns, and insert_conversation_event's
+    `ON CONFLICT DO NOTHING` would then silently drop those new events.
+    """
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        "SELECT COALESCE(MAX(event_index), -1) + 1 AS next_index"
+        " FROM agent_conversation_events WHERE conversation_id = $1",
+        conversation_id,
+    )
+    return row["next_index"] if row else 0
+
+
+async def get_seen_event_ids(conversation_id: str) -> set[str]:
+    """Return the SDK event ids already persisted for a conversation.
+
+    Used to seed a fresh turn's in-memory dedup set (see executor._SeenEvents)
+    so that reconcile() — which re-walks the *entire* remote SDK event
+    history, including earlier turns, not just the current one — does not
+    re-persist already-stored events from previous turns under new
+    event_index values. Without this, every resumed chat turn duplicates the
+    whole prior conversation history.
+    """
+    pool = await get_pool()
+    rows = await pool.fetch(
+        "SELECT payload->>'id' AS sdk_id FROM agent_conversation_events WHERE conversation_id = $1",
+        conversation_id,
+    )
+    return {row["sdk_id"] for row in rows if row["sdk_id"] is not None}
 
 
 async def insert_conversation_event(

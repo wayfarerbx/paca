@@ -204,6 +204,40 @@ describe("useProjectRealtime", () => {
 		expect(mocks.invalidateQueries).not.toHaveBeenCalled();
 	});
 
+	it("registers a connect listener on mount", () => {
+		renderHook(() => useProjectRealtime("proj-abc"));
+
+		expect(mocks.socket.on).toHaveBeenCalledWith(
+			"connect",
+			expect.any(Function),
+		);
+	});
+
+	it("re-joins the project room when the socket reconnects", () => {
+		renderHook(() => useProjectRealtime("proj-abc"));
+
+		mocks.joinProject.mockClear();
+
+		const [, onConnect] = mocks.socket.on.mock.calls.find(
+			([event]) => event === "connect",
+		) as [string, () => void];
+		onConnect();
+
+		expect(mocks.joinProject).toHaveBeenCalledWith("proj-abc");
+	});
+
+	it("removes the connect listener on unmount", () => {
+		const { unmount } = renderHook(() => useProjectRealtime("proj-abc"));
+
+		const [, onConnect] = mocks.socket.on.mock.calls.find(
+			([event]) => event === "connect",
+		) as [string, () => void];
+
+		unmount();
+
+		expect(mocks.socket.off).toHaveBeenCalledWith("connect", onConnect);
+	});
+
 	it("re-joins and re-registers when projectId changes", () => {
 		const { rerender } = renderHook(
 			({ projectId }) => useProjectRealtime(projectId),

@@ -11,42 +11,44 @@ import (
 )
 
 type mockAgentRepo struct {
-	findAgentByID                 func(ctx context.Context, id uuid.UUID) (*agentdom.Agent, error)
-	findAgentByHandle             func(ctx context.Context, projectID uuid.UUID, handle string) (*agentdom.Agent, error)
-	listAgents                    func(ctx context.Context, projectID uuid.UUID) ([]*agentdom.Agent, error)
-	createAgent                   func(ctx context.Context, agent *agentdom.Agent) error
-	createAgentWithMembership     func(ctx context.Context, agent *agentdom.Agent, memberID, projectID, projectRoleID uuid.UUID) error
-	updateAgent                   func(ctx context.Context, agent *agentdom.Agent) error
-	softDeleteAgent               func(ctx context.Context, id uuid.UUID) error
-	softDeleteAgentWithMembership func(ctx context.Context, projectID, agentID uuid.UUID) error
-	setAgentMemberID              func(ctx context.Context, agentID, memberID uuid.UUID) error
-	listMCPServers                func(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentMCPServer, error)
-	findMCPServerByID             func(ctx context.Context, id uuid.UUID) (*agentdom.AgentMCPServer, error)
-	createMCPServer               func(ctx context.Context, server *agentdom.AgentMCPServer) error
-	updateMCPServer               func(ctx context.Context, server *agentdom.AgentMCPServer) error
-	deleteMCPServer               func(ctx context.Context, id uuid.UUID) error
-	listSkills                    func(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentSkill, error)
-	findSkillByID                 func(ctx context.Context, id uuid.UUID) (*agentdom.AgentSkill, error)
-	createSkill                   func(ctx context.Context, skill *agentdom.AgentSkill) error
-	updateSkill                   func(ctx context.Context, skill *agentdom.AgentSkill) error
-	deleteSkill                   func(ctx context.Context, id uuid.UUID) error
-	listEnvVars                   func(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentEnvironmentVariable, error)
-	findEnvVarByID                func(ctx context.Context, id uuid.UUID) (*agentdom.AgentEnvironmentVariable, error)
-	findEnvVarByKey               func(ctx context.Context, agentID uuid.UUID, key string) (*agentdom.AgentEnvironmentVariable, error)
-	createEnvVar                  func(ctx context.Context, v *agentdom.AgentEnvironmentVariable) error
-	updateEnvVar                  func(ctx context.Context, v *agentdom.AgentEnvironmentVariable) error
-	deleteEnvVar                  func(ctx context.Context, id uuid.UUID) error
-	listConversations             func(ctx context.Context, filter agentdom.ListConversationsFilter) ([]*agentdom.AgentConversation, int64, error)
-	findConversationByID          func(ctx context.Context, id uuid.UUID) (*agentdom.AgentConversation, error)
-	createConversation            func(ctx context.Context, conv *agentdom.AgentConversation) error
-	updateConversationStatus      func(ctx context.Context, id uuid.UUID, status string) error
-	updateConversation            func(ctx context.Context, conv *agentdom.AgentConversation) error
-	listConversationEvents        func(ctx context.Context, conversationID uuid.UUID, offset, limit int) ([]*agentdom.AgentConversationEvent, int64, error)
-	createConversationEvent       func(ctx context.Context, event *agentdom.AgentConversationEvent) error
-	listChatSessions              func(ctx context.Context, agentID, memberID uuid.UUID) ([]*agentdom.AgentChatSession, error)
-	findChatSessionByID           func(ctx context.Context, id uuid.UUID) (*agentdom.AgentChatSession, error)
-	createChatSession             func(ctx context.Context, session *agentdom.AgentChatSession) error
-	updateChatSession             func(ctx context.Context, session *agentdom.AgentChatSession) error
+	findAgentByID                   func(ctx context.Context, id uuid.UUID) (*agentdom.Agent, error)
+	findAgentByHandle               func(ctx context.Context, projectID uuid.UUID, handle string) (*agentdom.Agent, error)
+	listAgents                      func(ctx context.Context, projectID uuid.UUID) ([]*agentdom.Agent, error)
+	createAgent                     func(ctx context.Context, agent *agentdom.Agent) error
+	createAgentWithMembership       func(ctx context.Context, agent *agentdom.Agent, memberID, projectID, projectRoleID uuid.UUID) error
+	updateAgent                     func(ctx context.Context, agent *agentdom.Agent) error
+	softDeleteAgent                 func(ctx context.Context, id uuid.UUID) error
+	softDeleteAgentWithMembership   func(ctx context.Context, projectID, agentID uuid.UUID) error
+	setAgentMemberID                func(ctx context.Context, agentID, memberID uuid.UUID) error
+	listMCPServers                  func(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentMCPServer, error)
+	findMCPServerByID               func(ctx context.Context, id uuid.UUID) (*agentdom.AgentMCPServer, error)
+	createMCPServer                 func(ctx context.Context, server *agentdom.AgentMCPServer) error
+	updateMCPServer                 func(ctx context.Context, server *agentdom.AgentMCPServer) error
+	deleteMCPServer                 func(ctx context.Context, id uuid.UUID) error
+	listSkills                      func(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentSkill, error)
+	findSkillByID                   func(ctx context.Context, id uuid.UUID) (*agentdom.AgentSkill, error)
+	createSkill                     func(ctx context.Context, skill *agentdom.AgentSkill) error
+	updateSkill                     func(ctx context.Context, skill *agentdom.AgentSkill) error
+	deleteSkill                     func(ctx context.Context, id uuid.UUID) error
+	listEnvVars                     func(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentEnvironmentVariable, error)
+	findEnvVarByID                  func(ctx context.Context, id uuid.UUID) (*agentdom.AgentEnvironmentVariable, error)
+	findEnvVarByKey                 func(ctx context.Context, agentID uuid.UUID, key string) (*agentdom.AgentEnvironmentVariable, error)
+	createEnvVar                    func(ctx context.Context, v *agentdom.AgentEnvironmentVariable) error
+	updateEnvVar                    func(ctx context.Context, v *agentdom.AgentEnvironmentVariable) error
+	deleteEnvVar                    func(ctx context.Context, id uuid.UUID) error
+	listConversations               func(ctx context.Context, filter agentdom.ListConversationsFilter) ([]*agentdom.AgentConversation, int64, error)
+	findConversationByID            func(ctx context.Context, id uuid.UUID) (*agentdom.AgentConversation, error)
+	findLatestConversationBySession func(ctx context.Context, chatSessionID uuid.UUID) (*agentdom.AgentConversation, error)
+	createConversation              func(ctx context.Context, conv *agentdom.AgentConversation) error
+	updateConversationStatus        func(ctx context.Context, id uuid.UUID, status string) error
+	claimConversationStatus         func(ctx context.Context, id uuid.UUID, fromStatus, toStatus string) (bool, error)
+	updateConversation              func(ctx context.Context, conv *agentdom.AgentConversation) error
+	listConversationEvents          func(ctx context.Context, conversationID uuid.UUID, offset, limit int) ([]*agentdom.AgentConversationEvent, int64, error)
+	createConversationEvent         func(ctx context.Context, event *agentdom.AgentConversationEvent) error
+	listChatSessions                func(ctx context.Context, agentID, memberID uuid.UUID) ([]*agentdom.AgentChatSession, error)
+	findChatSessionByID             func(ctx context.Context, id uuid.UUID) (*agentdom.AgentChatSession, error)
+	createChatSession               func(ctx context.Context, session *agentdom.AgentChatSession) error
+	updateChatSession               func(ctx context.Context, session *agentdom.AgentChatSession) error
 }
 
 func (m *mockAgentRepo) ListAgents(ctx context.Context, projectID uuid.UUID) ([]*agentdom.Agent, error) {
@@ -238,6 +240,13 @@ func (m *mockAgentRepo) FindConversationByID(ctx context.Context, id uuid.UUID) 
 	return nil, agentdom.ErrConversationNotFound
 }
 
+func (m *mockAgentRepo) FindLatestConversationByChatSession(ctx context.Context, chatSessionID uuid.UUID) (*agentdom.AgentConversation, error) {
+	if m.findLatestConversationBySession != nil {
+		return m.findLatestConversationBySession(ctx, chatSessionID)
+	}
+	return nil, nil
+}
+
 func (m *mockAgentRepo) CreateConversation(ctx context.Context, conv *agentdom.AgentConversation) error {
 	if m.createConversation != nil {
 		return m.createConversation(ctx, conv)
@@ -250,6 +259,13 @@ func (m *mockAgentRepo) UpdateConversationStatus(ctx context.Context, id uuid.UU
 		return m.updateConversationStatus(ctx, id, status)
 	}
 	return nil
+}
+
+func (m *mockAgentRepo) ClaimConversationStatus(ctx context.Context, id uuid.UUID, fromStatus, toStatus string) (bool, error) {
+	if m.claimConversationStatus != nil {
+		return m.claimConversationStatus(ctx, id, fromStatus, toStatus)
+	}
+	return true, nil
 }
 
 func (m *mockAgentRepo) UpdateConversation(ctx context.Context, conv *agentdom.AgentConversation) error {
@@ -872,6 +888,181 @@ func TestSendConversationMessage_NotRunning(t *testing.T) {
 	assert.ErrorIs(t, err, agentdom.ErrConversationNotRunning)
 }
 
+func TestStopConversation_Success(t *testing.T) {
+	projectID := uuid.New()
+	conversationID := uuid.New()
+	conversation := &agentdom.AgentConversation{
+		ID:        conversationID,
+		ProjectID: projectID,
+		Status:    "running",
+	}
+	var updatedStatus string
+
+	repo := &mockAgentRepo{
+		findConversationByID: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentConversation, error) {
+			return conversation, nil
+		},
+		updateConversationStatus: func(_ context.Context, _ uuid.UUID, status string) error {
+			updatedStatus = status
+			return nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	pluginRepo := &mockPluginRepo{}
+	svc := New(repo, projRepo, nil, pluginRepo)
+
+	err := svc.StopConversation(context.Background(), projectID, conversationID)
+
+	assert.NoError(t, err)
+	assert.Equal(t, "stopped", updatedStatus)
+}
+
+func TestStopConversation_AlreadyStopped(t *testing.T) {
+	for _, status := range []string{"finished", "stopped", "failed"} {
+		t.Run(status, func(t *testing.T) {
+			projectID := uuid.New()
+			conversationID := uuid.New()
+			conversation := &agentdom.AgentConversation{
+				ID:        conversationID,
+				ProjectID: projectID,
+				Status:    status,
+			}
+			updateCalled := false
+
+			repo := &mockAgentRepo{
+				findConversationByID: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentConversation, error) {
+					return conversation, nil
+				},
+				updateConversationStatus: func(_ context.Context, _ uuid.UUID, _ string) error {
+					updateCalled = true
+					return nil
+				},
+			}
+			projRepo := &mockProjectRepo{}
+			pluginRepo := &mockPluginRepo{}
+			svc := New(repo, projRepo, nil, pluginRepo)
+
+			err := svc.StopConversation(context.Background(), projectID, conversationID)
+
+			assert.Error(t, err)
+			assert.ErrorIs(t, err, agentdom.ErrConversationAlreadyStopped)
+			assert.False(t, updateCalled)
+		})
+	}
+}
+
+func TestPauseConversation_Success(t *testing.T) {
+	projectID := uuid.New()
+	conversationID := uuid.New()
+	conversation := &agentdom.AgentConversation{
+		ID:        conversationID,
+		ProjectID: projectID,
+		Status:    "running",
+	}
+	updateCalled := false
+
+	repo := &mockAgentRepo{
+		findConversationByID: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentConversation, error) {
+			return conversation, nil
+		},
+		updateConversationStatus: func(_ context.Context, _ uuid.UUID, _ string) error {
+			updateCalled = true
+			return nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	pluginRepo := &mockPluginRepo{}
+	svc := New(repo, projRepo, nil, pluginRepo)
+
+	err := svc.PauseConversation(context.Background(), projectID, conversationID)
+
+	// No DB write: ai-agent owns writing "paused" itself once the turn
+	// actually pauses, so PauseConversation must not touch Postgres.
+	assert.NoError(t, err)
+	assert.False(t, updateCalled)
+}
+
+func TestPauseConversation_NotRunning(t *testing.T) {
+	projectID := uuid.New()
+	conversationID := uuid.New()
+	conversation := &agentdom.AgentConversation{
+		ID:        conversationID,
+		ProjectID: projectID,
+		Status:    "paused",
+	}
+
+	repo := &mockAgentRepo{
+		findConversationByID: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentConversation, error) {
+			return conversation, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	pluginRepo := &mockPluginRepo{}
+	svc := New(repo, projRepo, nil, pluginRepo)
+
+	err := svc.PauseConversation(context.Background(), projectID, conversationID)
+
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, agentdom.ErrConversationNotRunning)
+}
+
+func TestHeartbeat_Success(t *testing.T) {
+	projectID := uuid.New()
+	conversationID := uuid.New()
+	conversation := &agentdom.AgentConversation{
+		ID:        conversationID,
+		ProjectID: projectID,
+		Status:    "running",
+	}
+	updateCalled := false
+
+	repo := &mockAgentRepo{
+		findConversationByID: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentConversation, error) {
+			return conversation, nil
+		},
+		updateConversationStatus: func(_ context.Context, _ uuid.UUID, _ string) error {
+			updateCalled = true
+			return nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	pluginRepo := &mockPluginRepo{}
+	svc := New(repo, projRepo, nil, pluginRepo)
+
+	err := svc.Heartbeat(context.Background(), projectID, conversationID)
+
+	// Heartbeat fires every ~30s per open tab — no Postgres round trip beyond
+	// the ownership lookup.
+	assert.NoError(t, err)
+	assert.False(t, updateCalled)
+}
+
+func TestHeartbeat_WrongProject(t *testing.T) {
+	projectID := uuid.New()
+	wrongProjectID := uuid.New()
+	conversationID := uuid.New()
+	conversation := &agentdom.AgentConversation{
+		ID:        conversationID,
+		ProjectID: wrongProjectID,
+		Status:    "running",
+	}
+
+	repo := &mockAgentRepo{
+		findConversationByID: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentConversation, error) {
+			return conversation, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	pluginRepo := &mockPluginRepo{}
+	svc := New(repo, projRepo, nil, pluginRepo)
+
+	err := svc.Heartbeat(context.Background(), projectID, conversationID)
+
+	// A conversation belonging to a different project must not be kept alive
+	// by a heartbeat scoped to this project.
+	assert.ErrorIs(t, err, agentdom.ErrConversationNotFound)
+}
+
 func TestListChatSessions_Success(t *testing.T) {
 	agentID := uuid.New()
 	memberID := uuid.New()
@@ -964,6 +1155,172 @@ func TestSendChatMessage_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, resultConv)
 	assert.Equal(t, agentID, resultConv.AgentID)
+}
+
+func TestSendChatMessage_ResumesPausedConversation(t *testing.T) {
+	projectID := uuid.New()
+	agentID := uuid.New()
+	memberID := uuid.New()
+	sessionID := uuid.New()
+	pausedConvID := uuid.New()
+	session := &agentdom.AgentChatSession{
+		ID:        sessionID,
+		AgentID:   agentID,
+		ProjectID: projectID,
+	}
+	paused := &agentdom.AgentConversation{
+		ID:            pausedConvID,
+		AgentID:       agentID,
+		ProjectID:     projectID,
+		ChatSessionID: &sessionID,
+		Status:        "paused",
+	}
+
+	createCalled := false
+	var claimedFrom, claimedTo string
+	repo := &mockAgentRepo{
+		findChatSessionByID: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentChatSession, error) {
+			return session, nil
+		},
+		findLatestConversationBySession: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentConversation, error) {
+			return paused, nil
+		},
+		claimConversationStatus: func(_ context.Context, id uuid.UUID, from, to string) (bool, error) {
+			if id != pausedConvID {
+				t.Fatalf("unexpected conversation id claimed: %s", id)
+			}
+			claimedFrom, claimedTo = from, to
+			return true, nil
+		},
+		createConversation: func(_ context.Context, _ *agentdom.AgentConversation) error {
+			createCalled = true
+			return nil
+		},
+		updateChatSession: func(_ context.Context, _ *agentdom.AgentChatSession) error {
+			return nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	pluginRepo := &mockPluginRepo{}
+	svc := New(repo, projRepo, nil, pluginRepo)
+
+	resultConv, err := svc.SendChatMessage(context.Background(), projectID, sessionID, memberID, "Continuing…")
+
+	assert.NoError(t, err)
+	assert.False(t, createCalled, "resuming a paused conversation must not create a new one")
+	assert.Equal(t, pausedConvID, resultConv.ID)
+	assert.Equal(t, "paused", claimedFrom)
+	assert.Equal(t, "running", claimedTo)
+}
+
+func TestSendChatMessage_ResumeRaceLoses(t *testing.T) {
+	projectID := uuid.New()
+	agentID := uuid.New()
+	memberID := uuid.New()
+	sessionID := uuid.New()
+	pausedConvID := uuid.New()
+	session := &agentdom.AgentChatSession{
+		ID:        sessionID,
+		AgentID:   agentID,
+		ProjectID: projectID,
+	}
+	paused := &agentdom.AgentConversation{
+		ID:            pausedConvID,
+		AgentID:       agentID,
+		ProjectID:     projectID,
+		ChatSessionID: &sessionID,
+		Status:        "paused",
+	}
+
+	repo := &mockAgentRepo{
+		findChatSessionByID: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentChatSession, error) {
+			return session, nil
+		},
+		findLatestConversationBySession: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentConversation, error) {
+			return paused, nil
+		},
+		claimConversationStatus: func(_ context.Context, _ uuid.UUID, _, _ string) (bool, error) {
+			// Another concurrent request already claimed the resume.
+			return false, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	pluginRepo := &mockPluginRepo{}
+	svc := New(repo, projRepo, nil, pluginRepo)
+
+	_, err := svc.SendChatMessage(context.Background(), projectID, sessionID, memberID, "Continuing…")
+
+	assert.ErrorIs(t, err, agentdom.ErrConversationBusy)
+}
+
+func TestSendChatMessage_BusyWhenQueued(t *testing.T) {
+	projectID := uuid.New()
+	agentID := uuid.New()
+	memberID := uuid.New()
+	sessionID := uuid.New()
+	session := &agentdom.AgentChatSession{
+		ID:        sessionID,
+		AgentID:   agentID,
+		ProjectID: projectID,
+	}
+	queued := &agentdom.AgentConversation{
+		ID:        uuid.New(),
+		AgentID:   agentID,
+		ProjectID: projectID,
+		Status:    "queued",
+	}
+
+	repo := &mockAgentRepo{
+		findChatSessionByID: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentChatSession, error) {
+			return session, nil
+		},
+		findLatestConversationBySession: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentConversation, error) {
+			return queued, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	pluginRepo := &mockPluginRepo{}
+	svc := New(repo, projRepo, nil, pluginRepo)
+
+	// A conversation that hasn't been dequeued yet must not let a second
+	// message create a duplicate conversation/sandbox for the same session.
+	_, err := svc.SendChatMessage(context.Background(), projectID, sessionID, memberID, "Are you there?")
+
+	assert.ErrorIs(t, err, agentdom.ErrConversationBusy)
+}
+
+func TestSendChatMessage_BusyWhenRunning(t *testing.T) {
+	projectID := uuid.New()
+	agentID := uuid.New()
+	memberID := uuid.New()
+	sessionID := uuid.New()
+	session := &agentdom.AgentChatSession{
+		ID:        sessionID,
+		AgentID:   agentID,
+		ProjectID: projectID,
+	}
+	running := &agentdom.AgentConversation{
+		ID:        uuid.New(),
+		AgentID:   agentID,
+		ProjectID: projectID,
+		Status:    "running",
+	}
+
+	repo := &mockAgentRepo{
+		findChatSessionByID: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentChatSession, error) {
+			return session, nil
+		},
+		findLatestConversationBySession: func(_ context.Context, _ uuid.UUID) (*agentdom.AgentConversation, error) {
+			return running, nil
+		},
+	}
+	projRepo := &mockProjectRepo{}
+	pluginRepo := &mockPluginRepo{}
+	svc := New(repo, projRepo, nil, pluginRepo)
+
+	_, err := svc.SendChatMessage(context.Background(), projectID, sessionID, memberID, "Are you there?")
+
+	assert.ErrorIs(t, err, agentdom.ErrConversationBusy)
 }
 
 func TestSendChatMessage_WrongProject(t *testing.T) {

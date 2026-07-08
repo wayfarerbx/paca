@@ -132,6 +132,7 @@ export interface Agent {
 export type ConversationStatus =
 	| "queued"
 	| "running"
+	| "paused"
 	| "finished"
 	| "failed"
 	| "stopped";
@@ -475,6 +476,34 @@ export async function stopConversation(
 	return data.data;
 }
 
+// pauseConversation interrupts the in-flight turn only — the sandbox stays
+// alive and the conversation goes back to "paused", ready for another reply.
+// This is what the assistant-ui Cancel/Stop button calls; stopConversation
+// above is the full, permanent teardown.
+export async function pauseConversation(
+	projectId: string,
+	conversationId: string,
+): Promise<{ message: string }> {
+	const { data } = await apiClient.instance.post<
+		SuccessEnvelope<{ message: string }>
+	>(`/projects/${projectId}/conversations/${conversationId}/pause`);
+	return data.data;
+}
+
+// heartbeatConversation refreshes a chat conversation's idle timer on the
+// ai-agent service — pinged periodically while a conversation is loaded in a
+// browser tab so its sandbox isn't reclaimed as long as the tab stays open.
+export async function heartbeatConversation(
+	projectId: string,
+	conversationId: string,
+): Promise<void> {
+	await apiClient.instance.post(
+		`/projects/${projectId}/conversations/${conversationId}/heartbeat`,
+	);
+}
+
+export const CONVERSATION_HEARTBEAT_INTERVAL_MS = 30_000;
+
 // ── Chat Sessions ─────────────────────────────────────────────────────────────
 
 export async function listChatSessions(
@@ -553,6 +582,9 @@ export const agentEnvVarsQueryOptions = (projectId: string, agentId: string) =>
 		queryFn: () => listEnvVars(projectId, agentId),
 	});
 
+// No refetchInterval: kept live via useProjectRealtime's socket-driven
+// invalidation of the ["projects", projectId, "conversations"] prefix on
+// every "agent.*" event instead of polling.
 export const conversationsQueryOptions = (
 	projectId: string,
 	agentId?: string,
@@ -560,7 +592,6 @@ export const conversationsQueryOptions = (
 	queryOptions({
 		queryKey: ["projects", projectId, "conversations", { agentId }],
 		queryFn: () => listConversations(projectId, agentId),
-		refetchInterval: 10_000,
 	});
 
 export const conversationQueryOptions = (
@@ -621,6 +652,7 @@ export const llmModelsQueryOptions = queryOptions({
 export const CONVERSATION_STATUS_LABELS: Record<ConversationStatus, string> = {
 	queued: "Queued",
 	running: "Running",
+	paused: "Waiting for reply",
 	finished: "Finished",
 	failed: "Failed",
 	stopped: "Stopped",
@@ -629,6 +661,7 @@ export const CONVERSATION_STATUS_LABELS: Record<ConversationStatus, string> = {
 export const CONVERSATION_STATUS_COLORS: Record<ConversationStatus, string> = {
 	queued: "text-muted-foreground",
 	running: "text-blue-500",
+	paused: "text-amber-500",
 	finished: "text-emerald-500",
 	failed: "text-destructive",
 	stopped: "text-muted-foreground",

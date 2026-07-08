@@ -284,6 +284,8 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusConflict, apierr.CodeAgentConversationNotRunning
 	case errors.Is(err, agentdom.ErrConversationAlreadyStopped):
 		return http.StatusConflict, apierr.CodeAgentConversationAlreadyStopped
+	case errors.Is(err, agentdom.ErrConversationBusy):
+		return http.StatusConflict, apierr.CodeAgentConversationBusy
 	case errors.Is(err, agentdom.ErrChatSessionNotFound):
 		return http.StatusNotFound, apierr.CodeAgentChatSessionNotFound
 	case errors.Is(err, agentdom.ErrEnvVarNotFound):
@@ -356,7 +358,8 @@ func httpStatusForCode(code apierr.Code) int {
 		return http.StatusUnauthorized
 	case apierr.CodeUserNotFound:
 		return http.StatusNotFound
-	case apierr.CodeUsernameTaken:
+	case apierr.CodeUsernameTaken,
+		apierr.CodeAgentConversationBusy:
 		return http.StatusConflict
 	case apierr.CodeForbidden:
 		return http.StatusForbidden

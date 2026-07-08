@@ -112,6 +112,16 @@ def test_control_stop_parsed():
     assert msg.project_id == "proj-1"
 
 
+def test_control_pause_parsed():
+    msg = ControlMessage.from_stream_entry("11-0", _control_fields("agent.pause"))
+    assert msg.control_type == "agent.pause"
+
+
+def test_control_heartbeat_parsed():
+    msg = ControlMessage.from_stream_entry("12-0", _control_fields("agent.heartbeat"))
+    assert msg.control_type == "agent.heartbeat"
+
+
 def test_control_missing_conversation_id_raises():
     fields = _control_fields()
     del fields["conversation_id"]

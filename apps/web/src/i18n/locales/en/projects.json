@@ -168,7 +168,6 @@
 				"iterations_one": "{{count}} iteration",
 				"iterations_other": "{{count}} iterations",
 				"prOpened": "PR opened",
-				"watch": "Watch",
 				"empty": {
 					"title": "No conversations yet",
 					"description": "Conversations start when a task is assigned to this agent or someone messages it."
@@ -176,15 +175,61 @@
 			}
 		},
 		"conversationView": {
-			"thinking": "Thinking…",
-			"observation": "observation",
-			"toolLabel": "tool: {{toolName}}",
 			"stop": "Stop",
 			"notFound": "Conversation not found",
 			"chatSession": "Chat session",
 			"taskSession": "Task session",
 			"pr": "PR",
-			"noMessages": "No messages yet"
+			"conversationEnded": "This conversation has ended.",
+			"textOnlyMessage": "Only text messages are supported."
+		},
+		"thread": {
+			"composerPlaceholder": "Message agent…",
+			"welcomeHeading": "How can I help you today?",
+			"messageInputAriaLabel": "Message input",
+			"voiceInput": "Voice input",
+			"startVoiceInputAriaLabel": "Start voice input",
+			"stopDictation": "Stop dictation",
+			"stopVoiceInputAriaLabel": "Stop voice input",
+			"sendMessage": "Send message",
+			"stopGeneratingAriaLabel": "Stop generating",
+			"assistantWorkingAriaLabel": "Assistant is working",
+			"copy": "Copy",
+			"refresh": "Refresh",
+			"more": "More",
+			"edit": "Edit",
+			"previous": "Previous",
+			"next": "Next",
+			"exportAsMarkdown": "Export as Markdown",
+			"scrollToBottom": "Scroll to bottom",
+			"cancel": "Cancel",
+			"update": "Update",
+			"reasoning": "Reasoning",
+			"reasoningWithDuration": "Reasoning ({{duration}}s)",
+			"toolCallCount_one": "{{count}} tool call",
+			"toolCallCount_other": "{{count}} tool calls",
+			"usedTool": "Used tool",
+			"cancelledTool": "Cancelled tool",
+			"resultLabel": "Result:",
+			"errorLabel": "Error:",
+			"cancelledReasonLabel": "Cancelled reason:",
+			"approvedByUser": "Approved by user",
+			"deniedByUser": "User denied tool execution",
+			"allow": "Allow",
+			"alwaysAllow": "Always allow",
+			"deny": "Deny",
+			"alwaysDeny": "Always deny",
+			"confirm": "Confirm",
+			"back": "Back",
+			"attachmentPreview": "Attachment preview",
+			"attachmentTypeImage": "Image",
+			"attachmentTypeDocument": "Document",
+			"attachmentTypeFile": "File",
+			"removeFile": "Remove file",
+			"imageAttachmentPreviewTitle": "Image Attachment Preview",
+			"attachmentAriaLabel": "{{type}} attachment",
+			"attachmentAriaLabelError": "{{type}} attachment, upload failed",
+			"attachmentAriaLabelUploading": "{{type}} attachment, uploading"
 		}
 	},
 	"docs": {
@@ -575,10 +620,7 @@
 		"agentLabel": "Agent",
 		"noAgentsConfigured": "No agents configured for this project.",
 		"selectAgentPlaceholder": "Select an agent…",
-		"messageLabel": "Message",
-		"messageHint": "(Enter to send, Shift+Enter for newline)",
-		"messagePlaceholder": "What would you like the agent to help with?",
-		"send": "Send"
+		"selectAgentFirst": "Please select an agent first."
 	},
 	"taskTypes": {
 		"deleteDialog": {

@@ -168,7 +168,6 @@
 				"iterations_one": "{{count}}回の反復",
 				"iterations_other": "{{count}}回の反復",
 				"prOpened": "PRを作成しました",
-				"watch": "監視",
 				"empty": {
 					"title": "会話はまだありません",
 					"description": "タスクがこのエージェントに割り当てられるか、誰かがメッセージを送ると会話が始まります。"
@@ -176,15 +175,61 @@
 			}
 		},
 		"conversationView": {
-			"thinking": "思考中…",
-			"observation": "観察結果",
-			"toolLabel": "ツール: {{toolName}}",
 			"stop": "停止",
 			"notFound": "会話が見つかりません",
 			"chatSession": "チャットセッション",
 			"taskSession": "タスクセッション",
 			"pr": "PR",
-			"noMessages": "メッセージはまだありません"
+			"conversationEnded": "この会話は終了しました。",
+			"textOnlyMessage": "テキストメッセージのみサポートされています。"
+		},
+		"thread": {
+			"composerPlaceholder": "エージェントにメッセージ…",
+			"welcomeHeading": "今日は何をお手伝いしましょうか？",
+			"messageInputAriaLabel": "メッセージ入力欄",
+			"voiceInput": "音声入力",
+			"startVoiceInputAriaLabel": "音声入力を開始",
+			"stopDictation": "音声入力を停止",
+			"stopVoiceInputAriaLabel": "音声入力を停止",
+			"sendMessage": "メッセージを送信",
+			"stopGeneratingAriaLabel": "生成を停止",
+			"assistantWorkingAriaLabel": "エージェントが作業中です",
+			"copy": "コピー",
+			"refresh": "更新",
+			"more": "その他",
+			"edit": "編集",
+			"previous": "前へ",
+			"next": "次へ",
+			"exportAsMarkdown": "Markdownとしてエクスポート",
+			"scrollToBottom": "一番下までスクロール",
+			"cancel": "キャンセル",
+			"update": "更新",
+			"reasoning": "推論",
+			"reasoningWithDuration": "推論（{{duration}}秒）",
+			"toolCallCount_one": "ツール呼び出し {{count}} 件",
+			"toolCallCount_other": "ツール呼び出し {{count}} 件",
+			"usedTool": "使用したツール",
+			"cancelledTool": "キャンセルされたツール",
+			"resultLabel": "結果:",
+			"errorLabel": "エラー:",
+			"cancelledReasonLabel": "キャンセル理由:",
+			"approvedByUser": "ユーザーが承認しました",
+			"deniedByUser": "ユーザーがツールの実行を拒否しました",
+			"allow": "許可",
+			"alwaysAllow": "常に許可",
+			"deny": "拒否",
+			"alwaysDeny": "常に拒否",
+			"confirm": "確認",
+			"back": "戻る",
+			"attachmentPreview": "添付ファイルのプレビュー",
+			"attachmentTypeImage": "画像",
+			"attachmentTypeDocument": "ドキュメント",
+			"attachmentTypeFile": "ファイル",
+			"removeFile": "ファイルを削除",
+			"imageAttachmentPreviewTitle": "画像添付ファイルのプレビュー",
+			"attachmentAriaLabel": "{{type}}の添付ファイル",
+			"attachmentAriaLabelError": "{{type}}の添付ファイル、アップロード失敗",
+			"attachmentAriaLabelUploading": "{{type}}の添付ファイル、アップロード中"
 		}
 	},
 	"docs": {
@@ -575,10 +620,7 @@
 		"agentLabel": "エージェント",
 		"noAgentsConfigured": "このプロジェクトにはエージェントが設定されていません。",
 		"selectAgentPlaceholder": "エージェントを選択…",
-		"messageLabel": "メッセージ",
-		"messageHint": "（Enterで送信、Shift+Enterで改行）",
-		"messagePlaceholder": "エージェントに何をしてほしいですか？",
-		"send": "送信"
+		"selectAgentFirst": "まずエージェントを選択してください。"
 	},
 	"taskTypes": {
 		"deleteDialog": {
