@@ -42,7 +42,8 @@ async def lifespan(app: FastAPI):
                 try:
                     await task
                 except asyncio.CancelledError:
-                    pass
+                    # Expected during shutdown after task.cancel(); ignore and continue cleanup.
+                    continue
         await close_pool()
         await close_client()
 
