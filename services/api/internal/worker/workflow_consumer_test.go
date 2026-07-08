@@ -27,6 +27,13 @@ type fakeGraphStore struct {
 	edges       []*workflowdom.Edge
 
 	transitionsCalls int // counts real ListStatusTransitionsByWorkflow calls, to assert evalCache hits
+	rulesCalls       int // counts real ListStatusRulesByWorkflow calls, to prove rules are re-read fresh (not cached) across an event's fan-out
+
+	// afterListStatusRulesCall, if non-nil, runs synchronously right after
+	// each ListStatusRulesByWorkflow call returns, receiving the 1-based
+	// call count — used to simulate a concurrent SetStatusRule edit landing
+	// mid-fan-out (between two nodes of the same event evaluating rules).
+	afterListStatusRulesCall func(call int)
 
 	findWorkflowCalls int
 	// archiveAfterFindWorkflowCall, if non-zero, flips every workflow to
@@ -80,7 +87,20 @@ func (f *fakeGraphStore) ListActiveNodesByTaskID(_ context.Context, taskID uuid.
 }
 
 func (f *fakeGraphStore) ListStatusRulesByWorkflow(_ context.Context, workflowID uuid.UUID) ([]*workflowdom.StatusRule, error) {
-	return f.rules[workflowID], nil
+	f.rulesCalls++
+	rules := f.rules[workflowID]
+	// Snapshot each rule, same as FindWorkflowByID above: a later mutation to
+	// the underlying rule (simulating a concurrent SetStatusRule edit) must
+	// not retroactively change what an earlier call already returned.
+	out := make([]*workflowdom.StatusRule, len(rules))
+	for i, r := range rules {
+		cp := *r
+		out[i] = &cp
+	}
+	if f.afterListStatusRulesCall != nil {
+		f.afterListStatusRulesCall(f.rulesCalls)
+	}
+	return out, nil
 }
 
 func (f *fakeGraphStore) ListStatusTransitionsByWorkflow(_ context.Context, workflowID uuid.UUID) ([]*workflowdom.StatusTransition, error) {
@@ -467,6 +487,53 @@ func TestApplyStatusRule_ArchivedMidFanOut_StopsLaterNodes(t *testing.T) {
 	}
 	if f.tasks.updateCalls != 1 {
 		t.Fatalf("expected exactly 1 UpdateTask call (nodeA only, before the archive), got %d", f.tasks.updateCalls)
+	}
+}
+
+// TestApplyStatusRule_ReflectsRuleEditedMidFanOut guards against a status
+// rule's assignee being memoized for the whole event: rules can now be
+// edited while a workflow stays active (unlike before, when editing required
+// reverting to draft first, which the workflow-status freshness check above
+// would have caught). One processTaskStatusChange call can fan out across
+// several nodes in the same workflow (an A->B chain), and nodeB's rule
+// lookup must see a concurrent edit landing between nodeA's and nodeB's
+// evaluation rather than reusing nodeA's now-stale snapshot.
+func TestApplyStatusRule_ReflectsRuleEditedMidFanOut(t *testing.T) {
+	f := newEngineFixture()
+	ctx := context.Background()
+	w := f.addWorkflow()
+	memberA := uuid.New()
+	oldMemberB := uuid.New()
+	newMemberB := uuid.New()
+
+	nodeA, taskA := f.addNode(w, &f.doneStatus.ID)
+	nodeB, taskB := f.addNode(w, &f.readyStatus.ID)
+	f.addTransition(w, f.doneStatus.ID, nil) // doneStatus is this workflow's terminal/done status
+	f.addRule(w, f.doneStatus.ID, memberA)   // nodeA's own reassignment (event 1)
+	ruleB := &workflowdom.StatusRule{ID: uuid.New(), WorkflowID: w.ID, StatusID: f.readyStatus.ID, AssigneeMemberID: oldMemberB}
+	f.graph.rules[w.ID] = append(f.graph.rules[w.ID], ruleB)
+	f.addEdge(w, nodeA, nodeB)
+
+	// Simulate a concurrent SetStatusRule call (e.g. via the HTTP handler)
+	// changing nodeB's rule right after nodeA's rules lookup (event 1) but
+	// before nodeB's (event 2, fired once nodeA is done) — both reads happen
+	// inside the same processTaskStatusChange fan-out.
+	f.graph.afterListStatusRulesCall = func(call int) {
+		if call == 1 {
+			ruleB.AssigneeMemberID = newMemberB
+		}
+	}
+
+	if err := f.consumer.processTaskStatusChange(ctx, f.projectID, taskA.ID); err != nil {
+		t.Fatalf("processTaskStatusChange: %v", err)
+	}
+
+	gotB := f.tasks.tasks[taskB.ID]
+	if gotB.AssigneeID == nil || *gotB.AssigneeID != newMemberB {
+		t.Fatalf("expected nodeB to be assigned the rule's up-to-date member %v (edited concurrently mid-fan-out), got %+v", newMemberB, gotB.AssigneeID)
+	}
+	if f.graph.rulesCalls != 2 {
+		t.Fatalf("expected rules to be re-read fresh for each node in the fan-out (not cached), got %d calls", f.graph.rulesCalls)
 	}
 }
 

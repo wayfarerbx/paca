@@ -36,6 +36,8 @@ type fakeWorkflowRepo struct {
 	// would produce, instead of actually creating the caller's row.
 	simulateRuleConflictOnce       bool
 	simulateTransitionConflictOnce bool
+
+	listStatusRulesCalls int // counts real ListStatusRulesByWorkflow calls, to assert CachedRepository hits/invalidations
 }
 
 func newFakeWorkflowRepo() *fakeWorkflowRepo {
@@ -210,6 +212,7 @@ func (r *fakeWorkflowRepo) FindStatusRuleByID(_ context.Context, id uuid.UUID) (
 func (r *fakeWorkflowRepo) ListStatusRulesByWorkflow(_ context.Context, workflowID uuid.UUID) ([]*workflowdom.StatusRule, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	r.listStatusRulesCalls++
 	var out []*workflowdom.StatusRule
 	for _, sr := range r.rules {
 		if sr.WorkflowID == workflowID {
