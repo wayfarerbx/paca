@@ -66,6 +66,10 @@ type EnvVarRepository interface {
 type ConversationRepository interface {
 	ListConversations(ctx context.Context, in ListConversationsFilter) ([]*AgentConversation, int64, error)
 	FindConversationByID(ctx context.Context, id uuid.UUID) (*AgentConversation, error)
+	// FindLatestConversationByChatSession returns the most recently created
+	// conversation for a chat session, or (nil, nil) if the session has none
+	// yet — an unstarted chat session is a normal state, not an error.
+	FindLatestConversationByChatSession(ctx context.Context, chatSessionID uuid.UUID) (*AgentConversation, error)
 	CreateConversation(ctx context.Context, c *AgentConversation) error
 	UpdateConversationStatus(ctx context.Context, id uuid.UUID, status string) error
 	UpdateConversation(ctx context.Context, c *AgentConversation) error

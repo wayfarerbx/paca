@@ -1,7 +1,13 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bot, Loader2, Plus, Send, X } from "lucide-react";
-import { useRef, useState } from "react";
+import {
+	type AppendMessage,
+	AssistantRuntimeProvider,
+	useExternalStoreRuntime,
+} from "@assistant-ui/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Bot, Plus, X } from "lucide-react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Thread } from "@/components/assistant-ui/thread";
 import { Button } from "@/components/ui/button";
 import {
 	Select,
@@ -10,172 +16,49 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { agentsQueryOptions, startChatSession } from "@/lib/agent-api";
+import {
+	type AgentConversation,
+	agentsQueryOptions,
+	CONVERSATION_HEARTBEAT_INTERVAL_MS,
+	conversationEventsQueryOptions,
+	conversationQueryOptions,
+	heartbeatConversation,
+	pauseConversation,
+	sendChatMessage,
+	startChatSession,
+	stopConversation,
+} from "@/lib/agent-api";
 import { cn } from "@/lib/utils";
-import { ConversationView } from "./agents/conversation-view";
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type ChatPhase =
-	| { kind: "compose" }
-	| { kind: "conversation"; conversationId: string };
+import { eventsToThreadMessages } from "./agents/conversation-to-thread-messages";
 
 interface AIChatFloatProps {
 	projectId: string;
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── Agent picker ──────────────────────────────────────────────────────────────
+//
+// Shown in Thread's empty-state Welcome slot so picking an agent is the first
+// thing the user sees. `ThreadComponents.Welcome` takes no props, so the
+// picker's data is passed down via this small context instead.
 
-export function AIChatFloat({ projectId }: AIChatFloatProps) {
-	const { t } = useTranslation("projects");
-	const [open, setOpen] = useState(false);
-	const [phase, setPhase] = useState<ChatPhase>({ kind: "compose" });
-	const [agentId, setAgentId] = useState<string>("");
-	const [message, setMessage] = useState("");
-	const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-	const qc = useQueryClient();
-	const { data: agents = [], isLoading: agentsLoading } = useQuery(
-		agentsQueryOptions(projectId),
-	);
-
-	const sendMut = useMutation({
-		mutationFn: () =>
-			startChatSession(projectId, agentId, { message: message.trim() }),
-		onSuccess: (result) => {
-			setPhase({
-				kind: "conversation",
-				conversationId: result.conversation.id,
-			});
-			setMessage("");
-			void qc.invalidateQueries({
-				queryKey: ["projects", projectId, "conversations"],
-			});
-		},
-	});
-
-	function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-		if (e.key === "Enter" && !e.shiftKey) {
-			e.preventDefault();
-			if (canSend) sendMut.mutate();
-		}
-	}
-
-	function handleNewConversation() {
-		setPhase({ kind: "compose" });
-		setMessage("");
-		setTimeout(() => textareaRef.current?.focus(), 50);
-	}
-
-	const canSend = !!agentId && message.trim().length > 0 && !sendMut.isPending;
-
-	return (
-		<>
-			{/* Floating trigger button */}
-			<button
-				type="button"
-				aria-label={t("aiChat.chatWithAgent")}
-				onClick={() => setOpen((o) => !o)}
-				className={cn(
-					"fixed bottom-6 right-6 z-40 flex size-12 items-center justify-center rounded-full shadow-lg transition-all hover:scale-105",
-					open
-						? "bg-muted text-foreground border border-border"
-						: "bg-primary text-primary-foreground hover:bg-primary/90",
-				)}
-			>
-				{open ? <X className="size-5" /> : <Bot className="size-5" />}
-			</button>
-
-			{/* Chat panel */}
-			{open && (
-				<div className="fixed bottom-20 right-6 z-40 flex w-95 flex-col overflow-hidden rounded-2xl border border-border/60 bg-background shadow-2xl">
-					{/* Panel header */}
-					<div className="flex shrink-0 items-center justify-between border-b border-border/40 bg-muted/30 px-4 py-3">
-						<div className="flex items-center gap-2">
-							<Bot className="size-4 text-primary" />
-							<span className="text-sm font-semibold">
-								{t("aiChat.chatWithAgent")}
-							</span>
-						</div>
-						{phase.kind === "conversation" && (
-							<Button
-								size="sm"
-								variant="outline"
-								className="h-7 gap-1.5 text-xs"
-								onClick={handleNewConversation}
-							>
-								<Plus className="size-3" />
-								{t("aiChat.newConversation")}
-							</Button>
-						)}
-					</div>
-
-					{phase.kind === "compose" ? (
-						<ComposeForm
-							agents={agents}
-							agentsLoading={agentsLoading}
-							agentId={agentId}
-							onAgentChange={setAgentId}
-							message={message}
-							onMessageChange={setMessage}
-							onKeyDown={handleKeyDown}
-							textareaRef={textareaRef}
-							canSend={canSend}
-							isPending={sendMut.isPending}
-							onSend={() => sendMut.mutate()}
-							error={sendMut.error}
-						/>
-					) : (
-						<div className="h-110">
-							<ConversationView
-								projectId={projectId}
-								conversationId={phase.conversationId}
-							/>
-						</div>
-					)}
-				</div>
-			)}
-		</>
-	);
-}
-
-// ── ComposeForm ───────────────────────────────────────────────────────────────
-
-interface ComposeFormProps {
+interface AgentPickerState {
 	agents: { id: string; name: string }[];
 	agentsLoading: boolean;
 	agentId: string;
 	onAgentChange: (id: string) => void;
-	message: string;
-	onMessageChange: (msg: string) => void;
-	onKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-	textareaRef: React.RefObject<HTMLTextAreaElement | null>;
-	canSend: boolean;
-	isPending: boolean;
-	onSend: () => void;
-	error: Error | null;
 }
 
-function ComposeForm({
-	agents,
-	agentsLoading,
-	agentId,
-	onAgentChange,
-	message,
-	onMessageChange,
-	onKeyDown,
-	textareaRef,
-	canSend,
-	isPending,
-	onSend,
-	error,
-}: ComposeFormProps) {
+const AgentPickerContext = createContext<AgentPickerState | null>(null);
+
+function FloatingChatWelcome() {
 	const { t } = useTranslation("projects");
+	const picker = useContext(AgentPickerContext);
+	if (!picker) return null;
+	const { agents, agentsLoading, agentId, onAgentChange } = picker;
+
 	return (
-		<div className="flex flex-col gap-3 p-4">
-			{/* Agent selector */}
-			<div className="space-y-1.5">
+		<div className="mb-4 flex flex-col items-center gap-3">
+			<div className="w-full space-y-1.5 text-left">
 				<p className="text-xs font-medium text-muted-foreground">
 					{t("aiChat.agentLabel")}
 				</p>
@@ -204,42 +87,232 @@ function ComposeForm({
 					</Select>
 				)}
 			</div>
-
-			{/* Message input */}
-			<div className="space-y-1.5">
-				<label
-					htmlFor="chat-message"
-					className="text-xs font-medium text-muted-foreground"
-				>
-					{t("aiChat.messageLabel")}
-					<span className="ml-1.5 font-normal opacity-50">
-						{t("aiChat.messageHint")}
-					</span>
-				</label>
-				<Textarea
-					id="chat-message"
-					ref={textareaRef}
-					placeholder={t("aiChat.messagePlaceholder")}
-					value={message}
-					onChange={(e) => onMessageChange(e.target.value)}
-					onKeyDown={onKeyDown}
-					rows={5}
-					className="resize-none text-sm"
-				/>
-			</div>
-
-			{/* Error */}
-			{error && <p className="text-xs text-destructive">{error.message}</p>}
-
-			{/* Send button */}
-			<Button className="w-full" onClick={onSend} disabled={!canSend}>
-				{isPending ? (
-					<Loader2 className="size-4 animate-spin" />
-				) : (
-					<Send className="size-4" />
-				)}
-				{t("aiChat.send")}
-			</Button>
 		</div>
+	);
+}
+
+const THREAD_COMPONENTS = { Welcome: FloatingChatWelcome };
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export function AIChatFloat({ projectId }: AIChatFloatProps) {
+	const { t } = useTranslation("projects");
+	const [open, setOpen] = useState(false);
+	const [agentId, setAgentId] = useState("");
+	const [conversationId, setConversationId] = useState<string | null>(null);
+	const qc = useQueryClient();
+
+	const { data: agents = [], isLoading: agentsLoading } = useQuery(
+		agentsQueryOptions(projectId),
+	);
+
+	const { data: conversation } = useQuery({
+		...conversationQueryOptions(projectId, conversationId ?? ""),
+		enabled: !!conversationId,
+	});
+	const { data: events = [] } = useQuery({
+		...conversationEventsQueryOptions(projectId, conversationId ?? ""),
+		enabled: !!conversationId,
+	});
+
+	const isRunning =
+		conversation?.status === "queued" || conversation?.status === "running";
+	const isTerminal =
+		conversation?.status === "finished" ||
+		conversation?.status === "failed" ||
+		conversation?.status === "stopped";
+
+	const messages = useMemo(
+		() => (conversationId ? eventsToThreadMessages(events, isRunning) : []),
+		[events, isRunning, conversationId],
+	);
+
+	const invalidate = (id: string | null = conversationId) => {
+		if (id) {
+			qc.invalidateQueries({
+				queryKey: ["projects", projectId, "conversations", id],
+			});
+		}
+		qc.invalidateQueries({
+			queryKey: ["projects", projectId, "conversations"],
+		});
+	};
+
+	const onNew = async (message: AppendMessage) => {
+		if (message.content.length !== 1 || message.content[0]?.type !== "text") {
+			throw new Error("Only text messages are supported");
+		}
+		const text = message.content[0].text;
+
+		if (!conversationId) {
+			if (!agentId) throw new Error(t("aiChat.selectAgentFirst"));
+			const result = await startChatSession(projectId, agentId, {
+				message: text,
+			});
+			// Seed the cache before flipping conversationId so the Thread
+			// doesn't flash a "can't reply" state while the query resolves.
+			qc.setQueryData(
+				conversationQueryOptions(projectId, result.conversation.id).queryKey,
+				result.conversation,
+			);
+			setConversationId(result.conversation.id);
+			void qc.invalidateQueries({
+				queryKey: ["projects", projectId, "conversations"],
+			});
+			return;
+		}
+
+		if (!conversation?.chat_session_id) {
+			throw new Error(t("agents.conversationView.conversationEnded"));
+		}
+		const result = await sendChatMessage(
+			projectId,
+			conversation.agent_id,
+			conversation.chat_session_id,
+			{ message: text },
+		);
+		// The previous conversation may have already ended (explicitly
+		// stopped, or reaped after 3 minutes with no heartbeat) — replying
+		// then silently starts a fresh conversation server-side. Follow it,
+		// otherwise the UI keeps polling the old (now terminal) conversation
+		// and the reply appears to vanish.
+		if (result.id !== conversationId) {
+			qc.setQueryData(
+				conversationQueryOptions(projectId, result.id).queryKey,
+				result,
+			);
+			setConversationId(result.id);
+		}
+		invalidate(result.id);
+	};
+
+	const onCancel = async () => {
+		if (!conversationId) return;
+		await pauseConversation(projectId, conversationId);
+		invalidate();
+	};
+
+	const canReply =
+		!conversationId ||
+		(conversation?.trigger_type === "chat_message" &&
+			!!conversation.chat_session_id);
+
+	const runtime = useExternalStoreRuntime({
+		messages,
+		isRunning,
+		convertMessage: (m) => m,
+		onNew,
+		onCancel,
+		isDisabled: !canReply || isTerminal,
+		isSendDisabled: !conversationId && !agentId,
+	});
+
+	// Chat sandboxes are kept alive between replies (see conversation-view's
+	// composer) — starting a new conversation in this window should
+	// explicitly end the one being left behind rather than leaving it running
+	// indefinitely. Best-effort: a failure here (e.g. it already ended) is
+	// not worth surfacing to the user.
+	//
+	// Exception: while the agent is actively working (queued/running), don't
+	// stop it — let it finish server-side; the user can check back later.
+	// Only "paused" (idle, waiting for a reply) gets stopped here.
+	//
+	// Collapsing the floating panel does NOT end the conversation anymore —
+	// only starting a new one here, or the tab going quiet for 3 minutes
+	// (see the heartbeat effect below), does.
+	function endConversation(id: string) {
+		const cached = qc.getQueryData<AgentConversation>(
+			conversationQueryOptions(projectId, id).queryKey,
+		);
+		if (cached?.status === "queued" || cached?.status === "running") return;
+		void stopConversation(projectId, id).catch(() => {});
+	}
+
+	function handleNewConversation() {
+		if (conversationId) endConversation(conversationId);
+		setConversationId(null);
+	}
+
+	function handleToggleOpen() {
+		setOpen((o) => !o);
+	}
+
+	// Pings the ai-agent service every ~30s while this tab has a conversation
+	// loaded (regardless of whether the panel is expanded or collapsed), so
+	// its sandbox's idle timer never trips as long as the tab stays open. If
+	// the tab closes (or the network drops), heartbeats simply stop and the
+	// ai-agent idle reaper reclaims the sandbox once ~3 minutes pass with no
+	// heartbeat — this replaces the old pagehide-triggered immediate stop.
+	useEffect(() => {
+		if (!conversationId || isTerminal) return;
+		const id = conversationId;
+		void heartbeatConversation(projectId, id).catch(() => {});
+		const interval = setInterval(() => {
+			void heartbeatConversation(projectId, id).catch(() => {});
+		}, CONVERSATION_HEARTBEAT_INTERVAL_MS);
+		return () => clearInterval(interval);
+	}, [conversationId, isTerminal, projectId]);
+
+	const pickerState = useMemo<AgentPickerState>(
+		() => ({ agents, agentsLoading, agentId, onAgentChange: setAgentId }),
+		[agents, agentsLoading, agentId],
+	);
+
+	return (
+		<>
+			{/* Floating trigger button */}
+			<button
+				type="button"
+				aria-label={t("aiChat.chatWithAgent")}
+				onClick={handleToggleOpen}
+				className={cn(
+					"fixed bottom-6 right-6 z-40 flex size-12 items-center justify-center rounded-full shadow-lg transition-all hover:scale-105",
+					open
+						? "bg-muted text-foreground border border-border"
+						: "bg-primary text-primary-foreground hover:bg-primary/90",
+				)}
+			>
+				{open ? <X className="size-5" /> : <Bot className="size-5" />}
+			</button>
+
+			{/* Chat panel */}
+			{open && (
+				<div
+					className={cn(
+						"fixed bottom-20 right-6 z-40 flex w-95 flex-col overflow-hidden rounded-2xl border border-border/60 bg-background shadow-2xl",
+						conversationId ? "h-150" : "max-h-150",
+					)}
+				>
+					{/* Panel header */}
+					<div className="flex shrink-0 items-center justify-between border-b border-border/40 bg-muted/30 px-4 py-3">
+						<div className="flex items-center gap-2">
+							<Bot className="size-4 text-primary" />
+							<span className="text-sm font-semibold">
+								{t("aiChat.chatWithAgent")}
+							</span>
+						</div>
+						{conversationId && (
+							<Button
+								size="sm"
+								variant="outline"
+								className="h-7 gap-1.5 text-xs"
+								onClick={handleNewConversation}
+							>
+								<Plus className="size-3" />
+								{t("aiChat.newConversation")}
+							</Button>
+						)}
+					</div>
+
+					<div className="min-h-0 flex-1">
+						<AgentPickerContext.Provider value={pickerState}>
+							<AssistantRuntimeProvider runtime={runtime}>
+								<Thread components={THREAD_COMPONENTS} />
+							</AssistantRuntimeProvider>
+						</AgentPickerContext.Provider>
+					</div>
+				</div>
+			)}
+		</>
 	);
 }

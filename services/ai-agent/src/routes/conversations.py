@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from ..config import settings
 from ..core.db import get_pool
 from ..core.registry import active_conversations
+from ..models.conversation_status import ConversationStatus
 from ..repositories.conversation_repository import update_conversation_status
 
 logger = logging.getLogger(__name__)
@@ -69,8 +70,8 @@ async def stop_conversation(id: UUID):
     conv = active_conversations.pop(str(id), None)
     if conv is not None and hasattr(conv, "close"):
         conv.close()  # type: ignore[union-attr]
-    await update_conversation_status(str(id), "stopped")
-    return {"status": "stopped"}
+    await update_conversation_status(str(id), ConversationStatus.STOPPED)
+    return {"status": ConversationStatus.STOPPED.value}
 
 
 @router.post("/{id}/message")

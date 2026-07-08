@@ -555,6 +555,10 @@ func New(deps Deps) http.Handler {
 							Get("/{conversationId}/events", deps.Conversation.ListConversationEvents)
 						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsWrite)).
 							Post("/{conversationId}/stop", deps.Conversation.StopConversation)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsWrite)).
+							Post("/{conversationId}/pause", deps.Conversation.PauseConversation)
+						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsRead)).
+							Post("/{conversationId}/heartbeat", deps.Conversation.Heartbeat)
 						r.With(httpmw.RequirePermissions(deps.Authorizer, httpmw.ProjectScopeFromParam("projectId"), authz.PermissionAgentsRead)).
 							Post("/{conversationId}/messages", deps.Conversation.SendConversationMessage)
 					})

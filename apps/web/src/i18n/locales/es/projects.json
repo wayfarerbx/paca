@@ -168,7 +168,6 @@
 				"iterations_one": "{{count}} iteración",
 				"iterations_other": "{{count}} iteraciones",
 				"prOpened": "PR abierto",
-				"watch": "Ver",
 				"empty": {
 					"title": "Aún no hay conversaciones",
 					"description": "Las conversaciones comienzan cuando se asigna una tarea a este agente o alguien le envía un mensaje."
@@ -176,15 +175,60 @@
 			}
 		},
 		"conversationView": {
-			"thinking": "Pensando…",
-			"observation": "observación",
-			"toolLabel": "herramienta: {{toolName}}",
 			"stop": "Detener",
 			"notFound": "Conversación no encontrada",
 			"chatSession": "Sesión de chat",
 			"taskSession": "Sesión de tarea",
 			"pr": "PR",
-			"noMessages": "Aún no hay mensajes"
+			"conversationEnded": "Esta conversación ha finalizado."
+		},
+		"thread": {
+			"composerPlaceholder": "Enviar mensaje al agente…",
+			"welcomeHeading": "¿En qué puedo ayudarte hoy?",
+			"messageInputAriaLabel": "Campo de mensaje",
+			"voiceInput": "Entrada de voz",
+			"startVoiceInputAriaLabel": "Iniciar entrada de voz",
+			"stopDictation": "Detener dictado",
+			"stopVoiceInputAriaLabel": "Detener entrada de voz",
+			"sendMessage": "Enviar mensaje",
+			"stopGeneratingAriaLabel": "Detener generación",
+			"assistantWorkingAriaLabel": "El agente está trabajando",
+			"copy": "Copiar",
+			"refresh": "Actualizar",
+			"more": "Más",
+			"edit": "Editar",
+			"previous": "Anterior",
+			"next": "Siguiente",
+			"exportAsMarkdown": "Exportar como Markdown",
+			"scrollToBottom": "Desplazarse al final",
+			"cancel": "Cancelar",
+			"update": "Actualizar",
+			"reasoning": "Razonamiento",
+			"reasoningWithDuration": "Razonamiento ({{duration}}s)",
+			"toolCallCount_one": "{{count}} llamada a herramienta",
+			"toolCallCount_other": "{{count}} llamadas a herramientas",
+			"usedTool": "Herramienta utilizada",
+			"cancelledTool": "Herramienta cancelada",
+			"resultLabel": "Resultado:",
+			"errorLabel": "Error:",
+			"cancelledReasonLabel": "Motivo de cancelación:",
+			"approvedByUser": "Aprobado por el usuario",
+			"deniedByUser": "El usuario denegó la ejecución de la herramienta",
+			"allow": "Permitir",
+			"alwaysAllow": "Permitir siempre",
+			"deny": "Denegar",
+			"alwaysDeny": "Denegar siempre",
+			"confirm": "Confirmar",
+			"back": "Atrás",
+			"attachmentPreview": "Vista previa del archivo adjunto",
+			"attachmentTypeImage": "Imagen",
+			"attachmentTypeDocument": "Documento",
+			"attachmentTypeFile": "Archivo",
+			"removeFile": "Eliminar archivo",
+			"imageAttachmentPreviewTitle": "Vista previa de la imagen adjunta",
+			"attachmentAriaLabel": "Adjunto de {{type}}",
+			"attachmentAriaLabelError": "Adjunto de {{type}}, error al subir",
+			"attachmentAriaLabelUploading": "Adjunto de {{type}}, subiendo"
 		}
 	},
 	"docs": {
@@ -575,10 +619,7 @@
 		"agentLabel": "Agente",
 		"noAgentsConfigured": "No hay agentes configurados para este proyecto.",
 		"selectAgentPlaceholder": "Selecciona un agente…",
-		"messageLabel": "Mensaje",
-		"messageHint": "(Enter para enviar, Mayús+Enter para salto de línea)",
-		"messagePlaceholder": "¿En qué te gustaría que te ayudara el agente?",
-		"send": "Enviar"
+		"selectAgentFirst": "Selecciona primero un agente."
 	},
 	"taskTypes": {
 		"deleteDialog": {

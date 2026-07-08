@@ -19,8 +19,6 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ConversationView } from "@/components/projects/agents/conversation-view";
-
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -1131,95 +1129,61 @@ function EnvVarsTab({
 function ConversationRow({
 	conv,
 	projectId,
-	onClick,
 }: {
 	conv: AgentConversation;
 	projectId: string;
-	onClick: () => void;
 }) {
 	const { t } = useTranslation("projects");
 	const statusColor = CONVERSATION_STATUS_COLORS[conv.status];
 	const statusLabel = CONVERSATION_STATUS_LABELS[conv.status];
 
 	return (
-		<div className="w-full flex items-center gap-4 rounded-lg border border-border/60 bg-card px-4 py-3 transition-colors hover:border-border hover:bg-accent/30">
-			<button
-				type="button"
-				onClick={onClick}
-				className="flex flex-col gap-0.5 min-w-0 flex-1 text-left"
-			>
-				<div className="flex items-center gap-2">
-					<span className="text-sm font-medium truncate">
-						{conv.trigger_type === "chat_message"
-							? t("agents.detail.conversations.triggerChat")
-							: conv.trigger_type === "description_write"
-								? t("agents.detail.conversations.triggerWriteDescription")
-								: t("agents.detail.conversations.triggerTask")}{" "}
-						· {conv.id.slice(0, 8)}
+		<Link
+			to="/projects/$projectId/conversations/$conversationId"
+			params={{ projectId, conversationId: conv.id }}
+			className="flex w-full flex-col gap-0.5 rounded-lg border border-border/60 bg-card px-4 py-3 text-left transition-colors hover:border-border hover:bg-accent/30"
+		>
+			<div className="flex items-center gap-2">
+				<span className="text-sm font-medium truncate">
+					{conv.trigger_type === "chat_message"
+						? t("agents.detail.conversations.triggerChat")
+						: conv.trigger_type === "description_write"
+							? t("agents.detail.conversations.triggerWriteDescription")
+							: t("agents.detail.conversations.triggerTask")}{" "}
+					· {conv.id.slice(0, 8)}
+				</span>
+				<Badge
+					variant="outline"
+					className={`text-xs font-semibold shrink-0 ${statusColor}`}
+				>
+					{statusLabel}
+				</Badge>
+			</div>
+			<div className="flex items-center gap-3 text-xs text-muted-foreground">
+				<span className="flex items-center gap-1">
+					<Zap className="size-3" />
+					{t("agents.detail.conversations.iterations", {
+						count: conv.iteration_count,
+					})}
+				</span>
+				{conv.branch_name && (
+					<span className="flex items-center gap-1 truncate">
+						<GitBranch className="size-3" />
+						{conv.branch_name}
 					</span>
-					<Badge
-						variant="outline"
-						className={`text-xs font-semibold shrink-0 ${statusColor}`}
-					>
-						{statusLabel}
-					</Badge>
-				</div>
-				<div className="flex items-center gap-3 text-xs text-muted-foreground">
+				)}
+				{conv.pr_url && (
 					<span className="flex items-center gap-1">
-						<Zap className="size-3" />
-						{t("agents.detail.conversations.iterations", {
-							count: conv.iteration_count,
-						})}
+						<GitPullRequest className="size-3" />
+						{t("agents.detail.conversations.prOpened")}
 					</span>
-					{conv.branch_name && (
-						<span className="flex items-center gap-1 truncate">
-							<GitBranch className="size-3" />
-							{conv.branch_name}
-						</span>
-					)}
-					{conv.pr_url && (
-						<span className="flex items-center gap-1">
-							<GitPullRequest className="size-3" />
-							{t("agents.detail.conversations.prOpened")}
-						</span>
-					)}
-					<span className="flex items-center gap-1 ml-auto">
-						<Clock className="size-3" />
-						{new Date(conv.created_at).toLocaleDateString()}
-					</span>
-				</div>
-			</button>
-			<Link
-				to="/projects/$projectId/conversations/$conversationId"
-				params={{ projectId, conversationId: conv.id }}
-				className="shrink-0 text-xs font-medium text-primary/70 hover:text-primary transition-colors"
-			>
-				{t("agents.detail.conversations.watch")}
-			</Link>
-		</div>
-	);
-}
-
-function ConversationModal({
-	projectId,
-	conversationId,
-	open,
-	onOpenChange,
-}: {
-	projectId: string;
-	conversationId: string;
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
-}) {
-	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-3xl sm:max-w-3xl h-[80vh] flex flex-col p-0 gap-0 overflow-hidden">
-				<ConversationView
-					projectId={projectId}
-					conversationId={conversationId}
-				/>
-			</DialogContent>
-		</Dialog>
+				)}
+				<span className="flex items-center gap-1 ml-auto">
+					<Clock className="size-3" />
+					{new Date(conv.created_at).toLocaleDateString()}
+				</span>
+			</div>
+		</Link>
 	);
 }
 
@@ -1234,7 +1198,6 @@ function ConversationsTab({
 	const { data: conversations = [], isLoading } = useQuery(
 		conversationsQueryOptions(projectId, agentId),
 	);
-	const [modalConvId, setModalConvId] = useState<string | null>(null);
 
 	if (isLoading) {
 		return (
@@ -1262,29 +1225,11 @@ function ConversationsTab({
 	}
 
 	return (
-		<>
-			<div className="space-y-2">
-				{conversations.map((conv) => (
-					<ConversationRow
-						key={conv.id}
-						conv={conv}
-						projectId={projectId}
-						onClick={() => setModalConvId(conv.id)}
-					/>
-				))}
-			</div>
-
-			{modalConvId && (
-				<ConversationModal
-					projectId={projectId}
-					conversationId={modalConvId}
-					open
-					onOpenChange={(open) => {
-						if (!open) setModalConvId(null);
-					}}
-				/>
-			)}
-		</>
+		<div className="space-y-2">
+			{conversations.map((conv) => (
+				<ConversationRow key={conv.id} conv={conv} projectId={projectId} />
+			))}
+		</div>
 	);
 }
 

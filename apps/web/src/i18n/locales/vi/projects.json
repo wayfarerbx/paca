@@ -168,7 +168,6 @@
 				"iterations_one": "{{count}} lượt lặp",
 				"iterations_other": "{{count}} lượt lặp",
 				"prOpened": "PR đã mở",
-				"watch": "Theo dõi",
 				"empty": {
 					"title": "Chưa có hội thoại nào",
 					"description": "Hội thoại bắt đầu khi một nhiệm vụ được giao cho agent này hoặc khi có ai đó nhắn tin cho nó."
@@ -176,15 +175,60 @@
 			}
 		},
 		"conversationView": {
-			"thinking": "Đang suy nghĩ…",
-			"observation": "quan sát",
-			"toolLabel": "công cụ: {{toolName}}",
 			"stop": "Dừng",
 			"notFound": "Không tìm thấy hội thoại",
 			"chatSession": "Phiên trò chuyện",
 			"taskSession": "Phiên nhiệm vụ",
 			"pr": "PR",
-			"noMessages": "Chưa có tin nhắn nào"
+			"conversationEnded": "Cuộc trò chuyện này đã kết thúc."
+		},
+		"thread": {
+			"composerPlaceholder": "Nhắn tin cho agent…",
+			"welcomeHeading": "Tôi có thể giúp gì cho bạn hôm nay?",
+			"messageInputAriaLabel": "Ô nhập tin nhắn",
+			"voiceInput": "Nhập bằng giọng nói",
+			"startVoiceInputAriaLabel": "Bắt đầu nhập bằng giọng nói",
+			"stopDictation": "Dừng nhập giọng nói",
+			"stopVoiceInputAriaLabel": "Dừng nhập bằng giọng nói",
+			"sendMessage": "Gửi tin nhắn",
+			"stopGeneratingAriaLabel": "Dừng tạo phản hồi",
+			"assistantWorkingAriaLabel": "Agent đang xử lý",
+			"copy": "Sao chép",
+			"refresh": "Làm mới",
+			"more": "Thêm",
+			"edit": "Chỉnh sửa",
+			"previous": "Trước",
+			"next": "Tiếp theo",
+			"exportAsMarkdown": "Xuất dưới dạng Markdown",
+			"scrollToBottom": "Cuộn xuống cuối",
+			"cancel": "Hủy",
+			"update": "Cập nhật",
+			"reasoning": "Suy luận",
+			"reasoningWithDuration": "Suy luận ({{duration}}s)",
+			"toolCallCount_one": "{{count}} lượt gọi công cụ",
+			"toolCallCount_other": "{{count}} lượt gọi công cụ",
+			"usedTool": "Công cụ đã dùng",
+			"cancelledTool": "Công cụ đã hủy",
+			"resultLabel": "Kết quả:",
+			"errorLabel": "Lỗi:",
+			"cancelledReasonLabel": "Lý do hủy:",
+			"approvedByUser": "Đã được người dùng chấp thuận",
+			"deniedByUser": "Người dùng từ chối thực thi công cụ",
+			"allow": "Cho phép",
+			"alwaysAllow": "Luôn cho phép",
+			"deny": "Từ chối",
+			"alwaysDeny": "Luôn từ chối",
+			"confirm": "Xác nhận",
+			"back": "Quay lại",
+			"attachmentPreview": "Xem trước tệp đính kèm",
+			"attachmentTypeImage": "Hình ảnh",
+			"attachmentTypeDocument": "Tài liệu",
+			"attachmentTypeFile": "Tệp",
+			"removeFile": "Xóa tệp",
+			"imageAttachmentPreviewTitle": "Xem trước hình ảnh đính kèm",
+			"attachmentAriaLabel": "Tệp đính kèm {{type}}",
+			"attachmentAriaLabelError": "Tệp đính kèm {{type}}, tải lên thất bại",
+			"attachmentAriaLabelUploading": "Tệp đính kèm {{type}}, đang tải lên"
 		}
 	},
 	"docs": {
@@ -575,10 +619,7 @@
 		"agentLabel": "Agent",
 		"noAgentsConfigured": "Chưa có agent nào được cấu hình cho dự án này.",
 		"selectAgentPlaceholder": "Chọn một agent…",
-		"messageLabel": "Tin nhắn",
-		"messageHint": "(Enter để gửi, Shift+Enter để xuống dòng)",
-		"messagePlaceholder": "Bạn muốn agent hỗ trợ điều gì?",
-		"send": "Gửi"
+		"selectAgentFirst": "Vui lòng chọn một agent trước."
 	},
 	"taskTypes": {
 		"deleteDialog": {

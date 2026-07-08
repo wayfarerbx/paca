@@ -168,7 +168,6 @@
 				"iterations_one": "{{count}} itération",
 				"iterations_other": "{{count}} itérations",
 				"prOpened": "PR ouverte",
-				"watch": "Suivre",
 				"empty": {
 					"title": "Aucune conversation pour le moment",
 					"description": "Les conversations démarrent lorsqu'une tâche est attribuée à cet agent ou que quelqu'un lui envoie un message."
@@ -176,15 +175,60 @@
 			}
 		},
 		"conversationView": {
-			"thinking": "Réflexion en cours…",
-			"observation": "observation",
-			"toolLabel": "outil : {{toolName}}",
 			"stop": "Arrêter",
 			"notFound": "Conversation introuvable",
 			"chatSession": "Session de discussion",
 			"taskSession": "Session de tâche",
 			"pr": "PR",
-			"noMessages": "Aucun message pour le moment"
+			"conversationEnded": "Cette conversation est terminée."
+		},
+		"thread": {
+			"composerPlaceholder": "Message à l'agent…",
+			"welcomeHeading": "Comment puis-je vous aider aujourd'hui ?",
+			"messageInputAriaLabel": "Champ de message",
+			"voiceInput": "Saisie vocale",
+			"startVoiceInputAriaLabel": "Démarrer la saisie vocale",
+			"stopDictation": "Arrêter la dictée",
+			"stopVoiceInputAriaLabel": "Arrêter la saisie vocale",
+			"sendMessage": "Envoyer le message",
+			"stopGeneratingAriaLabel": "Arrêter la génération",
+			"assistantWorkingAriaLabel": "L'agent travaille",
+			"copy": "Copier",
+			"refresh": "Actualiser",
+			"more": "Plus",
+			"edit": "Modifier",
+			"previous": "Précédent",
+			"next": "Suivant",
+			"exportAsMarkdown": "Exporter en Markdown",
+			"scrollToBottom": "Faire défiler vers le bas",
+			"cancel": "Annuler",
+			"update": "Mettre à jour",
+			"reasoning": "Raisonnement",
+			"reasoningWithDuration": "Raisonnement ({{duration}} s)",
+			"toolCallCount_one": "{{count}} appel d'outil",
+			"toolCallCount_other": "{{count}} appels d'outils",
+			"usedTool": "Outil utilisé",
+			"cancelledTool": "Outil annulé",
+			"resultLabel": "Résultat :",
+			"errorLabel": "Erreur :",
+			"cancelledReasonLabel": "Motif d'annulation :",
+			"approvedByUser": "Approuvé par l'utilisateur",
+			"deniedByUser": "L'utilisateur a refusé l'exécution de l'outil",
+			"allow": "Autoriser",
+			"alwaysAllow": "Toujours autoriser",
+			"deny": "Refuser",
+			"alwaysDeny": "Toujours refuser",
+			"confirm": "Confirmer",
+			"back": "Retour",
+			"attachmentPreview": "Aperçu de la pièce jointe",
+			"attachmentTypeImage": "Image",
+			"attachmentTypeDocument": "Document",
+			"attachmentTypeFile": "Fichier",
+			"removeFile": "Supprimer le fichier",
+			"imageAttachmentPreviewTitle": "Aperçu de l'image jointe",
+			"attachmentAriaLabel": "Pièce jointe {{type}}",
+			"attachmentAriaLabelError": "Pièce jointe {{type}}, échec du téléversement",
+			"attachmentAriaLabelUploading": "Pièce jointe {{type}}, téléversement en cours"
 		}
 	},
 	"docs": {
@@ -575,10 +619,7 @@
 		"agentLabel": "Agent",
 		"noAgentsConfigured": "Aucun agent configuré pour ce projet.",
 		"selectAgentPlaceholder": "Sélectionner un agent…",
-		"messageLabel": "Message",
-		"messageHint": "(Entrée pour envoyer, Maj+Entrée pour un saut de ligne)",
-		"messagePlaceholder": "Avec quoi souhaitez-vous que l'agent vous aide ?",
-		"send": "Envoyer"
+		"selectAgentFirst": "Veuillez d'abord sélectionner un agent."
 	},
 	"taskTypes": {
 		"deleteDialog": {

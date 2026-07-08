@@ -560,13 +560,42 @@ func (s *Service) StopConversation(ctx context.Context, projectID, conversationI
 	if err != nil {
 		return err
 	}
-	if c.Status == "finished" || c.Status == "stopped" || c.Status == "failed" {
+	if agentdom.ConversationStatus(c.Status).IsTerminal() {
 		return agentdom.ErrConversationAlreadyStopped
 	}
-	if err := s.repo.UpdateConversationStatus(ctx, conversationID, "stopped"); err != nil {
+	if err := s.repo.UpdateConversationStatus(ctx, conversationID, string(agentdom.ConversationStatusStopped)); err != nil {
 		return err
 	}
 	return s.publishTrigger(ctx, events.TopicAgentStop, map[string]any{
+		"conversation_id": conversationID.String(),
+		"project_id":      projectID.String(),
+	})
+}
+
+// PauseConversation interrupts a conversation's in-flight turn without
+// touching its sandbox — it goes back to "paused" once ai-agent processes
+// the interrupt. No DB write here: ai-agent's run_conversation writes the
+// resulting status itself once the turn actually pauses.
+func (s *Service) PauseConversation(ctx context.Context, projectID, conversationID uuid.UUID) error {
+	c, err := s.GetConversation(ctx, projectID, conversationID)
+	if err != nil {
+		return err
+	}
+	if agentdom.ConversationStatus(c.Status) != agentdom.ConversationStatusRunning {
+		return agentdom.ErrConversationNotRunning
+	}
+	return s.publishTrigger(ctx, events.TopicAgentPause, map[string]any{
+		"conversation_id": conversationID.String(),
+		"project_id":      projectID.String(),
+	})
+}
+
+// Heartbeat refreshes a chat conversation's idle timer. Fires on a ~30s
+// interval per open browser tab (see apps/web) — deliberately does not touch
+// Postgres; ai-agent cross-checks project_id in-memory before honoring it
+// (see worker._handle_control in services/ai-agent).
+func (s *Service) Heartbeat(ctx context.Context, projectID, conversationID uuid.UUID) error {
+	return s.publishTrigger(ctx, events.TopicAgentHeartbeat, map[string]any{
 		"conversation_id": conversationID.String(),
 		"project_id":      projectID.String(),
 	})
@@ -578,7 +607,7 @@ func (s *Service) SendConversationMessage(ctx context.Context, projectID, conver
 	if err != nil {
 		return err
 	}
-	if c.Status != "running" {
+	if agentdom.ConversationStatus(c.Status) != agentdom.ConversationStatusRunning {
 		return agentdom.ErrConversationNotRunning
 	}
 	return s.publishTrigger(ctx, events.TopicAgentChatMessage, map[string]any{
@@ -631,6 +660,13 @@ func (s *Service) StartChatSession(ctx context.Context, projectID, agentID, memb
 }
 
 // SendChatMessage sends a message to an existing chat session and publishes the trigger.
+//
+// The ai-agent service keeps a chat session's sandbox alive between replies
+// instead of tearing it down after every turn (see docs/ai-agent's
+// pause/resume design) — a conversation that reaches a natural per-turn
+// finish is left with status "paused" rather than "finished". A reply while
+// paused resumes that same conversation (same conversation_id, so the agent
+// keeps the sandbox/history) instead of cold-starting a new one.
 func (s *Service) SendChatMessage(ctx context.Context, projectID, sessionID, memberID uuid.UUID, message string) (*agentdom.AgentConversation, error) {
 	session, err := s.repo.FindChatSessionByID(ctx, sessionID)
 	if err != nil {
@@ -640,13 +676,30 @@ func (s *Service) SendChatMessage(ctx context.Context, projectID, sessionID, mem
 		return nil, agentdom.ErrChatSessionNotFound
 	}
 
-	conv, err := s.createConversation(ctx, projectID, session.AgentID, &memberID, agentdom.AgentConversation{
-		TriggerType:   "chat_message",
-		ChatSessionID: &sessionID,
-	})
+	latest, err := s.repo.FindLatestConversationByChatSession(ctx, sessionID)
 	if err != nil {
 		return nil, err
 	}
+
+	if latest != nil && agentdom.ConversationStatus(latest.Status) == agentdom.ConversationStatusRunning {
+		return nil, agentdom.ErrConversationBusy
+	}
+
+	conv := latest
+	if conv == nil || agentdom.ConversationStatus(conv.Status) != agentdom.ConversationStatusPaused {
+		conv, err = s.createConversation(ctx, projectID, session.AgentID, &memberID, agentdom.AgentConversation{
+			TriggerType:   "chat_message",
+			ChatSessionID: &sessionID,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+	// else: resume — reuse the same conversation_id so ai-agent reattaches
+	// to the sandbox it kept alive rather than cold-starting a new one. Its
+	// status flips back to "running" once the worker dequeues the trigger
+	// (run_conversation's first step), same as a cold start's "queued" ->
+	// "running" flip — no status write needed here.
 
 	if err := s.publishChatTrigger(ctx, session.AgentID, conv.ID, sessionID, projectID, memberID, message, s.gatherRepoPluginIDs(ctx)); err != nil {
 		return nil, err
@@ -694,7 +747,7 @@ func (s *Service) createConversation(ctx context.Context, projectID, agentID uui
 		CommentID:           template.CommentID,
 		ChatSessionID:       template.ChatSessionID,
 		TriggeredByMemberID: memberID,
-		Status:              "queued",
+		Status:              string(agentdom.ConversationStatusQueued),
 		CreatedAt:           now,
 		UpdatedAt:           now,
 	}

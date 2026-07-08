@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 
-from .agent.executor import run_conversation
+from .agent.executor import run_conversation, teardown_paused_chat_sandbox
 from .config import settings
-from .core.registry import stop_events
+from .core.registry import chat_sandboxes, pause_events, stop_events
 from .core.streams import (
     ControlMessage,
     TriggerMessage,
@@ -23,20 +24,56 @@ _shutdown_event: asyncio.Event | None = None
 
 
 async def _handle_control(msg: ControlMessage) -> None:
-    """Dispatch a stop control message to the running conversation."""
+    """Dispatch a stop/pause/heartbeat control message to the running conversation."""
     cid = msg.conversation_id
 
     if msg.control_type == "agent.stop":
+        # Full stop, unchanged from today: interrupt the in-flight turn (if
+        # any) and tear the sandbox down for good.
         stop_event = stop_events.get(cid)
         if stop_event is not None:
             logger.info("Stopping conversation %s via stream control message", cid)
             stop_event.set()
+            return
+        # No in-flight run to signal — this is either a chat conversation
+        # paused between turns (explicit stop, or the idle reaper firing
+        # early via a control message) or a stop for a conversation this
+        # replica never owned.
+        if await teardown_paused_chat_sandbox(cid):
+            logger.info("Stopped paused chat sandbox for conversation %s", cid)
         else:
             logger.warning(
-                "Received stop for conversation %s but no active run found on this replica", cid
+                "Received stop for conversation %s but no active run or paused "
+                "sandbox found on this replica",
+                cid,
             )
-    else:
-        logger.warning("Unknown control type %r for conversation %s", msg.control_type, cid)
+        return
+
+    if msg.control_type == "agent.pause":
+        # Interrupt-only: pause the in-flight turn (if any); the sandbox is
+        # never touched here. No-op (not a teardown) if nothing is running —
+        # this is the assistant-UI stop button.
+        pause_event = pause_events.get(cid)
+        if pause_event is not None:
+            logger.info("Pausing conversation %s via stream control message", cid)
+            pause_event.set()
+        else:
+            logger.info(
+                "Received pause for conversation %s but no active run found on this "
+                "replica — no-op",
+                cid,
+            )
+        return
+
+    if msg.control_type == "agent.heartbeat":
+        entry = chat_sandboxes.get(cid)
+        # Cross-check project_id (cheap, in-memory) so a heartbeat can't keep
+        # alive a sandbox from a conversation this caller wasn't scoped to.
+        if entry is not None and entry.project_id == msg.project_id:
+            entry.last_active_at = time.monotonic()
+        return
+
+    logger.warning("Unknown control type %r for conversation %s", msg.control_type, cid)
 
 
 async def _process_trigger(msg: TriggerMessage | ControlMessage) -> None:

@@ -102,7 +102,7 @@ type AgentConversation struct {
 	// TriggeredByMemberID is nil for conversations triggered by the
 	// automation-workflow engine, which has no human member behind it.
 	TriggeredByMemberID *uuid.UUID
-	Status              string // queued | running | finished | failed | stopped
+	Status              string // queued | running | paused | finished | failed | stopped
 	ContainerID         *string
 	HostPort            *int
 	IterationCount      int

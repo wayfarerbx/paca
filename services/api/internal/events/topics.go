@@ -84,7 +84,15 @@ const (
 	TopicAgentCommentMention   = "agent.comment_mention"
 	TopicAgentChatMessage      = "agent.chat_message"
 	TopicAgentDescriptionWrite = "agent.description_write"
-	TopicAgentStop             = "agent.stop"
+	// TopicAgentStop interrupts (if running) and tears the sandbox down for
+	// good — unchanged from before. TopicAgentPause interrupts the in-flight
+	// turn only, leaving the sandbox running so the conversation can be
+	// replied to again.
+	TopicAgentStop  = "agent.stop"
+	TopicAgentPause = "agent.pause"
+	// TopicAgentHeartbeat refreshes a chat conversation's idle timer; fired
+	// periodically by the frontend while a conversation is loaded in a tab.
+	TopicAgentHeartbeat = "agent.heartbeat"
 
 	// --- Agent event topics (emitted by ai-agent, consumed by realtime) ------
 	TopicAgentConversationStarted  = "agent.conversation.started"
