@@ -45,9 +45,7 @@ def build_initial_prompt(trigger: TriggerMessage) -> str:
     return trigger.message
 
 
-def build_trigger_suffix(
-    trigger: TriggerMessage, all_repos: list[dict] | None = None
-) -> str:
+def build_trigger_suffix(trigger: TriggerMessage, all_repos: list[dict] | None = None) -> str:
     """Build the system-message suffix for trigger-specific metadata.
 
     This supplements the base system suffix with the action type, contextual

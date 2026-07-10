@@ -17,7 +17,7 @@ import {
 	Wand2,
 	Zap,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -1237,7 +1237,7 @@ function AgentDetailPage() {
 	const { hasProjectPermission } = useProjectPermissions(projectId);
 	const canWrite = hasProjectPermission("agents.write");
 
-const { data: agent } = useQuery(agentQueryOptions(projectId, agentId));
+	const { data: agent } = useQuery(agentQueryOptions(projectId, agentId));
 	const [activeTab, setActiveTab] = useState<Tab>(() => {
 		const hash = window.location.hash.slice(1);
 		if (hash && TABS.map((t) => t.id).includes(hash as Tab)) {

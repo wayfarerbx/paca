@@ -337,8 +337,8 @@ export function AIChatFloat({ projectId }: AIChatFloatProps) {
 					<div className="min-h-0 flex-1 overflow-y-auto">
 						{conversationId &&
 						isTerminal &&
-					conversation?.status === "failed" &&
-					messages.length === 0 ? (
+						conversation?.status === "failed" &&
+						messages.length === 0 ? (
 							<FloatingChatFailedBanner message={conversation?.error_message} />
 						) : (
 							<AgentPickerContext.Provider value={pickerState}>

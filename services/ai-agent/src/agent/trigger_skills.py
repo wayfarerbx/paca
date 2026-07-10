@@ -20,7 +20,7 @@ _TASK_PROMPT = (
     "You were triggered by a task assignment or a task comment @mention.\n\n"
     "### Mandatory: invoke a skill BEFORE any other action\n\n"
     "Before doing any work, making any status change, or calling any other "
-    "tool, you MUST invoke one specialized skill using `invoke_skill(name=\"...\")`. "
+    'tool, you MUST invoke one specialized skill using `invoke_skill(name="...")`. '
     "This is non-negotiable — the specialized skills contain step-by-step "
     "instructions you must follow, and reconstructing them from memory leads "
     "to incomplete or incorrect results.\n\n"
@@ -28,18 +28,18 @@ _TASK_PROMPT = (
     "1. Load the task via the Paca MCP tool (`get_task` / `get_task_by_number`).\n"
     "2. Based on the task's status, pick the right skill from `paca`'s "
     "Step 0.5 status-routing table and **invoke it immediately**:\n"
-    "   - `invoke_skill(name=\"paca-do\")` — execute/implement a ready task\n"
-    "   - `invoke_skill(name=\"paca-clarify\")` — task lacks acceptance criteria\n"
-    "   - `invoke_skill(name=\"paca-breakdown\")` — task is too large\n"
-    "   - `invoke_skill(name=\"paca-estimate\")` — size/estimate the task\n"
-    "   - `invoke_skill(name=\"paca-sprint\")` — plan into a sprint\n"
-    "   - `invoke_skill(name=\"paca-test\")` — verify/test a completed task\n"
-    "   - `invoke_skill(name=\"paca-doc\")` — write documentation\n"
-    "   - `invoke_skill(name=\"paca-workflow\")` — automate a process\n"
+    '   - `invoke_skill(name="paca-do")` — execute/implement a ready task\n'
+    '   - `invoke_skill(name="paca-clarify")` — task lacks acceptance criteria\n'
+    '   - `invoke_skill(name="paca-breakdown")` — task is too large\n'
+    '   - `invoke_skill(name="paca-estimate")` — size/estimate the task\n'
+    '   - `invoke_skill(name="paca-sprint")` — plan into a sprint\n'
+    '   - `invoke_skill(name="paca-test")` — verify/test a completed task\n'
+    '   - `invoke_skill(name="paca-doc")` — write documentation\n'
+    '   - `invoke_skill(name="paca-workflow")` — automate a process\n'
     "3. Follow the skill's full instructions step by step.\n\n"
     "**The ONLY exception:** A single trivial action with zero judgment — "
-    "closing a task when someone explicitly said \"close this\", or adding "
-    "a plain comment like \"noted\". If the request involves any implementation, "
+    'closing a task when someone explicitly said "close this", or adding '
+    'a plain comment like "noted". If the request involves any implementation, '
     "planning, analysis, breakdown, estimation, testing, or documentation, "
     "you MUST invoke a skill first.\n\n"
     "If the comment is a simple question (not a work request), just answer "

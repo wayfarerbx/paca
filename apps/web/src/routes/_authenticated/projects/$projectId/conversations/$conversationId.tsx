@@ -9,7 +9,6 @@ import {
 	conversationEventsQueryOptions,
 	conversationQueryOptions,
 } from "@/lib/agent-api";
-import { projectQueryOptions } from "@/lib/project-api";
 
 export const Route = createFileRoute(
 	"/_authenticated/projects/$projectId/conversations/$conversationId",
@@ -36,7 +35,6 @@ export const Route = createFileRoute(
 function ConversationPage() {
 	const { t } = useTranslation("projects");
 	const { projectId, conversationId } = Route.useParams();
-	const { data: project } = useQuery(projectQueryOptions(projectId));
 	const { data: conversation } = useQuery(
 		conversationQueryOptions(projectId, conversationId),
 	);

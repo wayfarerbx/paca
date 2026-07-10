@@ -259,17 +259,19 @@ class PushBranchObservation(Observation):
     @property
     def to_llm_content(self) -> Sequence[TextContent]:
         if self.success:
-            return [TextContent(
-                text=(
-                    f"Branch '{self.branch}' pushed to remote successfully.\n\n"
-                    "**Next step (mandatory):** Create a pull/merge request now "
-                    "so the changes can be reviewed. Call the repository plugin's "
-                    "PR creation tool (e.g. `github_create_pull_request`) with "
-                    "the branch you just pushed as `head_branch` and the repo's "
-                    "default branch as `base_branch`. Do not consider the task "
-                    "complete until a PR has been created."
+            return [
+                TextContent(
+                    text=(
+                        f"Branch '{self.branch}' pushed to remote successfully.\n\n"
+                        "**Next step (mandatory):** Create a pull/merge request now "
+                        "so the changes can be reviewed. Call the repository plugin's "
+                        "PR creation tool (e.g. `github_create_pull_request`) with "
+                        "the branch you just pushed as `head_branch` and the repo's "
+                        "default branch as `base_branch`. Do not consider the task "
+                        "complete until a PR has been created."
+                    )
                 )
-            )]
+            ]
         return [TextContent(text=f"Failed to push branch: {self.message}")]
 
 
