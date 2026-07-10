@@ -14,6 +14,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 		// Global safety net: without this, any uncaught loader or render error
 		// in a lazy-loaded route crashes with "Element type is invalid… Check
 		// the render method of Lazy" (TanStack Router's internal lazy wrapper).
-		defaultErrorComponent: ({ error }) => <RouteErrorComponent error={error} />,
+		errorComponent: ({ error }) => <RouteErrorComponent error={error} />,
 	},
 );
