@@ -33,6 +33,17 @@ function errorResponse(status = 400, body = "Bad Request") {
 	};
 }
 
+function noContentResponse() {
+	return {
+		ok: true,
+		status: 204,
+		text: async () => "",
+		json: async () => {
+			throw new SyntaxError("Unexpected end of JSON input");
+		},
+	};
+}
+
 describe("PacaAPITaskExtendedClient", () => {
 	let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -72,6 +83,12 @@ describe("PacaAPITaskExtendedClient", () => {
 		const client = new PacaAPITaskExtendedClient(CONFIG);
 		const result = await client.listTaskActivities("p1", "t1");
 		expect(result).toEqual([{ id: "act1" }]);
+	});
+
+	it("resolves on 204 No Content without parsing JSON", async () => {
+		fetchMock.mockResolvedValue(noContentResponse());
+		const client = new PacaAPITaskExtendedClient(CONFIG);
+		await expect(client.deleteTaskComment("p1", "t1", "c1")).resolves.toBeUndefined();
 	});
 
 	// ---------------------------------------------------------------------------

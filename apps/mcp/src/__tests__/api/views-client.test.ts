@@ -26,6 +26,17 @@ function errorResponse(status = 400, body = "Bad Request") {
 	};
 }
 
+function noContentResponse() {
+	return {
+		ok: true,
+		status: 204,
+		text: async () => "",
+		json: async () => {
+			throw new SyntaxError("Unexpected end of JSON input");
+		},
+	};
+}
+
 describe("PacaAPIViewsClient", () => {
 	let fetchMock: ReturnType<typeof vi.fn>;
 
@@ -64,6 +75,12 @@ describe("PacaAPIViewsClient", () => {
 		fetchMock.mockResolvedValue(errorResponse(404, "Not Found"));
 		const client = new PacaAPIViewsClient(CONFIG);
 		await expect(client.listViews("p1")).rejects.toThrow("404");
+	});
+
+	it("resolves on 204 No Content without parsing JSON", async () => {
+		fetchMock.mockResolvedValue(noContentResponse());
+		const client = new PacaAPIViewsClient(CONFIG);
+		await expect(client.deleteTaskAttachment("p1", "t1", "att1")).resolves.toBeUndefined();
 	});
 
 	it("returns raw JSON when not a SuccessEnvelope", async () => {

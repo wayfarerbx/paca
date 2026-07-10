@@ -40,6 +40,17 @@ function mockFetchError(status = 400, body = "Bad Request") {
 	} as unknown as Response);
 }
 
+function mockFetchNoContent() {
+	return vi.fn().mockResolvedValueOnce({
+		ok: true,
+		status: 204,
+		text: async () => "",
+		json: async () => {
+			throw new SyntaxError("Unexpected end of JSON input");
+		},
+	} as unknown as Response);
+}
+
 // ---------------------------------------------------------------------------
 // Setup / teardown
 // ---------------------------------------------------------------------------
@@ -136,6 +147,12 @@ describe("PacaAPIClient – error handling", () => {
 		await expect(client.getProject("x")).rejects.toThrow(
 			"Internal Server Error",
 		);
+	});
+
+	it("resolves on 204 No Content without parsing JSON", async () => {
+		vi.stubGlobal("fetch", mockFetchNoContent());
+		const client = makeClient();
+		await expect(client.deleteProject("proj-1")).resolves.toBeUndefined();
 	});
 });
 
