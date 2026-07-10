@@ -582,7 +582,7 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
 
             try:
                 agent_kwargs: dict = {"llm": llm, "agent_context": agent_context}
-                if mcp_config.get("mcpServers"):
+                if mcp_config:
                     agent_kwargs["mcp_config"] = mcp_config
 
                 if has_repos:
