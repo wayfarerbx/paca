@@ -81,11 +81,13 @@ async def publish_realtime(
     await client.publish(REALTIME_CHANNEL, message)
 
 
-# Trigger types that carry a conversation run request.
+# Trigger types that carry a conversation run request. Mirrors the
+# TopicAgent* constants in services/api/internal/events/topics.go.
 _TRIGGER_TYPES = {
     "agent.task_assigned",
     "agent.comment_mention",
     "agent.chat_message",
+    "agent.description_write",
 }
 
 # Control message types that direct an *existing* conversation.

@@ -459,6 +459,7 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
     instead of being torn down — see the end of `_run_sync` below.
     """
     is_chat = trigger.trigger_type == CHAT_MESSAGE_TRIGGER_TYPE
+    resume_state = chat_sandboxes.get(trigger.conversation_id) if is_chat else None
     loop = asyncio.get_event_loop()
     # Seed from the conversation's existing history, not 0 — on a resumed
     # chat turn, starting back at 0 would collide with event_index values
@@ -532,11 +533,14 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
                 "repository plugin's own tools.\n"
             )
 
-        # Pre-gather repository info for the trigger context suffix (used
-        # only on a cold start — chat-resumed turns re-send just the bare
-        # reply text via trigger.message).
+        # Pre-gather repository info for the trigger context suffix. Only
+        # needed on a cold start: RemoteConversation never re-sends the local
+        # `agent` (and therefore this AgentContext) to the server when
+        # reattaching to an existing sandbox conversation — it only GETs to
+        # validate the agent kind — so building this for a resumed chat turn
+        # would be pure waste (including the repo-plugin API calls below).
         all_repos_info = None
-        if has_repos:
+        if resume_state is None and has_repos:
             try:
                 repo_sources = _gather_repo_sources(trigger)
                 all_repos: list[dict] = []
@@ -556,16 +560,15 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
                     all_repos_info = all_repos
             except Exception as exc:
                 logger.warning("Failed to gather repository info: %s", exc)
-        # Inject trigger-specific metadata (action type, IDs, repo setup)
-        # into the system suffix rather than muddying the initial user
-        # message.
-        system_suffix += build_trigger_suffix(trigger, all_repos_info)
+        if resume_state is None:
+            # Inject trigger-specific metadata (action type, IDs, repo setup)
+            # into the system suffix rather than muddying the initial user
+            # message. Resumed turns skip this too — see above.
+            system_suffix += build_trigger_suffix(trigger, all_repos_info)
         agent_context = AgentContext(skills=skills, system_message_suffix=system_suffix)
 
         def _run_sync() -> tuple[bool, bool, bool]:
             """Returns (stopped, errored, shutdown) — see `_wait_for_done_or_stop`."""
-            resume_state = chat_sandboxes.get(trigger.conversation_id) if is_chat else None
-
             if resume_state is not None:
                 handle = resume_state.handle
             else:

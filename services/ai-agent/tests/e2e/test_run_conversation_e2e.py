@@ -137,7 +137,7 @@ def _agent_config(
 def _trigger(*, repo_plugin_ids: list[str] | None = None) -> TriggerMessage:
     return TriggerMessage(
         stream_id="1-1",
-        trigger_type="agent.chat_message",
+        trigger_type="chat_message",
         conversation_id="e2e-test-conversation",
         agent_id="e2e-test-agent",
         project_id="e2e-test-project",

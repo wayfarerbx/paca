@@ -414,7 +414,7 @@ Table agent_conversations {
   id uuid [primary key, note: 'Also used as the OpenHands conversation_id']
   agent_id uuid [not null, ref: > agents.id]
   project_id uuid [not null, ref: > projects.id]
-  trigger_type varchar [not null, note: 'task_assigned | comment_mention | chat_message']
+  trigger_type varchar [not null, note: 'task_assigned | comment_mention | chat_message | description_write']
   task_id uuid [null, ref: > tasks.id]
   comment_id uuid [null]
   chat_session_id uuid [null, ref: > agent_chat_sessions.id]
