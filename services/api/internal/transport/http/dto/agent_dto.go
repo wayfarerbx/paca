@@ -24,8 +24,6 @@ type AgentResponse struct {
 	LLMModel          string                   `json:"llm_model"`
 	LLMBaseURL        string                   `json:"llm_base_url"`
 	SystemPrompt      string                   `json:"system_prompt"`
-	CanCloneRepos     bool                     `json:"can_clone_repos"`
-	CanCreatePRs      bool                     `json:"can_create_prs"`
 	MaxIterations     int                      `json:"max_iterations"`
 	TimeoutMinutes    int                      `json:"timeout_minutes"`
 	GitCommitterName  string                   `json:"git_committer_name"`
@@ -47,8 +45,6 @@ type CreateAgentRequest struct {
 	LLMAPIKey         string    `json:"llm_api_key" binding:"required"`
 	LLMBaseURL        string    `json:"llm_base_url" binding:"required"`
 	SystemPrompt      string    `json:"system_prompt"`
-	CanCloneRepos     bool      `json:"can_clone_repos"`
-	CanCreatePRs      bool      `json:"can_create_prs"`
 	MaxIterations     int       `json:"max_iterations"`
 	TimeoutMinutes    int       `json:"timeout_minutes"`
 	GitCommitterName  string    `json:"git_committer_name"`
@@ -65,8 +61,6 @@ type UpdateAgentRequest struct {
 	LLMAPIKey         *string `json:"llm_api_key"`
 	LLMBaseURL        *string `json:"llm_base_url"`
 	SystemPrompt      *string `json:"system_prompt"`
-	CanCloneRepos     *bool   `json:"can_clone_repos"`
-	CanCreatePRs      *bool   `json:"can_create_prs"`
 	MaxIterations     *int    `json:"max_iterations"`
 	TimeoutMinutes    *int    `json:"timeout_minutes"`
 	GitCommitterName  *string `json:"git_committer_name"`
@@ -86,8 +80,6 @@ func AgentFromEntity(a *agentdom.Agent) AgentResponse {
 		LLMModel:          a.LLMModel,
 		LLMBaseURL:        a.LLMBaseURL,
 		SystemPrompt:      a.SystemPrompt,
-		CanCloneRepos:     a.CanCloneRepos,
-		CanCreatePRs:      a.CanCreatePRs,
 		MaxIterations:     a.MaxIterations,
 		TimeoutMinutes:    a.TimeoutMinutes,
 		GitCommitterName:  a.GitCommitterName,

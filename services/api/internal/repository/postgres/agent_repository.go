@@ -28,8 +28,6 @@ type agentRecord struct {
 	LLMAPIKeySecret   string     `db:"llm_api_key_secret"`
 	LLMBaseURL        string     `db:"llm_base_url"`
 	SystemPrompt      string     `db:"system_prompt"`
-	CanCloneRepos     bool       `db:"can_clone_repos"`
-	CanCreatePRs      bool       `db:"can_create_prs"`
 	MaxIterations     int        `db:"max_iterations"`
 	TimeoutMinutes    int        `db:"timeout_minutes"`
 	GitCommitterName  string     `db:"git_committer_name"`
@@ -139,7 +137,7 @@ func NewAgentRepository(db *sqlx.DB) *AgentRepository {
 
 const agentSelectCols = `a.id, a.project_id, a.name, a.handle, a.avatar_url, a.llm_provider, a.llm_model,
 	a.llm_api_key_secret, a.llm_base_url, a.system_prompt,
-	a.can_clone_repos, a.can_create_prs, a.max_iterations, a.timeout_minutes,
+	a.max_iterations, a.timeout_minutes,
 	a.git_committer_name, a.git_committer_email, a.created_by, a.created_at, a.updated_at, a.deleted_at,
 	pm.id AS member_id`
 
@@ -224,13 +222,13 @@ func (r *AgentRepository) CreateAgent(ctx context.Context, a *agentdom.Agent) er
 	_, err := r.db.ExecContext(ctx, `
 		INSERT INTO agents (id, project_id, name, handle, avatar_url, llm_provider, llm_model,
 		  llm_api_key_secret, llm_base_url, system_prompt,
-		  can_clone_repos, can_create_prs, max_iterations, timeout_minutes,
+		  max_iterations, timeout_minutes,
 		  git_committer_name, git_committer_email, created_by, created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
 		rec.ID, rec.ProjectID, rec.Name, rec.Handle, rec.AvatarURL,
 		rec.LLMProvider, rec.LLMModel, rec.LLMAPIKeySecret, rec.LLMBaseURL,
 		rec.SystemPrompt,
-		rec.CanCloneRepos, rec.CanCreatePRs, rec.MaxIterations, rec.TimeoutMinutes,
+		rec.MaxIterations, rec.TimeoutMinutes,
 		rec.GitCommitterName, rec.GitCommitterEmail, rec.CreatedBy, rec.CreatedAt, rec.UpdatedAt,
 	)
 	return err
@@ -245,12 +243,12 @@ func (r *AgentRepository) UpdateAgent(ctx context.Context, a *agentdom.Agent) er
 			UPDATE agents SET
 			  name=$1, handle=$2, avatar_url=$3, llm_provider=$4, llm_model=$5, llm_base_url=$6,
 			  system_prompt=$7,
-			  can_clone_repos=$8, can_create_prs=$9, max_iterations=$10, timeout_minutes=$11,
-			  git_committer_name=$12, git_committer_email=$13, updated_at=$14
-			WHERE id=$15`,
+			  max_iterations=$8, timeout_minutes=$9,
+			  git_committer_name=$10, git_committer_email=$11, updated_at=$12
+			WHERE id=$13`,
 			a.Name, a.Handle, a.AvatarURL, a.LLMProvider, a.LLMModel, a.LLMBaseURL,
 			a.SystemPrompt,
-			a.CanCloneRepos, a.CanCreatePRs, a.MaxIterations, a.TimeoutMinutes,
+			a.MaxIterations, a.TimeoutMinutes,
 			a.GitCommitterName, a.GitCommitterEmail, time.Now(), a.ID.String(),
 		)
 		if err != nil {
@@ -283,13 +281,13 @@ func (r *AgentRepository) CreateAgentWithMembership(ctx context.Context, a *agen
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO agents (id, project_id, name, handle, avatar_url, llm_provider, llm_model,
 			  llm_api_key_secret, llm_base_url, system_prompt,
-			  can_clone_repos, can_create_prs, max_iterations, timeout_minutes,
+			  max_iterations, timeout_minutes,
 			  git_committer_name, git_committer_email, created_by, created_at, updated_at)
-			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
 			rec.ID, rec.ProjectID, rec.Name, rec.Handle, rec.AvatarURL,
 			rec.LLMProvider, rec.LLMModel, rec.LLMAPIKeySecret, rec.LLMBaseURL,
 			rec.SystemPrompt,
-			rec.CanCloneRepos, rec.CanCreatePRs, rec.MaxIterations, rec.TimeoutMinutes,
+			rec.MaxIterations, rec.TimeoutMinutes,
 			rec.GitCommitterName, rec.GitCommitterEmail, rec.CreatedBy, rec.CreatedAt, rec.UpdatedAt,
 		)
 		if err != nil {
@@ -799,8 +797,6 @@ func agentFromReadRow(row agentRecord) *agentdom.Agent {
 		LLMAPIKeySecret:   row.LLMAPIKeySecret,
 		LLMBaseURL:        row.LLMBaseURL,
 		SystemPrompt:      row.SystemPrompt,
-		CanCloneRepos:     row.CanCloneRepos,
-		CanCreatePRs:      row.CanCreatePRs,
 		MaxIterations:     row.MaxIterations,
 		TimeoutMinutes:    row.TimeoutMinutes,
 		GitCommitterName:  row.GitCommitterName,
@@ -832,8 +828,6 @@ func agentToRecord(a *agentdom.Agent) agentRecord {
 		LLMAPIKeySecret:   a.LLMAPIKeySecret,
 		LLMBaseURL:        a.LLMBaseURL,
 		SystemPrompt:      a.SystemPrompt,
-		CanCloneRepos:     a.CanCloneRepos,
-		CanCreatePRs:      a.CanCreatePRs,
 		MaxIterations:     a.MaxIterations,
 		TimeoutMinutes:    a.TimeoutMinutes,
 		GitCommitterName:  a.GitCommitterName,

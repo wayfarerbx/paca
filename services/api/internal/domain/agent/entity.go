@@ -19,8 +19,6 @@ type Agent struct {
 	LLMAPIKeySecret   string // reference to secrets store entry
 	LLMBaseURL        string
 	SystemPrompt      string
-	CanCloneRepos     bool
-	CanCreatePRs      bool
 	MaxIterations     int
 	TimeoutMinutes    int
 	GitCommitterName  string
@@ -95,7 +93,7 @@ type AgentConversation struct {
 	ID            uuid.UUID
 	AgentID       uuid.UUID
 	ProjectID     uuid.UUID
-	TriggerType   string // task_assigned | comment_mention | chat_message
+	TriggerType   string // task_assigned | comment_mention | chat_message | description_write
 	TaskID        *uuid.UUID
 	CommentID     *uuid.UUID
 	ChatSessionID *uuid.UUID

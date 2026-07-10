@@ -11,7 +11,6 @@ import {
 	Eye,
 	EyeOff,
 	FlaskConical,
-	GitBranch,
 	Loader2,
 	Lock,
 	MoreHorizontal,
@@ -735,12 +734,6 @@ function AgentCard({
 						<Zap className="size-3" />
 						{agent.llm_provider}/{agent.llm_model}
 					</span>
-					{agent.can_clone_repos && (
-						<span className="flex items-center gap-1">
-							<GitBranch className="size-3" />
-							{t("agents.card.repos")}
-						</span>
-					)}
 				</div>
 			</div>
 

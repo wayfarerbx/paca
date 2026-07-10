@@ -9,49 +9,49 @@ from src.agent.trigger_skills import append_trigger_skill, get_trigger_skill
 
 
 def test_task_assigned_returns_trigger_task_assigned():
-    skill = get_trigger_skill("agent.task_assigned", task_id=None)
+    skill = get_trigger_skill("task_assigned", task_id=None)
     assert skill is not None
     assert skill.name == "paca-trigger-task-assigned"
     assert skill.trigger is None
 
 
 def test_task_comment_mention_returns_trigger_task_assigned():
-    skill = get_trigger_skill("agent.comment_mention", task_id="task-1")
+    skill = get_trigger_skill("comment_mention", task_id="task-1")
     assert skill is not None
     assert skill.name == "paca-trigger-task-assigned"
 
 
 def test_doc_comment_mention_returns_trigger_doc_comment():
-    skill = get_trigger_skill("agent.comment_mention", task_id=None)
+    skill = get_trigger_skill("comment_mention", task_id=None)
     assert skill is not None
     assert skill.name == "paca-trigger-doc-comment"
 
 
 def test_chat_message_returns_trigger_chat():
-    skill = get_trigger_skill("agent.chat_message", task_id=None)
+    skill = get_trigger_skill("chat_message", task_id=None)
     assert skill is not None
     assert skill.name == "paca-trigger-chat"
 
 
 def test_description_write_returns_trigger_description_write():
-    skill = get_trigger_skill("agent.description_write", task_id=None)
+    skill = get_trigger_skill("description_write", task_id=None)
     assert skill is not None
     assert skill.name == "paca-trigger-description-write"
 
 
 def test_unknown_trigger_type_returns_none():
-    assert get_trigger_skill("agent.something_else", task_id=None) is None
+    assert get_trigger_skill("something_else", task_id=None) is None
 
 
 def test_all_trigger_skills_are_always_active():
     """`trigger=None` is load-bearing: these are chosen deterministically by
     trigger type, not something the model should discover via <available_skills>."""
     for trigger_type, task_id in [
-        ("agent.task_assigned", None),
-        ("agent.comment_mention", "task-1"),
-        ("agent.comment_mention", None),
-        ("agent.chat_message", None),
-        ("agent.description_write", None),
+        ("task_assigned", None),
+        ("comment_mention", "task-1"),
+        ("comment_mention", None),
+        ("chat_message", None),
+        ("description_write", None),
     ]:
         skill = get_trigger_skill(trigger_type, task_id)
         assert skill.trigger is None
@@ -63,11 +63,11 @@ def test_all_trigger_skills_are_paca_prefixed():
     (agent_service.go) and a human skimming an agent's skill list can both
     recognize them as internal at a glance."""
     for trigger_type, task_id in [
-        ("agent.task_assigned", None),
-        ("agent.comment_mention", "task-1"),
-        ("agent.comment_mention", None),
-        ("agent.chat_message", None),
-        ("agent.description_write", None),
+        ("task_assigned", None),
+        ("comment_mention", "task-1"),
+        ("comment_mention", None),
+        ("chat_message", None),
+        ("description_write", None),
     ]:
         skill = get_trigger_skill(trigger_type, task_id)
         assert skill.name.startswith("paca-")
@@ -78,13 +78,13 @@ def test_all_trigger_skills_are_paca_prefixed():
 
 def test_append_trigger_skill_appends_when_no_collision():
     skills: list[Skill] = [Skill(name="paca", content="...", trigger=None)]
-    append_trigger_skill(skills, "agent.chat_message", None, "conv-1")
+    append_trigger_skill(skills, "chat_message", None, "conv-1")
     assert [s.name for s in skills] == ["paca", "paca-trigger-chat"]
 
 
 def test_append_trigger_skill_is_noop_for_unknown_trigger_type():
     skills: list[Skill] = [Skill(name="paca", content="...", trigger=None)]
-    append_trigger_skill(skills, "agent.something_else", None, "conv-1")
+    append_trigger_skill(skills, "something_else", None, "conv-1")
     assert [s.name for s in skills] == ["paca"]
 
 
@@ -97,7 +97,7 @@ def test_append_trigger_skill_skips_on_name_collision():
     user_skill = Skill(name="paca-trigger-chat", content="user content", trigger=None)
     skills: list[Skill] = [user_skill]
 
-    append_trigger_skill(skills, "agent.chat_message", None, "conv-1")
+    append_trigger_skill(skills, "chat_message", None, "conv-1")
 
     assert len(skills) == 1
     assert skills[0] is user_skill
@@ -110,6 +110,6 @@ def test_append_trigger_skill_collision_does_not_crash_agent_context():
     (AgentContext raises ValueError on any duplicate skill name — this is the
     exact crash this function exists to prevent.)"""
     skills: list[Skill] = [Skill(name="paca-trigger-chat", content="user content", trigger=None)]
-    append_trigger_skill(skills, "agent.chat_message", None, "conv-1")
+    append_trigger_skill(skills, "chat_message", None, "conv-1")
 
     AgentContext(skills=skills, system_message_suffix="")  # must not raise

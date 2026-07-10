@@ -4,7 +4,7 @@ import {
 	useExternalStoreRuntime,
 } from "@assistant-ui/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bot, Plus, X } from "lucide-react";
+import { AlertTriangle, Bot, Plus, X } from "lucide-react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Thread } from "@/components/assistant-ui/thread";
@@ -92,6 +92,36 @@ function FloatingChatWelcome() {
 }
 
 const THREAD_COMPONENTS = { Welcome: FloatingChatWelcome };
+
+// ── Failed conversation banner ────────────────────────────────────────────────
+
+/**
+ * Shown when the current conversation failed without producing any visible
+ * messages. The Thread shows nothing for such a conversation; without this
+ * banner the user would see a blank chat panel with no feedback.
+ */
+function FloatingChatFailedBanner({
+	message,
+}: {
+	message: string | null | undefined;
+}) {
+	const { t } = useTranslation("projects");
+	return (
+		<div className="flex flex-col items-center gap-3 px-6 py-8 text-center">
+			<div className="flex size-10 items-center justify-center rounded-full bg-destructive/10">
+				<AlertTriangle className="size-5 text-destructive" />
+			</div>
+			<div className="space-y-1">
+				<p className="text-sm font-medium text-destructive">
+					{t("agents.conversationView.failed")}
+				</p>
+				<p className="text-xs text-muted-foreground wrap-break-word">
+					{message ?? t("agents.conversationView.noOutput")}
+				</p>
+			</div>
+		</div>
+	);
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -304,12 +334,19 @@ export function AIChatFloat({ projectId }: AIChatFloatProps) {
 						)}
 					</div>
 
-					<div className="min-h-0 flex-1">
-						<AgentPickerContext.Provider value={pickerState}>
-							<AssistantRuntimeProvider runtime={runtime}>
-								<Thread components={THREAD_COMPONENTS} />
-							</AssistantRuntimeProvider>
-						</AgentPickerContext.Provider>
+					<div className="min-h-0 flex-1 overflow-y-auto">
+						{conversationId &&
+						isTerminal &&
+						conversation?.status === "failed" &&
+						messages.length === 0 ? (
+							<FloatingChatFailedBanner message={conversation?.error_message} />
+						) : (
+							<AgentPickerContext.Provider value={pickerState}>
+								<AssistantRuntimeProvider runtime={runtime}>
+									<Thread components={THREAD_COMPONENTS} />
+								</AssistantRuntimeProvider>
+							</AgentPickerContext.Provider>
+						)}
 					</div>
 				</div>
 			)}

@@ -36,6 +36,36 @@ Execute based on the task type:
 
 If you discover a blocker or a genuine sub-task that wasn't anticipated, create it in Paca with `create_task` (reference the parent: `Blocked by #<parent>`). Don't silently skip or work around it.
 
+### Code tasks with a linked repository — push and create a PR (MANDATORY)
+
+If this task involves code changes AND the project has a linked repository, completing the work means publishing it — changes left only in the sandbox are NOT done. Follow ALL steps:
+
+1. **Clone and branch first** (before editing):
+   - `list_repositories` → note the `plugin_id` and `repo_id`.
+   - `clone_repository` (clones to /workspace/repo).
+   - Create and switch to a feature branch: `git checkout -b feat/<task-number>-<short-description>`.
+
+2. **Make your changes** in the cloned repo. Verify with tests if available.
+
+3. **Commit:**
+   ```
+   git add -A
+   git commit -m '<type>: <concise message>'
+   ```
+
+4. **Push the branch:** Call `push_branch` with the `plugin_id` and `repo_id` from step 1. Do NOT skip this — without a push, the remote has no branch for the PR.
+
+5. **Create a pull request:** Call the repository plugin's PR tool (e.g. `github_create_pull_request` for GitHub repos). This is required — a pushed branch without a PR is unfinished work. Pass:
+   - `projectId`, `taskId`, `repoId`
+   - `title` — a clear commit-style title
+   - `head_branch` — your feature branch name
+   - `base_branch` — the repository's default branch (e.g. `main`)
+   - `body` — a summary of what changed and why, referencing the task
+
+6. **Report the PR URL** in the task comment (Step 4).
+
+If any step fails (push rejected, token error, etc.), report it in a task `add_task_comment` rather than silently moving on.
+
 ## Step 4 — Update and close
 
 1. Call `add_task_comment` with a completion summary: what was done, what changed, any known caveats or follow-up needed.
@@ -44,7 +74,7 @@ If you discover a blocker or a genuine sub-task that wasn't anticipated, create 
 
 **What's next:** Consider running `/paca-test #<number>` to verify the implementation against acceptance criteria.
 
-Report back: task number, title, summary of what was done, and any new tasks or docs created.
+Report back: task number, title, summary of what was done, and any new tasks or docs created. If you pushed code and opened a PR, include the PR URL.
 
 ---
 
@@ -54,3 +84,5 @@ Report back: task number, title, summary of what was done, and any new tasks or 
 **Comments:** `add_task_comment` · `list_task_activities`
 **Documents:** `list_docs` · `read_doc` · `write_doc`
 **Projects:** `list_projects`
+**Repositories (built-in tools):** `list_repositories` · `clone_repository` · `push_branch`
+**GitHub PRs/branches (MCP plugin):** `github_create_pull_request` · `github_list_task_prs` · `github_create_branch` · `github_list_task_branches`

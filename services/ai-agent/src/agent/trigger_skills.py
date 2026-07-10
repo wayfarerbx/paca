@@ -17,19 +17,33 @@ logger = logging.getLogger(__name__)
 
 _TASK_PROMPT = (
     "## Current invocation: task assignment or task comment\n\n"
-    "You were triggered by a task assignment or a task comment @mention. "
-    "Your default skill (`paca`) is always active and already tells you "
-    "how to route this: load the task via the Paca MCP tool, then use its "
-    "task-status routing table to pick the specialized skill "
-    "(`paca-do`, `paca-clarify`, `paca-breakdown`, `paca-estimate`, "
-    "`paca-test`, `paca-doc`, etc.) that fits the task's current status — "
-    "then actually invoke it (read its full content, don't reconstruct it "
-    "from memory) and let it drive status updates and the final comment. "
-    "Per `paca`'s Step 0, the only requests that skip invocation entirely "
-    "are single, unambiguous actions with no judgment involved (a plain "
-    "status close, a plain comment) — anything else gets a skill invoked.\n\n"
-    "If the comment is a question rather than a work request, just answer "
-    "it directly instead of forcing a specialized skill.\n\n"
+    "You were triggered by a task assignment or a task comment @mention.\n\n"
+    "### Mandatory: invoke a skill BEFORE any other action\n\n"
+    "Before doing any work, making any status change, or calling any other "
+    'tool, you MUST invoke one specialized skill using `invoke_skill(name="...")`. '
+    "This is non-negotiable — the specialized skills contain step-by-step "
+    "instructions you must follow, and reconstructing them from memory leads "
+    "to incomplete or incorrect results.\n\n"
+    "**Procedure:**\n"
+    "1. Load the task via the Paca MCP tool (`get_task` / `get_task_by_number`).\n"
+    "2. Based on the task's status, pick the right skill from `paca`'s "
+    "Step 0.5 status-routing table and **invoke it immediately**:\n"
+    '   - `invoke_skill(name="paca-do")` — execute/implement a ready task\n'
+    '   - `invoke_skill(name="paca-clarify")` — task lacks acceptance criteria\n'
+    '   - `invoke_skill(name="paca-breakdown")` — task is too large\n'
+    '   - `invoke_skill(name="paca-estimate")` — size/estimate the task\n'
+    '   - `invoke_skill(name="paca-sprint")` — plan into a sprint\n'
+    '   - `invoke_skill(name="paca-test")` — verify/test a completed task\n'
+    '   - `invoke_skill(name="paca-doc")` — write documentation\n'
+    '   - `invoke_skill(name="paca-workflow")` — automate a process\n'
+    "3. Follow the skill's full instructions step by step.\n\n"
+    "**The ONLY exception:** A single trivial action with zero judgment — "
+    'closing a task when someone explicitly said "close this", or adding '
+    'a plain comment like "noted". If the request involves any implementation, '
+    "planning, analysis, breakdown, estimation, testing, or documentation, "
+    "you MUST invoke a skill first.\n\n"
+    "If the comment is a simple question (not a work request), just answer "
+    "it directly.\n\n"
     "If you get stuck without enough information, don't just say so in this "
     "conversation — the requester rarely reads it. Follow `paca`'s 'Asking "
     "for more information' guidance: add a task comment with an `@username` "
@@ -95,16 +109,16 @@ def get_trigger_skill(trigger_type: str, task_id: str | None) -> Skill | None:
     by the trigger type, not something the model should discover or invoke
     on its own via <available_skills>.
     """
-    if trigger_type == "agent.task_assigned":
+    if trigger_type == "task_assigned":
         return Skill(name="paca-trigger-task-assigned", content=_TASK_PROMPT, trigger=None)
-    if trigger_type == "agent.comment_mention":
+    if trigger_type == "comment_mention":
         # task_id is set for task-comment mentions; absent for doc-comment mentions.
         if task_id:
             return Skill(name="paca-trigger-task-assigned", content=_TASK_PROMPT, trigger=None)
         return Skill(name="paca-trigger-doc-comment", content=_DOC_COMMENT_PROMPT, trigger=None)
-    if trigger_type == "agent.chat_message":
+    if trigger_type == "chat_message":
         return Skill(name="paca-trigger-chat", content=_CHAT_PROMPT, trigger=None)
-    if trigger_type == "agent.description_write":
+    if trigger_type == "description_write":
         return Skill(
             name="paca-trigger-description-write",
             content=_DESCRIPTION_WRITE_PROMPT,

@@ -24,7 +24,6 @@ def _agent_config(
         llm_api_key_secret_ref="secret-ref",
         llm_base_url=base_url,
         max_iterations=10,
-        can_clone_repos=False,
     )
 
 
