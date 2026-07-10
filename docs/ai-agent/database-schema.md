@@ -58,8 +58,6 @@ Table agents {
   system_prompt text [not null, default: '']
 
   // Capabilities
-  can_clone_repos boolean [not null, default: true, note: 'Allow agent to clone project repositories via the repo plugin']
-  can_create_prs boolean [not null, default: true, note: 'Allow agent to create pull requests']
   max_iterations integer [not null, default: 50, note: 'Hard cap on agent reasoning steps per conversation']
   timeout_minutes integer [not null, default: 30, note: 'Wall-clock timeout for a single conversation']
 

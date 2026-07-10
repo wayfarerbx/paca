@@ -52,7 +52,6 @@
 		"card": {
 			"configure": "配置",
 			"delete": "删除",
-			"repos": "代码仓库",
 			"deleteDialog": {
 				"title": "删除 {{name}}？",
 				"description": "这将永久删除该智能体并将其从项目中移除。正在进行的对话将被终止。",
@@ -87,9 +86,6 @@
 				"apiKeyUpdateLabel": "更新 API 密钥",
 				"apiKeyUpdateHint": "（留空以保留当前密钥）",
 				"baseUrlLabel": "基础 URL",
-				"capabilities": "能力",
-				"cloneRepositories": "克隆代码仓库",
-				"cloneRepositoriesHint": "允许智能体在本地 git clone 代码仓库",
 				"gitCommitterIdentity": "Git 提交者身份",
 				"gitCommitterHint": "该智能体提交代码时使用的姓名和邮箱。",
 				"committerNameLabel": "提交者姓名",
@@ -181,7 +177,9 @@
 			"taskSession": "任务会话",
 			"pr": "PR",
 			"conversationEnded": "此对话已结束。",
-			"textOnlyMessage": "仅支持文本消息。"
+			"textOnlyMessage": "仅支持文本消息。",
+			"failed": "对话失败",
+			"noOutput": "代理未生成任何输出。"
 		},
 		"thread": {
 			"composerPlaceholder": "给代理发消息…",

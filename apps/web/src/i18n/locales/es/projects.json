@@ -52,7 +52,6 @@
 		"card": {
 			"configure": "Configurar",
 			"delete": "Eliminar",
-			"repos": "Repositorios",
 			"deleteDialog": {
 				"title": "¿Eliminar {{name}}?",
 				"description": "Esto elimina permanentemente al agente y lo retira del proyecto. Las conversaciones en curso se detendrán.",
@@ -87,9 +86,6 @@
 				"apiKeyUpdateLabel": "Actualización de clave de API",
 				"apiKeyUpdateHint": "(deja en blanco para mantener la actual)",
 				"baseUrlLabel": "URL base",
-				"capabilities": "Capacidades",
-				"cloneRepositories": "Clonar repositorios",
-				"cloneRepositoriesHint": "Permitir que el agente clone repositorios localmente con git",
 				"gitCommitterIdentity": "Identidad del autor de commits de git",
 				"gitCommitterHint": "Nombre y correo electrónico usados en los commits realizados por este agente.",
 				"committerNameLabel": "Nombre del autor",
@@ -181,7 +177,9 @@
 			"taskSession": "Sesión de tarea",
 			"pr": "PR",
 			"conversationEnded": "Esta conversación ha finalizado.",
-			"textOnlyMessage": "Solo se admiten mensajes de texto."
+			"textOnlyMessage": "Solo se admiten mensajes de texto.",
+			"failed": "La conversación falló",
+			"noOutput": "El agente no produjo ninguna salida."
 		},
 		"thread": {
 			"composerPlaceholder": "Enviar mensaje al agente…",

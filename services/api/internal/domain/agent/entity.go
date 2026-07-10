@@ -19,8 +19,6 @@ type Agent struct {
 	LLMAPIKeySecret   string // reference to secrets store entry
 	LLMBaseURL        string
 	SystemPrompt      string
-	CanCloneRepos     bool
-	CanCreatePRs      bool
 	MaxIterations     int
 	TimeoutMinutes    int
 	GitCommitterName  string

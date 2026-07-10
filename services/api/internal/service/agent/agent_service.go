@@ -108,8 +108,6 @@ func (s *Service) CreateAgent(ctx context.Context, projectID uuid.UUID, in agent
 		LLMAPIKeySecret:   encryptedKey,
 		LLMBaseURL:        in.LLMBaseURL,
 		SystemPrompt:      in.SystemPrompt,
-		CanCloneRepos:     in.CanCloneRepos,
-		CanCreatePRs:      in.CanCreatePRs,
 		MaxIterations:     in.MaxIterations,
 		TimeoutMinutes:    in.TimeoutMinutes,
 		GitCommitterName:  in.GitCommitterName,
@@ -189,12 +187,6 @@ func (s *Service) UpdateAgent(ctx context.Context, projectID, agentID uuid.UUID,
 	}
 	if in.SystemPrompt != nil {
 		a.SystemPrompt = *in.SystemPrompt
-	}
-	if in.CanCloneRepos != nil {
-		a.CanCloneRepos = *in.CanCloneRepos
-	}
-	if in.CanCreatePRs != nil {
-		a.CanCreatePRs = *in.CanCreatePRs
 	}
 	const maxIterationsLimit = 500
 	const defaultMaxIterations = 500

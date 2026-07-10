@@ -52,7 +52,6 @@
 		"card": {
 			"configure": "Configurer",
 			"delete": "Supprimer",
-			"repos": "Dépôts",
 			"deleteDialog": {
 				"title": "Supprimer {{name}} ?",
 				"description": "Cette action supprime définitivement l'agent et le retire du projet. Les conversations en cours seront arrêtées.",
@@ -87,9 +86,6 @@
 				"apiKeyUpdateLabel": "Mise à jour de la clé API",
 				"apiKeyUpdateHint": "(laisser vide pour conserver l'actuelle)",
 				"baseUrlLabel": "URL de base",
-				"capabilities": "Capacités",
-				"cloneRepositories": "Cloner des dépôts",
-				"cloneRepositoriesHint": "Autoriser l'agent à cloner des dépôts git localement",
 				"gitCommitterIdentity": "Identité du committer Git",
 				"gitCommitterHint": "Nom et e-mail utilisés pour les commits effectués par cet agent.",
 				"committerNameLabel": "Nom du committer",
@@ -181,7 +177,9 @@
 			"taskSession": "Session de tâche",
 			"pr": "PR",
 			"conversationEnded": "Cette conversation est terminée.",
-			"textOnlyMessage": "Seuls les messages texte sont pris en charge."
+			"textOnlyMessage": "Seuls les messages texte sont pris en charge.",
+			"failed": "La conversation a échoué",
+			"noOutput": "L'agent n'a produit aucun résultat."
 		},
 		"thread": {
 			"composerPlaceholder": "Message à l'agent…",

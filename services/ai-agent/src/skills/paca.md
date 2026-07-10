@@ -9,41 +9,41 @@ This is your default operating procedure for every conversation — it always ap
 
 ---
 
-## Step 0 — Invoke a specialized skill for anything beyond one obvious action
+## Step 0 — Invoke a specialized skill BEFORE doing any work
 
-If the request matches one of these, you **must invoke** the specialized skill — actually read its full content via the skill mechanism — before doing the underlying work. Don't reconstruct what it probably says from memory and skip straight to the MCP calls:
+**This is a hard requirement, not a suggestion.** Before making any status change, calling any implementation tool, or starting any substantive work, you MUST call `invoke_skill(name="<skill-name>")` to load the skill's full instructions and follow them step by step. Reconstructing a skill from memory leads to incomplete or incorrect results.
 
-| If the user wants to... | Invoke |
+| If the user wants to... | Invoke this skill |
 |---|---|
-| Turn requirements into a full epic with child stories | `paca-epic` |
-| Clarify or improve a vague task or spec | `paca-clarify` |
-| Break a task into smaller sub-tasks | `paca-breakdown` |
-| Plan a sprint from the backlog | `paca-sprint` |
-| Estimate story points for tasks | `paca-estimate` |
-| Set priorities across the backlog | `paca-prioritize` |
-| Execute a task end-to-end | `paca-do` |
-| Test or verify a task | `paca-test` |
-| Write or update documentation | `paca-doc` |
-| Automate a process — auto-assignment, status chaining, task dependencies | `paca-workflow` |
+| Turn requirements into a full epic with child stories | `invoke_skill(name="paca-epic")` |
+| Clarify or improve a vague task or spec | `invoke_skill(name="paca-clarify")` |
+| Break a task into smaller sub-tasks | `invoke_skill(name="paca-breakdown")` |
+| Plan a sprint from the backlog | `invoke_skill(name="paca-sprint")` |
+| Estimate story points for tasks | `invoke_skill(name="paca-estimate")` |
+| Set priorities across the backlog | `invoke_skill(name="paca-prioritize")` |
+| Execute a task end-to-end | `invoke_skill(name="paca-do")` |
+| Test or verify a task | `invoke_skill(name="paca-test")` |
+| Write or update documentation | `invoke_skill(name="paca-doc")` |
+| Automate a process — auto-assignment, status chaining, task dependencies | `invoke_skill(name="paca-workflow")` |
 
 A user can also force one of these directly by typing `/<skill-name>` (e.g. `/paca-do #42`) in a chat message or comment.
 
-**Skip invocation only for a single, unambiguous action that Step 1-4 below fully covers on its own** — e.g. closing a task with no other change, adding a plain comment, checking status/what's in the sprint, fetching a task's details. If the request takes judgment, multiple steps, or produces new content (a plan, an estimate, a breakdown, a draft, a graph), it is not "simple" — invoke the matching skill even if you're confident you already know what it says.
+**The ONLY exception** to invoking a skill: A single trivial action with zero judgment — closing a task when explicitly told "close this", adding a plain comment like "noted", or checking what's in the sprint. If the request involves implementation, planning, analysis, breakdown, estimation, testing, or documentation, you MUST invoke the matching skill first via `invoke_skill()`.
 
 ## Step 0.5 — When a task is in scope, let its status guide you
 
 Whenever your invocation is tied to a specific task (an assignment, a comment on a task, or a description-write request), load it first (`get_task` / `get_task_by_number`) and let its **current status** — not just the request wording — help you pick the right specialized skill to invoke:
 
-| Task status | Likely next step |
+| Task status | Invoke this skill |
 |---|---|
-| No acceptance criteria, or description is thin | `paca-clarify` |
-| Backlog / not yet sized or split | `paca-breakdown` (if large) or `paca-estimate` (if right-sized) |
-| To do / ready, sprint not yet planned | `paca-sprint` |
-| In progress | `paca-do` |
-| In review / awaiting QA | `paca-test` |
-| Done, but the feature has no linked documentation | `paca-doc` |
+| No acceptance criteria, or description is thin | `invoke_skill(name="paca-clarify")` |
+| Backlog / not yet sized or split | `invoke_skill(name="paca-breakdown")` (if large) or `invoke_skill(name="paca-estimate")` (if right-sized) |
+| To do / ready, sprint not yet planned | `invoke_skill(name="paca-sprint")` |
+| In progress | `invoke_skill(name="paca-do")` |
+| In review / awaiting QA | `invoke_skill(name="paca-test")` |
+| Done, but the feature has no linked documentation | `invoke_skill(name="paca-doc")` |
 
-This table picks *which* skill; it doesn't excuse you from invoking one (see Step 0) unless the request is itself one of the trivial actions listed there. If the requester's message explicitly asks for something narrower than the status implies (e.g. "just estimate this" on an in-progress task), honor that instead — but still invoke the skill that matches the explicit ask (`paca-estimate`), rather than doing it ad hoc.
+This table picks *which* skill to invoke — it never excuses you from invoking one (see Step 0). If the requester's message explicitly asks for something narrower than the status implies (e.g. "just estimate this" on an in-progress task), honor that instead — but still invoke the skill that matches the explicit ask (`invoke_skill(name="paca-estimate")`), rather than doing it ad hoc. The invoke_skill call must happen BEFORE any other tool calls related to the work.
 
 ## Step 1 — Scan for a task reference
 

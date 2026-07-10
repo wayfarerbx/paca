@@ -17,7 +17,7 @@ import {
 	Wand2,
 	Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -141,7 +141,6 @@ function OverviewTab({
 	const [llmApiKey, setLlmApiKey] = useState("");
 	const [llmBaseUrl, setLlmBaseUrl] = useState(agent.llm_base_url ?? "");
 	const [systemPrompt, setSystemPrompt] = useState(agent.system_prompt);
-	const [canClone, setCanClone] = useState(agent.can_clone_repos);
 	const [committerName, setCommitterName] = useState(agent.git_committer_name);
 	const [committerEmail, setCommitterEmail] = useState(
 		agent.git_committer_email,
@@ -177,7 +176,6 @@ function OverviewTab({
 		llmApiKey !== "" ||
 		llmBaseUrl !== (agent.llm_base_url ?? "") ||
 		systemPrompt !== agent.system_prompt ||
-		canClone !== agent.can_clone_repos ||
 		committerName !== agent.git_committer_name ||
 		committerEmail !== agent.git_committer_email;
 
@@ -190,7 +188,6 @@ function OverviewTab({
 				...(llmApiKey ? { llm_api_key: llmApiKey } : {}),
 				llm_base_url: llmBaseUrl,
 				system_prompt: systemPrompt,
-				can_clone_repos: canClone,
 				git_committer_name: committerName.trim(),
 				git_committer_email: committerEmail.trim(),
 			}),
@@ -339,31 +336,6 @@ function OverviewTab({
 					disabled={!canWrite}
 					className="font-mono text-xs"
 				/>
-			</div>
-
-			<Separator />
-
-			<div>
-				<p className="text-sm font-medium mb-3">
-					{t("agents.detail.overview.capabilities")}
-				</p>
-				<div className="space-y-3">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm">
-								{t("agents.detail.overview.cloneRepositories")}
-							</p>
-							<p className="text-xs text-muted-foreground">
-								{t("agents.detail.overview.cloneRepositoriesHint")}
-							</p>
-						</div>
-						<Switch
-							checked={canClone}
-							onCheckedChange={setCanClone}
-							disabled={!canWrite}
-						/>
-					</div>
-				</div>
 			</div>
 
 			<Separator />
@@ -1265,8 +1237,33 @@ function AgentDetailPage() {
 	const { hasProjectPermission } = useProjectPermissions(projectId);
 	const canWrite = hasProjectPermission("agents.write");
 
-	const { data: agent } = useQuery(agentQueryOptions(projectId, agentId));
-	const [activeTab, setActiveTab] = useState<Tab>("overview");
+const { data: agent } = useQuery(agentQueryOptions(projectId, agentId));
+	const [activeTab, setActiveTab] = useState<Tab>(() => {
+		const hash = window.location.hash.slice(1);
+		if (hash && TABS.map((t) => t.id).includes(hash as Tab)) {
+			return hash as Tab;
+		}
+		return "overview";
+	});
+
+	// Sync tab when hash changes (e.g., back button)
+	useEffect(() => {
+		const handleHashChange = () => {
+			const hash = window.location.hash.slice(1);
+			if (hash && TABS.map((t) => t.id).includes(hash as Tab)) {
+				setActiveTab(hash as Tab);
+			}
+		};
+		window.addEventListener("hashchange", handleHashChange);
+		return () => window.removeEventListener("hashchange", handleHashChange);
+	}, []);
+
+	const handleTabChange = (tab: Tab) => {
+		setActiveTab(tab);
+		const url = new URL(window.location.href);
+		url.hash = tab;
+		window.history.pushState(null, "", url);
+	};
 
 	if (!agent) {
 		return (
@@ -1319,7 +1316,7 @@ function AgentDetailPage() {
 							<button
 								key={tab.id}
 								type="button"
-								onClick={() => setActiveTab(tab.id)}
+								onClick={() => handleTabChange(tab.id)}
 								className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors ${
 									isActive
 										? "border-primary text-primary"

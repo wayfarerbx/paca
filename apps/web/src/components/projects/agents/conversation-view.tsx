@@ -4,7 +4,14 @@ import {
 	useExternalStoreRuntime,
 } from "@assistant-ui/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bot, GitBranch, GitPullRequest, Loader2, Square } from "lucide-react";
+import {
+	AlertTriangle,
+	Bot,
+	GitBranch,
+	GitPullRequest,
+	Loader2,
+	Square,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Thread } from "@/components/assistant-ui/thread";
@@ -108,9 +115,11 @@ export function ConversationView({
 		setConversationId(routeConversationId);
 	}, [routeConversationId]);
 
-	const { data: conversation, isLoading: convLoading } = useQuery(
-		conversationQueryOptions(projectId, conversationId),
-	);
+	const {
+		data: conversation,
+		isLoading: convLoading,
+		isError,
+	} = useQuery(conversationQueryOptions(projectId, conversationId));
 	const { data: events = [], isLoading: eventsLoading } = useQuery(
 		conversationEventsQueryOptions(projectId, conversationId),
 	);
@@ -215,6 +224,29 @@ export function ConversationView({
 			<div className="flex flex-col h-full items-center justify-center text-muted-foreground/50 gap-3">
 				<Bot className="size-10" />
 				<p className="text-sm">{t("agents.conversationView.notFound")}</p>
+			</div>
+		);
+	}
+
+	// Show the error fallback only when the conversation failed AND produced
+	// no visible messages. When messages exist, render the Thread normally so
+	// the user can trace what happened before the failure — the header's
+	// status badge and the bottom error footer already convey the failure.
+	if (isError || (conversation.status === "failed" && messages.length === 0)) {
+		return (
+			<div className="flex flex-col h-full items-center justify-center gap-4 p-6">
+				<div className="flex size-12 items-center justify-center rounded-full bg-destructive/10">
+					<AlertTriangle className="size-6 text-destructive" />
+				</div>
+				<div className="text-center space-y-1">
+					<p className="text-sm font-medium text-destructive">
+						{t("agents.conversationView.failed")}
+					</p>
+					<p className="text-xs text-muted-foreground wrap-break-word">
+						{conversation.error_message ??
+							t("agents.conversationView.noOutput")}
+					</p>
+				</div>
 			</div>
 		);
 	}

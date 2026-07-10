@@ -148,7 +148,7 @@ async def run_conversation(trigger: TriggerEvent, agent_config: AgentConfig):
     ) as workspace:
 
         # 7. Clone repository if needed
-        if trigger.repo_plugin_id and agent_config.can_clone_repos:
+        if trigger.repo_plugin_id:
             token_source = RepoTokenSecretSource(trigger.repo_plugin_id, trigger.project_id)
             workspace.execute_command(
                 f"git clone https://x-access-token:$GIT_TOKEN@{trigger.repo_clone_url} /workspace/repo"
@@ -166,8 +166,8 @@ async def run_conversation(trigger: TriggerEvent, agent_config: AgentConfig):
         if trigger.repo_plugin_id:
             conversation.update_secrets({"GIT_TOKEN": token_source})
 
-        # 9. Send initial message
-        conversation.send_message(build_initial_prompt(trigger))
+        # 9. Send initial message (trigger metadata lives in the system suffix)
+        conversation.send_message(trigger.message)
 
         # 10. Run (blocking; managed by thread pool in the worker)
         conversation.run(max_iterations=agent_config.max_iterations)

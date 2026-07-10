@@ -52,7 +52,6 @@
 		"card": {
 			"configure": "Configure",
 			"delete": "Delete",
-			"repos": "Repos",
 			"deleteDialog": {
 				"title": "Delete {{name}}?",
 				"description": "This permanently deletes the agent and removes it from the project. Running conversations will be stopped.",
@@ -87,9 +86,6 @@
 				"apiKeyUpdateLabel": "API Key Update",
 				"apiKeyUpdateHint": "(leave blank to keep current)",
 				"baseUrlLabel": "Base URL",
-				"capabilities": "Capabilities",
-				"cloneRepositories": "Clone repositories",
-				"cloneRepositoriesHint": "Allow agent to git clone repos locally",
 				"gitCommitterIdentity": "Git committer identity",
 				"gitCommitterHint": "Name and email used for commits made by this agent.",
 				"committerNameLabel": "Committer name",
@@ -181,7 +177,9 @@
 			"taskSession": "Task session",
 			"pr": "PR",
 			"conversationEnded": "This conversation has ended.",
-			"textOnlyMessage": "Only text messages are supported."
+			"textOnlyMessage": "Only text messages are supported.",
+			"failed": "Conversation failed",
+			"noOutput": "The agent did not produce any output."
 		},
 		"thread": {
 			"composerPlaceholder": "Message agent…",

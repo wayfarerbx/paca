@@ -350,8 +350,6 @@ Table agents {
   llm_api_key_secret varchar [not null, note: 'Encrypted at rest; never returned by the API']
   llm_base_url varchar [null]
   system_prompt text [not null, default: '']
-  can_clone_repos boolean [not null, default: true]
-  can_create_prs boolean [not null, default: true]
   max_iterations integer [not null, default: 50]
   timeout_minutes integer [not null, default: 30]
   git_committer_name varchar [not null, default: 'paca-agent']

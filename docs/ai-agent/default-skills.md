@@ -13,7 +13,7 @@ Every agent automatically gets Paca's default skill set, in addition to whatever
 
 The old per-agent `task_trigger_prompt` / `doc_comment_trigger_prompt` / `chat_trigger_prompt` / `description_write_trigger_prompt` columns are gone. The equivalent content now lives as fixed constants in `services/ai-agent/src/agent/trigger_skills.py`, and `executor.run_conversation` picks exactly one — based on the trigger type of the current conversation — and appends it to the skill list (via `trigger_skills.append_trigger_skill`) as an always-active (`trigger=None`) `Skill` named `paca-trigger-task-assigned` / `paca-trigger-doc-comment` / `paca-trigger-chat` / `paca-trigger-description-write`. This is deterministic scaffolding for the current conversation, not something users edit or the model discovers on its own — the API rejects any user-created skill using one of these four names (`reservedSkillNames` in `services/api`'s `agent_service.go`), and `append_trigger_skill` also skips (rather than crashes) if one somehow already exists, since `AgentContext` hard-errors on any duplicate skill name.
 
-`prompt.build_initial_prompt` also prepends a plain-English "Action type: …" line to the first message, so the model has explicit context (task assignment vs. comment vs. chat vs. description-write) to reason about alongside whatever task status it reads via MCP.
+`prompt.build_trigger_suffix` also appends a plain-English "Action type: …" line to the system message suffix, so the model has explicit context (task assignment vs. comment vs. chat vs. description-write) to reason about alongside whatever task status it reads via MCP.
 
 ## Adding or changing a default skill
 

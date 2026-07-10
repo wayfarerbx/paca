@@ -259,7 +259,17 @@ class PushBranchObservation(Observation):
     @property
     def to_llm_content(self) -> Sequence[TextContent]:
         if self.success:
-            return [TextContent(text=f"Branch '{self.branch}' pushed to remote successfully.")]
+            return [TextContent(
+                text=(
+                    f"Branch '{self.branch}' pushed to remote successfully.\n\n"
+                    "**Next step (mandatory):** Create a pull/merge request now "
+                    "so the changes can be reviewed. Call the repository plugin's "
+                    "PR creation tool (e.g. `github_create_pull_request`) with "
+                    "the branch you just pushed as `head_branch` and the repo's "
+                    "default branch as `base_branch`. Do not consider the task "
+                    "complete until a PR has been created."
+                )
+            )]
         return [TextContent(text=f"Failed to push branch: {self.message}")]
 
 
@@ -369,9 +379,11 @@ Parameters:
 - branch_name: Branch name to push (leave empty to use the currently checked-out branch)
 - repo_dir: Path to the local repository (default: /workspace/repo)
 
-After a successful push, use the repository plugin's own tools (if configured
-for this agent) to open, review, or comment on a pull/merge request. Pull
-request operations are plugin-specific, not built-in tools.
+**Mandatory next step:** After a successful push, you MUST create a pull/merge
+request so the changes can be reviewed and merged. Call the repository plugin's
+PR tool (e.g. `github_create_pull_request` for GitHub repos) with projectId,
+taskId, repoId, title, head_branch (this branch), and base_branch (the repo's
+default branch). A pushed branch without a PR is unfinished work.
 """
 
 

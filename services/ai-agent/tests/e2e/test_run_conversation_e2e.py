@@ -120,7 +120,7 @@ def persistence(monkeypatch) -> MockedPersistence:
 
 
 def _agent_config(
-    base_url: str, *, max_iterations: int = 3, can_clone_repos: bool = False
+    base_url: str, *, max_iterations: int = 3
 ) -> AgentConfig:
     return AgentConfig(
         agent_id="e2e-test-agent",
@@ -131,7 +131,6 @@ def _agent_config(
         llm_api_key_secret_ref="sk-fake",
         llm_base_url=base_url,
         max_iterations=max_iterations,
-        can_clone_repos=can_clone_repos,
     )
 
 
@@ -180,7 +179,7 @@ async def test_agent_tool_call_then_reply_persists_full_flow(make_fake_llm, pers
             text_reply("Done! I ran the command."),
         ]
     )
-    agent_config = _agent_config(base_url, max_iterations=5, can_clone_repos=True)
+    agent_config = _agent_config(base_url, max_iterations=5)
     trigger = _trigger(repo_plugin_ids=["fake-plugin-id"])
 
     await executor.run_conversation(trigger, agent_config)

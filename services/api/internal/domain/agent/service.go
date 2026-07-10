@@ -86,8 +86,6 @@ type CreateAgentInput struct {
 	LLMAPIKey         string // plain text key; stored encrypted by service
 	LLMBaseURL        string
 	SystemPrompt      string
-	CanCloneRepos     bool
-	CanCreatePRs      bool
 	MaxIterations     int
 	TimeoutMinutes    int
 	GitCommitterName  string
@@ -105,8 +103,6 @@ type UpdateAgentInput struct {
 	LLMAPIKey         *string
 	LLMBaseURL        *string
 	SystemPrompt      *string
-	CanCloneRepos     *bool
-	CanCreatePRs      *bool
 	MaxIterations     *int
 	TimeoutMinutes    *int
 	GitCommitterName  *string

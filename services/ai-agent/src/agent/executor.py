@@ -30,7 +30,7 @@ from ..repositories import conversation_repository
 from . import trigger_skills
 from .builder import build_llm, build_mcp_config, build_skills, load_default_skills
 from .docker_workspace import start_sandbox, stop_sandbox
-from .prompt import build_initial_prompt
+from .prompt import build_initial_prompt, build_trigger_suffix
 from .repo_tools import make_repository_tool_specs
 
 # The trigger_type Go publishes for direct-chat messages (agent_service.go's
@@ -514,12 +514,11 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
             "conventions, and prior decisions.\n"
         )
 
-        has_repos = len(trigger.repo_plugin_ids) > 0 and agent_config.can_clone_repos
+        has_repos = len(trigger.repo_plugin_ids) > 0
         logger.info(
-            "Conversation %s — repo_plugin_ids=%s can_clone_repos=%s has_repos=%s",
+            "Conversation %s — repo_plugin_ids=%s has_repos=%s",
             trigger.conversation_id,
             trigger.repo_plugin_ids,
-            agent_config.can_clone_repos,
             has_repos,
         )
         if has_repos:
@@ -533,6 +532,34 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
                 "repository plugin's own tools.\n"
             )
 
+        # Pre-gather repository info for the trigger context suffix (used
+        # only on a cold start — chat-resumed turns re-send just the bare
+        # reply text via trigger.message).
+        all_repos_info = None
+        if has_repos:
+            try:
+                repo_sources = _gather_repo_sources(trigger)
+                all_repos: list[dict] = []
+                for source in repo_sources:
+                    for repo in source.repositories:
+                        all_repos.append(
+                            {
+                                "plugin_id": source.plugin_id,
+                                "repo_id": repo["id"],
+                                "full_name": repo["full_name"],
+                                "owner": repo["owner"],
+                                "repo_name": repo["repo_name"],
+                                "clone_url": repo["clone_url"],
+                            }
+                        )
+                if all_repos:
+                    all_repos_info = all_repos
+            except Exception as exc:
+                logger.warning("Failed to gather repository info: %s", exc)
+        # Inject trigger-specific metadata (action type, IDs, repo setup)
+        # into the system suffix rather than muddying the initial user
+        # message.
+        system_suffix += build_trigger_suffix(trigger, all_repos_info)
         agent_context = AgentContext(skills=skills, system_message_suffix=system_suffix)
 
         def _run_sync() -> tuple[bool, bool, bool]:
@@ -599,29 +626,9 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
                         # Reply text only — the agent already has full context.
                         conversation.send_message(trigger.message)
                     else:
-                        all_repos_info = None
-                        if has_repos:
-                            try:
-                                repo_sources = _gather_repo_sources(trigger)
-                                all_repos: list[dict] = []
-                                for source in repo_sources:
-                                    for repo in source.repositories:
-                                        all_repos.append(
-                                            {
-                                                "plugin_id": source.plugin_id,
-                                                "repo_id": repo["id"],
-                                                "full_name": repo["full_name"],
-                                                "owner": repo["owner"],
-                                                "repo_name": repo["repo_name"],
-                                                "clone_url": repo["clone_url"],
-                                            }
-                                        )
-                                if all_repos:
-                                    all_repos_info = all_repos
-                            except Exception as exc:
-                                logger.warning("Failed to gather repository info: %s", exc)
-
-                        conversation.send_message(build_initial_prompt(trigger, all_repos_info))
+                        # Cold start — build_initial_prompt handles the
+                        # empty-message fallback (e.g. human task assignment).
+                        conversation.send_message(build_initial_prompt(trigger))
 
                     # Use non-blocking run so our polling loop can be
                     # interrupted by a stop signal without waiting for the
