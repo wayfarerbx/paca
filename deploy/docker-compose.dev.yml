@@ -296,6 +296,7 @@ services:
       DEV_MCP_PATH: /mcp/build/index.js
     volumes:
       - ../services/ai-agent:/app
+      - ai_agent_venv:/app/.venv
       - ../apps/mcp:/mcp:ro
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
@@ -316,3 +317,4 @@ volumes:
   bun_cache:
   minio_data:
   realtime_node_modules:
+  ai_agent_venv:
