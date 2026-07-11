@@ -119,6 +119,16 @@ Plan  →  Act  →  Check  →  Adapt
 
 ---
 
+## What's New in v0.9.0
+
+- **Automation workflows** — build visual, status-driven automation on a canvas: define nodes and edges so tasks auto-assign or reassign as they move through statuses, with AND-join support for gates that wait on multiple predecessors. AI agents can create and edit workflows too, via dedicated MCP tools.
+
+<p align="center">
+  <img src="docs/assets/demo-automation-workflow.png" width="720" alt="Paca v0.9.0 — Automation Workflows" />
+</p>
+
+---
+
 ## What's New in v0.4.0
 
 - **In-app AI chat** — chat with AI agents at the project level to plan work, create or update epics, stories, tasks, and documentation — all in plain English without leaving Paca
