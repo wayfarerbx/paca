@@ -431,7 +431,8 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodeCustomFieldTypeInvalid,
 		apierr.CodeCustomFieldNameInvalid,
 		apierr.CodeActivityNotAComment,
-		apierr.CodeCommentContentInvalid:
+		apierr.CodeCommentContentInvalid,
+		apierr.CodeCommentActorUnidentified:
 		return http.StatusBadRequest
 	case apierr.CodeActivityNotFound:
 		return http.StatusNotFound
@@ -456,7 +457,8 @@ func httpStatusForCode(code apierr.Code) int {
 		apierr.CodeDocFolderNotInProject,
 		apierr.CodeDocFolderSelfParent,
 		apierr.CodeDocActivityNotAComment,
-		apierr.CodeDocCommentContentInvalid:
+		apierr.CodeDocCommentContentInvalid,
+		apierr.CodeDocCommentActorUnidentified:
 		return http.StatusBadRequest
 	case apierr.CodeDocActivityForbidden:
 		return http.StatusForbidden
