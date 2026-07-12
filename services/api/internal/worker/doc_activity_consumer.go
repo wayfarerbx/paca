@@ -10,6 +10,7 @@ import (
 
 	docdom "github.com/Paca-AI/api/internal/domain/doc"
 	projectdom "github.com/Paca-AI/api/internal/domain/project"
+	userdom "github.com/Paca-AI/api/internal/domain/user"
 	"github.com/Paca-AI/api/internal/events"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
@@ -192,7 +193,15 @@ func (c *DocActivityConsumer) handle(msg redis.XMessage) {
 				if mErr == nil {
 					a.ActorID = &member.ID
 				} else {
-					c.log.Warn("doc activity consumer: could not resolve member for actor", "actor_id", a.ActorID, "agent_id", p.ActorAgentID, "project_id", projectID, "err", mErr)
+					// actorID is userdom.SystemActorUserID for requests
+					// authenticated with the shared agent API key but no
+					// X-Agent-ID header — that identity is never itself a
+					// project member by design, so the lookup "failing" is
+					// expected there, not a bug; only warn when a genuine
+					// actor can't be resolved to a member.
+					if agentID != nil || actorID != userdom.SystemActorUserID {
+						c.log.Warn("doc activity consumer: could not resolve member for actor", "actor_id", a.ActorID, "agent_id", p.ActorAgentID, "project_id", projectID, "err", mErr)
+					}
 					a.ActorID = nil
 				}
 			}

@@ -215,6 +215,8 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusBadRequest, apierr.CodeActivityNotAComment
 	case errors.Is(err, taskdom.ErrCommentContentInvalid):
 		return http.StatusBadRequest, apierr.CodeCommentContentInvalid
+	case errors.Is(err, taskdom.ErrCommentActorUnidentified):
+		return http.StatusBadRequest, apierr.CodeCommentActorUnidentified
 	case errors.Is(err, taskdom.ErrTaskLinkNotFound):
 		return http.StatusNotFound, apierr.CodeTaskLinkNotFound
 	case errors.Is(err, taskdom.ErrTaskLinkSelf):
@@ -245,6 +247,8 @@ func statusAndCodeFor(err error) (int, apierr.Code) {
 		return http.StatusBadRequest, apierr.CodeDocActivityNotAComment
 	case errors.Is(err, docdom.ErrCommentContentInvalid):
 		return http.StatusBadRequest, apierr.CodeDocCommentContentInvalid
+	case errors.Is(err, docdom.ErrCommentActorUnidentified):
+		return http.StatusBadRequest, apierr.CodeDocCommentActorUnidentified
 	case errors.Is(err, notificationdom.ErrNotificationNotFound):
 		return http.StatusNotFound, apierr.CodeNotificationNotFound
 	case errors.Is(err, apikeydom.ErrNotFound):
