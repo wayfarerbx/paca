@@ -87,9 +87,15 @@ func (s *Service) UpdateSprint(ctx context.Context, projectID, id uuid.UUID, in 
 	if name := strings.TrimSpace(in.Name); name != "" {
 		sp.Name = name
 	}
-	sp.StartDate = in.StartDate
-	sp.EndDate = in.EndDate
-	sp.Goal = in.Goal
+	if in.StartDate != nil {
+		sp.StartDate = *in.StartDate
+	}
+	if in.EndDate != nil {
+		sp.EndDate = *in.EndDate
+	}
+	if in.Goal != nil {
+		sp.Goal = *in.Goal
+	}
 	if in.Status != nil {
 		if !sprintdom.ValidSprintStatuses[*in.Status] {
 			return nil, sprintdom.ErrSprintStatusInvalid

@@ -40,6 +40,17 @@ function mockFetchError(status = 400, body = "Bad Request") {
 	} as unknown as Response);
 }
 
+function mockFetchNoContent() {
+	return vi.fn().mockResolvedValueOnce({
+		ok: true,
+		status: 204,
+		text: async () => "",
+		json: async () => {
+			throw new SyntaxError("Unexpected end of JSON input");
+		},
+	} as unknown as Response);
+}
+
 // ---------------------------------------------------------------------------
 // Setup / teardown
 // ---------------------------------------------------------------------------
@@ -65,7 +76,9 @@ describe("PacaAPIClient – request headers", () => {
 		const client = makeClient({ apiKey: "my-secret-key" });
 		await client.listProjects();
 		const [, options] = (fetch as any).mock.calls[0] as [string, RequestInit];
-		expect((options.headers as Record<string, string>)["X-API-Key"]).toBe("my-secret-key");
+		expect((options.headers as Record<string, string>)["X-API-Key"]).toBe(
+			"my-secret-key",
+		);
 	});
 
 	it("sends X-Agent-ID header when agentId is configured", async () => {
@@ -73,7 +86,9 @@ describe("PacaAPIClient – request headers", () => {
 		const client = makeClient({ agentId: "agent-abc" });
 		await client.listProjects();
 		const [, options] = (fetch as any).mock.calls[0] as [string, RequestInit];
-		expect((options.headers as Record<string, string>)["X-Agent-ID"]).toBe("agent-abc");
+		expect((options.headers as Record<string, string>)["X-Agent-ID"]).toBe(
+			"agent-abc",
+		);
 	});
 
 	it("omits X-Agent-ID when agentId is not configured", async () => {
@@ -81,7 +96,9 @@ describe("PacaAPIClient – request headers", () => {
 		const client = makeClient();
 		await client.listProjects();
 		const [, options] = (fetch as any).mock.calls[0] as [string, RequestInit];
-		expect((options.headers as Record<string, string>)["X-Agent-ID"]).toBeUndefined();
+		expect(
+			(options.headers as Record<string, string>)["X-Agent-ID"],
+		).toBeUndefined();
 	});
 });
 
@@ -127,7 +144,15 @@ describe("PacaAPIClient – error handling", () => {
 	it("error message includes status text and body", async () => {
 		vi.stubGlobal("fetch", mockFetchError(500, "Internal Server Error"));
 		const client = makeClient();
-		await expect(client.getProject("x")).rejects.toThrow("Internal Server Error");
+		await expect(client.getProject("x")).rejects.toThrow(
+			"Internal Server Error",
+		);
+	});
+
+	it("resolves on 204 No Content without parsing JSON", async () => {
+		vi.stubGlobal("fetch", mockFetchNoContent());
+		const client = makeClient();
+		await expect(client.deleteProject("proj-1")).resolves.toBeUndefined();
 	});
 });
 
@@ -174,7 +199,9 @@ describe("PacaAPIClient – getProject", () => {
 	it("calls GET /api/v1/projects/:id", async () => {
 		vi.stubGlobal("fetch", mockFetchOk({ id: "proj-1" }));
 		await makeClient().getProject("proj-1");
-		expect((fetch as any).mock.calls[0][0]).toBe("http://api.test/api/v1/projects/proj-1");
+		expect((fetch as any).mock.calls[0][0]).toBe(
+			"http://api.test/api/v1/projects/proj-1",
+		);
 		expect((fetch as any).mock.calls[0][1].method).toBe("GET");
 	});
 });
@@ -182,11 +209,19 @@ describe("PacaAPIClient – getProject", () => {
 describe("PacaAPIClient – createProject", () => {
 	it("calls POST /api/v1/projects with the input body", async () => {
 		vi.stubGlobal("fetch", mockFetchOk({ id: "new-proj" }));
-		await makeClient().createProject({ name: "New Project", description: "desc" });
-		const [url, options] = (fetch as any).mock.calls[0] as [string, RequestInit];
+		await makeClient().createProject({
+			name: "New Project",
+			description: "desc",
+		});
+		const [url, options] = (fetch as any).mock.calls[0] as [
+			string,
+			RequestInit,
+		];
 		expect(url).toBe("http://api.test/api/v1/projects");
 		expect(options.method).toBe("POST");
-		expect(JSON.parse(options.body as string)).toMatchObject({ name: "New Project" });
+		expect(JSON.parse(options.body as string)).toMatchObject({
+			name: "New Project",
+		});
 	});
 });
 
@@ -194,7 +229,10 @@ describe("PacaAPIClient – updateProject", () => {
 	it("calls PATCH /api/v1/projects/:id", async () => {
 		vi.stubGlobal("fetch", mockFetchOk({ id: "proj-1" }));
 		await makeClient().updateProject("proj-1", { name: "Renamed" });
-		const [url, options] = (fetch as any).mock.calls[0] as [string, RequestInit];
+		const [url, options] = (fetch as any).mock.calls[0] as [
+			string,
+			RequestInit,
+		];
 		expect(url).toBe("http://api.test/api/v1/projects/proj-1");
 		expect(options.method).toBe("PATCH");
 	});
@@ -204,7 +242,10 @@ describe("PacaAPIClient – deleteProject", () => {
 	it("calls DELETE /api/v1/projects/:id", async () => {
 		vi.stubGlobal("fetch", mockFetchOk(null));
 		await makeClient().deleteProject("proj-1");
-		const [url, options] = (fetch as any).mock.calls[0] as [string, RequestInit];
+		const [url, options] = (fetch as any).mock.calls[0] as [
+			string,
+			RequestInit,
+		];
 		expect(url).toBe("http://api.test/api/v1/projects/proj-1");
 		expect(options.method).toBe("DELETE");
 	});
@@ -225,7 +266,11 @@ describe("PacaAPIClient – listTasks", () => {
 
 	it("appends query params for filters", async () => {
 		vi.stubGlobal("fetch", mockFetchOk({ items: [] }));
-		await makeClient().listTasks("proj-1", { sprintId: "sprint-1", statusId: "done", pageSize: 20 });
+		await makeClient().listTasks("proj-1", {
+			sprintId: "sprint-1",
+			statusId: "done",
+			pageSize: 20,
+		});
 		const url = (fetch as any).mock.calls[0][0] as string;
 		expect(url).toContain("sprint_id=sprint-1");
 		expect(url).toContain("status_id=done");
@@ -272,10 +317,15 @@ describe("PacaAPIClient – createTask", () => {
 	it("calls POST /api/v1/projects/:id/tasks", async () => {
 		vi.stubGlobal("fetch", mockFetchOk({ id: "new-task" }));
 		await makeClient().createTask({ project_id: "proj-1", title: "New Task" });
-		const [url, options] = (fetch as any).mock.calls[0] as [string, RequestInit];
+		const [url, options] = (fetch as any).mock.calls[0] as [
+			string,
+			RequestInit,
+		];
 		expect(url).toBe("http://api.test/api/v1/projects/proj-1/tasks");
 		expect(options.method).toBe("POST");
-		expect(JSON.parse(options.body as string)).toMatchObject({ title: "New Task" });
+		expect(JSON.parse(options.body as string)).toMatchObject({
+			title: "New Task",
+		});
 	});
 
 	it("converts markdown description via markdownToBlocknote", async () => {
@@ -298,16 +348,23 @@ describe("PacaAPIClient – updateTask", () => {
 	it("calls PATCH /api/v1/projects/:id/tasks/:taskId", async () => {
 		vi.stubGlobal("fetch", mockFetchOk({ id: "t1" }));
 		await makeClient().updateTask("proj-1", "t1", { title: "Renamed" });
-		const [url, options] = (fetch as any).mock.calls[0] as [string, RequestInit];
+		const [url, options] = (fetch as any).mock.calls[0] as [
+			string,
+			RequestInit,
+		];
 		expect(url).toBe("http://api.test/api/v1/projects/proj-1/tasks/t1");
 		expect(options.method).toBe("PATCH");
-		expect(JSON.parse(options.body as string)).toMatchObject({ title: "Renamed" });
+		expect(JSON.parse(options.body as string)).toMatchObject({
+			title: "Renamed",
+		});
 	});
 
 	it("converts description markdown when provided", async () => {
 		const { markdownToBlocknote } = await import("../../utils/index.js");
 		vi.stubGlobal("fetch", mockFetchOk({ id: "t1" }));
-		await makeClient().updateTask("proj-1", "t1", { description: "**Update**" });
+		await makeClient().updateTask("proj-1", "t1", {
+			description: "**Update**",
+		});
 		expect(markdownToBlocknote).toHaveBeenCalledWith("**Update**");
 	});
 });
@@ -316,7 +373,10 @@ describe("PacaAPIClient – deleteTask", () => {
 	it("calls DELETE /api/v1/projects/:id/tasks/:taskId", async () => {
 		vi.stubGlobal("fetch", mockFetchOk(null));
 		await makeClient().deleteTask("proj-1", "t1");
-		const [url, options] = (fetch as any).mock.calls[0] as [string, RequestInit];
+		const [url, options] = (fetch as any).mock.calls[0] as [
+			string,
+			RequestInit,
+		];
 		expect(url).toBe("http://api.test/api/v1/projects/proj-1/tasks/t1");
 		expect(options.method).toBe("DELETE");
 	});
@@ -355,21 +415,33 @@ describe("PacaAPIClient – createSprint", () => {
 			start_date: "2024-01-01",
 			end_date: "2024-01-14",
 		});
-		const [url, options] = (fetch as any).mock.calls[0] as [string, RequestInit];
+		const [url, options] = (fetch as any).mock.calls[0] as [
+			string,
+			RequestInit,
+		];
 		expect(url).toBe("http://api.test/api/v1/projects/proj-1/sprints");
 		expect(options.method).toBe("POST");
-		expect(JSON.parse(options.body as string)).toMatchObject({ name: "Sprint 1" });
+		expect(JSON.parse(options.body as string)).toMatchObject({
+			name: "Sprint 1",
+		});
 	});
 });
 
 describe("PacaAPIClient – updateSprint", () => {
 	it("calls PATCH /api/v1/projects/:id/sprints/:sprintId", async () => {
 		vi.stubGlobal("fetch", mockFetchOk({ id: "sprint-1" }));
-		await makeClient().updateSprint("proj-1", "sprint-1", { name: "Sprint 1 Updated" });
-		const [url, options] = (fetch as any).mock.calls[0] as [string, RequestInit];
+		await makeClient().updateSprint("proj-1", "sprint-1", {
+			name: "Sprint 1 Updated",
+		});
+		const [url, options] = (fetch as any).mock.calls[0] as [
+			string,
+			RequestInit,
+		];
 		expect(url).toBe("http://api.test/api/v1/projects/proj-1/sprints/sprint-1");
 		expect(options.method).toBe("PATCH");
-		expect(JSON.parse(options.body as string)).toMatchObject({ name: "Sprint 1 Updated" });
+		expect(JSON.parse(options.body as string)).toMatchObject({
+			name: "Sprint 1 Updated",
+		});
 	});
 });
 
@@ -377,7 +449,10 @@ describe("PacaAPIClient – deleteSprint", () => {
 	it("calls DELETE /api/v1/projects/:id/sprints/:sprintId", async () => {
 		vi.stubGlobal("fetch", mockFetchOk(null));
 		await makeClient().deleteSprint("proj-1", "sprint-1");
-		const [url, options] = (fetch as any).mock.calls[0] as [string, RequestInit];
+		const [url, options] = (fetch as any).mock.calls[0] as [
+			string,
+			RequestInit,
+		];
 		expect(url).toBe("http://api.test/api/v1/projects/proj-1/sprints/sprint-1");
 		expect(options.method).toBe("DELETE");
 	});
@@ -385,10 +460,18 @@ describe("PacaAPIClient – deleteSprint", () => {
 
 describe("PacaAPIClient – completeSprint", () => {
 	it("calls POST /api/v1/projects/:id/sprints/:sprintId/complete", async () => {
-		vi.stubGlobal("fetch", mockFetchOk({ id: "sprint-1", status: "completed" }));
+		vi.stubGlobal(
+			"fetch",
+			mockFetchOk({ id: "sprint-1", status: "completed" }),
+		);
 		await makeClient().completeSprint("proj-1", "sprint-1");
-		const [url, options] = (fetch as any).mock.calls[0] as [string, RequestInit];
-		expect(url).toBe("http://api.test/api/v1/projects/proj-1/sprints/sprint-1/complete");
+		const [url, options] = (fetch as any).mock.calls[0] as [
+			string,
+			RequestInit,
+		];
+		expect(url).toBe(
+			"http://api.test/api/v1/projects/proj-1/sprints/sprint-1/complete",
+		);
 		expect(options.method).toBe("POST");
 	});
 });
@@ -426,17 +509,29 @@ describe("PacaAPIClient – getDocument", () => {
 describe("PacaAPIClient – createDocument", () => {
 	it("calls POST /api/v1/projects/:id/docs with mapped body", async () => {
 		vi.stubGlobal("fetch", mockFetchOk({ id: "doc-1" }));
-		await makeClient().createDocument({ project_id: "proj-1", title: "My Doc" });
-		const [url, options] = (fetch as any).mock.calls[0] as [string, RequestInit];
+		await makeClient().createDocument({
+			project_id: "proj-1",
+			title: "My Doc",
+		});
+		const [url, options] = (fetch as any).mock.calls[0] as [
+			string,
+			RequestInit,
+		];
 		expect(url).toBe("http://api.test/api/v1/projects/proj-1/docs");
 		expect(options.method).toBe("POST");
-		expect(JSON.parse(options.body as string)).toMatchObject({ title: "My Doc" });
+		expect(JSON.parse(options.body as string)).toMatchObject({
+			title: "My Doc",
+		});
 	});
 
 	it("converts content markdown to blocknote when provided", async () => {
 		const { markdownToBlocknote } = await import("../../utils/index.js");
 		vi.stubGlobal("fetch", mockFetchOk({ id: "doc-1" }));
-		await makeClient().createDocument({ project_id: "proj-1", title: "D", content: "# Heading" });
+		await makeClient().createDocument({
+			project_id: "proj-1",
+			title: "D",
+			content: "# Heading",
+		});
 		expect(markdownToBlocknote).toHaveBeenCalledWith("# Heading");
 	});
 });
@@ -445,10 +540,15 @@ describe("PacaAPIClient – updateDocument", () => {
 	it("calls PATCH /api/v1/projects/:id/docs/:docId", async () => {
 		vi.stubGlobal("fetch", mockFetchOk({ id: "doc-1" }));
 		await makeClient().updateDocument("proj-1", "doc-1", { title: "Renamed" });
-		const [url, options] = (fetch as any).mock.calls[0] as [string, RequestInit];
+		const [url, options] = (fetch as any).mock.calls[0] as [
+			string,
+			RequestInit,
+		];
 		expect(url).toBe("http://api.test/api/v1/projects/proj-1/docs/doc-1");
 		expect(options.method).toBe("PATCH");
-		expect(JSON.parse(options.body as string)).toMatchObject({ title: "Renamed" });
+		expect(JSON.parse(options.body as string)).toMatchObject({
+			title: "Renamed",
+		});
 	});
 });
 
@@ -456,7 +556,10 @@ describe("PacaAPIClient – deleteDocument", () => {
 	it("calls DELETE /api/v1/projects/:id/docs/:docId", async () => {
 		vi.stubGlobal("fetch", mockFetchOk(null));
 		await makeClient().deleteDocument("proj-1", "doc-1");
-		const [url, options] = (fetch as any).mock.calls[0] as [string, RequestInit];
+		const [url, options] = (fetch as any).mock.calls[0] as [
+			string,
+			RequestInit,
+		];
 		expect(url).toBe("http://api.test/api/v1/projects/proj-1/docs/doc-1");
 		expect(options.method).toBe("DELETE");
 	});

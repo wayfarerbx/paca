@@ -14,9 +14,9 @@ You are writing or updating documentation in Paca Docs. Documentation lives in P
 
 1. Resolve any reference from the user's message:
    - `#42`, `ABC-42` → `get_task_by_number` to read the feature being documented
-   - Doc title or ID → `list_documents` → `get_document` to load the existing doc
-   - Free-text topic → `list_documents` first to verify no duplicate already exists; if a similar doc is found, offer to update it instead of creating a new one
-2. Call `list_documents` and read related docs — architecture, existing guides, BDD scenarios, API references. Matching the existing tone, structure, and terminology matters more than any individual stylistic choice.
+   - Doc title or path → `list_docs` → `read_doc` to load the existing doc
+   - Free-text topic → `list_docs` first to verify no duplicate already exists; if a similar doc is found, offer to update it instead of creating a new one
+2. Call `list_docs` and read related docs — architecture, existing guides, BDD scenarios, API references. Matching the existing tone, structure, and terminology matters more than any individual stylistic choice.
 3. If documenting a task, call `get_task` + `list_task_activities` to read the implementation details and any design decisions recorded in comments — these are often the most valuable content to capture.
 
 ## Step 2 — Identify doc type and draft outline
@@ -41,11 +41,11 @@ Write complete, clear Markdown:
 
 ## Step 4 — Save to Paca
 
-- **New document**: call `create_document` with the title and full Markdown content. Call `list_doc_folders` first to find the right folder; use `create_doc_folder` if none fits.
-- **Existing document**: call `update_document`. Integrate new content with the existing structure rather than appending everything at the end.
+- **New document**: call `write_doc` with a full path (e.g. `'Architecture/API Design'` — the last segment is the title, preceding segments are folders) and the Markdown content. Missing folders are created automatically.
+- **Existing document**: call `write_doc` with the same path. Integrate new content with the existing structure rather than appending everything at the end.
 - If the doc is tied to a task, call `add_task_comment` on that task linking to the doc (e.g. "Documentation written: [link]").
 
-Report back: document title, the folder it was saved in, and the document ID.
+Report back: the document's title and the path it was saved at.
 
 ---
 
@@ -57,7 +57,7 @@ Report back: document title, the folder it was saved in, and the document ID.
 
 ## Tool reference
 
-**Documents:** `create_document` · `update_document` · `get_document` · `list_documents` · `list_doc_folders` · `create_doc_folder`  
+**Documents:** `write_doc` · `read_doc` · `list_docs` · `move_doc`  
 **Tasks:** `get_task` · `get_task_by_number` · `list_task_activities`  
-**Comments:** `add_task_comment`  
+**Comments:** `add_task_comment` · `add_doc_comment` · `list_doc_activities`  
 **Projects:** `list_projects`

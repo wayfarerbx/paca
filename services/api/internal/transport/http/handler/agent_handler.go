@@ -13,6 +13,7 @@ import (
 
 	"github.com/Paca-AI/api/internal/apierr"
 	agentdom "github.com/Paca-AI/api/internal/domain/agent"
+	projectdom "github.com/Paca-AI/api/internal/domain/project"
 	taskdom "github.com/Paca-AI/api/internal/domain/task"
 	agentsvc "github.com/Paca-AI/api/internal/service/agent"
 	"github.com/Paca-AI/api/internal/transport/http/dto"
@@ -30,6 +31,7 @@ type AgentHandler struct {
 	aiAgentURL  string
 	httpClient  *http.Client
 	activityRec agentActivityRecorder
+	memberRepo  projectdom.MemberRepository
 }
 
 // NewAgentHandler returns an AgentHandler wired to the agent service.
@@ -46,6 +48,34 @@ func NewAgentHandler(svc agentdom.Service, aiAgentURL string) *AgentHandler {
 func (h *AgentHandler) WithActivityRecorder(r agentActivityRecorder) *AgentHandler {
 	h.activityRec = r
 	return h
+}
+
+// WithMemberRepo attaches the project member repository used to resolve the
+// authenticated caller's project_members.id (see resolveMemberID).
+func (h *AgentHandler) WithMemberRepo(repo projectdom.MemberRepository) *AgentHandler {
+	h.memberRepo = repo
+	return h
+}
+
+// resolveMemberID maps the authenticated caller's user ID to their
+// project_members.id within projectID. agent_chat_sessions.member_id and
+// agent_conversations.triggered_by_member_id both store the acting project
+// member rather than the raw user ID -- the latter has a foreign key to
+// project_members(id) -- so callers must not use claims.Subject directly.
+func (h *AgentHandler) resolveMemberID(r *http.Request, projectID uuid.UUID) (uuid.UUID, error) {
+	if h.memberRepo == nil {
+		return uuid.Nil, apierr.New(apierr.CodeInternalError, "member resolver not available")
+	}
+	claims := middleware.ClaimsFrom(r)
+	userID, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		return uuid.Nil, apierr.New(apierr.CodeBadRequest, "invalid subject claim")
+	}
+	member, err := h.memberRepo.FindMemberByUserProject(r.Context(), userID, projectID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	return member.ID, nil
 }
 
 // --- Agents -----------------------------------------------------------------
@@ -128,25 +158,19 @@ func (h *AgentHandler) CreateAgent(w http.ResponseWriter, r *http.Request) {
 	callerID, _ := uuid.Parse(claims.Subject)
 
 	a, err := h.svc.CreateAgent(r.Context(), projectID, agentdom.CreateAgentInput{
-		Name:                          req.Name,
-		Handle:                        req.Handle,
-		LLMProvider:                   req.LLMProvider,
-		LLMModel:                      req.LLMModel,
-		LLMAPIKey:                     req.LLMAPIKey,
-		LLMBaseURL:                    req.LLMBaseURL,
-		SystemPrompt:                  req.SystemPrompt,
-		TaskTriggerPrompt:             req.TaskTriggerPrompt,
-		DocCommentTriggerPrompt:       req.DocCommentTriggerPrompt,
-		ChatTriggerPrompt:             req.ChatTriggerPrompt,
-		DescriptionWriteTriggerPrompt: req.DescriptionWriteTriggerPrompt,
-		CanCloneRepos:                 req.CanCloneRepos,
-		CanCreatePRs:                  req.CanCreatePRs,
-		MaxIterations:                 req.MaxIterations,
-		TimeoutMinutes:                req.TimeoutMinutes,
-		GitCommitterName:              req.GitCommitterName,
-		GitCommitterEmail:             req.GitCommitterEmail,
-		ProjectRoleID:                 req.ProjectRoleID,
-		CreatedBy:                     &callerID,
+		Name:              req.Name,
+		Handle:            req.Handle,
+		LLMProvider:       req.LLMProvider,
+		LLMModel:          req.LLMModel,
+		LLMAPIKey:         req.LLMAPIKey,
+		LLMBaseURL:        req.LLMBaseURL,
+		SystemPrompt:      req.SystemPrompt,
+		MaxIterations:     req.MaxIterations,
+		TimeoutMinutes:    req.TimeoutMinutes,
+		GitCommitterName:  req.GitCommitterName,
+		GitCommitterEmail: req.GitCommitterEmail,
+		ProjectRoleID:     req.ProjectRoleID,
+		CreatedBy:         &callerID,
 	})
 	if err != nil {
 		presenter.Error(w, r, err)
@@ -185,24 +209,18 @@ func (h *AgentHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a, err := h.svc.UpdateAgent(r.Context(), projectID, agentID, agentdom.UpdateAgentInput{
-		Name:                          req.Name,
-		Handle:                        req.Handle,
-		LLMProvider:                   req.LLMProvider,
-		LLMModel:                      req.LLMModel,
-		LLMAPIKey:                     req.LLMAPIKey,
-		LLMBaseURL:                    req.LLMBaseURL,
-		SystemPrompt:                  req.SystemPrompt,
-		TaskTriggerPrompt:             req.TaskTriggerPrompt,
-		DocCommentTriggerPrompt:       req.DocCommentTriggerPrompt,
-		ChatTriggerPrompt:             req.ChatTriggerPrompt,
-		DescriptionWriteTriggerPrompt: req.DescriptionWriteTriggerPrompt,
-		CanCloneRepos:                 req.CanCloneRepos,
-		CanCreatePRs:                  req.CanCreatePRs,
-		MaxIterations:                 req.MaxIterations,
-		TimeoutMinutes:                req.TimeoutMinutes,
-		GitCommitterName:              req.GitCommitterName,
-		GitCommitterEmail:             req.GitCommitterEmail,
-		ProjectRoleID:                 req.ProjectRoleID,
+		Name:              req.Name,
+		Handle:            req.Handle,
+		LLMProvider:       req.LLMProvider,
+		LLMModel:          req.LLMModel,
+		LLMAPIKey:         req.LLMAPIKey,
+		LLMBaseURL:        req.LLMBaseURL,
+		SystemPrompt:      req.SystemPrompt,
+		MaxIterations:     req.MaxIterations,
+		TimeoutMinutes:    req.TimeoutMinutes,
+		GitCommitterName:  req.GitCommitterName,
+		GitCommitterEmail: req.GitCommitterEmail,
+		ProjectRoleID:     req.ProjectRoleID,
 	})
 	if err != nil {
 		presenter.Error(w, r, err)
@@ -462,6 +480,108 @@ func (h *AgentHandler) DeleteSkill(w http.ResponseWriter, r *http.Request) {
 	presenter.OK(w, r, map[string]any{"message": "skill deleted"})
 }
 
+// --- Environment Variables ---------------------------------------------------
+
+// ListEnvVars handles GET /projects/:projectId/agents/:agentId/env-vars.
+func (h *AgentHandler) ListEnvVars(w http.ResponseWriter, r *http.Request) {
+	_, agentID, err := h.parseAgentForProject(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	envVars, err := h.svc.ListEnvVars(r.Context(), agentID)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	resp := make([]dto.AgentEnvVarResponse, 0, len(envVars))
+	for _, v := range envVars {
+		resp = append(resp, dto.EnvVarFromEntity(v))
+	}
+	presenter.OK(w, r, map[string]any{"items": resp})
+}
+
+// AddEnvVar handles POST /projects/:projectId/agents/:agentId/env-vars.
+func (h *AgentHandler) AddEnvVar(w http.ResponseWriter, r *http.Request) {
+	_, agentID, err := h.parseAgentForProject(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	var req dto.AddEnvVarRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	if req.Key == "" {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "key is required"))
+		return
+	}
+	if req.Value == "" {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "value is required"))
+		return
+	}
+	envVar, err := h.svc.AddEnvVar(r.Context(), agentID, agentdom.AddEnvVarInput{
+		Key:   req.Key,
+		Value: req.Value,
+	})
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	presenter.OK(w, r, dto.EnvVarFromEntity(envVar))
+}
+
+// UpdateEnvVar handles PATCH /projects/:projectId/agents/:agentId/env-vars/:envVarId.
+func (h *AgentHandler) UpdateEnvVar(w http.ResponseWriter, r *http.Request) {
+	_, agentID, err := h.parseAgentForProject(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	envVarID, err := parseParamUUID(r, "envVarId")
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	var req dto.UpdateEnvVarRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	if req.Value == "" {
+		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "value is required"))
+		return
+	}
+	envVar, err := h.svc.UpdateEnvVar(r.Context(), agentID, envVarID, agentdom.UpdateEnvVarInput{
+		Value: req.Value,
+	})
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	presenter.OK(w, r, dto.EnvVarFromEntity(envVar))
+}
+
+// DeleteEnvVar handles DELETE /projects/:projectId/agents/:agentId/env-vars/:envVarId.
+func (h *AgentHandler) DeleteEnvVar(w http.ResponseWriter, r *http.Request) {
+	_, agentID, err := h.parseAgentForProject(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	envVarID, err := parseParamUUID(r, "envVarId")
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	if err := h.svc.DeleteEnvVar(r.Context(), agentID, envVarID); err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	presenter.OK(w, r, map[string]any{"message": "environment variable deleted"})
+}
+
 // --- Chat Sessions ----------------------------------------------------------
 
 // ListChatSessions handles GET /projects/:projectId/agents/:agentId/chat-sessions.
@@ -476,8 +596,11 @@ func (h *AgentHandler) ListChatSessions(w http.ResponseWriter, r *http.Request) 
 		presenter.Error(w, r, err)
 		return
 	}
-	claims := middleware.ClaimsFrom(r)
-	memberID, _ := uuid.Parse(claims.Subject)
+	memberID, err := h.resolveMemberID(r, projectID)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
 
 	sessions, err := h.svc.ListChatSessions(r.Context(), projectID, agentID, memberID)
 	if err != nil {
@@ -512,8 +635,11 @@ func (h *AgentHandler) StartChatSession(w http.ResponseWriter, r *http.Request) 
 		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "message is required"))
 		return
 	}
-	claims := middleware.ClaimsFrom(r)
-	memberID, _ := uuid.Parse(claims.Subject)
+	memberID, err := h.resolveMemberID(r, projectID)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
 
 	session, conv, err := h.svc.StartChatSession(r.Context(), projectID, agentID, memberID, req.Message)
 	if err != nil {
@@ -547,8 +673,11 @@ func (h *AgentHandler) SendChatMessage(w http.ResponseWriter, r *http.Request) {
 		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "message is required"))
 		return
 	}
-	claims := middleware.ClaimsFrom(r)
-	memberID, _ := uuid.Parse(claims.Subject)
+	memberID, err := h.resolveMemberID(r, projectID)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
 
 	conv, err := h.svc.SendChatMessage(r.Context(), projectID, sessionID, memberID, req.Message)
 	if err != nil {
@@ -584,10 +713,13 @@ func (h *AgentHandler) WriteTaskDescriptionWithAI(w http.ResponseWriter, r *http
 		return
 	}
 
-	claims := middleware.ClaimsFrom(r)
-	callerID, _ := uuid.Parse(claims.Subject)
+	memberID, err := h.resolveMemberID(r, projectID)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
 
-	conv, err := h.svc.TriggerDescriptionWrite(r.Context(), projectID, req.AgentID, taskID, callerID)
+	conv, err := h.svc.TriggerDescriptionWrite(r.Context(), projectID, req.AgentID, taskID, memberID)
 	if err != nil {
 		presenter.Error(w, r, err)
 		return

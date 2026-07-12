@@ -49,6 +49,15 @@ def test_missing_optional_fields_default_to_none_and_empty():
     assert msg.repo_plugin_ids == []
 
 
+def test_missing_actor_member_id_defaults_to_none():
+    """Workflow-triggered assignments have no human actor, so the API omits
+    this field entirely rather than sending an empty string."""
+    fields = _fields()
+    del fields["actor_member_id"]
+    msg = TriggerMessage.from_stream_entry("2-1", fields)
+    assert msg.actor_member_id is None
+
+
 def test_empty_repo_plugin_ids_string_becomes_empty_list():
     msg = TriggerMessage.from_stream_entry("3-0", _fields(repo_plugin_ids=""))
     assert msg.repo_plugin_ids == []
@@ -101,6 +110,16 @@ def test_control_stop_parsed():
     assert msg.control_type == "agent.stop"
     assert msg.conversation_id == "conv-99"
     assert msg.project_id == "proj-1"
+
+
+def test_control_pause_parsed():
+    msg = ControlMessage.from_stream_entry("11-0", _control_fields("agent.pause"))
+    assert msg.control_type == "agent.pause"
+
+
+def test_control_heartbeat_parsed():
+    msg = ControlMessage.from_stream_entry("12-0", _control_fields("agent.heartbeat"))
+    assert msg.control_type == "agent.heartbeat"
 
 
 def test_control_missing_conversation_id_raises():

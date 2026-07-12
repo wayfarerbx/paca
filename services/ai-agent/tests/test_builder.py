@@ -4,7 +4,13 @@ from unittest.mock import patch
 
 import pytest
 
-from src.agent.builder import _sandbox_reachable_url, build_llm, build_mcp_config, build_skills
+from src.agent.builder import (
+    _sandbox_reachable_url,
+    build_llm,
+    build_mcp_config,
+    build_skills,
+    load_default_skills,
+)
 from src.models.agent import AgentConfig, AgentMCPServerRow, AgentSkillRow
 
 # ─── Fixtures / helpers ───────────────────────────────────────────────────────
@@ -19,16 +25,11 @@ def _agent_config(
         agent_id="agent-1",
         project_id="proj-1",
         system_prompt=None,
-        task_trigger_prompt="",
-        doc_comment_trigger_prompt="",
-        chat_trigger_prompt="",
-        description_write_trigger_prompt="",
         llm_provider=provider,
         llm_model=model,
         llm_api_key_secret_ref="secret-ref",
         llm_base_url=base_url,
         max_iterations=10,
-        can_clone_repos=False,
     )
 
 
@@ -208,13 +209,59 @@ def test_skill_without_triggers_has_no_trigger():
     assert skills[0].trigger is None
 
 
+def test_skill_with_triggers_gains_slash_keyword():
+    row = _skill(name="my-skill", triggers=["review"])
+    skills = build_skills([row])
+    assert "/my-skill" in skills[0].trigger.keywords
+    assert "review" in skills[0].trigger.keywords
+
+
+def test_skill_with_triggers_does_not_duplicate_slash_keyword():
+    row = _skill(name="my-skill", triggers=["/my-skill", "review"])
+    skills = build_skills([row])
+    assert skills[0].trigger.keywords.count("/my-skill") == 1
+
+
+# ─── load_default_skills ──────────────────────────────────────────────────────
+
+
+def test_load_default_skills_is_non_empty():
+    skills = load_default_skills()
+    assert len(skills) > 0
+
+
+def test_load_default_skills_paca_is_always_active():
+    skills = load_default_skills()
+    paca = next(s for s in skills if s.name == "paca")
+    assert paca.trigger is None
+    assert paca.is_agentskills_format is False
+
+
+def test_load_default_skills_specialized_skills_are_model_selectable():
+    skills = load_default_skills()
+    paca_do = next(s for s in skills if s.name == "paca-do")
+    assert paca_do.is_agentskills_format is True
+    assert "/paca-do" in paca_do.trigger.keywords
+
+
+def test_load_default_skills_includes_workflow_skill():
+    skills = load_default_skills()
+    paca_workflow = next(s for s in skills if s.name == "paca-workflow")
+    assert paca_workflow.is_agentskills_format is True
+    assert "/paca-workflow" in paca_workflow.trigger.keywords
+
+
+def test_load_default_skills_is_cached():
+    assert load_default_skills() is load_default_skills()
+
+
 # ─── build_mcp_config ─────────────────────────────────────────────────────────
 
 
 def test_stdio_server_fields(no_paca_key):
     server = _server(command="node", args=["index.js"], env={"KEY": "VAL"})
     cfg = build_mcp_config([server], "agent-1", "proj-1")
-    entry = cfg["mcpServers"]["my-server"]
+    entry = cfg["my-server"]
     assert entry["command"] == "node"
     assert entry["args"] == ["index.js"]
     assert entry["env"] == {"KEY": "VAL"}
@@ -223,7 +270,7 @@ def test_stdio_server_fields(no_paca_key):
 def test_http_server_has_url_no_auth(no_paca_key):
     server = _server(transport="http", url="https://mcp.example.com")
     cfg = build_mcp_config([server], "a", "p")
-    entry = cfg["mcpServers"]["my-server"]
+    entry = cfg["my-server"]
     assert entry["url"] == "https://mcp.example.com"
     assert "auth" not in entry
 
@@ -231,19 +278,19 @@ def test_http_server_has_url_no_auth(no_paca_key):
 def test_oauth_server_has_auth_field(no_paca_key):
     server = _server(transport="oauth", url="https://mcp.example.com")
     cfg = build_mcp_config([server], "a", "p")
-    assert cfg["mcpServers"]["my-server"]["auth"] == "oauth"
+    assert cfg["my-server"]["auth"] == {"strategy": "oauth2"}
 
 
 def test_disabled_server_excluded(no_paca_key):
     server = _server(enabled=False)
     cfg = build_mcp_config([server], "a", "p")
-    assert "my-server" not in cfg["mcpServers"]
+    assert "my-server" not in cfg
 
 
 def test_paca_server_injected_when_key_set(with_paca_key):
     cfg = build_mcp_config([], "agent-99", "proj-42")
-    assert "paca" in cfg["mcpServers"]
-    paca = cfg["mcpServers"]["paca"]
+    assert "paca" in cfg
+    paca = cfg["paca"]
     assert paca["command"] == "npx"
     assert paca["args"] == ["-y", "@paca-ai/paca-mcp"]
     assert paca["env"]["PACA_AGENT_ID"] == "agent-99"
@@ -256,7 +303,7 @@ def test_paca_server_rewrites_localhost_urls_for_sandbox(with_paca_key):
     with_paca_key.gateway_base_url = "http://localhost:3000"
 
     cfg = build_mcp_config([], "agent-99", "proj-42")
-    env = cfg["mcpServers"]["paca"]["env"]
+    env = cfg["paca"]["env"]
 
     assert env["PACA_API_URL"] == "http://host.docker.internal:8080"
     assert env["PACA_GATEWAY_URL"] == "http://host.docker.internal:3000"
@@ -265,33 +312,33 @@ def test_paca_server_rewrites_localhost_urls_for_sandbox(with_paca_key):
 def test_paca_server_uses_local_build_when_dev_mcp_path_set(with_paca_key):
     with_paca_key.dev_mcp_path = "/mcp/build/index.js"
     cfg = build_mcp_config([], "agent-99", "proj-42")
-    paca = cfg["mcpServers"]["paca"]
+    paca = cfg["paca"]
     assert paca["command"] == "node"
     assert paca["args"] == ["/mcp/build/index.js"]
 
 
 def test_paca_server_omitted_when_no_key(no_paca_key):
     cfg = build_mcp_config([], "a", "p")
-    assert "paca" not in cfg["mcpServers"]
+    assert "paca" not in cfg
 
 
 def test_user_servers_appear_before_paca(with_paca_key):
     servers = [_server(name="custom")]
     cfg = build_mcp_config(servers, "a", "p")
-    keys = list(cfg["mcpServers"])
+    keys = list(cfg)
     assert keys.index("custom") < keys.index("paca")
 
 
 def test_multiple_servers_all_included(no_paca_key):
     servers = [_server(name="srv1"), _server(name="srv2")]
     cfg = build_mcp_config(servers, "a", "p")
-    assert "srv1" in cfg["mcpServers"]
-    assert "srv2" in cfg["mcpServers"]
+    assert "srv1" in cfg
+    assert "srv2" in cfg
 
 
-def test_empty_servers_returns_only_mcpservers_key(no_paca_key):
+def test_empty_servers_returns_empty_dict(no_paca_key):
     cfg = build_mcp_config([], "a", "p")
-    assert cfg == {"mcpServers": {}}
+    assert cfg == {}
 
 
 def test_sandbox_reachable_url_preserves_nonlocal_hosts():

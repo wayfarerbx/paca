@@ -61,5 +61,14 @@ class Settings(BaseSettings):
     # Worker
     worker_concurrency: int = 10
 
+    # Chat sandboxes are kept alive between turns instead of being torn down
+    # after each reply (so the agent has memory across a chat session). The
+    # frontend pings an "agent.heartbeat" control message every ~30s while a
+    # conversation is loaded in a browser tab, refreshing last_active_at —
+    # this timeout is the disconnect-detection window: once heartbeats stop
+    # (tab closed, crash, network loss) for longer than this, the reaper
+    # tears the sandbox down.
+    chat_sandbox_idle_timeout_minutes: int = 3
+
 
 settings = Settings()

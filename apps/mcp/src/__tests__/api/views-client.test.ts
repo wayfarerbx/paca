@@ -5,7 +5,11 @@ const CONFIG = { baseURL: "https://api.example.com", apiKey: "key123" };
 const CONFIG_WITH_AGENT = { ...CONFIG, agentId: "agent-1" };
 
 function okEnvelope(data: any) {
-	return { ok: true, json: async () => ({ success: true, data }), text: async () => "" };
+	return {
+		ok: true,
+		json: async () => ({ success: true, data }),
+		text: async () => "",
+	};
 }
 
 function rawOk(data: any) {
@@ -13,7 +17,24 @@ function rawOk(data: any) {
 }
 
 function errorResponse(status = 400, body = "Bad Request") {
-	return { ok: false, status, statusText: body, text: async () => body, json: async () => ({}) };
+	return {
+		ok: false,
+		status,
+		statusText: body,
+		text: async () => body,
+		json: async () => ({}),
+	};
+}
+
+function noContentResponse() {
+	return {
+		ok: true,
+		status: 204,
+		text: async () => "",
+		json: async () => {
+			throw new SyntaxError("Unexpected end of JSON input");
+		},
+	};
 }
 
 describe("PacaAPIViewsClient", () => {
@@ -56,6 +77,12 @@ describe("PacaAPIViewsClient", () => {
 		await expect(client.listViews("p1")).rejects.toThrow("404");
 	});
 
+	it("resolves on 204 No Content without parsing JSON", async () => {
+		fetchMock.mockResolvedValue(noContentResponse());
+		const client = new PacaAPIViewsClient(CONFIG);
+		await expect(client.deleteTaskAttachment("p1", "t1", "att1")).resolves.toBeUndefined();
+	});
+
 	it("returns raw JSON when not a SuccessEnvelope", async () => {
 		fetchMock.mockResolvedValue(rawOk([{ id: "v1" }]));
 		const client = new PacaAPIViewsClient(CONFIG);
@@ -72,7 +99,9 @@ describe("PacaAPIViewsClient", () => {
 			const client = new PacaAPIViewsClient(CONFIG);
 			fetchMock.mockResolvedValue(okEnvelope([{ id: "v1" }]));
 			await client.listViews("p1");
-			expect(fetchMock.mock.calls[0][0]).toBe("https://api.example.com/api/v1/projects/p1/views");
+			expect(fetchMock.mock.calls[0][0]).toBe(
+				"https://api.example.com/api/v1/projects/p1/views",
+			);
 		});
 
 		it("appends context query param when provided", async () => {
@@ -101,7 +130,12 @@ describe("PacaAPIViewsClient", () => {
 		it("calls POST /api/v1/projects/:id/views", async () => {
 			const client = new PacaAPIViewsClient(CONFIG);
 			fetchMock.mockResolvedValue(okEnvelope({ id: "v2" }));
-			await client.createView("p1", { name: "Board", context: "sprint", view_type: "board", sprint_id: null });
+			await client.createView("p1", {
+				name: "Board",
+				context: "sprint",
+				view_type: "board",
+				sprint_id: null,
+			});
 			expect(fetchMock.mock.calls[0][1].method).toBe("POST");
 		});
 	});
@@ -161,7 +195,9 @@ describe("PacaAPIViewsClient", () => {
 
 		it("extracts .items from object response", async () => {
 			const client = new PacaAPIViewsClient(CONFIG);
-			fetchMock.mockResolvedValue(okEnvelope({ items: [{ task_id: "t2", position: 1 }] }));
+			fetchMock.mockResolvedValue(
+				okEnvelope({ items: [{ task_id: "t2", position: 1 }] }),
+			);
 			const result = await client.listTaskPositions("p1", "v1");
 			expect(result).toEqual([{ task_id: "t2", position: 1 }]);
 		});
@@ -171,7 +207,9 @@ describe("PacaAPIViewsClient", () => {
 		it("calls PUT /api/v1/projects/:id/views/:viewId/task-positions with items", async () => {
 			const client = new PacaAPIViewsClient(CONFIG);
 			fetchMock.mockResolvedValue(okEnvelope(null));
-			await client.bulkMoveViewTaskPositions("p1", "v1", [{ task_id: "t1", position: 2 }]);
+			await client.bulkMoveViewTaskPositions("p1", "v1", [
+				{ task_id: "t1", position: 2 },
+			]);
 			expect(fetchMock.mock.calls[0][0]).toContain("/views/v1/task-positions");
 			expect(fetchMock.mock.calls[0][1].method).toBe("PUT");
 			const body = JSON.parse(fetchMock.mock.calls[0][1].body);
@@ -242,7 +280,9 @@ describe("PacaAPIViewsClient", () => {
 		it("calls PATCH /api/v1/projects/:id/custom-fields/:fieldId", async () => {
 			const client = new PacaAPIViewsClient(CONFIG);
 			fetchMock.mockResolvedValue(okEnvelope({ id: "cf1" }));
-			await client.updateCustomFieldDefinition("p1", "cf1", { display_name: "Status V2" });
+			await client.updateCustomFieldDefinition("p1", "cf1", {
+				display_name: "Status V2",
+			});
 			expect(fetchMock.mock.calls[0][0]).toContain("/custom-fields/cf1");
 			expect(fetchMock.mock.calls[0][1].method).toBe("PATCH");
 		});
@@ -273,7 +313,9 @@ describe("PacaAPIViewsClient", () => {
 
 		it("extracts .attachments from object response", async () => {
 			const client = new PacaAPIViewsClient(CONFIG);
-			fetchMock.mockResolvedValue(okEnvelope({ attachments: [{ id: "att1" }] }));
+			fetchMock.mockResolvedValue(
+				okEnvelope({ attachments: [{ id: "att1" }] }),
+			);
 			const result = await client.listTaskAttachments("p1", "t1");
 			expect(result).toEqual([{ id: "att1" }]);
 		});
@@ -282,14 +324,18 @@ describe("PacaAPIViewsClient", () => {
 	describe("getAttachmentDownloadURL", () => {
 		it("returns .url from response", async () => {
 			const client = new PacaAPIViewsClient(CONFIG);
-			fetchMock.mockResolvedValue(okEnvelope({ url: "https://cdn.example.com/file.pdf" }));
+			fetchMock.mockResolvedValue(
+				okEnvelope({ url: "https://cdn.example.com/file.pdf" }),
+			);
 			const result = await client.getAttachmentDownloadURL("p1", "t1", "att1");
 			expect(result).toBe("https://cdn.example.com/file.pdf");
 		});
 
 		it("returns .downloadUrl as fallback", async () => {
 			const client = new PacaAPIViewsClient(CONFIG);
-			fetchMock.mockResolvedValue(okEnvelope({ downloadUrl: "https://cdn.example.com/file2.pdf" }));
+			fetchMock.mockResolvedValue(
+				okEnvelope({ downloadUrl: "https://cdn.example.com/file2.pdf" }),
+			);
 			const result = await client.getAttachmentDownloadURL("p1", "t1", "att1");
 			expect(result).toBe("https://cdn.example.com/file2.pdf");
 		});

@@ -5,12 +5,18 @@ import type {
 	PacaAPIExtendedClient,
 	PacaAPITaskExtendedClient,
 	PacaAPIViewsClient,
+	PacaAPIWorkflowClient,
 } from "../api/index.js";
+import { formatToolError } from "../utils/index.js";
 import { getAgentTools, handleAgentTool } from "./agent-tools.js";
 import {
 	getAttachmentTools,
 	handleAttachmentTool,
 } from "./attachment-tools.js";
+import {
+	getDocActivityTools,
+	handleDocActivityTool,
+} from "./doc-activity-tools.js";
 import {
 	getFilesystemDocTools,
 	handleFilesystemDocTool,
@@ -26,10 +32,7 @@ import {
 	getTaskActivityTools,
 	handleTaskActivityTool,
 } from "./task-activity-tools.js";
-import {
-	getTaskLinkTools,
-	handleTaskLinkTool,
-} from "./task-link-tools.js";
+import { getTaskLinkTools, handleTaskLinkTool } from "./task-link-tools.js";
 import { getTaskTools, handleTaskTool } from "./task-tools.js";
 import {
 	getTaskStatusTools,
@@ -41,6 +44,7 @@ import {
 	getViewTools,
 	handleViewTool,
 } from "./view-tools.js";
+import { getWorkflowTools, handleWorkflowTool } from "./workflow-tools.js";
 
 /**
  * Returns all available MCP tools.
@@ -61,6 +65,8 @@ export function getAllTools(): Tool[] {
 		...getAttachmentTools(),
 		...getTaskActivityTools(),
 		...getTaskLinkTools(),
+		...getWorkflowTools(),
+		...getDocActivityTools(),
 	];
 }
 
@@ -76,6 +82,7 @@ export async function handleToolCall(
 		viewsClient: PacaAPIViewsClient;
 		taskExtendedClient: PacaAPITaskExtendedClient;
 		docClient: PacaAPIDocClient;
+		workflowClient: PacaAPIWorkflowClient;
 	},
 ): Promise<any> {
 	const { name, arguments: args } = request.params;
@@ -236,15 +243,33 @@ export async function handleToolCall(
 			return handleTaskLinkTool(name, args, clients.taskExtendedClient);
 		}
 
+		// Automation workflow tools
+		if (
+			name === "get_workflow" ||
+			name === "create_workflow" ||
+			name === "update_workflow" ||
+			name === "delete_workflow"
+		) {
+			return handleWorkflowTool(name, args, clients.workflowClient);
+		}
+
+		// Document activity tools
+		if (
+			name === "list_doc_activities" ||
+			name === "add_doc_comment" ||
+			name === "update_doc_comment" ||
+			name === "delete_doc_comment"
+		) {
+			return handleDocActivityTool(name, args, clients.docClient);
+		}
+
 		throw new Error(`Unknown tool: ${name}`);
 	} catch (error) {
-		const errorMessage =
-			error instanceof Error ? error.message : "Unknown error";
 		return {
 			content: [
 				{
 					type: "text",
-					text: `Error: ${errorMessage}`,
+					text: `Error: ${formatToolError(error)}`,
 				},
 			],
 			isError: true,

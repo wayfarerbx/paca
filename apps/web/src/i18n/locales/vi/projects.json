@@ -52,8 +52,6 @@
 		"card": {
 			"configure": "Cấu hình",
 			"delete": "Xóa",
-			"repos": "Kho mã",
-			"configureAndViewActivity": "Cấu hình & xem hoạt động",
 			"deleteDialog": {
 				"title": "Xóa {{name}}?",
 				"description": "Thao tác này sẽ xóa vĩnh viễn agent và loại bỏ nó khỏi dự án. Các cuộc trò chuyện đang chạy sẽ bị dừng.",
@@ -69,15 +67,14 @@
 				"title": "Chưa có agent nào",
 				"description": "Thêm một AI agent để tự động hóa nhiệm vụ, review code, viết tài liệu và nhiều hơn nữa.",
 				"createFirstAgent": "Tạo agent đầu tiên của bạn"
-			},
-			"chatShortcutPrefix": "Nhấp",
-			"chatShortcutSuffix": "vào bất kỳ agent nào để trò chuyện, xem các cuộc hội thoại và quản lý máy chủ MCP cùng skill."
+			}
 		},
 		"detail": {
 			"tabs": {
 				"overview": "Tổng quan",
 				"mcpServers": "Máy chủ MCP",
 				"skills": "Skill",
+				"envVars": "Môi trường",
 				"conversations": "Hội thoại"
 			},
 			"overview": {
@@ -89,17 +86,6 @@
 				"apiKeyUpdateLabel": "Cập nhật khóa API",
 				"apiKeyUpdateHint": "(để trống để giữ khóa hiện tại)",
 				"baseUrlLabel": "URL cơ sở",
-				"triggerPrompts": {
-					"title": "Trigger prompt tự động thêm",
-					"hint": "Tự động thêm vào system prompt khi chạy, tùy theo cách agent được gọi.",
-					"taskAssignment": "Giao nhiệm vụ / bình luận nhiệm vụ",
-					"docCommentMention": "@nhắc đến trong bình luận tài liệu",
-					"directChat": "Trò chuyện trực tiếp",
-					"writeDescription": "Viết mô tả nhiệm vụ bằng AI"
-				},
-				"capabilities": "Khả năng",
-				"cloneRepositories": "Clone kho mã",
-				"cloneRepositoriesHint": "Cho phép agent git clone kho mã về máy cục bộ",
 				"gitCommitterIdentity": "Danh tính committer Git",
 				"gitCommitterHint": "Tên và email dùng cho các commit do agent này thực hiện.",
 				"committerNameLabel": "Tên committer",
@@ -128,6 +114,25 @@
 					"urlLabel": "URL",
 					"cancel": "Hủy",
 					"addServer": "Thêm máy chủ"
+				}
+			},
+			"envVars": {
+				"count_one": "{{count}} biến đã cấu hình",
+				"count_other": "{{count}} biến đã cấu hình",
+				"addVariable": "Thêm biến",
+				"empty": {
+					"title": "Chưa thêm biến môi trường nào",
+					"addFirst": "Thêm biến đầu tiên của bạn"
+				},
+				"addDialog": {
+					"title": "Thêm biến môi trường",
+					"description": "Giá trị bí mật được mã hóa khi lưu trữ và được đưa vào sandbox của agent khi chạy. Sau khi lưu, giá trị sẽ không thể xem lại được nữa.",
+					"keyLabel": "Khóa",
+					"keyPlaceholder": "GITHUB_TOKEN",
+					"keyHint": "(chữ cái, chữ số, dấu gạch dưới — phải bắt đầu bằng chữ cái hoặc dấu gạch dưới)",
+					"valueLabel": "Giá trị",
+					"cancel": "Hủy",
+					"addVariable": "Thêm biến"
 				}
 			},
 			"skills": {
@@ -159,7 +164,6 @@
 				"iterations_one": "{{count}} lượt lặp",
 				"iterations_other": "{{count}} lượt lặp",
 				"prOpened": "PR đã mở",
-				"watch": "Theo dõi",
 				"empty": {
 					"title": "Chưa có hội thoại nào",
 					"description": "Hội thoại bắt đầu khi một nhiệm vụ được giao cho agent này hoặc khi có ai đó nhắn tin cho nó."
@@ -167,15 +171,63 @@
 			}
 		},
 		"conversationView": {
-			"thinking": "Đang suy nghĩ…",
-			"observation": "quan sát",
-			"toolLabel": "công cụ: {{toolName}}",
 			"stop": "Dừng",
 			"notFound": "Không tìm thấy hội thoại",
 			"chatSession": "Phiên trò chuyện",
 			"taskSession": "Phiên nhiệm vụ",
 			"pr": "PR",
-			"noMessages": "Chưa có tin nhắn nào"
+			"conversationEnded": "Cuộc trò chuyện này đã kết thúc.",
+			"textOnlyMessage": "Chỉ hỗ trợ tin nhắn văn bản.",
+			"failed": "Cuộc trò chuyện thất bại",
+			"noOutput": "Agent không tạo ra kết quả nào."
+		},
+		"thread": {
+			"composerPlaceholder": "Nhắn tin cho agent…",
+			"welcomeHeading": "Tôi có thể giúp gì cho bạn hôm nay?",
+			"messageInputAriaLabel": "Ô nhập tin nhắn",
+			"voiceInput": "Nhập bằng giọng nói",
+			"startVoiceInputAriaLabel": "Bắt đầu nhập bằng giọng nói",
+			"stopDictation": "Dừng nhập giọng nói",
+			"stopVoiceInputAriaLabel": "Dừng nhập bằng giọng nói",
+			"sendMessage": "Gửi tin nhắn",
+			"stopGeneratingAriaLabel": "Dừng tạo phản hồi",
+			"assistantWorkingAriaLabel": "Agent đang xử lý",
+			"copy": "Sao chép",
+			"refresh": "Làm mới",
+			"more": "Thêm",
+			"edit": "Chỉnh sửa",
+			"previous": "Trước",
+			"next": "Tiếp theo",
+			"exportAsMarkdown": "Xuất dưới dạng Markdown",
+			"scrollToBottom": "Cuộn xuống cuối",
+			"cancel": "Hủy",
+			"update": "Cập nhật",
+			"reasoning": "Suy luận",
+			"reasoningWithDuration": "Suy luận ({{duration}}s)",
+			"toolCallCount_one": "{{count}} lượt gọi công cụ",
+			"toolCallCount_other": "{{count}} lượt gọi công cụ",
+			"usedTool": "Công cụ đã dùng",
+			"cancelledTool": "Công cụ đã hủy",
+			"resultLabel": "Kết quả:",
+			"errorLabel": "Lỗi:",
+			"cancelledReasonLabel": "Lý do hủy:",
+			"approvedByUser": "Đã được người dùng chấp thuận",
+			"deniedByUser": "Người dùng từ chối thực thi công cụ",
+			"allow": "Cho phép",
+			"alwaysAllow": "Luôn cho phép",
+			"deny": "Từ chối",
+			"alwaysDeny": "Luôn từ chối",
+			"confirm": "Xác nhận",
+			"back": "Quay lại",
+			"attachmentPreview": "Xem trước tệp đính kèm",
+			"attachmentTypeImage": "Hình ảnh",
+			"attachmentTypeDocument": "Tài liệu",
+			"attachmentTypeFile": "Tệp",
+			"removeFile": "Xóa tệp",
+			"imageAttachmentPreviewTitle": "Xem trước hình ảnh đính kèm",
+			"attachmentAriaLabel": "Tệp đính kèm {{type}}",
+			"attachmentAriaLabelError": "Tệp đính kèm {{type}}, tải lên thất bại",
+			"attachmentAriaLabelUploading": "Tệp đính kèm {{type}}, đang tải lên"
 		}
 	},
 	"docs": {
@@ -295,6 +347,14 @@
 			"agentsWrite": {
 				"label": "Quản lý agent",
 				"description": "Tạo, cấu hình và xóa AI agent"
+			},
+			"workflowsRead": {
+				"label": "Xem quy trình",
+				"description": "Xem các quy trình tự động hóa và cấu hình của chúng"
+			},
+			"workflowsWrite": {
+				"label": "Quản lý quy trình",
+				"description": "Tạo, chỉnh sửa, kích hoạt và xóa các quy trình tự động hóa"
 			}
 		},
 		"permissionGroups": {
@@ -304,7 +364,8 @@
 			"tasks": "Nhiệm vụ",
 			"sprints": "Sprint",
 			"documents": "Tài liệu",
-			"aiAgents": "AI Agent"
+			"aiAgents": "AI Agent",
+			"workflows": "Tự động hóa"
 		}
 	},
 	"settings": {
@@ -557,10 +618,7 @@
 		"agentLabel": "Agent",
 		"noAgentsConfigured": "Chưa có agent nào được cấu hình cho dự án này.",
 		"selectAgentPlaceholder": "Chọn một agent…",
-		"messageLabel": "Tin nhắn",
-		"messageHint": "(Enter để gửi, Shift+Enter để xuống dòng)",
-		"messagePlaceholder": "Bạn muốn agent hỗ trợ điều gì?",
-		"send": "Gửi"
+		"selectAgentFirst": "Vui lòng chọn một agent trước."
 	},
 	"taskTypes": {
 		"deleteDialog": {
@@ -669,6 +727,11 @@
 			"openTask": "Mở nhiệm vụ",
 			"removeLink": "Gỡ liên kết",
 			"empty": "Không có nhiệm vụ liên kết"
+		},
+		"workflows": {
+			"title": "Quy trình",
+			"open": "Mở quy trình",
+			"empty": "Chưa có quy trình nào"
 		},
 		"attachments": {
 			"title": "Tệp đính kèm",
@@ -806,15 +869,6 @@
 			"watchSession": "Theo dõi phiên",
 			"madeChange": "đã thực hiện một thay đổi",
 			"descriptionChangeDiff": "Thay đổi mô tả"
-		},
-		"timeAgo": {
-			"justNow": "vừa xong",
-			"minutes_one": "{{count}} phút trước",
-			"minutes_other": "{{count}} phút trước",
-			"hours_one": "{{count}} giờ trước",
-			"hours_other": "{{count}} giờ trước",
-			"days_one": "{{count}} ngày trước",
-			"days_other": "{{count}} ngày trước"
 		}
 	},
 	"board": {
@@ -1058,6 +1112,82 @@
 			"startDate": "Ngày bắt đầu",
 			"dueDate": "Ngày đến hạn",
 			"created": "Đã tạo"
+		}
+	},
+	"automation": {
+		"list": {
+			"title": "Tự động hóa",
+			"subtitle": "Tự động hóa việc bàn giao công việc khi tiến trình dự án thay đổi",
+			"newWorkflow": "Quy trình mới",
+			"empty": {
+				"title": "Chưa có quy trình nào",
+				"description": "Tạo một quy trình để tự động hóa việc bàn giao công việc khi tiến trình dự án thay đổi.",
+				"createFirstWorkflow": "Tạo quy trình đầu tiên của bạn"
+			},
+			"noDescription": "Không có mô tả",
+			"updated": "Đã cập nhật {{time}}"
+		},
+		"status": {
+			"draft": "Bản nháp",
+			"active": "Đang hoạt động",
+			"archived": "Đã lưu trữ"
+		},
+		"createDialog": {
+			"title": "Quy trình tự động mới",
+			"nameLabel": "Tên",
+			"namePlaceholder": "vd: Quy trình phát hành",
+			"descriptionLabel": "Mô tả",
+			"descriptionPlaceholder": "Chi tiết tùy chọn về quy trình này…",
+			"cancel": "Hủy",
+			"create": "Tạo"
+		},
+		"deleteDialog": {
+			"title": "Xóa quy trình",
+			"body": "Bạn có chắc muốn xóa \"{{name}}\" không? Hành động này không thể hoàn tác.",
+			"cancel": "Hủy",
+			"confirm": "Xóa"
+		},
+		"builder": {
+			"addTask": "Thêm công việc",
+			"activate": "Kích hoạt",
+			"archive": "Lưu trữ",
+			"deactivate": "Hủy kích hoạt",
+			"readOnlyNoticeArchived": "Quy trình này đã được lưu trữ và ở chế độ chỉ xem — quy trình đã lưu trữ không thể chỉnh sửa.",
+			"genericError": "Đã xảy ra lỗi. Vui lòng thử lại.",
+			"collapseSidebar": "Thu gọn thanh bên",
+			"expandSidebar": "Mở rộng thanh bên"
+		},
+		"canvas": {
+			"unknownTask": "Công việc không xác định",
+			"deleteEdge": "Xóa kết nối"
+		},
+		"addNodeModal": {
+			"title": "Thêm công việc vào quy trình",
+			"searchPlaceholder": "Tìm kiếm công việc...",
+			"loadingTasks": "Đang tải công việc...",
+			"noTasksFound": "Không tìm thấy công việc nào"
+		},
+		"nodePanel": {
+			"title": "Công việc",
+			"removeNode": "Xóa khỏi quy trình",
+			"removeConfirmTitle": "Xóa công việc khỏi quy trình",
+			"removeConfirmBody": "Thao tác này xóa công việc khỏi sơ đồ quy trình, cùng với các kết nối của nó. Bản thân công việc không bị ảnh hưởng.",
+			"cancel": "Hủy",
+			"removeConfirmAction": "Xóa"
+		},
+		"statusRules": {
+			"title": "Quy tắc trạng thái → người được giao",
+			"hint": "Tự động giao một công việc cho thành viên bất cứ khi nào nó chuyển sang một trong các trạng thái này. Điều này áp dụng cho bất kỳ công việc nào trong quy trình này — dù ai đó thay đổi trực tiếp trạng thái của công việc, hay một công việc tiền nhiệm hoàn tất khiến công việc kế tiếp được đánh giá lại theo trạng thái hiện tại của nó.",
+			"noRules": "Chưa có quy tắc nào",
+			"statusPlaceholder": "Trạng thái",
+			"memberPlaceholder": "Người được giao"
+		},
+		"statusTransitions": {
+			"title": "Quy trình trạng thái",
+			"hint": "Xác định trạng thái nào sẽ đến tiếp theo khi công việc ở mỗi trạng thái hoàn tất. Điều này mở khóa các công việc kế tiếp và cho agent AI được giao biết chính xác trạng thái cần đặt tiếp theo, thay vì phải đoán. Một chuỗi mặc định được tự động tạo từ các trạng thái của dự án khi quy trình được tạo.",
+			"nextStatusLabel": "Trạng thái tiếp theo",
+			"terminalOption": "__END__",
+			"ambiguousWarning": "Phải có chính xác một trạng thái không có trạng thái tiếp theo (đây sẽ là trạng thái __END__ của quy trình). Hiện tại: {{count}} được cấu hình."
 		}
 	}
 }

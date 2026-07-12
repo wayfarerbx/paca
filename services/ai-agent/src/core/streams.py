@@ -81,16 +81,20 @@ async def publish_realtime(
     await client.publish(REALTIME_CHANNEL, message)
 
 
-# Trigger types that carry a conversation run request.
+# Trigger types that carry a conversation run request. Mirrors the
+# TopicAgent* constants in services/api/internal/events/topics.go.
 _TRIGGER_TYPES = {
     "agent.task_assigned",
     "agent.comment_mention",
     "agent.chat_message",
+    "agent.description_write",
 }
 
 # Control message types that direct an *existing* conversation.
 _CONTROL_TYPES = {
-    "agent.stop",
+    "agent.stop",  # interrupt (if any) + destroy the sandbox — unchanged from before
+    "agent.pause",  # interrupt the in-flight turn only; sandbox untouched
+    "agent.heartbeat",  # keep-alive ping; refreshes the chat sandbox idle timer
 }
 
 
@@ -105,7 +109,7 @@ class TriggerMessage:
     comment_id: str | None
     chat_session_id: str | None
     message: str
-    actor_member_id: str
+    actor_member_id: str | None
     repo_plugin_ids: list[str]
 
     @classmethod
@@ -122,17 +126,17 @@ class TriggerMessage:
             comment_id=fields.get("comment_id") or None,
             chat_session_id=fields.get("chat_session_id") or None,
             message=fields.get("message", ""),
-            actor_member_id=fields["actor_member_id"],
+            actor_member_id=fields.get("actor_member_id"),
             repo_plugin_ids=repo_plugin_ids,
         )
 
 
 @dataclass
 class ControlMessage:
-    """A stop directive for an already-running conversation."""
+    """A stop/pause/heartbeat directive for an already-running conversation."""
 
     stream_id: str
-    control_type: str  # e.g. "agent.stop"
+    control_type: str  # one of _CONTROL_TYPES
     conversation_id: str
     project_id: str
 

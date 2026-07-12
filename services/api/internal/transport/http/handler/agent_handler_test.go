@@ -11,6 +11,7 @@ import (
 
 	agentdom "github.com/Paca-AI/api/internal/domain/agent"
 	domainauth "github.com/Paca-AI/api/internal/domain/auth"
+	projectdom "github.com/Paca-AI/api/internal/domain/project"
 	"github.com/Paca-AI/api/internal/transport/http/handler"
 	httpmw "github.com/Paca-AI/api/internal/transport/http/middleware"
 	"github.com/go-chi/chi/v5"
@@ -23,9 +24,10 @@ import (
 // ---------------------------------------------------------------------------
 
 type mockAgentSvc struct {
-	getAgent    func(ctx context.Context, projectID, agentID uuid.UUID) (*agentdom.Agent, error)
-	createAgent func(ctx context.Context, projectID uuid.UUID, in agentdom.CreateAgentInput) (*agentdom.Agent, error)
-	updateAgent func(ctx context.Context, projectID, agentID uuid.UUID, in agentdom.UpdateAgentInput) (*agentdom.Agent, error)
+	getAgent         func(ctx context.Context, projectID, agentID uuid.UUID) (*agentdom.Agent, error)
+	createAgent      func(ctx context.Context, projectID uuid.UUID, in agentdom.CreateAgentInput) (*agentdom.Agent, error)
+	updateAgent      func(ctx context.Context, projectID, agentID uuid.UUID, in agentdom.UpdateAgentInput) (*agentdom.Agent, error)
+	startChatSession func(ctx context.Context, projectID, agentID, memberID uuid.UUID, message string) (*agentdom.AgentChatSession, *agentdom.AgentConversation, error)
 }
 
 func (m *mockAgentSvc) ListAgents(_ context.Context, _ uuid.UUID) ([]*agentdom.Agent, error) {
@@ -75,6 +77,16 @@ func (m *mockAgentSvc) UpdateSkill(_ context.Context, _, _ uuid.UUID, _ agentdom
 	return nil, errors.New("not found")
 }
 func (m *mockAgentSvc) DeleteSkill(_ context.Context, _, _ uuid.UUID) error { return nil }
+func (m *mockAgentSvc) ListEnvVars(_ context.Context, _ uuid.UUID) ([]*agentdom.AgentEnvironmentVariable, error) {
+	return nil, nil
+}
+func (m *mockAgentSvc) AddEnvVar(_ context.Context, _ uuid.UUID, _ agentdom.AddEnvVarInput) (*agentdom.AgentEnvironmentVariable, error) {
+	return &agentdom.AgentEnvironmentVariable{ID: uuid.New()}, nil
+}
+func (m *mockAgentSvc) UpdateEnvVar(_ context.Context, _, _ uuid.UUID, _ agentdom.UpdateEnvVarInput) (*agentdom.AgentEnvironmentVariable, error) {
+	return nil, errors.New("not found")
+}
+func (m *mockAgentSvc) DeleteEnvVar(_ context.Context, _, _ uuid.UUID) error { return nil }
 func (m *mockAgentSvc) ListConversations(_ context.Context, _ agentdom.ListConversationsFilter) ([]*agentdom.AgentConversation, int64, error) {
 	return nil, 0, nil
 }
@@ -84,14 +96,19 @@ func (m *mockAgentSvc) GetConversation(_ context.Context, _, _ uuid.UUID) (*agen
 func (m *mockAgentSvc) ListConversationEvents(_ context.Context, _ uuid.UUID, _, _ int) ([]*agentdom.AgentConversationEvent, int64, error) {
 	return nil, 0, nil
 }
-func (m *mockAgentSvc) StopConversation(_ context.Context, _, _ uuid.UUID) error { return nil }
+func (m *mockAgentSvc) StopConversation(_ context.Context, _, _ uuid.UUID) error  { return nil }
+func (m *mockAgentSvc) PauseConversation(_ context.Context, _, _ uuid.UUID) error { return nil }
+func (m *mockAgentSvc) Heartbeat(_ context.Context, _, _ uuid.UUID) error         { return nil }
 func (m *mockAgentSvc) SendConversationMessage(_ context.Context, _, _ uuid.UUID, _ string, _ uuid.UUID) error {
 	return nil
 }
 func (m *mockAgentSvc) ListChatSessions(_ context.Context, _, _, _ uuid.UUID) ([]*agentdom.AgentChatSession, error) {
 	return nil, nil
 }
-func (m *mockAgentSvc) StartChatSession(_ context.Context, _, _, _ uuid.UUID, _ string) (*agentdom.AgentChatSession, *agentdom.AgentConversation, error) {
+func (m *mockAgentSvc) StartChatSession(ctx context.Context, projectID, agentID, memberID uuid.UUID, message string) (*agentdom.AgentChatSession, *agentdom.AgentConversation, error) {
+	if m.startChatSession != nil {
+		return m.startChatSession(ctx, projectID, agentID, memberID, message)
+	}
 	return &agentdom.AgentChatSession{ID: uuid.New()}, &agentdom.AgentConversation{ID: uuid.New()}, nil
 }
 func (m *mockAgentSvc) SendChatMessage(_ context.Context, _, _, _ uuid.UUID, _ string) (*agentdom.AgentConversation, error) {
@@ -123,6 +140,88 @@ func newAgentRouter(svc agentdom.Service) chi.Router {
 		})
 	})
 	r.Post("/projects/{projectId}/agents/{agentId}/chat-sessions/{sessionId}/messages", h.SendChatMessage)
+	return r
+}
+
+// fakeMemberRepo implements projectdom.MemberRepository, letting tests
+// control FindMemberByUserProject — the only method resolveMemberID calls.
+// Every other method panics if invoked, since resolveMemberID tests should
+// never reach them.
+type fakeMemberRepo struct {
+	findByUserProject func(ctx context.Context, userID, projectID uuid.UUID) (*projectdom.ProjectMember, error)
+}
+
+func (f *fakeMemberRepo) ListMembers(context.Context, uuid.UUID) ([]*projectdom.ProjectMember, error) {
+	panic("fakeMemberRepo: ListMembers not used by resolveMemberID tests")
+}
+func (f *fakeMemberRepo) FindMember(context.Context, uuid.UUID, uuid.UUID) (*projectdom.ProjectMember, error) {
+	panic("fakeMemberRepo: FindMember not used by resolveMemberID tests")
+}
+func (f *fakeMemberRepo) FindMemberByAgent(context.Context, uuid.UUID, uuid.UUID) (*projectdom.ProjectMember, error) {
+	panic("fakeMemberRepo: FindMemberByAgent not used by resolveMemberID tests")
+}
+func (f *fakeMemberRepo) FindMemberByUserProject(ctx context.Context, userID, projectID uuid.UUID) (*projectdom.ProjectMember, error) {
+	return f.findByUserProject(ctx, userID, projectID)
+}
+func (f *fakeMemberRepo) FindMemberByActor(context.Context, uuid.UUID, uuid.UUID, *uuid.UUID) (*projectdom.ProjectMember, error) {
+	panic("fakeMemberRepo: FindMemberByActor not used by resolveMemberID tests")
+}
+func (f *fakeMemberRepo) FindMemberByID(context.Context, uuid.UUID) (*projectdom.ProjectMember, error) {
+	panic("fakeMemberRepo: FindMemberByID not used by resolveMemberID tests")
+}
+func (f *fakeMemberRepo) AddMember(context.Context, *projectdom.ProjectMember) error {
+	panic("fakeMemberRepo: AddMember not used by resolveMemberID tests")
+}
+func (f *fakeMemberRepo) UpdateMemberRole(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error {
+	panic("fakeMemberRepo: UpdateMemberRole not used by resolveMemberID tests")
+}
+func (f *fakeMemberRepo) RemoveMember(context.Context, uuid.UUID, uuid.UUID) error {
+	panic("fakeMemberRepo: RemoveMember not used by resolveMemberID tests")
+}
+func (f *fakeMemberRepo) UpdateMemberRoleByMemberID(context.Context, uuid.UUID, uuid.UUID) error {
+	panic("fakeMemberRepo: UpdateMemberRoleByMemberID not used by resolveMemberID tests")
+}
+func (f *fakeMemberRepo) RemoveMemberByMemberID(context.Context, uuid.UUID) error {
+	panic("fakeMemberRepo: RemoveMemberByMemberID not used by resolveMemberID tests")
+}
+func (f *fakeMemberRepo) AddAgentMember(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID) error {
+	panic("fakeMemberRepo: AddAgentMember not used by resolveMemberID tests")
+}
+func (f *fakeMemberRepo) RemoveAgentMember(context.Context, uuid.UUID, uuid.UUID) error {
+	panic("fakeMemberRepo: RemoveAgentMember not used by resolveMemberID tests")
+}
+
+var _ projectdom.MemberRepository = (*fakeMemberRepo)(nil)
+
+// claimsMiddleware injects a synthetic access-token claims with the given
+// subject, so resolveMemberID has something to parse.
+func claimsMiddleware(subject string) func(http.Handler) http.Handler {
+	claims := &domainauth.Claims{
+		RegisteredClaims: jwt.RegisteredClaims{Subject: subject},
+		Kind:             "access",
+	}
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := context.WithValue(r.Context(), httpmw.ClaimsContextKey(), claims)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+// newAgentRouterWithMemberRepo mirrors newAgentRouter but additionally wires
+// a member repo (nil leaves it unset, like NewAgentHandler's zero value) and
+// injects claims with the given subject, so resolveMemberID's branches can
+// be exercised end-to-end through the HTTP layer.
+func newAgentRouterWithMemberRepo(svc agentdom.Service, memberRepo projectdom.MemberRepository, subject string) chi.Router {
+	h := handler.NewAgentHandler(svc, "")
+	if memberRepo != nil {
+		h = h.WithMemberRepo(memberRepo)
+	}
+	r := chi.NewRouter()
+	r.Use(claimsMiddleware(subject))
+	r.Route("/projects/{projectId}/agents/{agentId}", func(r chi.Router) {
+		r.Post("/chat-sessions", h.StartChatSession)
+	})
 	return r
 }
 
@@ -428,5 +527,93 @@ func TestWriteTaskDescriptionWithAI_MissingAgentID_Returns400(t *testing.T) {
 		map[string]any{})
 	if w.Code != http.StatusBadRequest {
 		t.Fatalf("expected 400 for missing agent_id, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// ---------------------------------------------------------------------------
+// resolveMemberID tests — exercised through StartChatSession, one of its
+// four callers, since resolveMemberID itself is unexported.
+// ---------------------------------------------------------------------------
+
+func TestResolveMemberID_NoMemberRepoConfigured_Returns500(t *testing.T) {
+	r := newAgentRouterWithMemberRepo(&mockAgentSvc{}, nil, uuid.New().String())
+	projectID := uuid.New()
+	agentID := uuid.New()
+
+	w := doAgentRequest(t, r, http.MethodPost,
+		"/projects/"+projectID.String()+"/agents/"+agentID.String()+"/chat-sessions",
+		map[string]any{"message": "hello"})
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500 when no member repo is configured, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestResolveMemberID_InvalidSubjectClaim_Returns400(t *testing.T) {
+	memberRepo := &fakeMemberRepo{
+		findByUserProject: func(context.Context, uuid.UUID, uuid.UUID) (*projectdom.ProjectMember, error) {
+			t.Fatal("FindMemberByUserProject should not be called when the subject claim itself is unparsable")
+			return nil, nil
+		},
+	}
+	r := newAgentRouterWithMemberRepo(&mockAgentSvc{}, memberRepo, "not-a-uuid")
+	projectID := uuid.New()
+	agentID := uuid.New()
+
+	w := doAgentRequest(t, r, http.MethodPost,
+		"/projects/"+projectID.String()+"/agents/"+agentID.String()+"/chat-sessions",
+		map[string]any{"message": "hello"})
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for an unparsable subject claim, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestResolveMemberID_LookupFails_PropagatesError(t *testing.T) {
+	memberRepo := &fakeMemberRepo{
+		findByUserProject: func(context.Context, uuid.UUID, uuid.UUID) (*projectdom.ProjectMember, error) {
+			return nil, errors.New("db unavailable")
+		},
+	}
+	r := newAgentRouterWithMemberRepo(&mockAgentSvc{}, memberRepo, uuid.New().String())
+	projectID := uuid.New()
+	agentID := uuid.New()
+
+	w := doAgentRequest(t, r, http.MethodPost,
+		"/projects/"+projectID.String()+"/agents/"+agentID.String()+"/chat-sessions",
+		map[string]any{"message": "hello"})
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected the lookup error to surface as a 500, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestResolveMemberID_Resolved_PassesMemberIDToService(t *testing.T) {
+	userID := uuid.New()
+	resolvedMemberID := uuid.New()
+	var gotMemberID uuid.UUID
+	memberRepo := &fakeMemberRepo{
+		findByUserProject: func(_ context.Context, gotUserID, _ uuid.UUID) (*projectdom.ProjectMember, error) {
+			if gotUserID != userID {
+				t.Fatalf("expected lookup for user %v, got %v", userID, gotUserID)
+			}
+			return &projectdom.ProjectMember{ID: resolvedMemberID}, nil
+		},
+	}
+	svc := &mockAgentSvc{
+		startChatSession: func(_ context.Context, _, _, memberID uuid.UUID, _ string) (*agentdom.AgentChatSession, *agentdom.AgentConversation, error) {
+			gotMemberID = memberID
+			return &agentdom.AgentChatSession{ID: uuid.New()}, &agentdom.AgentConversation{ID: uuid.New()}, nil
+		},
+	}
+	r := newAgentRouterWithMemberRepo(svc, memberRepo, userID.String())
+	projectID := uuid.New()
+	agentID := uuid.New()
+
+	w := doAgentRequest(t, r, http.MethodPost,
+		"/projects/"+projectID.String()+"/agents/"+agentID.String()+"/chat-sessions",
+		map[string]any{"message": "hello"})
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+	if gotMemberID != resolvedMemberID {
+		t.Fatalf("expected resolved member ID %v to reach the service, got %v", resolvedMemberID, gotMemberID)
 	}
 }

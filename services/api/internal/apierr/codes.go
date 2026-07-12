@@ -94,6 +94,8 @@ const (
 	CodeTaskStatusCategoryInvalid Code = "TASK_STATUS_CATEGORY_INVALID"
 	// CodeTaskStatusReorderInvalid indicates the provided status IDs do not match the project's statuses.
 	CodeTaskStatusReorderInvalid Code = "TASK_STATUS_REORDER_INVALID"
+	// CodeTaskStatusInUseByWorkflow indicates the status is still referenced by an automation workflow.
+	CodeTaskStatusInUseByWorkflow Code = "TASK_STATUS_IN_USE_BY_WORKFLOW"
 
 	// CodeSprintNotFound indicates the requested sprint does not exist.
 	CodeSprintNotFound Code = "SPRINT_NOT_FOUND"
@@ -151,6 +153,10 @@ const (
 	CodeActivityNotAComment Code = "ACTIVITY_NOT_A_COMMENT"
 	// CodeCommentContentInvalid indicates an empty or invalid comment content.
 	CodeCommentContentInvalid Code = "ACTIVITY_COMMENT_CONTENT_INVALID"
+	// CodeCommentActorUnidentified indicates the caller authenticated with the
+	// shared agent API key but did not supply an X-Agent-ID header, so there is
+	// no project member identity to attribute the comment to.
+	CodeCommentActorUnidentified Code = "ACTIVITY_COMMENT_ACTOR_UNIDENTIFIED"
 
 	// --- Task link errors ------------------------------------------------
 
@@ -187,6 +193,10 @@ const (
 	CodeDocActivityNotAComment Code = "DOC_ACTIVITY_NOT_A_COMMENT"
 	// CodeDocCommentContentInvalid indicates an empty or invalid comment content.
 	CodeDocCommentContentInvalid Code = "DOC_COMMENT_CONTENT_INVALID"
+	// CodeDocCommentActorUnidentified indicates the caller authenticated with
+	// the shared agent API key but did not supply an X-Agent-ID header, so
+	// there is no project member identity to attribute the comment to.
+	CodeDocCommentActorUnidentified Code = "DOC_COMMENT_ACTOR_UNIDENTIFIED"
 
 	// CodeNotificationNotFound indicates the requested notification does not exist
 	// or does not belong to the authenticated user.
@@ -262,14 +272,77 @@ const (
 	CodeAgentMCPServerNotFound Code = "AGENT_MCP_SERVER_NOT_FOUND"
 	// CodeAgentSkillNotFound indicates the requested skill does not exist.
 	CodeAgentSkillNotFound Code = "AGENT_SKILL_NOT_FOUND"
+	// CodeAgentSkillNameReserved indicates the skill name collides with a name reserved for internal agent scaffolding.
+	CodeAgentSkillNameReserved Code = "AGENT_SKILL_NAME_RESERVED"
 	// CodeAgentConversationNotFound indicates the requested conversation does not exist.
 	CodeAgentConversationNotFound Code = "AGENT_CONVERSATION_NOT_FOUND"
 	// CodeAgentConversationNotRunning indicates the conversation is not in a runnable state.
 	CodeAgentConversationNotRunning Code = "AGENT_CONVERSATION_NOT_RUNNING"
 	// CodeAgentConversationAlreadyStopped indicates the conversation is already stopped/finished.
 	CodeAgentConversationAlreadyStopped Code = "AGENT_CONVERSATION_ALREADY_STOPPED"
+	// CodeAgentConversationBusy indicates a chat reply was sent while the agent is still responding to the previous one.
+	CodeAgentConversationBusy Code = "AGENT_CONVERSATION_BUSY"
 	// CodeAgentChatSessionNotFound indicates the requested chat session does not exist.
 	CodeAgentChatSessionNotFound Code = "AGENT_CHAT_SESSION_NOT_FOUND"
+	// CodeAgentEnvVarNotFound indicates the requested environment variable does not exist.
+	CodeAgentEnvVarNotFound Code = "AGENT_ENV_VAR_NOT_FOUND"
+	// CodeAgentEnvVarKeyTaken indicates the environment variable key is already in use on this agent.
+	CodeAgentEnvVarKeyTaken Code = "AGENT_ENV_VAR_KEY_TAKEN"
+	// CodeAgentEnvVarKeyInvalid indicates the environment variable key is malformed.
+	CodeAgentEnvVarKeyInvalid Code = "AGENT_ENV_VAR_KEY_INVALID"
+	// CodeAgentEnvVarKeyReserved indicates the environment variable key collides with an internal sandbox variable.
+	CodeAgentEnvVarKeyReserved Code = "AGENT_ENV_VAR_KEY_RESERVED"
+
+	// --- Automation workflow errors ------------------------------------------
+
+	// CodeWorkflowNotFound indicates the requested workflow does not exist.
+	CodeWorkflowNotFound Code = "WORKFLOW_NOT_FOUND"
+	// CodeWorkflowNameInvalid indicates an empty or invalid workflow name.
+	CodeWorkflowNameInvalid Code = "WORKFLOW_NAME_INVALID"
+	// CodeWorkflowNodeNotFound indicates the requested workflow node does not exist.
+	CodeWorkflowNodeNotFound Code = "WORKFLOW_NODE_NOT_FOUND"
+	// CodeWorkflowNodeDuplicateTask indicates the task is already a node in this workflow.
+	CodeWorkflowNodeDuplicateTask Code = "WORKFLOW_NODE_DUPLICATE_TASK"
+	// CodeWorkflowNodeTaskCrossProject indicates the task does not belong to the workflow's project.
+	CodeWorkflowNodeTaskCrossProject Code = "WORKFLOW_NODE_TASK_CROSS_PROJECT"
+	// CodeWorkflowStatusRuleNotFound indicates the requested status rule does not exist.
+	CodeWorkflowStatusRuleNotFound Code = "WORKFLOW_STATUS_RULE_NOT_FOUND"
+	// CodeWorkflowStatusRuleCrossProject indicates the status or member does not belong to the workflow's project.
+	CodeWorkflowStatusRuleCrossProject Code = "WORKFLOW_STATUS_RULE_CROSS_PROJECT"
+	// CodeWorkflowStatusRuleConflict indicates a concurrent request already set this status rule.
+	CodeWorkflowStatusRuleConflict Code = "WORKFLOW_STATUS_RULE_CONFLICT"
+	// CodeWorkflowStatusTransitionNotFound indicates the requested status transition does not exist.
+	CodeWorkflowStatusTransitionNotFound Code = "WORKFLOW_STATUS_TRANSITION_NOT_FOUND"
+	// CodeWorkflowStatusTransitionCrossProject indicates the status does not belong to the workflow's project.
+	CodeWorkflowStatusTransitionCrossProject Code = "WORKFLOW_STATUS_TRANSITION_CROSS_PROJECT"
+	// CodeWorkflowStatusTransitionSelfLoop indicates an attempt to make a status transition to itself.
+	CodeWorkflowStatusTransitionSelfLoop Code = "WORKFLOW_STATUS_TRANSITION_SELF_LOOP"
+	// CodeWorkflowStatusTransitionConflict indicates a concurrent request already set this status transition.
+	CodeWorkflowStatusTransitionConflict Code = "WORKFLOW_STATUS_TRANSITION_CONFLICT"
+	// CodeWorkflowEdgeNotFound indicates the requested edge does not exist.
+	CodeWorkflowEdgeNotFound Code = "WORKFLOW_EDGE_NOT_FOUND"
+	// CodeWorkflowEdgeSelfLoop indicates an attempt to link a node to itself.
+	CodeWorkflowEdgeSelfLoop Code = "WORKFLOW_EDGE_SELF_LOOP"
+	// CodeWorkflowEdgeCrossWorkflow indicates source and target nodes belong to different workflows.
+	CodeWorkflowEdgeCrossWorkflow Code = "WORKFLOW_EDGE_CROSS_WORKFLOW"
+	// CodeWorkflowEdgeCycle indicates the edge would create a cycle in the dependency graph.
+	CodeWorkflowEdgeCycle Code = "WORKFLOW_EDGE_CYCLE"
+	// CodeWorkflowEdgeDuplicate indicates the edge already exists.
+	CodeWorkflowEdgeDuplicate Code = "WORKFLOW_EDGE_DUPLICATE"
+	// CodeWorkflowNotDraft indicates the workflow can only be activated while in draft.
+	CodeWorkflowNotDraft Code = "WORKFLOW_NOT_DRAFT"
+	// CodeWorkflowNotActive indicates the workflow is not active.
+	CodeWorkflowNotActive Code = "WORKFLOW_NOT_ACTIVE"
+	// CodeWorkflowArchived indicates the workflow's graph can no longer be edited once archived.
+	CodeWorkflowArchived Code = "WORKFLOW_ARCHIVED"
+	// CodeWorkflowActivateNoNodes indicates an empty workflow cannot be activated.
+	CodeWorkflowActivateNoNodes Code = "WORKFLOW_ACTIVATE_NO_NODES"
+	// CodeWorkflowActivateDoneStatusUndetermined indicates the workflow's status-transition chain doesn't have exactly one terminal (done) status.
+	CodeWorkflowActivateDoneStatusUndetermined Code = "WORKFLOW_ACTIVATE_DONE_STATUS_UNDETERMINED"
+	// CodeWorkflowActivateTaskMissing indicates a node references a task that no longer exists in the project.
+	CodeWorkflowActivateTaskMissing Code = "WORKFLOW_ACTIVATE_TASK_MISSING"
+	// CodeWorkflowActivateNoStatusRules indicates the workflow has no status rules, so activating it would never reassign anything.
+	CodeWorkflowActivateNoStatusRules Code = "WORKFLOW_ACTIVATE_NO_STATUS_RULES"
 )
 
 // Error carries a machine-readable Code alongside a human-readable Message.

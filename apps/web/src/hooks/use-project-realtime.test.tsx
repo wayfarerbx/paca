@@ -103,6 +103,45 @@ describe("useProjectRealtime", () => {
 		});
 	});
 
+	it("invalidates workflows and tasks query keys on workflow.* events", () => {
+		renderHook(() => useProjectRealtime("proj-abc"));
+
+		const [, listener] = mocks.socket.on.mock.calls[0] as [
+			string,
+			(event: { type: string; payload: Record<string, unknown> }) => void,
+		];
+
+		listener({ type: "workflow.node.added", payload: {} });
+
+		expect(mocks.invalidateQueries).toHaveBeenCalledWith({
+			queryKey: ["projects", "proj-abc", "workflows"],
+		});
+		expect(mocks.invalidateQueries).toHaveBeenCalledWith({
+			queryKey: ["projects", "proj-abc", "tasks"],
+		});
+	});
+
+	it("invalidates workflows and tasks query keys on workflow.assigned events", () => {
+		renderHook(() => useProjectRealtime("proj-abc"));
+
+		const [, listener] = mocks.socket.on.mock.calls[0] as [
+			string,
+			(event: { type: string; payload: Record<string, unknown> }) => void,
+		];
+
+		listener({
+			type: "workflow.assigned",
+			payload: { project_id: "proj-abc", task_id: "task-1" },
+		});
+
+		expect(mocks.invalidateQueries).toHaveBeenCalledWith({
+			queryKey: ["projects", "proj-abc", "workflows"],
+		});
+		expect(mocks.invalidateQueries).toHaveBeenCalledWith({
+			queryKey: ["projects", "proj-abc", "tasks"],
+		});
+	});
+
 	it("invalidates task github query key on github.branch.linked events", () => {
 		renderHook(() => useProjectRealtime("proj-abc"));
 
@@ -163,6 +202,40 @@ describe("useProjectRealtime", () => {
 		listener({ type: "unknown.event", payload: {} });
 
 		expect(mocks.invalidateQueries).not.toHaveBeenCalled();
+	});
+
+	it("registers a connect listener on mount", () => {
+		renderHook(() => useProjectRealtime("proj-abc"));
+
+		expect(mocks.socket.on).toHaveBeenCalledWith(
+			"connect",
+			expect.any(Function),
+		);
+	});
+
+	it("re-joins the project room when the socket reconnects", () => {
+		renderHook(() => useProjectRealtime("proj-abc"));
+
+		mocks.joinProject.mockClear();
+
+		const [, onConnect] = mocks.socket.on.mock.calls.find(
+			([event]) => event === "connect",
+		) as [string, () => void];
+		onConnect();
+
+		expect(mocks.joinProject).toHaveBeenCalledWith("proj-abc");
+	});
+
+	it("removes the connect listener on unmount", () => {
+		const { unmount } = renderHook(() => useProjectRealtime("proj-abc"));
+
+		const [, onConnect] = mocks.socket.on.mock.calls.find(
+			([event]) => event === "connect",
+		) as [string, () => void];
+
+		unmount();
+
+		expect(mocks.socket.off).toHaveBeenCalledWith("connect", onConnect);
 	});
 
 	it("re-joins and re-registers when projectId changes", () => {

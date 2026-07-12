@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import io
 import logging
 import os
@@ -250,16 +251,35 @@ def _copy_repo_tools_to_container(container: Container) -> bool:
     return True
 
 
-# ─── Context manager ──────────────────────────────────────────────────────────
+# ─── Sandbox handle ───────────────────────────────────────────────────────────
 
 
-@contextmanager
-def docker_sandbox(
+@dataclasses.dataclass
+class SandboxHandle:
+    """A live sandbox container, kept alive past a single start/stop pair.
+
+    Returned by `start_sandbox()` and consumed by `stop_sandbox()`. Chat
+    conversations hold onto this (via `core.registry.chat_sandboxes`) across
+    multiple user turns instead of tearing the container down after each one.
+    """
+
+    client: docker.DockerClient
+    container: Container
+    workspace: RemoteWorkspace
+    conversation_id: str
+    host_port: int | None = None
+
+
+# ─── Start / stop primitives ──────────────────────────────────────────────────
+
+
+def start_sandbox(
     conversation_id: str,
     git_committer_name: str = "paca-agent",
     git_committer_email: str = "280579135+paca-agent@users.noreply.github.com",
-) -> Iterator[RemoteWorkspace]:
-    """Spin up an isolated agent-server container and yield a RemoteWorkspace.
+    env: dict[str, str] | None = None,
+) -> SandboxHandle:
+    """Spin up an isolated agent-server container and return a SandboxHandle.
 
     Inside Docker (production/dev-compose)
     ───────────────────────────────────────
@@ -272,6 +292,12 @@ def docker_sandbox(
     ──────────────────────────
     The container port is mapped to a host port from the pool and accessed via
     localhost.
+
+    Unlike the old `docker_sandbox` contextmanager, this does **not** stop the
+    container on its own — callers that want scoped auto-teardown should use
+    `docker_sandbox()` below; callers that want the container to outlive this
+    call (chat conversations kept alive between turns) must call
+    `stop_sandbox()` explicitly when they're actually done with it.
     """
     client = docker.DockerClient(base_url=_docker_base_url())
     container: Container | None = None
@@ -368,7 +394,11 @@ def docker_sandbox(
                 settings.local_repos_path,
             )
 
+        # User-configured secret env vars are spread first so that the
+        # hardcoded infra keys below always win on name collision — a
+        # misconfigured agent variable can never shadow sandbox internals.
         environment: dict = {
+            **(env or {}),
             # OH_SECRET_KEY is required by the agent server to encrypt persisted
             # secrets.  Each container is ephemeral so a fresh key per run is fine.
             "OH_SECRET_KEY": secrets.token_hex(32),
@@ -447,19 +477,73 @@ def docker_sandbox(
         _wait_for_ready(host)
         logger.info("Agent sandbox ready: conversation=%s host=%s", conversation_id, host)
 
-        yield RemoteWorkspace(host=host, working_dir="/workspace")
+        return SandboxHandle(
+            client=client,
+            container=container,
+            workspace=RemoteWorkspace(host=host, working_dir="/workspace"),
+            conversation_id=conversation_id,
+            host_port=host_port,
+        )
 
-    finally:
+    except Exception:
+        # Nothing has taken ownership of this container/port yet (start_sandbox
+        # hasn't returned) — clean up whatever partially started before
+        # re-raising, since there's no caller-side `stop_sandbox()` to do it.
         if container is not None:
             try:
                 container.stop(timeout=30)
-                logger.info("Agent sandbox stopped: conversation=%s", conversation_id)
             except Exception as exc:
                 logger.warning(
-                    "Failed to stop agent container for conversation=%s: %s",
+                    "Failed to stop partially-started sandbox for conversation=%s: %s",
                     conversation_id,
                     exc,
                 )
         if host_port is not None:
             _release_port(host_port)
         client.close()
+        raise
+
+
+def stop_sandbox(handle: SandboxHandle) -> None:
+    """Tear down a sandbox previously returned by `start_sandbox()`."""
+    try:
+        handle.container.stop(timeout=30)
+        logger.info("Agent sandbox stopped: conversation=%s", handle.conversation_id)
+    except Exception as exc:
+        logger.warning(
+            "Failed to stop agent container for conversation=%s: %s",
+            handle.conversation_id,
+            exc,
+        )
+    if handle.host_port is not None:
+        _release_port(handle.host_port)
+    handle.client.close()
+
+
+# ─── Context manager (non-chat triggers: scoped to a single run) ─────────────
+
+
+@contextmanager
+def docker_sandbox(
+    conversation_id: str,
+    git_committer_name: str = "paca-agent",
+    git_committer_email: str = "280579135+paca-agent@users.noreply.github.com",
+    env: dict[str, str] | None = None,
+) -> Iterator[RemoteWorkspace]:
+    """Start a sandbox for the duration of the `with` block, then stop it.
+
+    Thin wrapper around `start_sandbox()`/`stop_sandbox()` for trigger types
+    that always run exactly one turn per sandbox (task assignment, comment
+    mentions, description writes). Chat conversations use the two primitives
+    directly so the sandbox can outlive a single turn.
+    """
+    handle = start_sandbox(
+        conversation_id,
+        git_committer_name=git_committer_name,
+        git_committer_email=git_committer_email,
+        env=env,
+    )
+    try:
+        yield handle.workspace
+    finally:
+        stop_sandbox(handle)

@@ -13,7 +13,7 @@ You are turning requirements into a structured epic in Paca. Use Paca MCP tools 
 ## Step 1 — Load project context
 
 1. Call `list_projects` to identify the relevant project (infer from the user's message, or ask if ambiguous).
-2. Call `list_documents` and search for documents whose titles or descriptions suggest requirements, roadmap, architecture, or BDD scenarios. Read the most relevant ones with `get_document`. Understand the domain and existing feature landscape before writing anything.
+2. Call `list_docs` and search for documents whose titles or descriptions suggest requirements, roadmap, architecture, or BDD scenarios. Read the most relevant ones with `read_doc`. Understand the domain and existing feature landscape before writing anything.
 3. Call `list_task_types` to check whether an "Epic" type exists.
 4. Call `list_task_statuses` to know available statuses.
 5. Call `list_tasks` to scan for existing epics so you avoid duplicating scope.
@@ -36,8 +36,8 @@ Don't ask about things you can reasonably infer from the project docs you just r
 ## Step 3 — Create the epic task
 
 Call `create_task`:
-- **Type**: "Epic" if available from `list_task_types`; otherwise a standard task clearly titled as an epic
-- **Title**: concise, outcome-oriented (e.g. `Epic: User Authentication`)
+- **Type**: "Epic" if available from `list_task_types`.
+- **Title**: concise, outcome-oriented (e.g. `User Authentication`). The type field already says this is an epic — don't also prefix the title with `Epic:`. Only fall back to a prefix like `Epic: User Authentication` if the project has no Epic type at all, since the title is then the only place that information can live.
 - **Description** (Markdown):
   ```
   ## Goal
@@ -57,13 +57,13 @@ Call `create_task`:
 ## Step 4 — Break into stories
 
 Derive child tasks from the requirements. Aim for 3–8 stories for a typical epic; go higher if the scope is large, but confirm with the user before creating more than 10. For each story:
-- Call `create_task` with a clear title, brief description, and 2–3 acceptance criteria
+- Call `create_task` with a `type` of "Story" (or the closest match in `list_task_types`) if one exists, a clear title with no `Story:` prefix — same reasoning as the epic's title, the type field already conveys it — a brief description, and 2–3 acceptance criteria.
 - Reference the parent epic in the description: `Part of #<epic-number>`
 - Prefer vertical slices (end-to-end thin features) over horizontal layers (all-backend, all-frontend)
 
 ## Step 5 — Create a spec document
 
-Call `create_document`:
+Call `write_doc`:
 - **Title**: `Epic: <name> — Specification`
 - **Content**: Goal · Background · User Stories (linked by `#number`) · Acceptance Criteria · Out of Scope · Open Questions
 
@@ -82,5 +82,5 @@ Report back: epic task number, list of child task numbers and titles, and the sp
 ## Tool reference
 
 **Tasks:** `create_task` · `update_task` · `list_tasks` · `get_task_by_number` · `list_task_types` · `list_task_statuses`  
-**Documents:** `create_document` · `list_documents` · `get_document`  
+**Documents:** `write_doc` · `list_docs` · `read_doc`  
 **Projects:** `list_projects` · `get_project`

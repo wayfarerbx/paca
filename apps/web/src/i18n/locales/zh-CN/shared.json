@@ -11,15 +11,6 @@
 		"delete": "删除",
 		"viewDiff": "查看差异",
 		"revert": "还原",
-		"timeAgo": {
-			"justNow": "刚刚",
-			"minutes_one": "{{count}} 分钟前",
-			"minutes_other": "{{count}} 分钟前",
-			"hours_one": "{{count}} 小时前",
-			"hours_other": "{{count}} 小时前",
-			"days_one": "{{count}} 天前",
-			"days_other": "{{count}} 天前"
-		},
 		"errors": {
 			"revertFailed": "还原失败，请重试。"
 		}

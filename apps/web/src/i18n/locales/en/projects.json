@@ -58,8 +58,6 @@
 		"card": {
 			"configure": "Configure",
 			"delete": "Delete",
-			"repos": "Repos",
-			"configureAndViewActivity": "Configure & view activity",
 			"deleteDialog": {
 				"title": "Delete {{name}}?",
 				"description": "This permanently deletes the agent and removes it from the project. Running conversations will be stopped.",
@@ -75,15 +73,14 @@
 				"title": "No agents yet",
 				"description": "Add an AI agent to automate tasks, review code, write documentation, and more.",
 				"createFirstAgent": "Create your first agent"
-			},
-			"chatShortcutPrefix": "Click",
-			"chatShortcutSuffix": "on any agent to chat, view conversations, and manage MCP servers and skills."
+			}
 		},
 		"detail": {
 			"tabs": {
 				"overview": "Overview",
 				"mcpServers": "MCP Servers",
 				"skills": "Skills",
+				"envVars": "Environment",
 				"conversations": "Conversations"
 			},
 			"overview": {
@@ -99,17 +96,6 @@
 				"apiKeyUpdateHint": "(leave blank to keep current)",
 				"proSubscriptionHint": "Uses the OpenHands ChatGPT subscription login on this machine.",
 				"baseUrlLabel": "Base URL",
-				"triggerPrompts": {
-					"title": "Auto-appended trigger prompts",
-					"hint": "Automatically appended to the system prompt at runtime based on how the agent is invoked.",
-					"taskAssignment": "Task assignment / task comment",
-					"docCommentMention": "Documentation comment @mention",
-					"directChat": "Direct chat",
-					"writeDescription": "Write task description with AI"
-				},
-				"capabilities": "Capabilities",
-				"cloneRepositories": "Clone repositories",
-				"cloneRepositoriesHint": "Allow agent to git clone repos locally",
 				"gitCommitterIdentity": "Git committer identity",
 				"gitCommitterHint": "Name and email used for commits made by this agent.",
 				"committerNameLabel": "Committer name",
@@ -138,6 +124,25 @@
 					"urlLabel": "URL",
 					"cancel": "Cancel",
 					"addServer": "Add server"
+				}
+			},
+			"envVars": {
+				"count_one": "{{count}} variable configured",
+				"count_other": "{{count}} variables configured",
+				"addVariable": "Add variable",
+				"empty": {
+					"title": "No environment variables added",
+					"addFirst": "Add your first variable"
+				},
+				"addDialog": {
+					"title": "Add Environment Variable",
+					"description": "Secret values are encrypted at rest and injected into the agent's sandbox at run time. Once saved, a value can never be viewed again.",
+					"keyLabel": "Key",
+					"keyPlaceholder": "GITHUB_TOKEN",
+					"keyHint": "(letters, digits, underscores — must start with a letter or underscore)",
+					"valueLabel": "Value",
+					"cancel": "Cancel",
+					"addVariable": "Add variable"
 				}
 			},
 			"skills": {
@@ -169,7 +174,6 @@
 				"iterations_one": "{{count}} iteration",
 				"iterations_other": "{{count}} iterations",
 				"prOpened": "PR opened",
-				"watch": "Watch",
 				"empty": {
 					"title": "No conversations yet",
 					"description": "Conversations start when a task is assigned to this agent or someone messages it."
@@ -177,15 +181,63 @@
 			}
 		},
 		"conversationView": {
-			"thinking": "Thinking…",
-			"observation": "observation",
-			"toolLabel": "tool: {{toolName}}",
 			"stop": "Stop",
 			"notFound": "Conversation not found",
 			"chatSession": "Chat session",
 			"taskSession": "Task session",
 			"pr": "PR",
-			"noMessages": "No messages yet"
+			"conversationEnded": "This conversation has ended.",
+			"textOnlyMessage": "Only text messages are supported.",
+			"failed": "Conversation failed",
+			"noOutput": "The agent did not produce any output."
+		},
+		"thread": {
+			"composerPlaceholder": "Message agent…",
+			"welcomeHeading": "How can I help you today?",
+			"messageInputAriaLabel": "Message input",
+			"voiceInput": "Voice input",
+			"startVoiceInputAriaLabel": "Start voice input",
+			"stopDictation": "Stop dictation",
+			"stopVoiceInputAriaLabel": "Stop voice input",
+			"sendMessage": "Send message",
+			"stopGeneratingAriaLabel": "Stop generating",
+			"assistantWorkingAriaLabel": "Assistant is working",
+			"copy": "Copy",
+			"refresh": "Refresh",
+			"more": "More",
+			"edit": "Edit",
+			"previous": "Previous",
+			"next": "Next",
+			"exportAsMarkdown": "Export as Markdown",
+			"scrollToBottom": "Scroll to bottom",
+			"cancel": "Cancel",
+			"update": "Update",
+			"reasoning": "Reasoning",
+			"reasoningWithDuration": "Reasoning ({{duration}}s)",
+			"toolCallCount_one": "{{count}} tool call",
+			"toolCallCount_other": "{{count}} tool calls",
+			"usedTool": "Used tool",
+			"cancelledTool": "Cancelled tool",
+			"resultLabel": "Result:",
+			"errorLabel": "Error:",
+			"cancelledReasonLabel": "Cancelled reason:",
+			"approvedByUser": "Approved by user",
+			"deniedByUser": "User denied tool execution",
+			"allow": "Allow",
+			"alwaysAllow": "Always allow",
+			"deny": "Deny",
+			"alwaysDeny": "Always deny",
+			"confirm": "Confirm",
+			"back": "Back",
+			"attachmentPreview": "Attachment preview",
+			"attachmentTypeImage": "Image",
+			"attachmentTypeDocument": "Document",
+			"attachmentTypeFile": "File",
+			"removeFile": "Remove file",
+			"imageAttachmentPreviewTitle": "Image Attachment Preview",
+			"attachmentAriaLabel": "{{type}} attachment",
+			"attachmentAriaLabelError": "{{type}} attachment, upload failed",
+			"attachmentAriaLabelUploading": "{{type}} attachment, uploading"
 		}
 	},
 	"docs": {
@@ -305,6 +357,14 @@
 			"agentsWrite": {
 				"label": "Manage Agents",
 				"description": "Create, configure, and delete AI agents"
+			},
+			"workflowsRead": {
+				"label": "View Workflows",
+				"description": "Browse automation workflows and their configuration"
+			},
+			"workflowsWrite": {
+				"label": "Manage Workflows",
+				"description": "Create, edit, activate, and delete automation workflows"
 			}
 		},
 		"permissionGroups": {
@@ -314,7 +374,8 @@
 			"tasks": "Tasks",
 			"sprints": "Sprints",
 			"documents": "Documents",
-			"aiAgents": "AI Agents"
+			"aiAgents": "AI Agents",
+			"workflows": "Automation"
 		}
 	},
 	"settings": {
@@ -567,10 +628,7 @@
 		"agentLabel": "Agent",
 		"noAgentsConfigured": "No agents configured for this project.",
 		"selectAgentPlaceholder": "Select an agent…",
-		"messageLabel": "Message",
-		"messageHint": "(Enter to send, Shift+Enter for newline)",
-		"messagePlaceholder": "What would you like the agent to help with?",
-		"send": "Send"
+		"selectAgentFirst": "Please select an agent first."
 	},
 	"taskTypes": {
 		"deleteDialog": {
@@ -679,6 +737,11 @@
 			"openTask": "Open task",
 			"removeLink": "Remove link",
 			"empty": "No linked tasks"
+		},
+		"workflows": {
+			"title": "Workflows",
+			"open": "Open workflow",
+			"empty": "No workflows yet"
 		},
 		"attachments": {
 			"title": "Attachments",
@@ -816,15 +879,6 @@
 			"watchSession": "Watch session",
 			"madeChange": "made a change",
 			"descriptionChangeDiff": "Description change diff"
-		},
-		"timeAgo": {
-			"justNow": "just now",
-			"minutes_one": "{{count}}m ago",
-			"minutes_other": "{{count}}m ago",
-			"hours_one": "{{count}}h ago",
-			"hours_other": "{{count}}h ago",
-			"days_one": "{{count}}d ago",
-			"days_other": "{{count}}d ago"
 		}
 	},
 	"board": {
@@ -1068,6 +1122,82 @@
 			"startDate": "Start Date",
 			"dueDate": "Due Date",
 			"created": "Created"
+		}
+	},
+	"automation": {
+		"list": {
+			"title": "Automation",
+			"subtitle": "Automate task hand-offs as work moves through your project",
+			"newWorkflow": "New Workflow",
+			"empty": {
+				"title": "No workflows yet",
+				"description": "Create a workflow to automate task hand-offs as work moves through your project.",
+				"createFirstWorkflow": "Create your first workflow"
+			},
+			"noDescription": "No description",
+			"updated": "Updated {{time}}"
+		},
+		"status": {
+			"draft": "Draft",
+			"active": "Active",
+			"archived": "Archived"
+		},
+		"createDialog": {
+			"title": "New automation workflow",
+			"nameLabel": "Name",
+			"namePlaceholder": "e.g. Release pipeline",
+			"descriptionLabel": "Description",
+			"descriptionPlaceholder": "Optional details about this workflow…",
+			"cancel": "Cancel",
+			"create": "Create"
+		},
+		"deleteDialog": {
+			"title": "Delete workflow",
+			"body": "Are you sure you want to delete \"{{name}}\"? This cannot be undone.",
+			"cancel": "Cancel",
+			"confirm": "Delete"
+		},
+		"builder": {
+			"addTask": "Add task",
+			"activate": "Activate",
+			"archive": "Archive",
+			"deactivate": "Deactivate",
+			"readOnlyNoticeArchived": "This workflow is archived and read-only — archived workflows can't be edited.",
+			"genericError": "Something went wrong. Please try again.",
+			"collapseSidebar": "Collapse sidebar",
+			"expandSidebar": "Expand sidebar"
+		},
+		"canvas": {
+			"unknownTask": "Unknown task",
+			"deleteEdge": "Delete connection"
+		},
+		"addNodeModal": {
+			"title": "Add task to workflow",
+			"searchPlaceholder": "Search tasks...",
+			"loadingTasks": "Loading tasks...",
+			"noTasksFound": "No tasks found"
+		},
+		"nodePanel": {
+			"title": "Task",
+			"removeNode": "Remove from workflow",
+			"removeConfirmTitle": "Remove task from workflow",
+			"removeConfirmBody": "This removes the task from the workflow graph, along with any of its connections. The task itself is not affected.",
+			"cancel": "Cancel",
+			"removeConfirmAction": "Remove"
+		},
+		"statusRules": {
+			"title": "Status → assignee rules",
+			"hint": "Automatically assign a task to a member whenever it changes to one of these statuses. This applies to any task in this workflow — when someone changes a task's status directly, or when a predecessor task finishes and a downstream task is re-evaluated at its current status.",
+			"noRules": "No rules yet",
+			"statusPlaceholder": "Status",
+			"memberPlaceholder": "Assignee"
+		},
+		"statusTransitions": {
+			"title": "Status workflow",
+			"hint": "Define what status comes next once work at each status is done. This unlocks downstream tasks and tells an AI-agent assignee exactly what status to set next, instead of guessing. A default chain is generated automatically from your project's statuses when the workflow is created.",
+			"nextStatusLabel": "Next status",
+			"terminalOption": "__END__",
+			"ambiguousWarning": "Exactly one status must have no next status (this becomes the workflow's __END__ status). Currently: {{count}} configured."
 		}
 	}
 }

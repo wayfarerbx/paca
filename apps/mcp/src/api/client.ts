@@ -68,6 +68,10 @@ export class PacaAPIClient {
 			);
 		}
 
+		if (response.status === 204) {
+			return undefined;
+		}
+
 		const jsonResponse = await response.json();
 
 		// Handle SuccessEnvelope wrapper

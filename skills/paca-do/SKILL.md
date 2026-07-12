@@ -14,7 +14,7 @@ You are executing a task from Paca — reading it, understanding context, doing 
 
 1. Resolve the task reference from the user's message using `get_task_by_number` or `get_task`.
 2. **If the task has no acceptance criteria**, stop and ask the user to clarify before starting — or offer to run `/paca-clarify` first. Starting work without a clear "done" condition wastes effort.
-3. Call `list_documents` and search for documents relevant to this task — architecture, design specs, BDD scenarios, API references, integration guides. Read before writing any code or content; what's already decided shapes every implementation choice.
+3. Call `list_docs` and search for documents relevant to this task — architecture, design specs, BDD scenarios, API references, integration guides. Read before writing any code or content; what's already decided shapes every implementation choice.
 4. Call `list_task_activities` to read prior comments and implementation notes — someone may have already investigated this.
 5. Note the acceptance criteria from the task description. These are your exit criteria.
 
@@ -29,7 +29,7 @@ You are executing a task from Paca — reading it, understanding context, doing 
 Execute based on the task type:
 
 - **Code task**: find the relevant source files, read existing tests to understand the expected behavior, implement the change, run the test suite. If you need to understand what "in scope" looks like, the BDD scenarios you read in Step 1 are authoritative.
-- **Writing task**: draft the content in the response, or create/update a Paca document via `create_document` / `update_document`. Never write to a local file.
+- **Writing task**: draft the content in the response, or create/update a Paca document via `write_doc`. Never write to a local file.
 - **Research / investigation task**: investigate, write findings as a comment via `add_task_comment` or as a Paca doc, then update the task description with the conclusions.
 - **Review task**: analyse the artifact (PR, document, design), post a structured review as `add_task_comment`.
 
@@ -38,7 +38,7 @@ If you discover a blocker or a genuine sub-task that wasn't anticipated, create 
 ## Step 4 — Update and close
 
 1. Call `add_task_comment` with a completion summary: what was done, what changed, any known caveats or follow-up needed.
-2. If any project documentation was affected (README, architecture doc, API reference), update the relevant Paca document with `update_document`. Never write new docs as local files.
+2. If any project documentation was affected (README, architecture doc, API reference), update the relevant Paca document with `write_doc`. Never write new docs as local files.
 3. Call `update_task` to set the status to done (or the next stage — e.g. "review" — if your workflow has one).
 
 **What's next:** Consider running `/paca-test #<number>` to verify the implementation against acceptance criteria.
@@ -57,5 +57,5 @@ Report back: task number, title, summary of what was done, and any new tasks or 
 
 **Tasks:** `get_task` · `get_task_by_number` · `update_task` · `create_task` · `list_task_statuses`  
 **Comments:** `add_task_comment` · `list_task_activities`  
-**Documents:** `list_documents` · `get_document` · `update_document` · `create_document`  
+**Documents:** `list_docs` · `read_doc` · `write_doc`  
 **Projects:** `list_projects`

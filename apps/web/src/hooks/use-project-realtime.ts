@@ -20,6 +20,12 @@
 // doc.* events   → invalidate ["projects", projectId, "docs"]
 //                  This covers docFoldersQueryOptions, docListQueryOptions,
 //                  docQueryOptions, etc.
+// workflow.* events → invalidate ["projects", projectId, "workflows"] (the
+//                  automation list/graph queries) and ["projects", projectId,
+//                  "tasks"] (covers workflowsForTaskQueryOptions, which hangs
+//                  off "tasks" rather than "workflows", plus the
+//                  workflow.assigned bonus case — the automation engine
+//                  reassigning a task should refresh that task's data too).
 //
 // More granular invalidations (e.g. specific taskId) are avoided intentionally:
 // the event payload fields are not yet stabilised and broad invalidation is
@@ -56,6 +62,21 @@ export function useProjectRealtime(projectId: string): void {
 			if (type.startsWith("doc.")) {
 				void queryClient.invalidateQueries({
 					queryKey: ["projects", projectId, "docs"],
+				});
+				return;
+			}
+
+			// workflow.* events: covers both graph-structure changes (node/edge/
+			// rule/transition/lifecycle edits on the automation builder) and the
+			// task-scoped workflow.assigned event (the automation engine
+			// reassigning a task) — invalidate both prefixes unconditionally
+			// rather than branching per sub-type.
+			if (type.startsWith("workflow.")) {
+				void queryClient.invalidateQueries({
+					queryKey: ["projects", projectId, "workflows"],
+				});
+				void queryClient.invalidateQueries({
+					queryKey: ["projects", projectId, "tasks"],
 				});
 				return;
 			}
@@ -108,8 +129,19 @@ export function useProjectRealtime(projectId: string): void {
 
 		socket.on("event", handleEvent);
 
+		// Socket.IO's "connect" event fires on every automatic reconnect, not
+		// just the initial connection. A reconnect starts a new server-side
+		// session with no room membership until we "join" again — without
+		// this, a network blip silently stops delivering invalidations while
+		// the socket still reports connected.
+		function handleConnect() {
+			joinProject(projectId);
+		}
+		socket.on("connect", handleConnect);
+
 		return () => {
 			socket.off("event", handleEvent);
+			socket.off("connect", handleConnect);
 			leaveProject(projectId);
 		};
 	}, [projectId, queryClient]);

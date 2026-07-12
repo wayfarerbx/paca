@@ -52,8 +52,6 @@
 		"card": {
 			"configure": "配置",
 			"delete": "删除",
-			"repos": "代码仓库",
-			"configureAndViewActivity": "配置并查看动态",
 			"deleteDialog": {
 				"title": "删除 {{name}}？",
 				"description": "这将永久删除该智能体并将其从项目中移除。正在进行的对话将被终止。",
@@ -69,15 +67,14 @@
 				"title": "暂无智能体",
 				"description": "添加一个 AI 智能体来自动处理任务、审查代码、编写文档等。",
 				"createFirstAgent": "创建您的第一个智能体"
-			},
-			"chatShortcutPrefix": "点击",
-			"chatShortcutSuffix": "任意智能体即可聊天、查看对话，并管理 MCP 服务器和技能。"
+			}
 		},
 		"detail": {
 			"tabs": {
 				"overview": "概览",
 				"mcpServers": "MCP 服务器",
 				"skills": "技能",
+				"envVars": "环境变量",
 				"conversations": "对话"
 			},
 			"overview": {
@@ -89,17 +86,6 @@
 				"apiKeyUpdateLabel": "更新 API 密钥",
 				"apiKeyUpdateHint": "（留空以保留当前密钥）",
 				"baseUrlLabel": "基础 URL",
-				"triggerPrompts": {
-					"title": "自动附加的触发提示词",
-					"hint": "根据智能体的调用方式，运行时会自动附加到系统提示词中。",
-					"taskAssignment": "任务分配 / 任务评论",
-					"docCommentMention": "文档评论 @提及",
-					"directChat": "直接聊天",
-					"writeDescription": "使用 AI 编写任务描述"
-				},
-				"capabilities": "能力",
-				"cloneRepositories": "克隆代码仓库",
-				"cloneRepositoriesHint": "允许智能体在本地 git clone 代码仓库",
 				"gitCommitterIdentity": "Git 提交者身份",
 				"gitCommitterHint": "该智能体提交代码时使用的姓名和邮箱。",
 				"committerNameLabel": "提交者姓名",
@@ -128,6 +114,25 @@
 					"urlLabel": "URL",
 					"cancel": "取消",
 					"addServer": "添加服务器"
+				}
+			},
+			"envVars": {
+				"count_one": "已配置 {{count}} 个变量",
+				"count_other": "已配置 {{count}} 个变量",
+				"addVariable": "添加变量",
+				"empty": {
+					"title": "尚未添加环境变量",
+					"addFirst": "添加您的第一个变量"
+				},
+				"addDialog": {
+					"title": "添加环境变量",
+					"description": "密钥值在静态存储时会被加密，并在运行时注入到智能体的沙箱环境中。保存后将无法再次查看该值。",
+					"keyLabel": "键",
+					"keyPlaceholder": "GITHUB_TOKEN",
+					"keyHint": "（字母、数字、下划线，必须以字母或下划线开头）",
+					"valueLabel": "值",
+					"cancel": "取消",
+					"addVariable": "添加变量"
 				}
 			},
 			"skills": {
@@ -159,7 +164,6 @@
 				"iterations_one": "{{count}} 次迭代",
 				"iterations_other": "{{count}} 次迭代",
 				"prOpened": "PR 已创建",
-				"watch": "查看",
 				"empty": {
 					"title": "暂无对话",
 					"description": "当任务分配给该智能体或有人向其发送消息时，对话将开始。"
@@ -167,15 +171,63 @@
 			}
 		},
 		"conversationView": {
-			"thinking": "思考中…",
-			"observation": "观察结果",
-			"toolLabel": "工具：{{toolName}}",
 			"stop": "停止",
 			"notFound": "未找到对话",
 			"chatSession": "聊天会话",
 			"taskSession": "任务会话",
 			"pr": "PR",
-			"noMessages": "暂无消息"
+			"conversationEnded": "此对话已结束。",
+			"textOnlyMessage": "仅支持文本消息。",
+			"failed": "对话失败",
+			"noOutput": "代理未生成任何输出。"
+		},
+		"thread": {
+			"composerPlaceholder": "给代理发消息…",
+			"welcomeHeading": "今天我能帮你做些什么？",
+			"messageInputAriaLabel": "消息输入框",
+			"voiceInput": "语音输入",
+			"startVoiceInputAriaLabel": "开始语音输入",
+			"stopDictation": "停止语音输入",
+			"stopVoiceInputAriaLabel": "停止语音输入",
+			"sendMessage": "发送消息",
+			"stopGeneratingAriaLabel": "停止生成",
+			"assistantWorkingAriaLabel": "代理正在处理",
+			"copy": "复制",
+			"refresh": "刷新",
+			"more": "更多",
+			"edit": "编辑",
+			"previous": "上一个",
+			"next": "下一个",
+			"exportAsMarkdown": "导出为 Markdown",
+			"scrollToBottom": "滚动到底部",
+			"cancel": "取消",
+			"update": "更新",
+			"reasoning": "推理",
+			"reasoningWithDuration": "推理（{{duration}}秒）",
+			"toolCallCount_one": "{{count}} 次工具调用",
+			"toolCallCount_other": "{{count}} 次工具调用",
+			"usedTool": "使用的工具",
+			"cancelledTool": "已取消的工具",
+			"resultLabel": "结果：",
+			"errorLabel": "错误：",
+			"cancelledReasonLabel": "取消原因：",
+			"approvedByUser": "用户已批准",
+			"deniedByUser": "用户拒绝执行该工具",
+			"allow": "允许",
+			"alwaysAllow": "始终允许",
+			"deny": "拒绝",
+			"alwaysDeny": "始终拒绝",
+			"confirm": "确认",
+			"back": "返回",
+			"attachmentPreview": "附件预览",
+			"attachmentTypeImage": "图片",
+			"attachmentTypeDocument": "文档",
+			"attachmentTypeFile": "文件",
+			"removeFile": "移除文件",
+			"imageAttachmentPreviewTitle": "图片附件预览",
+			"attachmentAriaLabel": "{{type}}附件",
+			"attachmentAriaLabelError": "{{type}}附件，上传失败",
+			"attachmentAriaLabelUploading": "{{type}}附件，正在上传"
 		}
 	},
 	"docs": {
@@ -295,6 +347,14 @@
 			"agentsWrite": {
 				"label": "管理智能体",
 				"description": "创建、配置和删除 AI 智能体"
+			},
+			"workflowsRead": {
+				"label": "查看工作流",
+				"description": "浏览自动化工作流及其配置"
+			},
+			"workflowsWrite": {
+				"label": "管理工作流",
+				"description": "创建、编辑、启用和删除自动化工作流"
 			}
 		},
 		"permissionGroups": {
@@ -304,7 +364,8 @@
 			"tasks": "任务",
 			"sprints": "冲刺",
 			"documents": "文档",
-			"aiAgents": "AI 智能体"
+			"aiAgents": "AI 智能体",
+			"workflows": "自动化"
 		}
 	},
 	"settings": {
@@ -557,10 +618,7 @@
 		"agentLabel": "智能体",
 		"noAgentsConfigured": "此项目尚未配置智能体。",
 		"selectAgentPlaceholder": "选择一个智能体…",
-		"messageLabel": "消息",
-		"messageHint": "（按 Enter 发送，Shift+Enter 换行）",
-		"messagePlaceholder": "您希望智能体帮您做什么？",
-		"send": "发送"
+		"selectAgentFirst": "请先选择一个智能体。"
 	},
 	"taskTypes": {
 		"deleteDialog": {
@@ -669,6 +727,11 @@
 			"openTask": "打开任务",
 			"removeLink": "移除关联",
 			"empty": "暂无关联任务"
+		},
+		"workflows": {
+			"title": "工作流",
+			"open": "打开工作流",
+			"empty": "暂无工作流"
 		},
 		"attachments": {
 			"title": "附件",
@@ -806,15 +869,6 @@
 			"watchSession": "查看会话",
 			"madeChange": "进行了更改",
 			"descriptionChangeDiff": "描述更改差异"
-		},
-		"timeAgo": {
-			"justNow": "刚刚",
-			"minutes_one": "{{count}} 分钟前",
-			"minutes_other": "{{count}} 分钟前",
-			"hours_one": "{{count}} 小时前",
-			"hours_other": "{{count}} 小时前",
-			"days_one": "{{count}} 天前",
-			"days_other": "{{count}} 天前"
 		}
 	},
 	"board": {
@@ -1058,6 +1112,82 @@
 			"startDate": "开始日期",
 			"dueDate": "截止日期",
 			"created": "创建时间"
+		}
+	},
+	"automation": {
+		"list": {
+			"title": "自动化",
+			"subtitle": "随着工作推进自动完成任务交接",
+			"newWorkflow": "新建工作流",
+			"empty": {
+				"title": "暂无工作流",
+				"description": "创建一个工作流，随着工作推进自动完成任务交接。",
+				"createFirstWorkflow": "创建您的第一个工作流"
+			},
+			"noDescription": "暂无描述",
+			"updated": "更新于 {{time}}"
+		},
+		"status": {
+			"draft": "草稿",
+			"active": "已启用",
+			"archived": "已归档"
+		},
+		"createDialog": {
+			"title": "新建自动化工作流",
+			"nameLabel": "名称",
+			"namePlaceholder": "例如：发布流水线",
+			"descriptionLabel": "描述",
+			"descriptionPlaceholder": "关于此工作流的可选详细信息…",
+			"cancel": "取消",
+			"create": "创建"
+		},
+		"deleteDialog": {
+			"title": "删除工作流",
+			"body": "确定要删除“{{name}}”吗？此操作无法撤销。",
+			"cancel": "取消",
+			"confirm": "删除"
+		},
+		"builder": {
+			"addTask": "添加任务",
+			"activate": "启用",
+			"archive": "归档",
+			"deactivate": "停用",
+			"readOnlyNoticeArchived": "该工作流已归档，为只读状态 — 已归档的工作流无法编辑。",
+			"genericError": "出了点问题，请重试。",
+			"collapseSidebar": "收起侧边栏",
+			"expandSidebar": "展开侧边栏"
+		},
+		"canvas": {
+			"unknownTask": "未知任务",
+			"deleteEdge": "删除连接"
+		},
+		"addNodeModal": {
+			"title": "将任务添加到工作流",
+			"searchPlaceholder": "搜索任务...",
+			"loadingTasks": "正在加载任务...",
+			"noTasksFound": "未找到任务"
+		},
+		"nodePanel": {
+			"title": "任务",
+			"removeNode": "从工作流中移除",
+			"removeConfirmTitle": "从工作流中移除任务",
+			"removeConfirmBody": "此操作会将任务从工作流图谱中移除，包括其所有连接。任务本身不受影响。",
+			"cancel": "取消",
+			"removeConfirmAction": "移除"
+		},
+		"statusRules": {
+			"title": "状态 → 负责人规则",
+			"hint": "当任务变为以下任一状态时，自动将其分配给相应成员。这适用于此工作流中的任何任务 — 无论是有人直接更改任务状态，还是前置任务完成后下游任务按其当前状态重新评估。",
+			"noRules": "暂无规则",
+			"statusPlaceholder": "状态",
+			"memberPlaceholder": "负责人"
+		},
+		"statusTransitions": {
+			"title": "状态工作流",
+			"hint": "定义每个状态的工作完成后接下来进入哪个状态。这可以解锁下游任务，并明确告知 AI 代理负责人接下来应设置的状态，而不必猜测。创建工作流时会根据项目的状态自动生成默认链。",
+			"nextStatusLabel": "下一个状态",
+			"terminalOption": "__END__",
+			"ambiguousWarning": "必须有且只有一个状态没有下一个状态（该状态将成为工作流的 __END__ 状态）。当前已配置：{{count}} 个。"
 		}
 	}
 }

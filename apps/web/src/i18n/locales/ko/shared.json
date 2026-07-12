@@ -11,15 +11,6 @@
 		"delete": "삭제",
 		"viewDiff": "차이점 보기",
 		"revert": "되돌리기",
-		"timeAgo": {
-			"justNow": "방금 전",
-			"minutes_one": "{{count}}분 전",
-			"minutes_other": "{{count}}분 전",
-			"hours_one": "{{count}}시간 전",
-			"hours_other": "{{count}}시간 전",
-			"days_one": "{{count}}일 전",
-			"days_other": "{{count}}일 전"
-		},
 		"errors": {
 			"revertFailed": "되돌리기에 실패했습니다. 다시 시도해 주세요."
 		}

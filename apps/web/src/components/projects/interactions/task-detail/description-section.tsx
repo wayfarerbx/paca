@@ -3,7 +3,7 @@ import "@blocknote/shadcn/style.css";
 
 import { SideMenuController, useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/shadcn";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Bot, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -55,6 +55,7 @@ export function DescriptionSection({
 	const { t } = useTranslation("projects");
 	const { resolvedMode } = useThemeMode();
 	const { teamMembers, tasks, documents } = useMentionData(projectId);
+	const qc = useQueryClient();
 	const [writeWithAIOpen, setWriteWithAIOpen] = useState(false);
 	const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
@@ -70,6 +71,18 @@ export function DescriptionSection({
 			return writeTaskDescriptionWithAI(projectId, taskId, selectedAgentId);
 		},
 		onSuccess: () => {
+			// Mirrors the assign-to-agent / mention-agent flows: don't rely solely
+			// on the realtime websocket event to surface the new "started an AI
+			// session" activity — refresh immediately so it shows without a reload.
+			if (projectId) {
+				qc.invalidateQueries({
+					queryKey: ["projects", projectId],
+					predicate: (q) => {
+						const key = q.queryKey as string[];
+						return key.includes("tasks") || key.includes("backlog-tasks");
+					},
+				});
+			}
 			setWriteWithAIOpen(false);
 			setSelectedAgentId(null);
 		},

@@ -13,22 +13,24 @@ from ..models.agent import AgentConfig, AgentMCPServerRow, AgentSkillRow
 logger = logging.getLogger(__name__)
 
 
-def _decrypt_secret(ciphertext: str) -> str:
+def _decrypt_secret(ciphertext: str, label: str = "LLM API key") -> str:
     """Decrypt an AES-256-GCM ciphertext produced by the Go API's secret.Encryptor.
 
     If ENCRYPTION_KEY is not configured the value is returned as-is (plaintext
     backward-compat mode).  Any decryption error returns an empty string so
     that a clear "missing API key" error surfaces at the LLM call rather than
     the misleading "token expired / incorrect" that results from forwarding the
-    raw ciphertext to the provider.
+    raw ciphertext to the provider. `label` is used only to identify the field
+    being decrypted in log messages (e.g. "LLM API key", "environment variable").
     """
     if not ciphertext:
         return ciphertext
     if not settings.encryption_key:
         logger.warning(
-            "ENCRYPTION_KEY is not set — LLM API key will be used as-is from the "
+            "ENCRYPTION_KEY is not set — %s will be used as-is from the "
             "database. If the api service encrypts secrets, set ENCRYPTION_KEY in "
-            "the ai-agent environment to the same value."
+            "the ai-agent environment to the same value.",
+            label,
         )
         return ciphertext
     try:
@@ -43,9 +45,10 @@ def _decrypt_secret(ciphertext: str) -> str:
         return plaintext.decode()
     except Exception as exc:
         logger.error(
-            "Failed to decrypt LLM API key secret — the LLM will receive an empty "
-            "key. Verify that ENCRYPTION_KEY in the ai-agent service matches the "
-            "api service. Error: %s",
+            "Failed to decrypt %s — the value will be treated as empty. Verify "
+            "that ENCRYPTION_KEY in the ai-agent service matches the api "
+            "service. Error: %s",
+            label,
             exc,
         )
         return ""
@@ -60,16 +63,11 @@ async def load_agent_config(agent_id: str) -> AgentConfig | None:
             a.id,
             a.project_id,
             a.system_prompt,
-            a.task_trigger_prompt,
-            a.doc_comment_trigger_prompt,
-            a.chat_trigger_prompt,
-            a.description_write_trigger_prompt,
             a.llm_provider,
             a.llm_model,
             a.llm_api_key_secret AS llm_api_key_secret_ref,
             a.llm_base_url,
             a.max_iterations,
-            a.can_clone_repos,
             a.git_committer_name,
             a.git_committer_email
         FROM agents a
@@ -96,6 +94,14 @@ async def load_agent_config(agent_id: str) -> AgentConfig | None:
         """,
         agent_id,
     )
+    env_var_rows = await pool.fetch(
+        """
+        SELECT key, encrypted_value
+        FROM agent_environment_variables
+        WHERE agent_id = $1
+        """,
+        agent_id,
+    )
 
     mcp_servers = [
         AgentMCPServerRow(
@@ -118,24 +124,30 @@ async def load_agent_config(agent_id: str) -> AgentConfig | None:
         )
         for r in skill_rows
     ]
+    # A key is omitted rather than injected with an empty value on decrypt
+    # failure — a missing env var is unambiguous, while an empty one can be
+    # mistaken for a deliberately blank secret by downstream tooling (e.g.
+    # git treating an empty GITHUB_TOKEN as "no auth" vs "broken auth").
+    env_vars: dict[str, str] = {}
+    for r in env_var_rows:
+        key = r["key"]
+        value = _decrypt_secret(r["encrypted_value"], label=f"environment variable {key}")
+        if value:
+            env_vars[key] = value
 
     return AgentConfig(
         agent_id=str(row["id"]),
         project_id=str(row["project_id"]),
         system_prompt=row["system_prompt"],
-        task_trigger_prompt=row["task_trigger_prompt"] or "",
-        doc_comment_trigger_prompt=row["doc_comment_trigger_prompt"] or "",
-        chat_trigger_prompt=row["chat_trigger_prompt"] or "",
-        description_write_trigger_prompt=row["description_write_trigger_prompt"] or "",
         llm_provider=row["llm_provider"],
         llm_model=row["llm_model"],
         llm_api_key_secret_ref=_decrypt_secret(row["llm_api_key_secret_ref"] or ""),
         llm_base_url=row["llm_base_url"] or "",
         max_iterations=row["max_iterations"],
-        can_clone_repos=row["can_clone_repos"],
         git_committer_name=row["git_committer_name"] or "paca-agent",
         git_committer_email=row["git_committer_email"]
         or "280579135+paca-agent@users.noreply.github.com",
         mcp_servers=mcp_servers,
         skills=skills,
+        env_vars=env_vars,
     )

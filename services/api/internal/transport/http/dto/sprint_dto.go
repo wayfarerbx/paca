@@ -19,11 +19,14 @@ type CreateSprintRequest struct {
 }
 
 // UpdateSprintRequest is the body for PATCH /projects/:projectId/sprints/:sprintId.
+// StartDate, EndDate, and Goal use the Optional* wrapper types so that an
+// absent field leaves the stored value unchanged, distinct from an explicit
+// JSON null (which clears it).
 type UpdateSprintRequest struct {
 	Name      string                  `json:"name"`
-	StartDate *time.Time              `json:"start_date"`
-	EndDate   *time.Time              `json:"end_date"`
-	Goal      *string                 `json:"goal"`
+	StartDate OptionalTime            `json:"start_date"`
+	EndDate   OptionalTime            `json:"end_date"`
+	Goal      OptionalString          `json:"goal"`
 	Status    *sprintdom.SprintStatus `json:"status"`
 }
 

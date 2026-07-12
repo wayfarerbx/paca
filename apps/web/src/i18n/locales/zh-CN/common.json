@@ -18,5 +18,14 @@
 		"newPasswordMustDiffer": "新密码不能与当前密码相同。",
 		"confirmPasswordRequired": "请确认您的新密码。",
 		"passwordsDoNotMatch": "两次输入的密码不一致。"
+	},
+	"timeAgo": {
+		"justNow": "刚刚",
+		"minutes_one": "{{count}} 分钟前",
+		"minutes_other": "{{count}} 分钟前",
+		"hours_one": "{{count}} 小时前",
+		"hours_other": "{{count}} 小时前",
+		"days_one": "{{count}} 天前",
+		"days_other": "{{count}} 天前"
 	}
 }

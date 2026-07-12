@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import threading
 import time
@@ -13,28 +12,34 @@ import httpx
 from openhands.sdk import Agent, AgentContext, Conversation
 from openhands.sdk.conversation.state import ConversationExecutionStatus
 from openhands.sdk.conversation.visualizer import ConversationVisualizerBase
+from openhands.sdk.skills import merge_skills_by_name
 from openhands.tools import get_default_tools
 
 from ..config import settings
 from ..core import streams as stream_store
-from ..core.registry import active_conversations, stop_events
+from ..core.registry import (
+    ChatSandboxState,
+    active_conversations,
+    chat_sandboxes,
+    pause_events,
+    stop_events,
+)
 from ..core.streams import TriggerMessage
 from ..models.agent import AgentConfig
+from ..models.conversation_status import ConversationStatus
 from ..repositories import conversation_repository
-from .builder import build_llm, build_mcp_config, build_skills
-from .docker_workspace import docker_sandbox
-from .prompt import build_initial_prompt
+from . import trigger_skills
+from .builder import build_llm, build_mcp_config, build_skills, load_default_skills
+from .docker_workspace import start_sandbox, stop_sandbox
+from .prompt import build_initial_prompt, build_trigger_suffix
 from .repo_tools import make_repository_tool_specs
 
-logger = logging.getLogger(__name__)
+# The trigger_type Go publishes for direct-chat messages (agent_service.go's
+# publishChatTrigger). Chat conversations keep their sandbox alive between
+# turns instead of tearing it down — see `run_conversation` below.
+CHAT_MESSAGE_TRIGGER_TYPE = "chat_message"
 
-_DONE_STATUSES = frozenset(
-    {
-        ConversationExecutionStatus.FINISHED,
-        ConversationExecutionStatus.ERROR,
-        ConversationExecutionStatus.STUCK,
-    }
-)
+logger = logging.getLogger(__name__)
 
 _ERROR_STATUSES = frozenset(
     {
@@ -42,6 +47,19 @@ _ERROR_STATUSES = frozenset(
         ConversationExecutionStatus.STUCK,
     }
 )
+
+# events.reconcile() re-walks the *entire* remote event history over REST
+# (openhands.sdk.conversation.impl.remote_conversation.RemoteEventsList has no
+# "since" cursor) — the SDK's own blocking run() only pays that cost once, at
+# completion, rather than on every status poll. We still need it more often
+# than that to bound the WS-dead-thread persistence gap (see
+# _wait_for_done_or_stop), but not on every 2s tick.
+_RECONCILE_INTERVAL = 10.0
+
+# Granularity for checking stop_event/pause_event in _wait_for_done_or_stop,
+# decoupled from poll_interval (which paces the REST status check) so either
+# event wakes the loop promptly instead of waiting up to a full poll_interval.
+_EVENT_TICK_INTERVAL = 0.5
 
 
 def _get_conversation_error_detail(conversation) -> str | None:
@@ -65,56 +83,129 @@ def _get_conversation_error_detail(conversation) -> str | None:
 def _wait_for_done_or_stop(
     conversation,
     stop_event: threading.Event,
+    pause_event: threading.Event,
+    reconcile,
     poll_interval: float = 2.0,
     timeout: float = 3600.0,
-) -> tuple[bool, bool]:
-    """Poll the remote conversation until it finishes or a stop is signaled.
+) -> tuple[bool, bool, bool]:
+    """Poll the remote conversation until it finishes or a stop/pause is signaled.
 
-    Returns (stopped, errored):
-      stopped  — True if the loop exited because a stop was requested.
+    Returns (stopped, errored, shutdown):
+      stopped  — True if the loop exited because stop_event or pause_event fired.
       errored  — True if the conversation ended with ERROR or STUCK status.
+      shutdown — True if it was stop_event (full shutdown) rather than
+                 pause_event (interrupt-only) that fired.
     """
     start = time.monotonic()
+    last_reconcile = start
+    last_status_check = start - poll_interval  # force an immediate first check
     while True:
-        # stop_event.wait() blocks for up to poll_interval seconds, returning
-        # True immediately if the event is already set.
-        if stop_event.wait(timeout=poll_interval):
+        # Tick on a short interval so either event wakes this loop promptly;
+        # the REST status check below is separately paced by poll_interval so
+        # this doesn't increase load on the sandbox.
+        if stop_event.wait(timeout=_EVENT_TICK_INTERVAL) or pause_event.is_set():
+            shutdown = stop_event.is_set()
             try:
-                conversation.pause()
+                # interrupt() (not pause()) — pause() waits for the current
+                # LLM/tool call to finish before taking effect, which can
+                # stretch out for as long as that step takes (a long shell
+                # command, a slow completion) and makes the stop/pause button
+                # look like it did nothing. interrupt() cancels the in-flight
+                # request immediately; the remote conversation still ends up
+                # "paused" and resumable either way (confirmed against the
+                # agent-server's own /interrupt route description).
+                conversation.interrupt()
             except Exception as exc:
-                logger.warning("Failed to pause conversation on stop request: %s", exc)
-            return True, False
+                logger.warning("Failed to interrupt conversation on stop request: %s", exc)
+            # Catch up on anything the dead WS thread missed before we stop
+            # watching this conversation entirely.
+            reconcile(conversation)
+            return True, False, shutdown
 
-        if time.monotonic() - start > timeout:
+        now = time.monotonic()
+        if now - start > timeout:
             logger.warning("Conversation polling timed out after %.0f seconds", timeout)
-            return False, False
+            reconcile(conversation)
+            return False, False, False
+
+        if now - last_status_check < poll_interval:
+            continue
+        last_status_check = now
 
         try:
             # RemoteState caches execution_status from WebSocket events and only
             # ever re-fetches over REST if the cache is still empty (see
             # RemoteState._get_conversation_info). openhands-sdk's WS client
             # thread permanently stops reconnecting after any ConnectionClosed
-            # (upstream bug, still present as of openhands-sdk 1.31.0 — see
+            # (upstream bug, still present as of openhands-sdk 1.30.0 — see
             # OpenHands/software-agent-sdk#1532), which would otherwise freeze
             # this loop on a stale "running" status until the timeout above.
             # Force a live REST read every poll so a dead socket can't wedge us.
             conversation.state.refresh_from_server()
             status = conversation.state.execution_status
-            if status in _DONE_STATUSES:
+
+            # The same dead socket also stops new agent events from ever
+            # reaching our persistence callback (it only fires from inside the
+            # WS client thread). reconcile() is a full-history REST walk (see
+            # _RECONCILE_INTERVAL), so throttle it independently of the
+            # cheap poll_interval status check above.
+            if now - last_reconcile >= _RECONCILE_INTERVAL:
+                reconcile(conversation)
+                last_reconcile = now
+
+            if status.is_terminal():
                 errored = status in _ERROR_STATUSES
                 if errored:
-                    # Same staleness risk applies to the cached event list used
-                    # for the error detail — reconcile before reading it.
-                    conversation.state.events.reconcile()
                     detail = _get_conversation_error_detail(conversation)
                     logger.error(
                         "Conversation ended with status %s — %s",
                         status.value,
                         detail or "no detail available",
                     )
-                return False, errored
+                # Final catch-up so the run never ends with an un-persisted
+                # tail from the last reconcile_interval stretch.
+                reconcile(conversation)
+                return False, errored, False
         except Exception as exc:
             logger.debug("Failed to read conversation execution status: %s", exc)
+
+
+def _keep_sandbox_alive(is_chat: bool, errored: bool, shutdown: bool) -> bool:
+    """Whether a chat sandbox should stay registered in chat_sandboxes after a turn ends.
+
+    True for a natural finish and for an interrupt-only pause; False for an
+    error, a real (full-teardown) stop, or any non-chat trigger (those never
+    pause between turns).
+    """
+    return is_chat and not errored and not shutdown
+
+
+def _post_turn_status(
+    is_chat: bool, stopped: bool, errored: bool, shutdown: bool
+) -> tuple[ConversationStatus, str] | None:
+    """Status + realtime event type to write after a turn ends.
+
+    Returns None when the caller already owns the status write: a real
+    (full-teardown) stop is initiated by Go's StopConversation, which
+    synchronously writes "stopped" before publishing the trigger, so Python
+    does not need to (and a race where the turn finishes before the stop
+    signal lands is handled by the idle reaper, not here).
+    """
+    if shutdown:
+        return None
+    if errored:
+        return ConversationStatus.FAILED, "agent.conversation.failed"
+    if stopped:
+        # Interrupt-only. Chat conversations pause (sandbox stays alive,
+        # mirroring a natural per-turn finish); non-chat triggers have no
+        # pause-between-turns concept and their sandbox was already torn
+        # down in _run_sync.
+        if is_chat:
+            return ConversationStatus.PAUSED, "agent.conversation.paused"
+        return ConversationStatus.STOPPED, "agent.conversation.stopped"
+    if is_chat:
+        return ConversationStatus.PAUSED, "agent.conversation.paused"
+    return ConversationStatus.FINISHED, "agent.conversation.finished"
 
 
 # ─── Custom visualizer ────────────────────────────────────────────────────────
@@ -125,7 +216,7 @@ class _QuietVisualizer(ConversationVisualizerBase):
 
     The SDK's DefaultConversationVisualizer emits a WARNING for every event
     type absent from its EVENT_VISUALIZATION_CONFIG (e.g. StreamingDeltaEvent).
-    Since this service handles all events via callbacks / token_callbacks, we
+    Since this service handles all events via the `callbacks` list, we
     replace the default visualizer with this no-op to eliminate the noise.
     """
 
@@ -213,11 +304,17 @@ def _local_repo_infos() -> list[dict]:
 
 
 class _AtomicCounter:
-    """Thread-safe monotonic counter shared across event and token callbacks."""
+    """Thread-safe monotonic counter for ordering persisted events.
 
-    def __init__(self) -> None:
+    Must be seeded with the conversation's next unused event_index (see
+    conversation_repository.get_next_event_index) rather than always
+    starting at 0 — event_index is unique per conversation for its entire
+    lifetime, not just the current turn.
+    """
+
+    def __init__(self, start: int = 0) -> None:
         self._lock = threading.Lock()
-        self._value = 0
+        self._value = start
 
     def next(self) -> int:
         with self._lock:
@@ -226,203 +323,150 @@ class _AtomicCounter:
             return v
 
 
-class _TurnState:
-    """Tracks whether _make_token_callback already persisted the agent's
-    reply for the in-flight turn.
+class _SeenEvents:
+    """Thread-safe set of SDK event ids already routed to persistence.
 
-    openhands.sdk.conversation.impl.RemoteConversation accepts a
-    token_callbacks kwarg but never wires it to anything — Conversation()
-    always builds a RemoteConversation here since docker_sandbox() always
-    yields a RemoteWorkspace, so on_token is never actually invoked.
-    _make_event_callback consults this flag to fall back to persisting the
-    SDK's own MessageEvent instead, so the reply is never silently dropped.
-    See https://github.com/Paca-AI/paca/issues/211 and #214.
+    Shared between the live WebSocket callback and the reconciliation
+    fallback in `_wait_for_done_or_stop` so that an event is persisted
+    exactly once no matter which path first observes it.
+
+    Must be seeded with the SDK ids already persisted in earlier turns (see
+    conversation_repository.get_seen_event_ids) on a resumed chat turn — a
+    fresh, empty set would not recognize those ids, and reconcile() re-walks
+    the *entire* remote SDK event history (not just this turn's), so every
+    old event would be persisted again under a new event_index.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, initial_ids: set[str] | None = None) -> None:
         self._lock = threading.Lock()
-        self._token_persisted = False
+        self._ids: set[str] = set(initial_ids) if initial_ids else set()
 
-    def mark_token_persisted(self) -> None:
+    def mark_new(self, event_id: str) -> bool:
+        """Return True and record the id if it hasn't been seen before."""
         with self._lock:
-            self._token_persisted = True
-
-    def consume(self) -> bool:
-        """Return True if the token callback persisted this turn, clearing
-        the flag for the next one."""
-        with self._lock:
-            was_persisted = self._token_persisted
-            self._token_persisted = False
-            return was_persisted
+            if event_id in self._ids:
+                return False
+            self._ids.add(event_id)
+            return True
 
 
 # ─── Event callback ───────────────────────────────────────────────────────────
+
+
+def _persist_event(
+    trigger: TriggerMessage,
+    loop: asyncio.AbstractEventLoop,
+    counter: _AtomicCounter,
+    event,
+) -> None:
+    """Filter, index, and persist a single SDK event to Postgres + Valkey.
+
+    Shared by the live WebSocket callback and the reconciliation fallback (see
+    `_make_reconciler`) so both paths apply identical filtering and write to
+    the same destinations, regardless of which one first observes an event.
+    """
+    event_type = type(event).__name__
+    event_source = str(getattr(event, "source", "agent"))
+
+    # Events the frontend never renders — skip to avoid wasting event_index
+    # slots and polluting the paginated events list.
+    if event_type in {
+        "StreamingDeltaEvent",  # raw streaming chunks — only the final message matters
+        "ConversationStateUpdateEvent",  # internal iteration bookkeeping
+        "SystemPromptEvent",  # system prompt echo — not shown to user
+        "ConversationErrorEvent",  # SDK error signal — surfaced via conversation status
+    }:
+        return
+
+    event_index = counter.next()
+    payload = event.model_dump_json() if hasattr(event, "model_dump_json") else "{}"
+
+    async def _persist():
+        await conversation_repository.insert_conversation_event(
+            conversation_id=trigger.conversation_id,
+            event_type=event_type,
+            event_source=event_source,
+            event_index=event_index,
+            payload=payload,
+        )
+        await stream_store.publish_event(
+            {
+                "conversation_id": trigger.conversation_id,
+                "project_id": trigger.project_id,
+                "event_type": event_type,
+                "event_source": event_source,
+                "event_index": str(event_index),
+                "payload": payload,
+                "status": "running",
+            }
+        )
+        await stream_store.publish_realtime(
+            project_id=trigger.project_id,
+            conversation_id=trigger.conversation_id,
+            event_type=f"agent.{event_type.lower()}",
+        )
+
+    future = asyncio.run_coroutine_threadsafe(_persist(), loop)
+    try:
+        future.result(timeout=10)
+    except Exception as exc:
+        logger.warning(
+            "Event persist failed for conversation %s: %s",
+            trigger.conversation_id,
+            exc,
+        )
 
 
 def _make_event_callback(
     trigger: TriggerMessage,
     loop: asyncio.AbstractEventLoop,
     counter: _AtomicCounter,
-    turn_state: _TurnState,
+    seen: _SeenEvents,
 ):
-    """Return a synchronous callback invoked by the OpenHands SDK on each complete event.
-
-    Agent MessageEvents are normally skipped here in favor of
-    _make_token_callback, which captures the LLM's text output directly from
-    the streaming response for cleaner content without SDK wrapper fields —
-    when on_token actually gets invoked (see _TurnState). All other events
-    (actions, observations, system messages) are saved normally.
-    """
+    """Return a synchronous callback invoked by the OpenHands SDK on each complete event."""
 
     def callback(event) -> None:
-        event_type = type(event).__name__
-        event_source = str(getattr(event, "source", "agent"))
-
-        # Events the frontend never renders — skip to avoid wasting event_index
-        # slots and polluting the paginated events list.
-        if event_type in {
-            "StreamingDeltaEvent",  # raw streaming chunks — only the final message matters
-            "ConversationStateUpdateEvent",  # internal iteration bookkeeping
-            "SystemPromptEvent",  # system prompt echo — not shown to user
-            "ConversationErrorEvent",  # SDK error signal — surfaced via conversation status
-        }:
+        event_id = getattr(event, "id", None)
+        if event_id is not None and not seen.mark_new(event_id):
             return
-        # Agent text responses are normally captured by token_callbacks with
-        # richer streaming data; skip them here to avoid duplicate DB rows —
-        # unless the token callback never actually persisted this turn (it
-        # never fires at all for RemoteConversation — see _TurnState), in
-        # which case fall through and persist this event instead of silently
-        # dropping the reply.
-        if event_type == "MessageEvent" and event_source == "agent" and turn_state.consume():
-            return
-
-        event_index = counter.next()
-        payload = event.model_dump_json() if hasattr(event, "model_dump_json") else "{}"
-
-        async def _persist():
-            await conversation_repository.insert_conversation_event(
-                conversation_id=trigger.conversation_id,
-                event_type=event_type,
-                event_source=event_source,
-                event_index=event_index,
-                payload=payload,
-            )
-            await stream_store.publish_event(
-                {
-                    "conversation_id": trigger.conversation_id,
-                    "project_id": trigger.project_id,
-                    "event_type": event_type,
-                    "event_source": event_source,
-                    "event_index": str(event_index),
-                    "payload": payload,
-                    "status": "running",
-                }
-            )
-            await stream_store.publish_realtime(
-                project_id=trigger.project_id,
-                conversation_id=trigger.conversation_id,
-                event_type=f"agent.{event_type.lower()}",
-            )
-
-        future = asyncio.run_coroutine_threadsafe(_persist(), loop)
-        try:
-            future.result(timeout=10)
-        except Exception as exc:
-            logger.warning(
-                "Event persist failed for conversation %s: %s",
-                trigger.conversation_id,
-                exc,
-            )
+        _persist_event(trigger, loop, counter, event)
 
     return callback
 
 
-# ─── Token (streaming) callback ───────────────────────────────────────────────
-
-
-def _make_token_callback(
+def _make_reconciler(
     trigger: TriggerMessage,
     loop: asyncio.AbstractEventLoop,
     counter: _AtomicCounter,
-    turn_state: _TurnState,
+    seen: _SeenEvents,
 ):
-    """Return a token callback that accumulates streaming LLM chunks into complete
-    messages and persists each finished message as a MessageEvent.
+    """Return a function that catches up on events the dead WS thread missed.
 
-    The OpenHands SDK calls this once per streaming chunk.  When finish_reason
-    is set the accumulated content is flushed to the database and a realtime
-    pub/sub notification is published so WebSocket clients update immediately.
+    openhands-sdk's WS client thread permanently stops reconnecting after any
+    ConnectionClosed (see the comment in `_wait_for_done_or_stop`), so the
+    composed event callback silently stops firing entirely — even though the
+    agent keeps running in its sandbox and producing events. `events.reconcile()`
+    re-fetches the full event history over REST and merges it straight into
+    the SDK's local cache, bypassing callbacks, so anything new it pulls in
+    has to be routed through `_persist_event` by hand here.
     """
-    lock = threading.Lock()
-    parts_content: list[str] = []
-    parts_reasoning: list[str] = []
 
-    def on_token(stream) -> None:
-        for choice in stream.choices:
-            delta = choice.delta
-            finish_reason = getattr(choice, "finish_reason", None)
+    def reconcile(conversation) -> None:
+        try:
+            conversation.state.events.reconcile()
+            for event in list(conversation.state.events):
+                event_id = getattr(event, "id", None)
+                if event_id is None or not seen.mark_new(event_id):
+                    continue
+                _persist_event(trigger, loop, counter, event)
+        except Exception as exc:
+            logger.debug(
+                "Event reconciliation failed for conversation %s: %s",
+                trigger.conversation_id,
+                exc,
+            )
 
-            content_chunk = getattr(delta, "content", None) or ""
-            reasoning_chunk = getattr(delta, "reasoning_content", None) or ""
-
-            with lock:
-                if content_chunk:
-                    parts_content.append(content_chunk)
-                if reasoning_chunk:
-                    parts_reasoning.append(reasoning_chunk)
-
-                if finish_reason:
-                    full_content = "".join(parts_content)
-                    full_reasoning = "".join(parts_reasoning)
-                    parts_content.clear()
-                    parts_reasoning.clear()
-
-                    if not full_content and not full_reasoning:
-                        return
-
-                    event_index = counter.next()
-                    payload_obj: dict = {"content": full_content, "source": "agent"}
-                    if full_reasoning:
-                        payload_obj["reasoning_content"] = full_reasoning
-                    payload_str = json.dumps(payload_obj)
-
-                    async def _persist(idx=event_index, p=payload_str):
-                        await conversation_repository.insert_conversation_event(
-                            conversation_id=trigger.conversation_id,
-                            event_type="MessageEvent",
-                            event_source="agent",
-                            event_index=idx,
-                            payload=p,
-                        )
-                        await stream_store.publish_event(
-                            {
-                                "conversation_id": trigger.conversation_id,
-                                "project_id": trigger.project_id,
-                                "event_type": "MessageEvent",
-                                "event_source": "agent",
-                                "event_index": str(idx),
-                                "payload": p,
-                                "status": "running",
-                            }
-                        )
-                        await stream_store.publish_realtime(
-                            project_id=trigger.project_id,
-                            conversation_id=trigger.conversation_id,
-                            event_type="agent.messageevent",
-                        )
-
-                    future = asyncio.run_coroutine_threadsafe(_persist(), loop)
-                    try:
-                        future.result(timeout=10)
-                        turn_state.mark_token_persisted()
-                    except Exception as exc:
-                        logger.warning(
-                            "Token callback persist failed for conversation %s: %s",
-                            trigger.conversation_id,
-                            exc,
-                        )
-
-    return on_token
+    return reconcile
 
 
 def _build_project_context_suffix(project_id: str) -> str:
@@ -439,20 +483,48 @@ def _build_project_context_suffix(project_id: str) -> str:
 
 
 async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -> None:
-    """Execute a single agent conversation end-to-end."""
-    loop = asyncio.get_event_loop()
-    counter = _AtomicCounter()
-    turn_state = _TurnState()
-    stop_event = threading.Event()
-    logger.info("Starting conversation %s (agent=%s)", trigger.conversation_id, trigger.agent_id)
-    await conversation_repository.update_conversation_status(trigger.conversation_id, "running")
+    """Execute a single agent conversation end-to-end.
 
-    # Register the stop event so the worker can signal us via stream control messages.
+    Chat-message conversations are special: instead of always cold-starting a
+    sandbox and destroying it once this turn finishes, they check
+    `chat_sandboxes` for a live sandbox from a previous turn in the same
+    conversation and reattach to it. On a natural (non-stopped, non-errored)
+    finish, the sandbox is kept alive and registered for the *next* turn
+    instead of being torn down — see the end of `_run_sync` below.
+    """
+    is_chat = trigger.trigger_type == CHAT_MESSAGE_TRIGGER_TYPE
+    resume_state = chat_sandboxes.get(trigger.conversation_id) if is_chat else None
+    loop = asyncio.get_event_loop()
+    # Seed from the conversation's existing history, not 0 — on a resumed
+    # chat turn, starting back at 0 would collide with event_index values
+    # already used by earlier turns and get silently dropped on insert (see
+    # _AtomicCounter's docstring).
+    next_index = await conversation_repository.get_next_event_index(trigger.conversation_id)
+    counter = _AtomicCounter(next_index)
+    # Seed from events already persisted in earlier turns — see _SeenEvents'
+    # docstring for why an empty set here would re-persist the whole prior
+    # history as duplicates on every resumed chat turn.
+    seen_ids = await conversation_repository.get_seen_event_ids(trigger.conversation_id)
+    seen_events = _SeenEvents(seen_ids)
+    stop_event = threading.Event()
+    pause_event = threading.Event()
+    logger.info("Starting conversation %s (agent=%s)", trigger.conversation_id, trigger.agent_id)
+    await conversation_repository.update_conversation_status(
+        trigger.conversation_id, ConversationStatus.RUNNING
+    )
+
+    # Register the stop/pause events so the worker can signal us via stream
+    # control messages: stop_event -> shutdown, pause_event -> interrupt-only.
     stop_events[trigger.conversation_id] = stop_event
+    pause_events[trigger.conversation_id] = pause_event
 
     try:
         llm = build_llm(agent_config)
-        skills = build_skills(agent_config.skills)
+        # User-configured skills win on a name collision with a default.
+        skills = merge_skills_by_name(build_skills(agent_config.skills), load_default_skills())
+        trigger_skills.append_trigger_skill(
+            skills, trigger.trigger_type, trigger.task_id, trigger.conversation_id
+        )
         mcp_config = build_mcp_config(
             agent_config.mcp_servers, agent_config.agent_id, trigger.project_id
         )
@@ -463,95 +535,100 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
         # project ID or call list_projects to discover it.
         system_suffix += _build_project_context_suffix(trigger.project_id)
 
-        # Documentation workflow — always read project docs first, always write to Paca.
+        # Documentation lives in Paca — never create local files, and always
+        # read it before acting (it holds architecture/conventions/prior
+        # decisions no skill-specific instruction should let you skip).
+        # Detailed write-back workflow is covered by the always-active
+        # `paca` skill and the specialized `paca-doc` skill.
         system_suffix += (
-            "\n\n## IMPORTANT: Documentation Workflow\n"
-            f"This project's documentation is managed in Paca"
-            f" (project ID: `{trigger.project_id}`).\n\n"
-            "**Before starting any task**, read the project documentation:\n"
-            f"1. Call `list_docs` with `projectId='{trigger.project_id}'`"
-            " to see the full documentation tree.\n"
-            "2. Call `read_doc` on relevant documents to understand"
-            " the project context before proceeding.\n\n"
-            "**When writing documentation**, always use the Paca MCP tools"
-            " — never create local markdown files:\n"
-            "- Call `list_docs` to check whether a document already exists at the intended path.\n"
-            "- If it exists: `write_doc` will update it automatically.\n"
-            "- If it does not exist: `write_doc` will create it"
-            " and any missing folders automatically.\n"
-            "- Use paths like `'Architecture/API Design'` — folder structure is handled for you.\n"
+            "\n\n## Documentation\n"
+            "This project's documentation is managed in Paca — use "
+            "`list_docs` / `read_doc` / `write_doc`. Never create local "
+            "markdown files. **Read the relevant documentation before doing "
+            "anything else** — it defines the project's architecture, "
+            "conventions, and prior decisions.\n"
         )
 
         repo_plugin_ids = _effective_repo_plugin_ids(trigger.repo_plugin_ids)
-        has_repos = len(repo_plugin_ids) > 0 and agent_config.can_clone_repos
+        has_repos = len(repo_plugin_ids) > 0
         logger.info(
-            "Conversation %s — repo_plugin_ids=%s can_clone_repos=%s has_repos=%s",
+            "Conversation %s — repo_plugin_ids=%s has_repos=%s",
             trigger.conversation_id,
             repo_plugin_ids,
-            agent_config.can_clone_repos,
             has_repos,
         )
         if has_repos:
             system_suffix += (
-                "\n\n## IMPORTANT: Repository Access & Workflow\n"
-                "This project has linked repositories. Follow these steps in order:\n\n"
-                "1. Call list_repositories to see available repositories and get their IDs.\n"
-                "2. Call clone_repository with the plugin_id and repo_id from step 1.\n"
-                "   The repository will be cloned to /workspace/repo (the default target_dir).\n"
-                "3. Create a new feature branch before making any changes:\n"
-                "   git -C /workspace/repo checkout -b <branch-name>\n"
-                "4. Make your code changes, then commit them:\n"
-                "   git -C /workspace/repo add -A && git -C /workspace/repo commit -m '<message>'\n"
-                "5. Call push_branch with the plugin_id, repo_id,"
-                " and the branch name to publish the branch.\n"
-                "6. Call create_pull_request with the plugin_id, repo_id, a descriptive title, "
-                "the feature branch as head_branch, and the default branch as base_branch.\n\n"
-                "Do NOT skip steps 5 and 6 for remote Git repositories.\n\n"
-                "Local filesystem repositories use plugin_id `local-fs`. For `local-fs`, "
-                "clone_repository links the selected local folder to /workspace/repo and "
-                "your edits are saved directly in the mounted local source folder. "
-                "Do not create a pull request for `local-fs`; summarize the saved changes instead."
+                "\n\n## Repository Access\n"
+                "This project has linked repositories: `list_repositories` → "
+                "`clone_repository` (clones to /workspace/repo). Create a "
+                "feature branch before changing anything, commit your work, "
+                "then call `push_branch` — do NOT skip this step. PR "
+                "creation, review, and comments are handled by the "
+                "repository plugin's own tools.\n\n"
+                "Local filesystem repositories (plugin_id `local-fs`) skip "
+                "the branch/push/PR steps entirely — `clone_repository` "
+                "links the local folder directly to /workspace/repo and "
+                "edits are saved immediately to it; just summarize the "
+                "saved changes when done.\n"
             )
 
-        # Append the trigger-specific prompt last so it takes precedence.
-        # These prompts are stored on the agent and sourced from TRIGGER_PROMPTS
-        # defined in the frontend (apps/web/src/lib/agent-api.ts).
-        if trigger.trigger_type == "agent.task_assigned":
-            if agent_config.task_trigger_prompt:
-                system_suffix += "\n\n" + agent_config.task_trigger_prompt
-        elif trigger.trigger_type == "agent.comment_mention":
-            # task_id is set for task-comment mentions; absent for doc-comment mentions.
-            if trigger.task_id:
-                if agent_config.task_trigger_prompt:
-                    system_suffix += "\n\n" + agent_config.task_trigger_prompt
-            else:
-                if agent_config.doc_comment_trigger_prompt:
-                    system_suffix += "\n\n" + agent_config.doc_comment_trigger_prompt
-        elif trigger.trigger_type == "agent.chat_message":
-            if agent_config.chat_trigger_prompt:
-                system_suffix += "\n\n" + agent_config.chat_trigger_prompt
-        elif trigger.trigger_type == "agent.description_write":
-            if agent_config.description_write_trigger_prompt:
-                system_suffix += "\n\n" + agent_config.description_write_trigger_prompt
-
+        # Pre-gather repository info for the trigger context suffix. Only
+        # needed on a cold start: RemoteConversation never re-sends the local
+        # `agent` (and therefore this AgentContext) to the server when
+        # reattaching to an existing sandbox conversation — it only GETs to
+        # validate the agent kind — so building this for a resumed chat turn
+        # would be pure waste (including the repo-plugin API calls below).
+        all_repos_info = None
+        if resume_state is None and has_repos:
+            try:
+                repo_sources = _gather_repo_sources(trigger)
+                all_repos: list[dict] = _local_repo_infos()
+                for source in repo_sources:
+                    for repo in source.repositories:
+                        all_repos.append(
+                            {
+                                "plugin_id": source.plugin_id,
+                                "repo_id": repo["id"],
+                                "full_name": repo["full_name"],
+                                "owner": repo["owner"],
+                                "repo_name": repo["repo_name"],
+                                "clone_url": repo["clone_url"],
+                            }
+                        )
+                if all_repos:
+                    all_repos_info = all_repos
+            except Exception as exc:
+                logger.warning("Failed to gather repository info: %s", exc)
+        if resume_state is None:
+            # Inject trigger-specific metadata (action type, IDs, repo setup)
+            # into the system suffix rather than muddying the initial user
+            # message. Resumed turns skip this too — see above.
+            system_suffix += build_trigger_suffix(trigger, all_repos_info)
         agent_context = AgentContext(skills=skills, system_message_suffix=system_suffix)
 
-        def _run_sync() -> bool:
-            """Returns True if the run was stopped, False if it finished naturally."""
-            with docker_sandbox(
-                trigger.conversation_id,
-                git_committer_name=agent_config.git_committer_name,
-                git_committer_email=agent_config.git_committer_email,
-            ) as workspace:
+        def _run_sync() -> tuple[bool, bool, bool]:
+            """Returns (stopped, errored, shutdown) — see `_wait_for_done_or_stop`."""
+            if resume_state is not None:
+                handle = resume_state.handle
+            else:
+                handle = start_sandbox(
+                    trigger.conversation_id,
+                    git_committer_name=agent_config.git_committer_name,
+                    git_committer_email=agent_config.git_committer_email,
+                    env=agent_config.env_vars,
+                )
+            workspace = handle.workspace
+
+            try:
                 agent_kwargs: dict = {"llm": llm, "agent_context": agent_context}
-                if mcp_config.get("mcpServers"):
+                if mcp_config:
                     agent_kwargs["mcp_config"] = mcp_config
 
                 if has_repos:
                     agent_kwargs["tools"] = get_default_tools() + make_repository_tool_specs(
                         trigger.project_id,
                         repo_plugin_ids,
-                        trigger.task_id,
                         api_base_url=settings.api_base_url,
                         api_key=settings.paca_api_key,
                         local_repos_path=settings.local_repos_path,
@@ -560,90 +637,107 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
 
                 agent = Agent(**agent_kwargs)
                 # RemoteWorkspace → RemoteConversation; persistence_dir is not
-                # supported for remote conversations (state lives in the sandbox).
-                # Do not pass conversation_id: the sandbox server assigns its own
-                # UUID internally.  Passing our application ID causes the server
-                # to return 400 on subsequent GET /api/conversations/{id} calls
-                # (the sandbox only handles IDs it generated itself).  Event
-                # callbacks persist to our DB using trigger.conversation_id
-                # directly, so the mapping stays correct regardless.
+                # supported for remote conversations (state lives in the
+                # sandbox). On a cold start, do not pass conversation_id: the
+                # sandbox server assigns its own UUID internally (passing our
+                # application ID causes the server to 400 on subsequent GETs
+                # — it only handles IDs it generated itself). Event callbacks
+                # persist to our DB using trigger.conversation_id directly, so
+                # the mapping stays correct regardless. On a chat resume, we
+                # *do* pass the previously-remembered sandbox-assigned id so
+                # the SDK reattaches to the same server-side conversation
+                # (and its history) instead of creating a new one.
+                #
+                # delete_on_close=False for chat: conversation.close() below
+                # runs after every turn (to stop the WS thread), including
+                # turns that end in a pause rather than a real stop — it must
+                # not delete the sandbox-side conversation the next turn
+                # needs to reattach to.
                 conversation = Conversation(
                     agent=agent,
                     workspace=workspace,
-                    callbacks=[_make_event_callback(trigger, loop, counter, turn_state)],
-                    token_callbacks=[_make_token_callback(trigger, loop, counter, turn_state)],
+                    conversation_id=(resume_state.sdk_conversation_id if resume_state else None),
+                    callbacks=[_make_event_callback(trigger, loop, counter, seen_events)],
                     max_iteration_per_run=agent_config.max_iterations,
                     visualizer=_QuietVisualizer(),
+                    delete_on_close=(not is_chat),
                 )
 
-                # Register so the worker's stop handler can find this conversation.
+                # Register so the worker's stop handler can find this
+                # conversation while this turn is in-flight.
                 active_conversations[trigger.conversation_id] = conversation
                 try:
-                    all_repos_info = None
-                    if has_repos:
-                        try:
-                            repo_sources = _gather_repo_sources(trigger)
-                            all_repos: list[dict] = _local_repo_infos()
-                            for source in repo_sources:
-                                for repo in source.repositories:
-                                    all_repos.append(
-                                        {
-                                            "plugin_id": source.plugin_id,
-                                            "repo_id": repo["id"],
-                                            "full_name": repo["full_name"],
-                                            "owner": repo["owner"],
-                                            "repo_name": repo["repo_name"],
-                                            "clone_url": repo["clone_url"],
-                                        }
-                                    )
-                            if all_repos:
-                                all_repos_info = all_repos
-                        except Exception as exc:
-                            logger.warning("Failed to gather repository info: %s", exc)
+                    if resume_state is not None:
+                        # Reply text only — the agent already has full context.
+                        conversation.send_message(trigger.message)
+                    else:
+                        # Cold start — build_initial_prompt handles the
+                        # empty-message fallback (e.g. human task assignment).
+                        conversation.send_message(build_initial_prompt(trigger))
 
-                    conversation.send_message(build_initial_prompt(trigger, all_repos_info))
-                    # Use non-blocking run so our polling loop can be interrupted
-                    # by a stop signal without waiting for the SDK timeout.
+                    # Use non-blocking run so our polling loop can be
+                    # interrupted by a stop signal without waiting for the
+                    # SDK timeout.
                     conversation.run(blocking=False)
-                    return _wait_for_done_or_stop(conversation, stop_event)
+                    reconcile = _make_reconciler(trigger, loop, counter, seen_events)
+                    stopped, errored, shutdown = _wait_for_done_or_stop(
+                        conversation, stop_event, pause_event, reconcile
+                    )
                 finally:
                     active_conversations.pop(trigger.conversation_id, None)
                     # Stop the SDK's WebSocket client thread so it does not
-                    # linger after the sandbox container is stopped.  Without
-                    # this, Docker may recycle the container IP before the
-                    # thread exits, causing the thread to send requests for the
-                    # old conversation ID to the new container and get 400s.
+                    # linger once we let go of `conversation`. For chat turns
+                    # this does NOT delete the sandbox-side conversation
+                    # (delete_on_close is False above) or touch the container
+                    # — only a real stop/error tears those down, below.
                     try:
                         conversation.close()
                     except Exception as exc:
                         logger.debug("Failed to close conversation: %s", exc)
+            except Exception:
+                # Something went wrong before we could decide pause-vs-
+                # teardown (e.g. Agent/Conversation construction itself
+                # failed) — don't leak the sandbox, then re-raise so the
+                # caller's except-block marks this conversation "failed".
+                chat_sandboxes.pop(trigger.conversation_id, None)
+                stop_sandbox(handle)
+                raise
 
-        stopped, errored = await asyncio.get_event_loop().run_in_executor(None, _run_sync)
-        if not stopped:
-            if errored:
-                await conversation_repository.update_conversation_status(
-                    trigger.conversation_id, "failed"
-                )
-                await stream_store.publish_realtime(
+            if _keep_sandbox_alive(is_chat, errored, shutdown):
+                # Natural finish or interrupt-only pause — keep the sandbox
+                # alive, waiting for the next reply.
+                chat_sandboxes[trigger.conversation_id] = ChatSandboxState(
+                    handle=handle,
+                    sdk_conversation_id=conversation.id,
                     project_id=trigger.project_id,
-                    conversation_id=trigger.conversation_id,
-                    event_type="agent.conversation.failed",
+                    last_active_at=time.monotonic(),
                 )
             else:
-                await conversation_repository.update_conversation_status(
-                    trigger.conversation_id, "finished"
-                )
-                await stream_store.publish_realtime(
-                    project_id=trigger.project_id,
-                    conversation_id=trigger.conversation_id,
-                    event_type="agent.conversation.finished",
-                )
+                # Real teardown: explicit stop, an error, or (for non-chat
+                # triggers) always — those never pause between turns.
+                chat_sandboxes.pop(trigger.conversation_id, None)
+                stop_sandbox(handle)
+
+            return stopped, errored, shutdown
+
+        stopped, errored, shutdown = await asyncio.get_event_loop().run_in_executor(None, _run_sync)
+        result = _post_turn_status(is_chat, stopped, errored, shutdown)
+        if result is not None:
+            status, event_type = result
+            await conversation_repository.update_conversation_status(
+                trigger.conversation_id, status
+            )
+            await stream_store.publish_realtime(
+                project_id=trigger.project_id,
+                conversation_id=trigger.conversation_id,
+                event_type=event_type,
+            )
 
     except Exception as exc:
-        if not stop_event.is_set():
+        if not stop_event.is_set() and not pause_event.is_set():
             logger.exception("Conversation %s failed: %s", trigger.conversation_id, exc)
             await conversation_repository.update_conversation_status(
-                trigger.conversation_id, "failed", error_message=str(exc)
+                trigger.conversation_id, ConversationStatus.FAILED, error_message=str(exc)
             )
             await stream_store.publish_realtime(
                 project_id=trigger.project_id,
@@ -653,3 +747,81 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
 
     finally:
         stop_events.pop(trigger.conversation_id, None)
+        pause_events.pop(trigger.conversation_id, None)
+
+
+# ─── Paused chat sandbox teardown ─────────────────────────────────────────────
+
+
+async def teardown_paused_chat_sandbox(conversation_id: str) -> bool:
+    """Tear down a paused (idle, no in-flight run) chat sandbox, if one exists.
+
+    Used for two cases where a chat sandbox needs to go away *between* turns
+    (i.e. there is no in-flight `run_conversation` task to signal via
+    `stop_events` — that path is `worker._handle_control`'s "agent.stop"
+    branch): the user explicitly stopped the chat, or the idle reaper
+    reclaimed it.
+
+    Returns True if a sandbox was found and torn down.
+    """
+    if conversation_id in stop_events:
+        # A turn is actively in flight for this conversation (registered for
+        # the turn's full duration — see run_conversation) — chat_sandboxes
+        # still holds its entry (looked up via .get(), not popped, in
+        # _run_sync) but tearing it down here would yank the sandbox out
+        # from under the running turn. Only the turn itself may retire this
+        # entry once it finishes. This guards both callers: the idle reaper
+        # (which only checks last_active_at, not liveness) and the
+        # "agent.stop" fallback in worker._handle_control.
+        return False
+    entry = chat_sandboxes.pop(conversation_id, None)
+    if entry is None:
+        return False
+    stop_sandbox(entry.handle)
+    await conversation_repository.update_conversation_status(
+        conversation_id, ConversationStatus.STOPPED
+    )
+    await stream_store.publish_realtime(
+        project_id=entry.project_id,
+        conversation_id=conversation_id,
+        event_type="agent.conversation.stopped",
+    )
+    return True
+
+
+def _find_idle_chat_sandboxes(now: float, timeout_seconds: float) -> list[str]:
+    """Return conversation_ids whose chat sandbox has been idle too long.
+
+    Pure function over the current `chat_sandboxes` registry — split out from
+    `reap_idle_chat_sandboxes` so the idle-selection logic is testable without
+    driving the sleep loop. Excludes conversations with an in-flight turn
+    (present in `stop_events`) — their sandbox entry may look stale by
+    `last_active_at` alone (that field isn't updated while a turn is
+    running, only at turn-end and by heartbeats), but they are not idle.
+    """
+    return [
+        cid
+        for cid, entry in list(chat_sandboxes.items())
+        if now - entry.last_active_at > timeout_seconds and cid not in stop_events
+    ]
+
+
+async def reap_idle_chat_sandboxes() -> None:
+    """Background loop: periodically tear down chat sandboxes idle too long.
+
+    This is the disconnect-detection mechanism: the frontend refreshes
+    last_active_at via "agent.heartbeat" control messages roughly every 30s
+    while a conversation is loaded in a tab, so a sandbox only goes idle here
+    once heartbeats actually stop (tab closed, crash, network loss). Runs
+    until cancelled — started alongside the worker loop in `main.py`'s
+    lifespan.
+    """
+    timeout_seconds = settings.chat_sandbox_idle_timeout_minutes * 60
+    while True:
+        await asyncio.sleep(20)
+        for cid in _find_idle_chat_sandboxes(time.monotonic(), timeout_seconds):
+            logger.info("Reaping idle chat sandbox for conversation %s", cid)
+            try:
+                await teardown_paused_chat_sandbox(cid)
+            except Exception:
+                logger.exception("Failed to reap idle chat sandbox for conversation %s", cid)

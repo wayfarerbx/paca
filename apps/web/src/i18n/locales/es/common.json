@@ -18,5 +18,14 @@
 		"newPasswordMustDiffer": "La nueva contraseña debe ser diferente de la contraseña actual.",
 		"confirmPasswordRequired": "Confirma tu nueva contraseña.",
 		"passwordsDoNotMatch": "Las contraseñas no coinciden."
+	},
+	"timeAgo": {
+		"justNow": "justo ahora",
+		"minutes_one": "hace {{count}} min",
+		"minutes_other": "hace {{count}} min",
+		"hours_one": "hace {{count}} h",
+		"hours_other": "hace {{count}} h",
+		"days_one": "hace {{count}} d",
+		"days_other": "hace {{count}} d"
 	}
 }

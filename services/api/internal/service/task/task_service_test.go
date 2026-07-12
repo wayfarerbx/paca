@@ -513,6 +513,82 @@ func TestUpdateTaskType_OK(t *testing.T) {
 	}
 }
 
+// TestUpdateTaskType_OmittedFieldsUnchanged guards against regressing to
+// unconditionally overwriting Icon/Color/Description on every PATCH, even
+// when the request omits them (nil outer pointer = absent, not "clear").
+func TestUpdateTaskType_OmittedFieldsUnchanged(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	icon := "rocket"
+	color := "#ff0000"
+	desc := "A feature request"
+	existing, err := svc.CreateTaskType(ctx, taskdom.CreateTaskTypeInput{
+		ProjectID:   projectID,
+		Name:        "Feature",
+		Icon:        &icon,
+		Color:       &color,
+		Description: &desc,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Only Name is set; Icon/Color/Description are absent (nil outer pointer)
+	// and must survive the update untouched.
+	updated, err := svc.UpdateTaskType(ctx, existing.ProjectID, existing.ID, taskdom.UpdateTaskTypeInput{
+		Name: "Feature Request",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if updated.Name != "Feature Request" {
+		t.Errorf("expected Name=Feature Request, got %q", updated.Name)
+	}
+	if updated.Icon == nil || *updated.Icon != icon {
+		t.Errorf("expected Icon to remain %q, got %v", icon, updated.Icon)
+	}
+	if updated.Color == nil || *updated.Color != color {
+		t.Errorf("expected Color to remain %q, got %v", color, updated.Color)
+	}
+	if updated.Description == nil || *updated.Description != desc {
+		t.Errorf("expected Description to remain %q, got %v", desc, updated.Description)
+	}
+}
+
+// TestUpdateTaskType_ExplicitNullClearsIcon verifies the other half of the
+// three-state contract: an explicit null (non-nil outer pointer, nil inner
+// pointer) clears the field rather than being ignored.
+func TestUpdateTaskType_ExplicitNullClearsIcon(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo)
+	projectID := uuid.New()
+
+	icon := "rocket"
+	existing, err := svc.CreateTaskType(ctx, taskdom.CreateTaskTypeInput{
+		ProjectID: projectID,
+		Name:      "Feature",
+		Icon:      &icon,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var clearedIcon *string
+	updated, err := svc.UpdateTaskType(ctx, existing.ProjectID, existing.ID, taskdom.UpdateTaskTypeInput{
+		Icon: &clearedIcon,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if updated.Icon != nil {
+		t.Errorf("expected Icon to be cleared, got %q", *updated.Icon)
+	}
+}
+
 func TestUpdateTaskType_NotFound(t *testing.T) {
 	ctx := context.Background()
 	repo := newFakeTaskRepo()
@@ -1533,6 +1609,61 @@ func TestDeleteTaskStatus_NotFound(t *testing.T) {
 	err := svc.DeleteTaskStatus(ctx, uuid.New(), uuid.New())
 	if err != taskdom.ErrStatusNotFound {
 		t.Errorf("expected ErrStatusNotFound, got %v", err)
+	}
+}
+
+// stubWorkflowStatusChecker lets tests control whether a status looks
+// referenced by a workflow without depending on the workflow package.
+type stubWorkflowStatusChecker struct {
+	used bool
+	err  error
+}
+
+func (s *stubWorkflowStatusChecker) StatusUsedByWorkflow(_ context.Context, _ uuid.UUID) (bool, error) {
+	return s.used, s.err
+}
+
+func TestDeleteTaskStatus_InUseByWorkflow_Blocked(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo).WithWorkflowStatusChecker(&stubWorkflowStatusChecker{used: true})
+	projectID := uuid.New()
+
+	st, _ := svc.CreateTaskStatus(ctx, taskdom.CreateTaskStatusInput{
+		ProjectID: projectID,
+		Name:      "Done",
+		Position:  10,
+		Category:  taskdom.StatusCategoryDone,
+	})
+
+	err := svc.DeleteTaskStatus(ctx, st.ProjectID, st.ID)
+	if err != taskdom.ErrStatusInUseByWorkflow {
+		t.Fatalf("expected ErrStatusInUseByWorkflow, got %v", err)
+	}
+
+	if _, getErr := svc.GetTaskStatus(ctx, st.ID); getErr != nil {
+		t.Errorf("status should not have been deleted, got GetTaskStatus error: %v", getErr)
+	}
+}
+
+func TestDeleteTaskStatus_NotUsedByWorkflow_Allowed(t *testing.T) {
+	ctx := context.Background()
+	repo := newFakeTaskRepo()
+	svc := tasksvc.New(repo).WithWorkflowStatusChecker(&stubWorkflowStatusChecker{used: false})
+	projectID := uuid.New()
+
+	st, _ := svc.CreateTaskStatus(ctx, taskdom.CreateTaskStatusInput{
+		ProjectID: projectID,
+		Name:      "Done",
+		Position:  10,
+		Category:  taskdom.StatusCategoryDone,
+	})
+
+	if err := svc.DeleteTaskStatus(ctx, st.ProjectID, st.ID); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := svc.GetTaskStatus(ctx, st.ID); err != taskdom.ErrStatusNotFound {
+		t.Errorf("expected ErrStatusNotFound after delete, got %v", err)
 	}
 }
 

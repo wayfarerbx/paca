@@ -62,12 +62,17 @@ type CreateTaskTypeInput struct {
 	Description *string
 }
 
-// UpdateTaskTypeInput carries mutable task-type fields.
+// UpdateTaskTypeInput carries mutable task-type fields for a PATCH operation.
+// Name is applied when non-empty. For Icon, Color, and Description, the
+// double pointer encodes three states:
+//   - nil outer pointer  → field was absent in the request; do NOT overwrite
+//   - non-nil outer pointer, inner pointer nil  → explicitly set to null (clear)
+//   - non-nil outer pointer, inner pointer non-nil  → set to the given value
 type UpdateTaskTypeInput struct {
 	Name        string
-	Icon        *string
-	Color       *string
-	Description *string
+	Icon        **string
+	Color       **string
+	Description **string
 }
 
 // --- Task Status Service ---------------------------------------------------

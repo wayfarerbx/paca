@@ -13,7 +13,7 @@ You are testing or verifying a task — checking acceptance criteria, deriving t
 ## Step 1 — Load task and project context
 
 1. Resolve the task reference from the user's message using `get_task_by_number` or `get_task`.
-2. Call `list_documents` and search for documents titled or tagged with "BDD", "acceptance criteria", "test plan", "QA", or the feature name. Read the most relevant ones with `get_document`. What "done" looks like needs to be established from the spec, not invented.
+2. Call `list_docs` and search for documents titled or tagged with "BDD", "acceptance criteria", "test plan", "QA", or the feature name. Read the most relevant ones with `read_doc`. What "done" looks like needs to be established from the spec, not invented.
 3. Call `list_task_activities` to read implementation notes, prior test runs, and edge cases already flagged.
 
 ## Step 2 — Derive test cases
@@ -48,7 +48,7 @@ Record pass / fail for each test case with a brief note.
    ```
 2. **All pass**: call `update_task` to advance the status to the next stage (e.g. "review", "done")
 3. **Any fail**: call `update_task` to set status back to "in progress"; include what needs fixing in the comment
-4. If these test cases represent a repeatable procedure (e.g. release checklist, integration test steps), preserve them in a Paca document with `create_document` / `update_document`
+4. If these test cases represent a repeatable procedure (e.g. release checklist, integration test steps), preserve them in a Paca document with `write_doc`
 
 **What's next:** If the task passes and there's no existing documentation for this feature, consider running `/paca-doc #<number>` to write it.
 
@@ -66,5 +66,5 @@ Report back: task number, total tests run, pass/fail count, and the status after
 
 **Tasks:** `get_task` · `get_task_by_number` · `update_task` · `list_task_statuses`  
 **Comments:** `add_task_comment` · `list_task_activities`  
-**Documents:** `list_documents` · `get_document` · `create_document` · `update_document`  
+**Documents:** `list_docs` · `read_doc` · `write_doc`  
 **Projects:** `list_projects`

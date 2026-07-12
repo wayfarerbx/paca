@@ -52,8 +52,6 @@
 		"card": {
 			"configure": "設定",
 			"delete": "削除",
-			"repos": "リポジトリ",
-			"configureAndViewActivity": "設定とアクティビティの確認",
 			"deleteDialog": {
 				"title": "{{name}}を削除しますか？",
 				"description": "このエージェントを完全に削除し、プロジェクトから除外します。実行中の会話は停止されます。",
@@ -69,15 +67,14 @@
 				"title": "エージェントはまだいません",
 				"description": "AIエージェントを追加して、タスクの自動化、コードレビュー、ドキュメント作成などを行いましょう。",
 				"createFirstAgent": "最初のエージェントを作成"
-			},
-			"chatShortcutPrefix": "任意のエージェントを",
-			"chatShortcutSuffix": "クリックすると、チャット、会話の表示、MCPサーバーやスキルの管理ができます。"
+			}
 		},
 		"detail": {
 			"tabs": {
 				"overview": "概要",
 				"mcpServers": "MCPサーバー",
 				"skills": "スキル",
+				"envVars": "環境変数",
 				"conversations": "会話"
 			},
 			"overview": {
@@ -89,17 +86,6 @@
 				"apiKeyUpdateLabel": "APIキーの更新",
 				"apiKeyUpdateHint": "（変更しない場合は空欄のまま）",
 				"baseUrlLabel": "ベースURL",
-				"triggerPrompts": {
-					"title": "自動付加トリガープロンプト",
-					"hint": "エージェントの呼び出され方に応じて、実行時にシステムプロンプトへ自動的に追加されます。",
-					"taskAssignment": "タスク割り当て・タスクコメント",
-					"docCommentMention": "ドキュメントコメントでの@メンション",
-					"directChat": "ダイレクトチャット",
-					"writeDescription": "AIによるタスク説明の作成"
-				},
-				"capabilities": "能力",
-				"cloneRepositories": "リポジトリのクローン",
-				"cloneRepositoriesHint": "エージェントによるローカルへのgit clone を許可",
 				"gitCommitterIdentity": "Gitコミッターの情報",
 				"gitCommitterHint": "このエージェントによるコミットで使用される名前とメールアドレスです。",
 				"committerNameLabel": "コミッター名",
@@ -128,6 +114,25 @@
 					"urlLabel": "URL",
 					"cancel": "キャンセル",
 					"addServer": "サーバーを追加"
+				}
+			},
+			"envVars": {
+				"count_one": "{{count}}件の変数を設定済み",
+				"count_other": "{{count}}件の変数を設定済み",
+				"addVariable": "変数を追加",
+				"empty": {
+					"title": "環境変数が追加されていません",
+					"addFirst": "最初の変数を追加"
+				},
+				"addDialog": {
+					"title": "環境変数を追加",
+					"description": "シークレット値は保存時に暗号化され、実行時にエージェントのサンドボックスに注入されます。保存後は値を再度表示することはできません。",
+					"keyLabel": "キー",
+					"keyPlaceholder": "GITHUB_TOKEN",
+					"keyHint": "（英字・数字・アンダースコア。英字またはアンダースコアで始まる必要があります）",
+					"valueLabel": "値",
+					"cancel": "キャンセル",
+					"addVariable": "変数を追加"
 				}
 			},
 			"skills": {
@@ -159,7 +164,6 @@
 				"iterations_one": "{{count}}回の反復",
 				"iterations_other": "{{count}}回の反復",
 				"prOpened": "PRを作成しました",
-				"watch": "監視",
 				"empty": {
 					"title": "会話はまだありません",
 					"description": "タスクがこのエージェントに割り当てられるか、誰かがメッセージを送ると会話が始まります。"
@@ -167,15 +171,63 @@
 			}
 		},
 		"conversationView": {
-			"thinking": "思考中…",
-			"observation": "観察結果",
-			"toolLabel": "ツール: {{toolName}}",
 			"stop": "停止",
 			"notFound": "会話が見つかりません",
 			"chatSession": "チャットセッション",
 			"taskSession": "タスクセッション",
 			"pr": "PR",
-			"noMessages": "メッセージはまだありません"
+			"conversationEnded": "この会話は終了しました。",
+			"textOnlyMessage": "テキストメッセージのみサポートされています。",
+			"failed": "会話が失敗しました",
+			"noOutput": "エージェントは出力を生成しませんでした。"
+		},
+		"thread": {
+			"composerPlaceholder": "エージェントにメッセージ…",
+			"welcomeHeading": "今日は何をお手伝いしましょうか？",
+			"messageInputAriaLabel": "メッセージ入力欄",
+			"voiceInput": "音声入力",
+			"startVoiceInputAriaLabel": "音声入力を開始",
+			"stopDictation": "音声入力を停止",
+			"stopVoiceInputAriaLabel": "音声入力を停止",
+			"sendMessage": "メッセージを送信",
+			"stopGeneratingAriaLabel": "生成を停止",
+			"assistantWorkingAriaLabel": "エージェントが作業中です",
+			"copy": "コピー",
+			"refresh": "更新",
+			"more": "その他",
+			"edit": "編集",
+			"previous": "前へ",
+			"next": "次へ",
+			"exportAsMarkdown": "Markdownとしてエクスポート",
+			"scrollToBottom": "一番下までスクロール",
+			"cancel": "キャンセル",
+			"update": "更新",
+			"reasoning": "推論",
+			"reasoningWithDuration": "推論（{{duration}}秒）",
+			"toolCallCount_one": "ツール呼び出し {{count}} 件",
+			"toolCallCount_other": "ツール呼び出し {{count}} 件",
+			"usedTool": "使用したツール",
+			"cancelledTool": "キャンセルされたツール",
+			"resultLabel": "結果:",
+			"errorLabel": "エラー:",
+			"cancelledReasonLabel": "キャンセル理由:",
+			"approvedByUser": "ユーザーが承認しました",
+			"deniedByUser": "ユーザーがツールの実行を拒否しました",
+			"allow": "許可",
+			"alwaysAllow": "常に許可",
+			"deny": "拒否",
+			"alwaysDeny": "常に拒否",
+			"confirm": "確認",
+			"back": "戻る",
+			"attachmentPreview": "添付ファイルのプレビュー",
+			"attachmentTypeImage": "画像",
+			"attachmentTypeDocument": "ドキュメント",
+			"attachmentTypeFile": "ファイル",
+			"removeFile": "ファイルを削除",
+			"imageAttachmentPreviewTitle": "画像添付ファイルのプレビュー",
+			"attachmentAriaLabel": "{{type}}の添付ファイル",
+			"attachmentAriaLabelError": "{{type}}の添付ファイル、アップロード失敗",
+			"attachmentAriaLabelUploading": "{{type}}の添付ファイル、アップロード中"
 		}
 	},
 	"docs": {
@@ -295,6 +347,14 @@
 			"agentsWrite": {
 				"label": "エージェントの管理",
 				"description": "AIエージェントの作成・設定・削除を行います"
+			},
+			"workflowsRead": {
+				"label": "ワークフローを表示",
+				"description": "自動化ワークフローとその設定を閲覧します"
+			},
+			"workflowsWrite": {
+				"label": "ワークフローを管理",
+				"description": "自動化ワークフローの作成、編集、有効化、削除を行います"
 			}
 		},
 		"permissionGroups": {
@@ -304,7 +364,8 @@
 			"tasks": "タスク",
 			"sprints": "スプリント",
 			"documents": "ドキュメント",
-			"aiAgents": "AIエージェント"
+			"aiAgents": "AIエージェント",
+			"workflows": "自動化"
 		}
 	},
 	"settings": {
@@ -557,10 +618,7 @@
 		"agentLabel": "エージェント",
 		"noAgentsConfigured": "このプロジェクトにはエージェントが設定されていません。",
 		"selectAgentPlaceholder": "エージェントを選択…",
-		"messageLabel": "メッセージ",
-		"messageHint": "（Enterで送信、Shift+Enterで改行）",
-		"messagePlaceholder": "エージェントに何をしてほしいですか？",
-		"send": "送信"
+		"selectAgentFirst": "まずエージェントを選択してください。"
 	},
 	"taskTypes": {
 		"deleteDialog": {
@@ -669,6 +727,11 @@
 			"openTask": "タスクを開く",
 			"removeLink": "リンクを削除",
 			"empty": "関連タスクはありません"
+		},
+		"workflows": {
+			"title": "ワークフロー",
+			"open": "ワークフローを開く",
+			"empty": "ワークフローはまだありません"
 		},
 		"attachments": {
 			"title": "添付ファイル",
@@ -806,15 +869,6 @@
 			"watchSession": "セッションを見る",
 			"madeChange": "変更を加えました",
 			"descriptionChangeDiff": "説明の変更差分"
-		},
-		"timeAgo": {
-			"justNow": "たった今",
-			"minutes_one": "{{count}}分前",
-			"minutes_other": "{{count}}分前",
-			"hours_one": "{{count}}時間前",
-			"hours_other": "{{count}}時間前",
-			"days_one": "{{count}}日前",
-			"days_other": "{{count}}日前"
 		}
 	},
 	"board": {
@@ -1058,6 +1112,82 @@
 			"startDate": "開始日",
 			"dueDate": "期日",
 			"created": "作成日"
+		}
+	},
+	"automation": {
+		"list": {
+			"title": "自動化",
+			"subtitle": "作業が進むにつれてタスクの引き継ぎを自動化します",
+			"newWorkflow": "新しいワークフロー",
+			"empty": {
+				"title": "ワークフローはまだありません",
+				"description": "ワークフローを作成して、作業が進むにつれてタスクの引き継ぎを自動化しましょう。",
+				"createFirstWorkflow": "最初のワークフローを作成"
+			},
+			"noDescription": "説明なし",
+			"updated": "{{time}}に更新"
+		},
+		"status": {
+			"draft": "下書き",
+			"active": "有効",
+			"archived": "アーカイブ済み"
+		},
+		"createDialog": {
+			"title": "新しい自動化ワークフロー",
+			"nameLabel": "名前",
+			"namePlaceholder": "例: リリースパイプライン",
+			"descriptionLabel": "説明",
+			"descriptionPlaceholder": "このワークフローに関する任意の詳細…",
+			"cancel": "キャンセル",
+			"create": "作成"
+		},
+		"deleteDialog": {
+			"title": "ワークフローを削除",
+			"body": "「{{name}}」を削除してもよろしいですか？この操作は元に戻せません。",
+			"cancel": "キャンセル",
+			"confirm": "削除"
+		},
+		"builder": {
+			"addTask": "タスクを追加",
+			"activate": "有効化",
+			"archive": "アーカイブ",
+			"deactivate": "無効化",
+			"readOnlyNoticeArchived": "このワークフローはアーカイブ済みで読み取り専用です — アーカイブされたワークフローは編集できません。",
+			"genericError": "問題が発生しました。もう一度お試しください。",
+			"collapseSidebar": "サイドバーを折りたたむ",
+			"expandSidebar": "サイドバーを展開する"
+		},
+		"canvas": {
+			"unknownTask": "不明なタスク",
+			"deleteEdge": "接続を削除"
+		},
+		"addNodeModal": {
+			"title": "ワークフローにタスクを追加",
+			"searchPlaceholder": "タスクを検索...",
+			"loadingTasks": "タスクを読み込み中...",
+			"noTasksFound": "タスクが見つかりません"
+		},
+		"nodePanel": {
+			"title": "タスク",
+			"removeNode": "ワークフローから削除",
+			"removeConfirmTitle": "ワークフローからタスクを削除",
+			"removeConfirmBody": "タスクをワークフローグラフから、関連する接続とともに削除します。タスク自体には影響しません。",
+			"cancel": "キャンセル",
+			"removeConfirmAction": "削除"
+		},
+		"statusRules": {
+			"title": "ステータス → 担当者ルール",
+			"hint": "タスクがこれらのいずれかのステータスに変わるたびに、自動的にメンバーに割り当てます。これはこのワークフロー内のどのタスクにも適用されます — 誰かがタスクのステータスを直接変更した場合も、先行タスクが完了して後続タスクが現在のステータスで再評価された場合も同様です。",
+			"noRules": "ルールはまだありません",
+			"statusPlaceholder": "ステータス",
+			"memberPlaceholder": "担当者"
+		},
+		"statusTransitions": {
+			"title": "ステータスワークフロー",
+			"hint": "各ステータスでの作業が完了したときに次に来るステータスを定義します。これにより後続タスクが解除され、AIエージェントの担当者に次に設定すべきステータスを推測ではなく正確に伝えられます。ワークフロー作成時にプロジェクトのステータスからデフォルトのチェーンが自動生成されます。",
+			"nextStatusLabel": "次のステータス",
+			"terminalOption": "__END__",
+			"ambiguousWarning": "次のステータスがないステータスがちょうど1つ必要です（それがワークフローの __END__ ステータスになります）。現在: {{count}} 件設定済み。"
 		}
 	}
 }

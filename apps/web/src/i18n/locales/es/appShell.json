@@ -24,6 +24,7 @@
 		"allProjects": "Todos los proyectos",
 		"project": "Proyecto",
 		"agents": "Agentes",
+		"automation": "Automatización",
 		"team": "Equipo",
 		"settings": "Configuración"
 	},
@@ -58,15 +59,6 @@
 		"text": {
 			"assigned": "{{actor}} te asignó la tarea #{{taskNumber}} — {{taskTitle}}",
 			"mentioned": "{{actor}} te mencionó en #{{taskNumber}} — {{taskTitle}}"
-		},
-		"timeAgo": {
-			"justNow": "justo ahora",
-			"minutes_one": "hace {{count}} min",
-			"minutes_other": "hace {{count}} min",
-			"hours_one": "hace {{count}} h",
-			"hours_other": "hace {{count}} h",
-			"days_one": "hace {{count}} d",
-			"days_other": "hace {{count}} d"
 		}
 	},
 	"userMenu": {

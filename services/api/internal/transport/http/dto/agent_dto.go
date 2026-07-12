@@ -14,107 +14,84 @@ import (
 
 // AgentResponse is the public view of an agent.
 type AgentResponse struct {
-	ID                            uuid.UUID                `json:"id"`
-	ProjectID                     uuid.UUID                `json:"project_id"`
-	MemberID                      *uuid.UUID               `json:"member_id,omitempty"`
-	ProjectRoleID                 *uuid.UUID               `json:"project_role_id,omitempty"`
-	ProjectRoleName               string                   `json:"project_role_name,omitempty"`
-	Name                          string                   `json:"name"`
-	Handle                        string                   `json:"handle"`
-	AvatarURL                     *string                  `json:"avatar_url,omitempty"`
-	LLMProvider                   string                   `json:"llm_provider"`
-	LLMModel                      string                   `json:"llm_model"`
-	LLMBaseURL                    string                   `json:"llm_base_url"`
-	SystemPrompt                  string                   `json:"system_prompt"`
-	TaskTriggerPrompt             string                   `json:"task_trigger_prompt"`
-	DocCommentTriggerPrompt       string                   `json:"doc_comment_trigger_prompt"`
-	ChatTriggerPrompt             string                   `json:"chat_trigger_prompt"`
-	DescriptionWriteTriggerPrompt string                   `json:"description_write_trigger_prompt"`
-	CanCloneRepos                 bool                     `json:"can_clone_repos"`
-	CanCreatePRs                  bool                     `json:"can_create_prs"`
-	MaxIterations                 int                      `json:"max_iterations"`
-	TimeoutMinutes                int                      `json:"timeout_minutes"`
-	GitCommitterName              string                   `json:"git_committer_name"`
-	GitCommitterEmail             string                   `json:"git_committer_email"`
-	CreatedBy                     *uuid.UUID               `json:"created_by,omitempty"`
-	CreatedAt                     time.Time                `json:"created_at"`
-	UpdatedAt                     time.Time                `json:"updated_at"`
-	MCPServers                    []AgentMCPServerResponse `json:"mcp_servers,omitempty"`
-	Skills                        []AgentSkillResponse     `json:"skills,omitempty"`
+	ID                uuid.UUID                `json:"id"`
+	ProjectID         uuid.UUID                `json:"project_id"`
+	MemberID          *uuid.UUID               `json:"member_id,omitempty"`
+	ProjectRoleID     *uuid.UUID               `json:"project_role_id,omitempty"`
+	ProjectRoleName   string                   `json:"project_role_name,omitempty"`
+	Name              string                   `json:"name"`
+	Handle            string                   `json:"handle"`
+	AvatarURL         *string                  `json:"avatar_url,omitempty"`
+	LLMProvider       string                   `json:"llm_provider"`
+	LLMModel          string                   `json:"llm_model"`
+	LLMBaseURL        string                   `json:"llm_base_url"`
+	SystemPrompt      string                   `json:"system_prompt"`
+	MaxIterations     int                      `json:"max_iterations"`
+	TimeoutMinutes    int                      `json:"timeout_minutes"`
+	GitCommitterName  string                   `json:"git_committer_name"`
+	GitCommitterEmail string                   `json:"git_committer_email"`
+	CreatedBy         *uuid.UUID               `json:"created_by,omitempty"`
+	CreatedAt         time.Time                `json:"created_at"`
+	UpdatedAt         time.Time                `json:"updated_at"`
+	MCPServers        []AgentMCPServerResponse `json:"mcp_servers,omitempty"`
+	Skills            []AgentSkillResponse     `json:"skills,omitempty"`
+	EnvVars           []AgentEnvVarResponse    `json:"env_vars,omitempty"`
 }
 
 // CreateAgentRequest is the body for POST /projects/:projectId/agents.
 type CreateAgentRequest struct {
-	Name                          string    `json:"name" binding:"required"`
-	Handle                        string    `json:"handle" binding:"required"`
-	LLMProvider                   string    `json:"llm_provider" binding:"required"`
-	LLMModel                      string    `json:"llm_model" binding:"required"`
-	LLMAPIKey                     string    `json:"llm_api_key"`
-	LLMBaseURL                    string    `json:"llm_base_url"`
-	SystemPrompt                  string    `json:"system_prompt"`
-	TaskTriggerPrompt             string    `json:"task_trigger_prompt"`
-	DocCommentTriggerPrompt       string    `json:"doc_comment_trigger_prompt"`
-	ChatTriggerPrompt             string    `json:"chat_trigger_prompt"`
-	DescriptionWriteTriggerPrompt string    `json:"description_write_trigger_prompt"`
-	CanCloneRepos                 bool      `json:"can_clone_repos"`
-	CanCreatePRs                  bool      `json:"can_create_prs"`
-	MaxIterations                 int       `json:"max_iterations"`
-	TimeoutMinutes                int       `json:"timeout_minutes"`
-	GitCommitterName              string    `json:"git_committer_name"`
-	GitCommitterEmail             string    `json:"git_committer_email"`
-	ProjectRoleID                 uuid.UUID `json:"project_role_id" binding:"required"`
+	Name              string    `json:"name" binding:"required"`
+	Handle            string    `json:"handle" binding:"required"`
+	LLMProvider       string    `json:"llm_provider" binding:"required"`
+	LLMModel          string    `json:"llm_model" binding:"required"`
+	LLMAPIKey         string    `json:"llm_api_key"`
+	LLMBaseURL        string    `json:"llm_base_url"`
+	SystemPrompt      string    `json:"system_prompt"`
+	MaxIterations     int       `json:"max_iterations"`
+	TimeoutMinutes    int       `json:"timeout_minutes"`
+	GitCommitterName  string    `json:"git_committer_name"`
+	GitCommitterEmail string    `json:"git_committer_email"`
+	ProjectRoleID     uuid.UUID `json:"project_role_id" binding:"required"`
 }
 
 // UpdateAgentRequest is the body for PATCH /projects/:projectId/agents/:agentId.
 type UpdateAgentRequest struct {
-	Name                          *string    `json:"name"`
-	Handle                        *string    `json:"handle"`
-	LLMProvider                   *string    `json:"llm_provider"`
-	LLMModel                      *string    `json:"llm_model"`
-	LLMAPIKey                     *string    `json:"llm_api_key"`
-	LLMBaseURL                    *string    `json:"llm_base_url"`
-	SystemPrompt                  *string    `json:"system_prompt"`
-	TaskTriggerPrompt             *string    `json:"task_trigger_prompt"`
-	DocCommentTriggerPrompt       *string    `json:"doc_comment_trigger_prompt"`
-	ChatTriggerPrompt             *string    `json:"chat_trigger_prompt"`
-	DescriptionWriteTriggerPrompt *string    `json:"description_write_trigger_prompt"`
-	CanCloneRepos                 *bool      `json:"can_clone_repos"`
-	CanCreatePRs                  *bool      `json:"can_create_prs"`
-	MaxIterations                 *int       `json:"max_iterations"`
-	TimeoutMinutes                *int       `json:"timeout_minutes"`
-	GitCommitterName              *string    `json:"git_committer_name"`
-	GitCommitterEmail             *string    `json:"git_committer_email"`
-	ProjectRoleID                 *uuid.UUID `json:"project_role_id"`
+	Name              *string    `json:"name"`
+	Handle            *string    `json:"handle"`
+	LLMProvider       *string    `json:"llm_provider"`
+	LLMModel          *string    `json:"llm_model"`
+	LLMAPIKey         *string    `json:"llm_api_key"`
+	LLMBaseURL        *string    `json:"llm_base_url"`
+	SystemPrompt      *string    `json:"system_prompt"`
+	MaxIterations     *int       `json:"max_iterations"`
+	TimeoutMinutes    *int       `json:"timeout_minutes"`
+	GitCommitterName  *string    `json:"git_committer_name"`
+	GitCommitterEmail *string    `json:"git_committer_email"`
+	ProjectRoleID     *uuid.UUID `json:"project_role_id"`
 }
 
 // AgentFromEntity maps an Agent entity to AgentResponse.
 func AgentFromEntity(a *agentdom.Agent) AgentResponse {
 	resp := AgentResponse{
-		ID:                            a.ID,
-		ProjectID:                     a.ProjectID,
-		MemberID:                      a.MemberID,
-		ProjectRoleID:                 a.ProjectRoleID,
-		ProjectRoleName:               a.ProjectRoleName,
-		Name:                          a.Name,
-		Handle:                        a.Handle,
-		AvatarURL:                     a.AvatarURL,
-		LLMProvider:                   a.LLMProvider,
-		LLMModel:                      a.LLMModel,
-		LLMBaseURL:                    a.LLMBaseURL,
-		SystemPrompt:                  a.SystemPrompt,
-		TaskTriggerPrompt:             a.TaskTriggerPrompt,
-		DocCommentTriggerPrompt:       a.DocCommentTriggerPrompt,
-		ChatTriggerPrompt:             a.ChatTriggerPrompt,
-		DescriptionWriteTriggerPrompt: a.DescriptionWriteTriggerPrompt,
-		CanCloneRepos:                 a.CanCloneRepos,
-		CanCreatePRs:                  a.CanCreatePRs,
-		MaxIterations:                 a.MaxIterations,
-		TimeoutMinutes:                a.TimeoutMinutes,
-		GitCommitterName:              a.GitCommitterName,
-		GitCommitterEmail:             a.GitCommitterEmail,
-		CreatedBy:                     a.CreatedBy,
-		CreatedAt:                     a.CreatedAt,
-		UpdatedAt:                     a.UpdatedAt,
+		ID:                a.ID,
+		ProjectID:         a.ProjectID,
+		MemberID:          a.MemberID,
+		ProjectRoleID:     a.ProjectRoleID,
+		ProjectRoleName:   a.ProjectRoleName,
+		Name:              a.Name,
+		Handle:            a.Handle,
+		AvatarURL:         a.AvatarURL,
+		LLMProvider:       a.LLMProvider,
+		LLMModel:          a.LLMModel,
+		LLMBaseURL:        a.LLMBaseURL,
+		SystemPrompt:      a.SystemPrompt,
+		MaxIterations:     a.MaxIterations,
+		TimeoutMinutes:    a.TimeoutMinutes,
+		GitCommitterName:  a.GitCommitterName,
+		GitCommitterEmail: a.GitCommitterEmail,
+		CreatedBy:         a.CreatedBy,
+		CreatedAt:         a.CreatedAt,
+		UpdatedAt:         a.UpdatedAt,
 	}
 	if len(a.MCPServers) > 0 {
 		resp.MCPServers = make([]AgentMCPServerResponse, 0, len(a.MCPServers))
@@ -126,6 +103,12 @@ func AgentFromEntity(a *agentdom.Agent) AgentResponse {
 		resp.Skills = make([]AgentSkillResponse, 0, len(a.Skills))
 		for _, s := range a.Skills {
 			resp.Skills = append(resp.Skills, SkillFromEntity(s))
+		}
+	}
+	if len(a.EnvVars) > 0 {
+		resp.EnvVars = make([]AgentEnvVarResponse, 0, len(a.EnvVars))
+		for _, v := range a.EnvVars {
+			resp.EnvVars = append(resp.EnvVars, EnvVarFromEntity(v))
 		}
 	}
 	return resp
@@ -268,6 +251,43 @@ func SkillFromEntity(s *agentdom.AgentSkill) AgentSkillResponse {
 	}
 }
 
+// =========================================================================
+// Environment Variable DTOs
+// =========================================================================
+
+// AgentEnvVarResponse is the public view of a secret environment variable.
+// Value is always redacted — the plaintext is never returned once set.
+type AgentEnvVarResponse struct {
+	ID        uuid.UUID `json:"id"`
+	AgentID   uuid.UUID `json:"agent_id"`
+	Key       string    `json:"key"`
+	Value     string    `json:"value"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// AddEnvVarRequest is the body for POST /agents/:agentId/env-vars.
+type AddEnvVarRequest struct {
+	Key   string `json:"key" binding:"required"`
+	Value string `json:"value" binding:"required"`
+}
+
+// UpdateEnvVarRequest is the body for PATCH /agents/:agentId/env-vars/:envVarId.
+type UpdateEnvVarRequest struct {
+	Value string `json:"value" binding:"required"`
+}
+
+// EnvVarFromEntity maps an AgentEnvironmentVariable entity to its DTO. The
+// value is always masked; it is never decrypted for API responses.
+func EnvVarFromEntity(v *agentdom.AgentEnvironmentVariable) AgentEnvVarResponse {
+	return AgentEnvVarResponse{
+		ID:        v.ID,
+		AgentID:   v.AgentID,
+		Key:       v.Key,
+		Value:     "***",
+		CreatedAt: v.CreatedAt,
+	}
+}
+
 // WriteWithAIRequest is the body for POST /projects/:projectId/tasks/:taskId/write-with-ai.
 type WriteWithAIRequest struct {
 	AgentID uuid.UUID `json:"agent_id" binding:"required"`
@@ -285,7 +305,7 @@ type AgentConversationResponse struct {
 	TriggerType         string     `json:"trigger_type"`
 	TaskID              *uuid.UUID `json:"task_id,omitempty"`
 	ChatSessionID       *uuid.UUID `json:"chat_session_id,omitempty"`
-	TriggeredByMemberID uuid.UUID  `json:"triggered_by_member_id"`
+	TriggeredByMemberID *uuid.UUID `json:"triggered_by_member_id,omitempty"`
 	Status              string     `json:"status"`
 	IterationCount      int        `json:"iteration_count"`
 	BranchName          *string    `json:"branch_name,omitempty"`

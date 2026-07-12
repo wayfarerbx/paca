@@ -19,8 +19,17 @@ var (
 
 // Skill errors
 var (
-	ErrSkillNotFound  = errors.New("skill not found")
-	ErrSkillNameTaken = errors.New("skill name already in use on this agent")
+	ErrSkillNotFound     = errors.New("skill not found")
+	ErrSkillNameTaken    = errors.New("skill name already in use on this agent")
+	ErrSkillNameReserved = errors.New("skill name is reserved for internal agent scaffolding")
+)
+
+// Environment variable errors
+var (
+	ErrEnvVarNotFound    = errors.New("environment variable not found")
+	ErrEnvVarKeyTaken    = errors.New("environment variable key already in use on this agent")
+	ErrEnvVarKeyInvalid  = errors.New("environment variable key must start with a letter or underscore and contain only letters, digits, and underscores")
+	ErrEnvVarKeyReserved = errors.New("environment variable key is reserved for internal sandbox configuration")
 )
 
 // Conversation errors
@@ -28,6 +37,9 @@ var (
 	ErrConversationNotFound       = errors.New("conversation not found")
 	ErrConversationNotRunning     = errors.New("conversation is not running")
 	ErrConversationAlreadyStopped = errors.New("conversation is already stopped")
+	// ErrConversationBusy is returned when a chat reply is sent while the
+	// session's current conversation is still mid-turn (status "running").
+	ErrConversationBusy = errors.New("agent is still responding to the previous message")
 )
 
 // Chat session errors

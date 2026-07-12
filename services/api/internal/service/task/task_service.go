@@ -14,14 +14,29 @@ var reservedSystemTypeNames = map[string]bool{
 	"Epic": true,
 }
 
+// workflowStatusChecker is the minimal workflow-domain surface the task
+// service needs to refuse deleting a status that automation still depends on.
+type workflowStatusChecker interface {
+	StatusUsedByWorkflow(ctx context.Context, statusID uuid.UUID) (bool, error)
+}
+
 // Service is the concrete implementation of taskdom.Service.
 type Service struct {
-	repo taskdom.Repository
+	repo            taskdom.Repository
+	workflowChecker workflowStatusChecker
 }
 
 // New returns a configured task service.
 func New(repo taskdom.Repository) *Service {
 	return &Service{repo: repo}
+}
+
+// WithWorkflowStatusChecker configures a check that refuses to delete a task
+// status still referenced by an automation workflow's rules or transitions.
+// Without it, DeleteTaskStatus does not guard against this (e.g. in tests).
+func (s *Service) WithWorkflowStatusChecker(checker workflowStatusChecker) *Service {
+	s.workflowChecker = checker
+	return s
 }
 
 // --- Task Types -------------------------------------------------------------
@@ -80,9 +95,15 @@ func (s *Service) UpdateTaskType(ctx context.Context, projectID, id uuid.UUID, i
 	if name := strings.TrimSpace(in.Name); name != "" {
 		t.Name = name
 	}
-	t.Icon = in.Icon
-	t.Color = in.Color
-	t.Description = in.Description
+	if in.Icon != nil {
+		t.Icon = *in.Icon
+	}
+	if in.Color != nil {
+		t.Color = *in.Color
+	}
+	if in.Description != nil {
+		t.Description = *in.Description
+	}
 	t.UpdatedAt = time.Now()
 
 	if err := s.repo.UpdateTaskType(ctx, t); err != nil {
@@ -196,6 +217,15 @@ func (s *Service) DeleteTaskStatus(ctx context.Context, projectID, id uuid.UUID)
 	}
 	if st.ProjectID != projectID {
 		return taskdom.ErrStatusNotFound
+	}
+	if s.workflowChecker != nil {
+		used, err := s.workflowChecker.StatusUsedByWorkflow(ctx, id)
+		if err != nil {
+			return err
+		}
+		if used {
+			return taskdom.ErrStatusInUseByWorkflow
+		}
 	}
 	return s.repo.DeleteTaskStatus(ctx, id)
 }

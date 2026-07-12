@@ -13,7 +13,7 @@ You are breaking a task or epic into smaller, actionable sub-tasks in Paca. Use 
 ## Step 1 — Load project context
 
 1. Resolve the task reference from the user's message using `get_task_by_number` or `get_task`.
-2. Call `list_documents` and read documents that explain the technical landscape — architecture, design decisions, BDD scenarios, API specs. Understanding the tech stack and boundaries is essential to find the right split points.
+2. Call `list_docs` and read documents that explain the technical landscape — architecture, design decisions, BDD scenarios, API specs. Understanding the tech stack and boundaries is essential to find the right split points.
 3. Call `list_task_types` and `list_task_statuses` to know available types and statuses.
 4. Call `list_tasks` to see what already exists, so you don't propose sub-tasks that duplicate open work.
 
@@ -58,6 +58,6 @@ Report back: parent task number, list of created sub-task numbers, titles, and a
 ## Tool reference
 
 **Tasks:** `get_task` · `get_task_by_number` · `list_tasks` · `create_task` · `update_task` · `list_task_types` · `list_task_statuses`  
-**Documents:** `list_documents` · `get_document`  
+**Documents:** `list_docs` · `read_doc`  
 **Sprints:** `list_sprints`  
 **Projects:** `list_projects`

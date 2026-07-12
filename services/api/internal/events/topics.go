@@ -84,7 +84,15 @@ const (
 	TopicAgentCommentMention   = "agent.comment_mention"
 	TopicAgentChatMessage      = "agent.chat_message"
 	TopicAgentDescriptionWrite = "agent.description_write"
-	TopicAgentStop             = "agent.stop"
+	// TopicAgentStop interrupts (if running) and tears the sandbox down for
+	// good — unchanged from before. TopicAgentPause interrupts the in-flight
+	// turn only, leaving the sandbox running so the conversation can be
+	// replied to again.
+	TopicAgentStop  = "agent.stop"
+	TopicAgentPause = "agent.pause"
+	// TopicAgentHeartbeat refreshes a chat conversation's idle timer; fired
+	// periodically by the frontend while a conversation is loaded in a tab.
+	TopicAgentHeartbeat = "agent.heartbeat"
 
 	// --- Agent event topics (emitted by ai-agent, consumed by realtime) ------
 	TopicAgentConversationStarted  = "agent.conversation.started"
@@ -97,6 +105,28 @@ const (
 	TopicAgentActionEvent          = "agent.action"
 	TopicAgentObservationEvent     = "agent.observation"
 	TopicAgentMessageEvent         = "agent.message"
+
+	// --- Automation workflow events ------------------------------------------
+	// Published directly to ChannelRealtime by workflowsvc.Service whenever a
+	// workflow's graph or lifecycle changes, so every connected client viewing
+	// that project's automation builder stays in sync. Note: workflow.assigned
+	// (the automation engine reassigning a task) is a separate, task-scoped
+	// event defined as taskdom.ActivityTypeWorkflowAssigned, not here.
+	TopicWorkflowCreated                 = "workflow.created"
+	TopicWorkflowUpdated                 = "workflow.updated"
+	TopicWorkflowDeleted                 = "workflow.deleted"
+	TopicWorkflowActivated               = "workflow.activated"
+	TopicWorkflowArchived                = "workflow.archived"
+	TopicWorkflowRevertedToDraft         = "workflow.reverted_to_draft"
+	TopicWorkflowNodeAdded               = "workflow.node.added"
+	TopicWorkflowNodeUpdated             = "workflow.node.updated"
+	TopicWorkflowNodeRemoved             = "workflow.node.removed"
+	TopicWorkflowEdgeAdded               = "workflow.edge.added"
+	TopicWorkflowEdgeRemoved             = "workflow.edge.removed"
+	TopicWorkflowStatusRuleSet           = "workflow.status_rule.set"
+	TopicWorkflowStatusRuleRemoved       = "workflow.status_rule.removed"
+	TopicWorkflowStatusTransitionSet     = "workflow.status_transition.set"
+	TopicWorkflowStatusTransitionRemoved = "workflow.status_transition.removed"
 )
 
 // Streams for AI Agent pipeline.

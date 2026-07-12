@@ -13,22 +13,6 @@ export interface AgentPreset {
 	defaultSystemPrompt: string;
 }
 
-// ── Trigger prompts ───────────────────────────────────────────────────────────
-// Role-agnostic. The runner appends the matching prompt to the agent's base
-// system prompt at invocation time.
-
-export const TRIGGER_PROMPTS = {
-	task: "## Current invocation: task assignment or task comment\n\nYou were triggered by a task assignment or a task comment @mention. Wrap your work with these steps:\n\n1. **Read the task**: Use the Paca MCP tool to fetch the full task details including description, acceptance criteria, and current status.\n2. **Read the documentation**: Use the Paca MCP tool to list and read the project's documents. Focus on architecture guides, technical conventions, onboarding docs, or any document relevant to your task. This gives you the full project context before you begin.\n3. **Check readiness**: If anything is unclear after reading the task and docs, add a comment on the task asking for clarification and wait for a response before proceeding.\n4. **Update status**: Use the Paca MCP tool to update the task status to the appropriate in-progress status.\n5. **Do your work** as described in your role above.\n6. **Update status**: Use the Paca MCP tool to update the task status to the appropriate done/completed status.\n7. **Reply**: Add a comment on the task summarising what was done, key decisions made, and any follow-up items.",
-
-	docComment:
-		"## Current invocation: documentation comment\n\nYou were triggered by a documentation comment @mention. Wrap your work with these steps:\n\n1. **Read the documentation**: Use the Paca MCP tool to list and read the project's documents. Prioritise the document that triggered this mention as well as any related architecture or convention docs to build full context.\n2. **Check readiness**: If anything is unclear, add a comment asking for clarification and wait for a response before proceeding.\n3. **Do your work** as described in your role above.\n4. **Reply**: Add a comment with your response and any relevant follow-up items.",
-
-	chat: "## Current invocation: direct chat\n\nYou were triggered by direct chat. The user cannot reply in the same session, so:\n\n1. **Read the documentation**: Use the Paca MCP tool to list and read the project's documents to understand the project context, architecture, and conventions before responding.\n2. **If anything is unclear and you must ask**, send your question as a message in the conversation and stop. The user will read it and may continue in a new conversation.\n3. **If you have enough information**, proceed with your work without asking.\n4. **Do your work** as described in your role above.\n5. **Reply**: Respond directly in the conversation.",
-
-	descriptionWrite:
-		"## Current invocation: write task description\n\nYou were triggered to write a description for a specific task. Follow these steps:\n\n1. **Read the task**: Use the Paca MCP tool to fetch the full task details including its title, type, and any existing description.\n2. **Read the documentation**: Use the Paca MCP tool to list and read the project's documents. Focus on architecture guides, domain context, or any docs that help you write an accurate and well-informed description.\n3. **Write the description**: Based on the task title, project context, and documentation, write a clear, concise, and actionable task description. Include:\n   - A brief summary of what needs to be done\n   - Acceptance criteria (what done looks like)\n   - Any relevant technical notes or constraints\n4. **Update the task**: Use the Paca MCP tool to update the task's description with the content you wrote.\n5. **Reply**: Add a comment on the task confirming the description has been written and noting any assumptions made.",
-} as const;
-
 export const AGENT_PRESETS: AgentPreset[] = [
 	{
 		id: "software-engineer",
@@ -115,6 +99,15 @@ export interface AgentSkill {
 	updated_at: string;
 }
 
+export interface AgentEnvVar {
+	id: string;
+	agent_id: string;
+	key: string;
+	// Always "***" — the plaintext value is never returned by the API.
+	value: string;
+	created_at: string;
+}
+
 export interface Agent {
 	id: string;
 	project_id: string;
@@ -125,16 +118,12 @@ export interface Agent {
 	llm_model: string;
 	llm_base_url: string;
 	system_prompt: string;
-	task_trigger_prompt: string;
-	doc_comment_trigger_prompt: string;
-	chat_trigger_prompt: string;
-	description_write_trigger_prompt: string;
-	can_clone_repos: boolean;
 	git_committer_name: string;
 	git_committer_email: string;
 	member_id?: string | null;
 	mcp_servers?: AgentMCPServer[];
 	skills?: AgentSkill[];
+	env_vars?: AgentEnvVar[];
 	created_at: string;
 	updated_at: string;
 }
@@ -142,6 +131,7 @@ export interface Agent {
 export type ConversationStatus =
 	| "queued"
 	| "running"
+	| "paused"
 	| "finished"
 	| "failed"
 	| "stopped";
@@ -158,7 +148,7 @@ export interface AgentConversation {
 	task_id?: string | null;
 	comment_id?: string | null;
 	chat_session_id?: string | null;
-	triggered_by_member_id: string;
+	triggered_by_member_id?: string;
 	status: ConversationStatus;
 	iteration_count: number;
 	error_message?: string | null;
@@ -220,11 +210,6 @@ export async function createAgent(
 		llm_api_key: string;
 		llm_base_url: string;
 		system_prompt?: string;
-		task_trigger_prompt?: string;
-		doc_comment_trigger_prompt?: string;
-		chat_trigger_prompt?: string;
-		description_write_trigger_prompt?: string;
-		can_clone_repos?: boolean;
 		git_committer_name?: string;
 		git_committer_email?: string;
 		project_role_id: string;
@@ -248,11 +233,6 @@ export async function updateAgent(
 		llm_api_key?: string;
 		llm_base_url?: string | null;
 		system_prompt?: string;
-		task_trigger_prompt?: string;
-		doc_comment_trigger_prompt?: string;
-		chat_trigger_prompt?: string;
-		description_write_trigger_prompt?: string;
-		can_clone_repos?: boolean;
 		git_committer_name?: string;
 		git_committer_email?: string;
 	},
@@ -401,6 +381,53 @@ export async function deleteSkill(
 	);
 }
 
+// ── Environment Variables ────────────────────────────────────────────────────
+
+export async function listEnvVars(
+	projectId: string,
+	agentId: string,
+): Promise<AgentEnvVar[]> {
+	const { data } = await apiClient.instance.get<
+		SuccessEnvelope<{ items: AgentEnvVar[] }>
+	>(`/projects/${projectId}/agents/${agentId}/env-vars`);
+	return data.data.items;
+}
+
+export async function addEnvVar(
+	projectId: string,
+	agentId: string,
+	payload: { key: string; value: string },
+): Promise<AgentEnvVar> {
+	const { data } = await apiClient.instance.post<SuccessEnvelope<AgentEnvVar>>(
+		`/projects/${projectId}/agents/${agentId}/env-vars`,
+		payload,
+	);
+	return data.data;
+}
+
+export async function updateEnvVar(
+	projectId: string,
+	agentId: string,
+	envVarId: string,
+	payload: { value: string },
+): Promise<AgentEnvVar> {
+	const { data } = await apiClient.instance.patch<SuccessEnvelope<AgentEnvVar>>(
+		`/projects/${projectId}/agents/${agentId}/env-vars/${envVarId}`,
+		payload,
+	);
+	return data.data;
+}
+
+export async function deleteEnvVar(
+	projectId: string,
+	agentId: string,
+	envVarId: string,
+): Promise<void> {
+	await apiClient.instance.delete(
+		`/projects/${projectId}/agents/${agentId}/env-vars/${envVarId}`,
+	);
+}
+
 // ── Conversations ─────────────────────────────────────────────────────────────
 
 export async function listConversations(
@@ -445,6 +472,34 @@ export async function stopConversation(
 	>(`/projects/${projectId}/conversations/${conversationId}/stop`);
 	return data.data;
 }
+
+// pauseConversation interrupts the in-flight turn only — the sandbox stays
+// alive and the conversation goes back to "paused", ready for another reply.
+// This is what the assistant-ui Cancel/Stop button calls; stopConversation
+// above is the full, permanent teardown.
+export async function pauseConversation(
+	projectId: string,
+	conversationId: string,
+): Promise<{ message: string }> {
+	const { data } = await apiClient.instance.post<
+		SuccessEnvelope<{ message: string }>
+	>(`/projects/${projectId}/conversations/${conversationId}/pause`);
+	return data.data;
+}
+
+// heartbeatConversation refreshes a chat conversation's idle timer on the
+// ai-agent service — pinged periodically while a conversation is loaded in a
+// browser tab so its sandbox isn't reclaimed as long as the tab stays open.
+export async function heartbeatConversation(
+	projectId: string,
+	conversationId: string,
+): Promise<void> {
+	await apiClient.instance.post(
+		`/projects/${projectId}/conversations/${conversationId}/heartbeat`,
+	);
+}
+
+export const CONVERSATION_HEARTBEAT_INTERVAL_MS = 30_000;
 
 // ── Chat Sessions ─────────────────────────────────────────────────────────────
 
@@ -518,6 +573,15 @@ export const agentSkillsQueryOptions = (projectId: string, agentId: string) =>
 		queryFn: () => listSkills(projectId, agentId),
 	});
 
+export const agentEnvVarsQueryOptions = (projectId: string, agentId: string) =>
+	queryOptions({
+		queryKey: ["projects", projectId, "agents", agentId, "env-vars"],
+		queryFn: () => listEnvVars(projectId, agentId),
+	});
+
+// No refetchInterval: kept live via useProjectRealtime's socket-driven
+// invalidation of the ["projects", projectId, "conversations"] prefix on
+// every "agent.*" event instead of polling.
 export const conversationsQueryOptions = (
 	projectId: string,
 	agentId?: string,
@@ -525,7 +589,6 @@ export const conversationsQueryOptions = (
 	queryOptions({
 		queryKey: ["projects", projectId, "conversations", { agentId }],
 		queryFn: () => listConversations(projectId, agentId),
-		refetchInterval: 10_000,
 	});
 
 export const conversationQueryOptions = (
@@ -586,6 +649,7 @@ export const llmModelsQueryOptions = queryOptions({
 export const CONVERSATION_STATUS_LABELS: Record<ConversationStatus, string> = {
 	queued: "Queued",
 	running: "Running",
+	paused: "Waiting for reply",
 	finished: "Finished",
 	failed: "Failed",
 	stopped: "Stopped",
@@ -594,6 +658,7 @@ export const CONVERSATION_STATUS_LABELS: Record<ConversationStatus, string> = {
 export const CONVERSATION_STATUS_COLORS: Record<ConversationStatus, string> = {
 	queued: "text-muted-foreground",
 	running: "text-blue-500",
+	paused: "text-amber-500",
 	finished: "text-emerald-500",
 	failed: "text-destructive",
 	stopped: "text-muted-foreground",

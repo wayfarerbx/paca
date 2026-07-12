@@ -329,6 +329,80 @@ func TestUpdateSprint_InvalidStatus(t *testing.T) {
 	}
 }
 
+// TestUpdateSprint_OmittedFieldsUnchanged guards against regressing to
+// unconditionally overwriting StartDate/EndDate/Goal on every PATCH, even
+// when the request omits them (nil outer pointer = absent, not "clear").
+func TestUpdateSprint_OmittedFieldsUnchanged(t *testing.T) {
+	ctx := context.Background()
+	svc := sprintsvc.New(newFakeSprintRepo(), newFakeTaskRepo())
+	projectID := uuid.New()
+
+	start := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
+	goal := "Ship the thing"
+	sp, err := svc.CreateSprint(ctx, sprintdom.CreateSprintInput{
+		ProjectID: projectID,
+		Name:      "Sprint 1",
+		StartDate: &start,
+		EndDate:   &end,
+		Goal:      &goal,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Only Name is set; StartDate/EndDate/Goal are absent (nil outer pointer)
+	// and must survive the update untouched.
+	updated, err := svc.UpdateSprint(ctx, projectID, sp.ID, sprintdom.UpdateSprintInput{
+		Name: "Renamed Sprint",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if updated.Name != "Renamed Sprint" {
+		t.Errorf("expected Name to update, got %q", updated.Name)
+	}
+	if updated.StartDate == nil || !updated.StartDate.Equal(start) {
+		t.Errorf("expected StartDate to remain %v, got %v", start, updated.StartDate)
+	}
+	if updated.EndDate == nil || !updated.EndDate.Equal(end) {
+		t.Errorf("expected EndDate to remain %v, got %v", end, updated.EndDate)
+	}
+	if updated.Goal == nil || *updated.Goal != goal {
+		t.Errorf("expected Goal to remain %q, got %v", goal, updated.Goal)
+	}
+}
+
+// TestUpdateSprint_ExplicitNullClearsGoal verifies the other half of the
+// three-state contract: an explicit null (non-nil outer pointer, nil inner
+// pointer) clears the field rather than being ignored.
+func TestUpdateSprint_ExplicitNullClearsGoal(t *testing.T) {
+	ctx := context.Background()
+	svc := sprintsvc.New(newFakeSprintRepo(), newFakeTaskRepo())
+	projectID := uuid.New()
+
+	goal := "Ship the thing"
+	sp, err := svc.CreateSprint(ctx, sprintdom.CreateSprintInput{
+		ProjectID: projectID,
+		Name:      "Sprint 1",
+		Goal:      &goal,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	var clearedGoal *string
+	updated, err := svc.UpdateSprint(ctx, projectID, sp.ID, sprintdom.UpdateSprintInput{
+		Goal: &clearedGoal,
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if updated.Goal != nil {
+		t.Errorf("expected Goal to be cleared, got %q", *updated.Goal)
+	}
+}
+
 func TestDeleteSprint_OK(t *testing.T) {
 	ctx := context.Background()
 	svc := sprintsvc.New(newFakeSprintRepo(), newFakeTaskRepo())

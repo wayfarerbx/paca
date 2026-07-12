@@ -4,6 +4,7 @@ package agentsvc
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -100,28 +101,22 @@ func (s *Service) CreateAgent(ctx context.Context, projectID uuid.UUID, in agent
 
 	now := time.Now()
 	a := &agentdom.Agent{
-		ID:                            uuid.New(),
-		ProjectID:                     projectID,
-		Name:                          name,
-		Handle:                        handle,
-		LLMProvider:                   in.LLMProvider,
-		LLMModel:                      in.LLMModel,
-		LLMAPIKeySecret:               encryptedKey,
-		LLMBaseURL:                    in.LLMBaseURL,
-		SystemPrompt:                  in.SystemPrompt,
-		TaskTriggerPrompt:             in.TaskTriggerPrompt,
-		DocCommentTriggerPrompt:       in.DocCommentTriggerPrompt,
-		ChatTriggerPrompt:             in.ChatTriggerPrompt,
-		DescriptionWriteTriggerPrompt: in.DescriptionWriteTriggerPrompt,
-		CanCloneRepos:                 in.CanCloneRepos,
-		CanCreatePRs:                  in.CanCreatePRs,
-		MaxIterations:                 in.MaxIterations,
-		TimeoutMinutes:                in.TimeoutMinutes,
-		GitCommitterName:              in.GitCommitterName,
-		GitCommitterEmail:             in.GitCommitterEmail,
-		CreatedBy:                     in.CreatedBy,
-		CreatedAt:                     now,
-		UpdatedAt:                     now,
+		ID:                uuid.New(),
+		ProjectID:         projectID,
+		Name:              name,
+		Handle:            handle,
+		LLMProvider:       in.LLMProvider,
+		LLMModel:          in.LLMModel,
+		LLMAPIKeySecret:   encryptedKey,
+		LLMBaseURL:        in.LLMBaseURL,
+		SystemPrompt:      in.SystemPrompt,
+		MaxIterations:     in.MaxIterations,
+		TimeoutMinutes:    in.TimeoutMinutes,
+		GitCommitterName:  in.GitCommitterName,
+		GitCommitterEmail: in.GitCommitterEmail,
+		CreatedBy:         in.CreatedBy,
+		CreatedAt:         now,
+		UpdatedAt:         now,
 	}
 	const maxIterationsLimit = 500
 	const defaultMaxIterations = 500
@@ -195,24 +190,6 @@ func (s *Service) UpdateAgent(ctx context.Context, projectID, agentID uuid.UUID,
 	}
 	if in.SystemPrompt != nil {
 		a.SystemPrompt = *in.SystemPrompt
-	}
-	if in.TaskTriggerPrompt != nil {
-		a.TaskTriggerPrompt = *in.TaskTriggerPrompt
-	}
-	if in.DocCommentTriggerPrompt != nil {
-		a.DocCommentTriggerPrompt = *in.DocCommentTriggerPrompt
-	}
-	if in.ChatTriggerPrompt != nil {
-		a.ChatTriggerPrompt = *in.ChatTriggerPrompt
-	}
-	if in.DescriptionWriteTriggerPrompt != nil {
-		a.DescriptionWriteTriggerPrompt = *in.DescriptionWriteTriggerPrompt
-	}
-	if in.CanCloneRepos != nil {
-		a.CanCloneRepos = *in.CanCloneRepos
-	}
-	if in.CanCreatePRs != nil {
-		a.CanCreatePRs = *in.CanCreatePRs
 	}
 	const maxIterationsLimit = 500
 	const defaultMaxIterations = 500
@@ -366,6 +343,26 @@ func (s *Service) DeleteMCPServer(ctx context.Context, agentID, serverID uuid.UU
 // Skills
 // -------------------------------------------------------------------------
 
+// reservedSkillNames are names the ai-agent service assigns itself, per
+// conversation trigger type, as fixed scaffolding (services/ai-agent/src/agent/trigger_skills.py).
+// They are always appended to an agent's skill list and are not meant to be
+// user-editable; a user-created skill with one of these names would collide
+// and fail conversation setup (AgentContext rejects duplicate skill names).
+// Keep in sync with trigger_skills.py's get_trigger_skill().
+var reservedSkillNames = map[string]bool{
+	"paca-trigger-task-assigned":     true,
+	"paca-trigger-doc-comment":       true,
+	"paca-trigger-chat":              true,
+	"paca-trigger-description-write": true,
+}
+
+func validateSkillName(name string) error {
+	if reservedSkillNames[name] {
+		return agentdom.ErrSkillNameReserved
+	}
+	return nil
+}
+
 // ListSkills returns all skills for the given agent.
 func (s *Service) ListSkills(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentSkill, error) {
 	return s.repo.ListSkills(ctx, agentID)
@@ -373,11 +370,15 @@ func (s *Service) ListSkills(ctx context.Context, agentID uuid.UUID) ([]*agentdo
 
 // AddSkill creates a new skill for the given agent.
 func (s *Service) AddSkill(ctx context.Context, agentID uuid.UUID, in agentdom.AddSkillInput) (*agentdom.AgentSkill, error) {
+	name := strings.TrimSpace(in.SkillName)
+	if err := validateSkillName(name); err != nil {
+		return nil, err
+	}
 	now := time.Now()
 	skill := &agentdom.AgentSkill{
 		ID:           uuid.New(),
 		AgentID:      agentID,
-		SkillName:    strings.TrimSpace(in.SkillName),
+		SkillName:    name,
 		SkillSource:  in.SkillSource,
 		SkillContent: in.SkillContent,
 		SourceURL:    in.SourceURL,
@@ -433,6 +434,109 @@ func (s *Service) DeleteSkill(ctx context.Context, agentID, skillID uuid.UUID) e
 }
 
 // -------------------------------------------------------------------------
+// Environment Variables
+// -------------------------------------------------------------------------
+
+// envVarKeyPattern matches valid shell environment variable names.
+var envVarKeyPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+
+// reservedEnvVarKeys are names the sandbox container already sets for its own
+// operation (git identity, MCP wiring, secrets). User-supplied variables may
+// not use these names, so a misconfigured agent can never shadow them.
+// Keep in sync with services/ai-agent/src/agent/docker_workspace.py and
+// services/ai-agent/src/agent/builder.py.
+var reservedEnvVarKeys = map[string]bool{
+	"OH_SECRET_KEY":             true,
+	"OPENHANDS_SUPPRESS_BANNER": true,
+	"GIT_AUTHOR_NAME":           true,
+	"GIT_AUTHOR_EMAIL":          true,
+	"GIT_COMMITTER_NAME":        true,
+	"GIT_COMMITTER_EMAIL":       true,
+	"OH_EXTRA_PYTHON_PATH":      true,
+}
+
+// validateEnvVarKey checks that key is a well-formed, non-reserved shell
+// environment variable name. The reserved-name check is case-insensitive so
+// a lookalike like "oh_secret_key" can't sit alongside the real uppercase
+// infra variable and confuse anyone inspecting the container's environment.
+func validateEnvVarKey(key string) error {
+	if !envVarKeyPattern.MatchString(key) {
+		return agentdom.ErrEnvVarKeyInvalid
+	}
+	upperKey := strings.ToUpper(key)
+	if reservedEnvVarKeys[upperKey] || strings.HasPrefix(upperKey, "PACA_") {
+		return agentdom.ErrEnvVarKeyReserved
+	}
+	return nil
+}
+
+// ListEnvVars returns all secret environment variables for the given agent.
+func (s *Service) ListEnvVars(ctx context.Context, agentID uuid.UUID) ([]*agentdom.AgentEnvironmentVariable, error) {
+	return s.repo.ListEnvVars(ctx, agentID)
+}
+
+// AddEnvVar creates a new secret environment variable for the given agent.
+func (s *Service) AddEnvVar(ctx context.Context, agentID uuid.UUID, in agentdom.AddEnvVarInput) (*agentdom.AgentEnvironmentVariable, error) {
+	key := strings.TrimSpace(in.Key)
+	if err := validateEnvVarKey(key); err != nil {
+		return nil, err
+	}
+	if existing, err := s.repo.FindEnvVarByKey(ctx, agentID, key); err == nil && existing != nil {
+		return nil, agentdom.ErrEnvVarKeyTaken
+	}
+	encryptedValue, err := s.encryptKey(in.Value)
+	if err != nil {
+		return nil, fmt.Errorf("encrypt environment variable value: %w", err)
+	}
+	now := time.Now()
+	v := &agentdom.AgentEnvironmentVariable{
+		ID:             uuid.New(),
+		AgentID:        agentID,
+		Key:            key,
+		EncryptedValue: encryptedValue,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+	if err := s.repo.CreateEnvVar(ctx, v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// UpdateEnvVar replaces the value of an existing environment variable.
+func (s *Service) UpdateEnvVar(ctx context.Context, agentID, envVarID uuid.UUID, in agentdom.UpdateEnvVarInput) (*agentdom.AgentEnvironmentVariable, error) {
+	v, err := s.repo.FindEnvVarByID(ctx, envVarID)
+	if err != nil {
+		return nil, err
+	}
+	if v.AgentID != agentID {
+		return nil, agentdom.ErrEnvVarNotFound
+	}
+	encryptedValue, err := s.encryptKey(in.Value)
+	if err != nil {
+		return nil, fmt.Errorf("encrypt environment variable value: %w", err)
+	}
+	v.EncryptedValue = encryptedValue
+	v.UpdatedAt = time.Now()
+	if err := s.repo.UpdateEnvVar(ctx, v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// DeleteEnvVar removes an environment variable after verifying ownership.
+func (s *Service) DeleteEnvVar(ctx context.Context, agentID, envVarID uuid.UUID) error {
+	v, err := s.repo.FindEnvVarByID(ctx, envVarID)
+	if err != nil {
+		return err
+	}
+	if v.AgentID != agentID {
+		return agentdom.ErrEnvVarNotFound
+	}
+	return s.repo.DeleteEnvVar(ctx, envVarID)
+}
+
+// -------------------------------------------------------------------------
 // Conversations
 // -------------------------------------------------------------------------
 
@@ -464,13 +568,48 @@ func (s *Service) StopConversation(ctx context.Context, projectID, conversationI
 	if err != nil {
 		return err
 	}
-	if c.Status == "finished" || c.Status == "stopped" || c.Status == "failed" {
+	if agentdom.ConversationStatus(c.Status).IsTerminal() {
 		return agentdom.ErrConversationAlreadyStopped
 	}
-	if err := s.repo.UpdateConversationStatus(ctx, conversationID, "stopped"); err != nil {
+	if err := s.repo.UpdateConversationStatus(ctx, conversationID, string(agentdom.ConversationStatusStopped)); err != nil {
 		return err
 	}
 	return s.publishTrigger(ctx, events.TopicAgentStop, map[string]any{
+		"conversation_id": conversationID.String(),
+		"project_id":      projectID.String(),
+	})
+}
+
+// PauseConversation interrupts a conversation's in-flight turn without
+// touching its sandbox — it goes back to "paused" once ai-agent processes
+// the interrupt. No DB write here: ai-agent's run_conversation writes the
+// resulting status itself once the turn actually pauses.
+func (s *Service) PauseConversation(ctx context.Context, projectID, conversationID uuid.UUID) error {
+	c, err := s.GetConversation(ctx, projectID, conversationID)
+	if err != nil {
+		return err
+	}
+	if agentdom.ConversationStatus(c.Status) != agentdom.ConversationStatusRunning {
+		return agentdom.ErrConversationNotRunning
+	}
+	return s.publishTrigger(ctx, events.TopicAgentPause, map[string]any{
+		"conversation_id": conversationID.String(),
+		"project_id":      projectID.String(),
+	})
+}
+
+// Heartbeat refreshes a chat conversation's idle timer. Fires on a ~30s
+// interval per open browser tab (see apps/web) — deliberately does not touch
+// Postgres; ai-agent cross-checks project_id in-memory before honoring it
+// (see worker._handle_control in services/ai-agent). GetConversation is
+// still called here so the API layer itself enforces project ownership,
+// rather than resting the whole authorization boundary on ai-agent's
+// in-memory check.
+func (s *Service) Heartbeat(ctx context.Context, projectID, conversationID uuid.UUID) error {
+	if _, err := s.GetConversation(ctx, projectID, conversationID); err != nil {
+		return err
+	}
+	return s.publishTrigger(ctx, events.TopicAgentHeartbeat, map[string]any{
 		"conversation_id": conversationID.String(),
 		"project_id":      projectID.String(),
 	})
@@ -482,7 +621,7 @@ func (s *Service) SendConversationMessage(ctx context.Context, projectID, conver
 	if err != nil {
 		return err
 	}
-	if c.Status != "running" {
+	if agentdom.ConversationStatus(c.Status) != agentdom.ConversationStatusRunning {
 		return agentdom.ErrConversationNotRunning
 	}
 	return s.publishTrigger(ctx, events.TopicAgentChatMessage, map[string]any{
@@ -519,7 +658,7 @@ func (s *Service) StartChatSession(ctx context.Context, projectID, agentID, memb
 		return nil, nil, err
 	}
 
-	conv, err := s.createConversation(ctx, projectID, agentID, memberID, agentdom.AgentConversation{
+	conv, err := s.createConversation(ctx, projectID, agentID, &memberID, agentdom.AgentConversation{
 		TriggerType:   "chat_message",
 		ChatSessionID: &session.ID,
 	})
@@ -535,6 +674,13 @@ func (s *Service) StartChatSession(ctx context.Context, projectID, agentID, memb
 }
 
 // SendChatMessage sends a message to an existing chat session and publishes the trigger.
+//
+// The ai-agent service keeps a chat session's sandbox alive between replies
+// instead of tearing it down after every turn (see docs/ai-agent's
+// pause/resume design) — a conversation that reaches a natural per-turn
+// finish is left with status "paused" rather than "finished". A reply while
+// paused resumes that same conversation (same conversation_id, so the agent
+// keeps the sandbox/history) instead of cold-starting a new one.
 func (s *Service) SendChatMessage(ctx context.Context, projectID, sessionID, memberID uuid.UUID, message string) (*agentdom.AgentConversation, error) {
 	session, err := s.repo.FindChatSessionByID(ctx, sessionID)
 	if err != nil {
@@ -544,13 +690,49 @@ func (s *Service) SendChatMessage(ctx context.Context, projectID, sessionID, mem
 		return nil, agentdom.ErrChatSessionNotFound
 	}
 
-	conv, err := s.createConversation(ctx, projectID, session.AgentID, memberID, agentdom.AgentConversation{
-		TriggerType:   "chat_message",
-		ChatSessionID: &sessionID,
-	})
+	latest, err := s.repo.FindLatestConversationByChatSession(ctx, sessionID)
 	if err != nil {
 		return nil, err
 	}
+
+	conv := latest
+	if latest != nil {
+		switch agentdom.ConversationStatus(latest.Status) {
+		case agentdom.ConversationStatusRunning, agentdom.ConversationStatusQueued:
+			// Still mid-turn (or not yet picked up by the worker) — reject
+			// instead of racing a second conversation/sandbox into existence
+			// for the same chat session.
+			return nil, agentdom.ErrConversationBusy
+		case agentdom.ConversationStatusPaused:
+			// Resume — claim the conversation atomically so two concurrent
+			// replies can't both win and double-publish a resume trigger for
+			// the same conversation_id. The loser is told to retry as busy
+			// rather than silently racing ai-agent's sandbox reattachment.
+			claimed, err := s.repo.ClaimConversationStatus(ctx, latest.ID,
+				string(agentdom.ConversationStatusPaused), string(agentdom.ConversationStatusRunning))
+			if err != nil {
+				return nil, err
+			}
+			if !claimed {
+				return nil, agentdom.ErrConversationBusy
+			}
+		case agentdom.ConversationStatusFinished, agentdom.ConversationStatusFailed, agentdom.ConversationStatusStopped:
+			// Terminal status — fall through to create a new conversation.
+			conv = nil
+		}
+	}
+
+	if conv == nil {
+		conv, err = s.createConversation(ctx, projectID, session.AgentID, &memberID, agentdom.AgentConversation{
+			TriggerType:   "chat_message",
+			ChatSessionID: &sessionID,
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+	// else: resume — reuse the same conversation_id so ai-agent reattaches
+	// to the sandbox it kept alive rather than cold-starting a new one.
 
 	if err := s.publishChatTrigger(ctx, session.AgentID, conv.ID, sessionID, projectID, memberID, message, s.gatherRepoPluginIDs(ctx)); err != nil {
 		return nil, err
@@ -587,7 +769,7 @@ func (s *Service) ListChatMessages(ctx context.Context, sessionID uuid.UUID, off
 // Internal helpers
 // -------------------------------------------------------------------------
 
-func (s *Service) createConversation(ctx context.Context, projectID, agentID, memberID uuid.UUID, template agentdom.AgentConversation) (*agentdom.AgentConversation, error) {
+func (s *Service) createConversation(ctx context.Context, projectID, agentID uuid.UUID, memberID *uuid.UUID, template agentdom.AgentConversation) (*agentdom.AgentConversation, error) {
 	now := time.Now()
 	conv := &agentdom.AgentConversation{
 		ID:                  uuid.New(),
@@ -598,7 +780,7 @@ func (s *Service) createConversation(ctx context.Context, projectID, agentID, me
 		CommentID:           template.CommentID,
 		ChatSessionID:       template.ChatSessionID,
 		TriggeredByMemberID: memberID,
-		Status:              "queued",
+		Status:              string(agentdom.ConversationStatusQueued),
 		CreatedAt:           now,
 		UpdatedAt:           now,
 	}
@@ -632,8 +814,13 @@ func (s *Service) gatherRepoPluginIDs(ctx context.Context) []string {
 }
 
 // TriggerTaskAssigned creates a conversation and publishes the trigger event
-// when a task is assigned to an agent member.
-func (s *Service) TriggerTaskAssigned(ctx context.Context, projectID, agentID, taskID, triggeredByMemberID uuid.UUID) (*agentdom.AgentConversation, error) {
+// when a task is assigned to an agent member. note, when non-empty, is
+// prepended to the agent's initial prompt as trigger.message — used by the
+// automation-workflow engine to tell the agent which status closes out its
+// step (e.g. "set the status to 'Done' when you finish"). triggeredByMemberID
+// is nil when the assignment came from the automation-workflow engine rather
+// than a human member.
+func (s *Service) TriggerTaskAssigned(ctx context.Context, projectID, agentID, taskID uuid.UUID, triggeredByMemberID *uuid.UUID, note string) (*agentdom.AgentConversation, error) {
 	repoPlugins := s.gatherRepoPlugins(ctx)
 	repoPluginIDs := make([]string, 0, len(repoPlugins))
 	for _, p := range repoPlugins {
@@ -659,9 +846,12 @@ func (s *Service) TriggerTaskAssigned(ctx context.Context, projectID, agentID, t
 		"project_id":      projectID.String(),
 		"agent_id":        agentID.String(),
 		"task_id":         taskID.String(),
-		"actor_member_id": triggeredByMemberID.String(),
 		"trigger_type":    "task_assigned",
+		"message":         note,
 		"repo_plugin_ids": strings.Join(repoPluginIDs, ","),
+	}
+	if triggeredByMemberID != nil {
+		payload["actor_member_id"] = triggeredByMemberID.String()
 	}
 	_ = s.publishTrigger(ctx, events.TopicAgentTaskAssigned, payload)
 	return conv, nil
@@ -683,7 +873,7 @@ func (s *Service) TriggerCommentMention(ctx context.Context, projectID, agentID,
 		repoPluginID = &id
 	}
 
-	conv, err := s.createConversation(ctx, projectID, agentID, triggeredByMemberID, agentdom.AgentConversation{
+	conv, err := s.createConversation(ctx, projectID, agentID, &triggeredByMemberID, agentdom.AgentConversation{
 		TriggerType:  "comment_mention",
 		TaskID:       &taskID,
 		CommentID:    &commentID,
@@ -722,7 +912,7 @@ func (s *Service) TriggerDescriptionWrite(ctx context.Context, projectID, agentI
 		repoPluginID = &id
 	}
 
-	conv, err := s.createConversation(ctx, projectID, agentID, triggeredByMemberID, agentdom.AgentConversation{
+	conv, err := s.createConversation(ctx, projectID, agentID, &triggeredByMemberID, agentdom.AgentConversation{
 		TriggerType:  "description_write",
 		TaskID:       &taskID,
 		RepoPluginID: repoPluginID,

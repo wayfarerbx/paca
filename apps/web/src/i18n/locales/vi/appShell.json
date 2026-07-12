@@ -24,6 +24,7 @@
 		"allProjects": "Tất cả dự án",
 		"project": "Dự án",
 		"agents": "Agent",
+		"automation": "Tự động hóa",
 		"team": "Đội nhóm",
 		"settings": "Cài đặt"
 	},
@@ -58,15 +59,6 @@
 		"text": {
 			"assigned": "{{actor}} đã giao cho bạn nhiệm vụ #{{taskNumber}} — {{taskTitle}}",
 			"mentioned": "{{actor}} đã nhắc đến bạn trong #{{taskNumber}} — {{taskTitle}}"
-		},
-		"timeAgo": {
-			"justNow": "vừa xong",
-			"minutes_one": "{{count}} phút trước",
-			"minutes_other": "{{count}} phút trước",
-			"hours_one": "{{count}} giờ trước",
-			"hours_other": "{{count}} giờ trước",
-			"days_one": "{{count}} ngày trước",
-			"days_other": "{{count}} ngày trước"
 		}
 	},
 	"userMenu": {

@@ -9,36 +9,31 @@ import (
 
 // Agent represents an AI agent belonging to a project.
 type Agent struct {
-	ID                            uuid.UUID
-	ProjectID                     uuid.UUID
-	Name                          string
-	Handle                        string
-	AvatarURL                     *string
-	LLMProvider                   string
-	LLMModel                      string
-	LLMAPIKeySecret               string // reference to secrets store entry
-	LLMBaseURL                    string
-	SystemPrompt                  string
-	TaskTriggerPrompt             string
-	DocCommentTriggerPrompt       string
-	ChatTriggerPrompt             string
-	DescriptionWriteTriggerPrompt string
-	CanCloneRepos                 bool
-	CanCreatePRs                  bool
-	MaxIterations                 int
-	TimeoutMinutes                int
-	GitCommitterName              string
-	GitCommitterEmail             string
-	CreatedBy                     *uuid.UUID
-	CreatedAt                     time.Time
-	UpdatedAt                     time.Time
-	DeletedAt                     *time.Time
+	ID                uuid.UUID
+	ProjectID         uuid.UUID
+	Name              string
+	Handle            string
+	AvatarURL         *string
+	LLMProvider       string
+	LLMModel          string
+	LLMAPIKeySecret   string // reference to secrets store entry
+	LLMBaseURL        string
+	SystemPrompt      string
+	MaxIterations     int
+	TimeoutMinutes    int
+	GitCommitterName  string
+	GitCommitterEmail string
+	CreatedBy         *uuid.UUID
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	DeletedAt         *time.Time
 	// Member ID in project_members (populated on create / list)
 	MemberID        *uuid.UUID
 	ProjectRoleID   *uuid.UUID
 	ProjectRoleName string
 	MCPServers      []*AgentMCPServer
 	Skills          []*AgentSkill
+	EnvVars         []*AgentEnvironmentVariable
 }
 
 // AgentMCPServer is a custom MCP server configuration attached to an agent.
@@ -54,6 +49,19 @@ type AgentMCPServer struct {
 	IsEnabled  bool
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
+}
+
+// AgentEnvironmentVariable is a secret environment variable injected into an
+// agent's sandbox container at run time. Value is always stored encrypted;
+// the plaintext is never persisted on this struct once it round-trips
+// through the repository.
+type AgentEnvironmentVariable struct {
+	ID             uuid.UUID
+	AgentID        uuid.UUID
+	Key            string
+	EncryptedValue string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 // AgentSkill is a skill associated with an agent.
@@ -84,15 +92,17 @@ type SkillTemplate struct {
 
 // AgentConversation tracks each OpenHands conversation session.
 type AgentConversation struct {
-	ID                  uuid.UUID
-	AgentID             uuid.UUID
-	ProjectID           uuid.UUID
-	TriggerType         string // task_assigned | comment_mention | chat_message
-	TaskID              *uuid.UUID
-	CommentID           *uuid.UUID
-	ChatSessionID       *uuid.UUID
-	TriggeredByMemberID uuid.UUID
-	Status              string // queued | running | finished | failed | stopped
+	ID            uuid.UUID
+	AgentID       uuid.UUID
+	ProjectID     uuid.UUID
+	TriggerType   string // task_assigned | comment_mention | chat_message | description_write
+	TaskID        *uuid.UUID
+	CommentID     *uuid.UUID
+	ChatSessionID *uuid.UUID
+	// TriggeredByMemberID is nil for conversations triggered by the
+	// automation-workflow engine, which has no human member behind it.
+	TriggeredByMemberID *uuid.UUID
+	Status              string // queued | running | paused | finished | failed | stopped
 	ContainerID         *string
 	HostPort            *int
 	IterationCount      int

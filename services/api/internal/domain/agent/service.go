@@ -11,6 +11,7 @@ type Service interface {
 	AgentService
 	MCPServerService
 	SkillService
+	EnvVarService
 	ConversationService
 	ChatSessionService
 }
@@ -41,12 +42,28 @@ type SkillService interface {
 	DeleteSkill(ctx context.Context, agentID, skillID uuid.UUID) error
 }
 
+// EnvVarService defines secret environment variable CRUD use cases.
+type EnvVarService interface {
+	ListEnvVars(ctx context.Context, agentID uuid.UUID) ([]*AgentEnvironmentVariable, error)
+	AddEnvVar(ctx context.Context, agentID uuid.UUID, in AddEnvVarInput) (*AgentEnvironmentVariable, error)
+	UpdateEnvVar(ctx context.Context, agentID, envVarID uuid.UUID, in UpdateEnvVarInput) (*AgentEnvironmentVariable, error)
+	DeleteEnvVar(ctx context.Context, agentID, envVarID uuid.UUID) error
+}
+
 // ConversationService defines conversation management use cases.
 type ConversationService interface {
 	ListConversations(ctx context.Context, in ListConversationsFilter) ([]*AgentConversation, int64, error)
 	GetConversation(ctx context.Context, projectID, conversationID uuid.UUID) (*AgentConversation, error)
 	ListConversationEvents(ctx context.Context, conversationID uuid.UUID, offset, limit int) ([]*AgentConversationEvent, int64, error)
+	// StopConversation interrupts (if running) and permanently tears down the
+	// conversation's sandbox. Unchanged from before.
 	StopConversation(ctx context.Context, projectID, conversationID uuid.UUID) error
+	// PauseConversation interrupts the in-flight turn only — the sandbox
+	// stays alive and the conversation can be replied to again once it pauses.
+	PauseConversation(ctx context.Context, projectID, conversationID uuid.UUID) error
+	// Heartbeat refreshes a chat conversation's idle timer; called
+	// periodically by the frontend while a conversation is loaded in a tab.
+	Heartbeat(ctx context.Context, projectID, conversationID uuid.UUID) error
 	SendConversationMessage(ctx context.Context, projectID, conversationID uuid.UUID, message string, memberID uuid.UUID) error
 }
 
@@ -62,47 +79,35 @@ type ChatSessionService interface {
 
 // CreateAgentInput carries fields required to create an agent.
 type CreateAgentInput struct {
-	Name                          string
-	Handle                        string
-	LLMProvider                   string
-	LLMModel                      string
-	LLMAPIKey                     string // plain text key; stored encrypted by service
-	LLMBaseURL                    string
-	SystemPrompt                  string
-	TaskTriggerPrompt             string
-	DocCommentTriggerPrompt       string
-	ChatTriggerPrompt             string
-	DescriptionWriteTriggerPrompt string
-	CanCloneRepos                 bool
-	CanCreatePRs                  bool
-	MaxIterations                 int
-	TimeoutMinutes                int
-	GitCommitterName              string
-	GitCommitterEmail             string
-	ProjectRoleID                 uuid.UUID
-	CreatedBy                     *uuid.UUID
+	Name              string
+	Handle            string
+	LLMProvider       string
+	LLMModel          string
+	LLMAPIKey         string // plain text key; stored encrypted by service
+	LLMBaseURL        string
+	SystemPrompt      string
+	MaxIterations     int
+	TimeoutMinutes    int
+	GitCommitterName  string
+	GitCommitterEmail string
+	ProjectRoleID     uuid.UUID
+	CreatedBy         *uuid.UUID
 }
 
 // UpdateAgentInput carries mutable agent fields.
 type UpdateAgentInput struct {
-	Name                          *string
-	Handle                        *string
-	LLMProvider                   *string
-	LLMModel                      *string
-	LLMAPIKey                     *string
-	LLMBaseURL                    *string
-	SystemPrompt                  *string
-	TaskTriggerPrompt             *string
-	DocCommentTriggerPrompt       *string
-	ChatTriggerPrompt             *string
-	DescriptionWriteTriggerPrompt *string
-	CanCloneRepos                 *bool
-	CanCreatePRs                  *bool
-	MaxIterations                 *int
-	TimeoutMinutes                *int
-	GitCommitterName              *string
-	GitCommitterEmail             *string
-	ProjectRoleID                 *uuid.UUID
+	Name              *string
+	Handle            *string
+	LLMProvider       *string
+	LLMModel          *string
+	LLMAPIKey         *string
+	LLMBaseURL        *string
+	SystemPrompt      *string
+	MaxIterations     *int
+	TimeoutMinutes    *int
+	GitCommitterName  *string
+	GitCommitterEmail *string
+	ProjectRoleID     *uuid.UUID
 }
 
 // AddMCPServerInput carries fields to add an MCP server.
@@ -122,6 +127,17 @@ type UpdateMCPServerInput struct {
 	URL       *string
 	Env       map[string]string
 	IsEnabled *bool
+}
+
+// AddEnvVarInput carries fields to add a secret environment variable.
+type AddEnvVarInput struct {
+	Key   string
+	Value string // plain text; encrypted by the service before storage
+}
+
+// UpdateEnvVarInput carries the new value for an existing environment variable.
+type UpdateEnvVarInput struct {
+	Value string // plain text; encrypted by the service before storage
 }
 
 // AddSkillInput carries fields to add a skill.

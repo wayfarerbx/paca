@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 import platform
+from functools import lru_cache
+from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
 from openhands.sdk import LLM
@@ -13,6 +15,7 @@ from openhands.sdk.llm.auth.openai import (
     OpenAISubscriptionAuth,
     _extract_chatgpt_account_id,
 )
+from openhands.sdk.skills import load_skills_from_dir
 from pydantic import SecretStr
 
 from .. import llm_catalog
@@ -20,6 +23,26 @@ from ..config import settings
 from ..models.agent import AgentConfig, AgentMCPServerRow, AgentSkillRow
 
 logger = logging.getLogger(__name__)
+
+# services/ai-agent/src/skills — bundled into the Docker image by the
+# Dockerfile's existing `COPY src/ ./src/` line.
+_DEFAULT_SKILLS_DIR = Path(__file__).resolve().parent.parent / "skills"
+
+
+@lru_cache(maxsize=1)
+def load_default_skills() -> tuple[Skill, ...]:
+    """Load Paca's default skill set, bundled under src/skills/.
+
+    The directory is static per deployment, so this is cached after the
+    first call — safe to call on every conversation without re-parsing
+    disk each time.
+    """
+    repo_skills, knowledge_skills, agent_skills = load_skills_from_dir(_DEFAULT_SKILLS_DIR)
+    return (
+        tuple(repo_skills.values())
+        + tuple(knowledge_skills.values())
+        + tuple(agent_skills.values())
+    )
 
 
 def _uses_openai_subscription(provider: str, base_url: str | None) -> bool:
@@ -119,13 +142,27 @@ def build_llm(agent_config: AgentConfig) -> LLM:
 
 
 def build_skills(db_skills: list[AgentSkillRow]) -> list[Skill]:
-    """Convert DB skill rows into OpenHands SDK Skill objects."""
+    """Convert DB skill rows into OpenHands SDK Skill objects.
+
+    A skill with no configured triggers keeps `trigger=None` (always-active,
+    matching existing behavior) rather than gaining a slash keyword — slash
+    invocation only makes sense for skills that were already opted into
+    trigger-based (on-demand) activation, since an always-active skill's
+    content is already in context on every turn.
+    """
     result = []
     for row in db_skills:
         if not row.is_enabled:
             continue
-        trigger = KeywordTrigger(keywords=row.triggers) if row.triggers else None
         content = row.skill_content or ""
+        if row.triggers:
+            keywords = list(row.triggers)
+            slash = f"/{row.skill_name}"
+            if slash not in keywords:
+                keywords.append(slash)
+            trigger = KeywordTrigger(keywords=keywords)
+        else:
+            trigger = None
         result.append(Skill(name=row.skill_name, content=content, trigger=trigger))
     return result
 
@@ -136,6 +173,9 @@ def build_mcp_config(
     project_id: str,
 ) -> dict:
     """Build the MCP server configuration dict for the OpenHands SDK.
+
+    Returns a flat ``{server_name: server_config}`` map — the shape
+    ``Agent(mcp_config=...)`` expects directly (no ``mcpServers`` wrapper).
 
     User-configured servers come first; the built-in Paca MCP server is always
     appended last so it cannot be overridden by user entries.
@@ -154,7 +194,7 @@ def build_mcp_config(
         else:
             servers[row.server_name] = {
                 "url": row.url,
-                **({"auth": "oauth"} if row.transport == "oauth" else {}),
+                **({"auth": {"strategy": "oauth2"}} if row.transport == "oauth" else {}),
             }
 
     if settings.paca_api_key:
@@ -176,4 +216,4 @@ def build_mcp_config(
             },
         }
 
-    return {"mcpServers": servers}
+    return servers

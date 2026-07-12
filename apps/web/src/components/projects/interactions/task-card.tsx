@@ -47,6 +47,10 @@ interface TaskCardProps {
 	onDragEnd?: (e: React.DragEvent) => void;
 	isDragging?: boolean;
 	canEdit?: boolean;
+	/** Native HTML5 drag-and-drop toggle. Defaults to `canEdit`; pass `false` to
+	 *  disable it independently (e.g. inside a React Flow node, which drags via
+	 *  its own pointer-based system and would conflict with native HTML5 DnD). */
+	draggable?: boolean;
 	onUpdate?: (taskId: string, payload: UpdatePayload) => void;
 }
 
@@ -64,6 +68,7 @@ export function TaskCard({
 	onDragEnd,
 	isDragging,
 	canEdit,
+	draggable = canEdit,
 	onUpdate,
 }: TaskCardProps) {
 	const { t } = useTranslation("projects");
@@ -83,7 +88,7 @@ export function TaskCard({
 						<PopoverTrigger
 							type="button"
 							onClick={(e) => e.stopPropagation()}
-							className="flex size-5 items-center justify-center rounded-full transition-all duration-150 hover:ring-2 hover:ring-primary/30"
+							className="nodrag flex size-5 items-center justify-center rounded-full transition-all duration-150 hover:ring-2 hover:ring-primary/30"
 						>
 							{assignee ? (
 								<div className="flex size-5 items-center justify-center rounded-full bg-linear-to-br from-primary/20 to-primary/15 text-primary text-xs font-bold ring-1 ring-primary/20">
@@ -168,7 +173,7 @@ export function TaskCard({
 						<PopoverTrigger
 							type="button"
 							onClick={(e) => e.stopPropagation()}
-							className="flex items-center justify-center rounded-md p-0.5 transition-all duration-150 hover:bg-muted/60"
+							className="nodrag flex items-center justify-center rounded-md p-0.5 transition-all duration-150 hover:bg-muted/60"
 						>
 							{taskType ? (
 								(() => {
@@ -261,7 +266,7 @@ export function TaskCard({
 					<DropdownMenu key="status">
 						<DropdownMenuTrigger
 							onClick={(e) => e.stopPropagation()}
-							className="inline-flex items-center gap-1 rounded-full border border-border/40 bg-muted/40 px-1.5 py-0.5 text-xs font-semibold text-muted-foreground hover:opacity-80 transition-opacity cursor-pointer"
+							className="nodrag inline-flex items-center gap-1 rounded-full border border-border/40 bg-muted/40 px-1.5 py-0.5 text-xs font-semibold text-muted-foreground hover:opacity-80 transition-opacity cursor-pointer"
 						>
 							{status ? (
 								<>
@@ -329,7 +334,7 @@ export function TaskCard({
 					<DropdownMenu key="importance">
 						<DropdownMenuTrigger
 							onClick={(e) => e.stopPropagation()}
-							className="inline-flex items-center gap-1 text-xs font-medium shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
+							className="nodrag inline-flex items-center gap-1 text-xs font-medium shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
 							style={task.importance > 0 ? { color: p.color } : undefined}
 						>
 							{task.importance > 0 ? (
@@ -451,7 +456,7 @@ export function TaskCard({
 						<PopoverTrigger
 							type="button"
 							onClick={(e) => e.stopPropagation()}
-							className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium border border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:opacity-80 transition-opacity shrink-0"
+							className="nodrag inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium border border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400 hover:opacity-80 transition-opacity shrink-0"
 						>
 							<Layers className="size-2.5 shrink-0 opacity-70" />
 							{epic ? (
@@ -603,7 +608,7 @@ export function TaskCard({
 		// biome-ignore lint/a11y/useKeyWithClickEvents: drag-and-drop card; keyboard nav handled by parent
 		<div
 			data-task-id={task.id}
-			draggable={canEdit}
+			draggable={draggable}
 			onDragStart={onDragStart}
 			onDragEnd={onDragEnd}
 			onClick={onClick}
@@ -611,10 +616,10 @@ export function TaskCard({
 				"group relative rounded-xl border border-border/30 bg-card p-3 shadow-xs cursor-pointer transition-all duration-150 select-none",
 				"hover:border-border/50 hover:shadow-sm",
 				isDragging && "opacity-50 ring-2 ring-primary/30 shadow-lg rotate-1",
-				canEdit && "cursor-grab active:cursor-grabbing",
+				draggable && "cursor-grab active:cursor-grabbing",
 			)}
 		>
-			{canEdit && (
+			{draggable && (
 				<div className="absolute left-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
 					<GripVertical className="size-3.5 text-muted-foreground/60" />
 				</div>

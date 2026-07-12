@@ -7,6 +7,7 @@ import {
 	Code2,
 	GitBranch,
 	GitPullRequest,
+	KeyRound,
 	Loader2,
 	MessageSquare,
 	Plus,
@@ -16,10 +17,8 @@ import {
 	Wand2,
 	Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ConversationView } from "@/components/projects/agents/conversation-view";
-
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,14 +50,17 @@ import {
 	type AgentConversation,
 	type AgentMCPServer,
 	type AgentSkill,
+	addEnvVar,
 	addMCPServer,
 	addSkill,
+	agentEnvVarsQueryOptions,
 	agentMCPServersQueryOptions,
 	agentQueryOptions,
 	agentSkillsQueryOptions,
 	CONVERSATION_STATUS_COLORS,
 	CONVERSATION_STATUS_LABELS,
 	conversationsQueryOptions,
+	deleteEnvVar,
 	deleteMCPServer,
 	deleteSkill,
 	llmModelsQueryOptions,
@@ -81,6 +83,7 @@ export const Route = createFileRoute(
 				agentMCPServersQueryOptions(projectId, agentId),
 			),
 			queryClient.ensureQueryData(agentSkillsQueryOptions(projectId, agentId)),
+			queryClient.ensureQueryData(agentEnvVarsQueryOptions(projectId, agentId)),
 			queryClient.ensureQueryData(
 				conversationsQueryOptions(projectId, agentId),
 			),
@@ -90,7 +93,7 @@ export const Route = createFileRoute(
 	component: AgentDetailPage,
 });
 
-type Tab = "overview" | "mcp-servers" | "skills" | "conversations";
+type Tab = "overview" | "mcp-servers" | "skills" | "env-vars" | "conversations";
 
 const CUSTOM = "__custom__";
 const PRO_SUBSCRIPTION_PROVIDER = "chatgpt";
@@ -152,18 +155,6 @@ function OverviewTab({
 			: "api_key",
 	);
 	const [systemPrompt, setSystemPrompt] = useState(agent.system_prompt);
-	const [taskTriggerPrompt, setTaskTriggerPrompt] = useState(
-		agent.task_trigger_prompt,
-	);
-	const [docCommentTriggerPrompt, setDocCommentTriggerPrompt] = useState(
-		agent.doc_comment_trigger_prompt,
-	);
-	const [chatTriggerPrompt, setChatTriggerPrompt] = useState(
-		agent.chat_trigger_prompt,
-	);
-	const [descriptionWriteTriggerPrompt, setDescriptionWriteTriggerPrompt] =
-		useState(agent.description_write_trigger_prompt);
-	const [canClone, setCanClone] = useState(agent.can_clone_repos);
 	const [committerName, setCommitterName] = useState(agent.git_committer_name);
 	const [committerEmail, setCommitterEmail] = useState(
 		agent.git_committer_email,
@@ -220,11 +211,6 @@ function OverviewTab({
 		llmApiKey !== "" ||
 		llmBaseUrl !== (agent.llm_base_url ?? "") ||
 		systemPrompt !== agent.system_prompt ||
-		taskTriggerPrompt !== agent.task_trigger_prompt ||
-		docCommentTriggerPrompt !== agent.doc_comment_trigger_prompt ||
-		chatTriggerPrompt !== agent.chat_trigger_prompt ||
-		descriptionWriteTriggerPrompt !== agent.description_write_trigger_prompt ||
-		canClone !== agent.can_clone_repos ||
 		committerName !== agent.git_committer_name ||
 		committerEmail !== agent.git_committer_email;
 
@@ -237,11 +223,6 @@ function OverviewTab({
 				...(llmApiKey.trim() ? { llm_api_key: llmApiKey.trim() } : {}),
 				llm_base_url: usesProSubscription ? "" : llmBaseUrl.trim(),
 				system_prompt: systemPrompt,
-				task_trigger_prompt: taskTriggerPrompt,
-				doc_comment_trigger_prompt: docCommentTriggerPrompt,
-				chat_trigger_prompt: chatTriggerPrompt,
-				description_write_trigger_prompt: descriptionWriteTriggerPrompt,
-				can_clone_repos: canClone,
 				git_committer_name: committerName.trim(),
 				git_committer_email: committerEmail.trim(),
 			}),
@@ -434,84 +415,6 @@ function OverviewTab({
 					disabled={!canWrite}
 					className="font-mono text-xs"
 				/>
-			</div>
-
-			<div className="space-y-2">
-				<div>
-					<Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-						{t("agents.detail.overview.triggerPrompts.title")}
-					</Label>
-					<p className="mt-1 text-xs text-muted-foreground">
-						{t("agents.detail.overview.triggerPrompts.hint")}
-					</p>
-				</div>
-				{(
-					[
-						[
-							t("agents.detail.overview.triggerPrompts.taskAssignment"),
-							taskTriggerPrompt,
-							setTaskTriggerPrompt,
-						],
-						[
-							t("agents.detail.overview.triggerPrompts.docCommentMention"),
-							docCommentTriggerPrompt,
-							setDocCommentTriggerPrompt,
-						],
-						[
-							t("agents.detail.overview.triggerPrompts.directChat"),
-							chatTriggerPrompt,
-							setChatTriggerPrompt,
-						],
-						[
-							t("agents.detail.overview.triggerPrompts.writeDescription"),
-							descriptionWriteTriggerPrompt,
-							setDescriptionWriteTriggerPrompt,
-						],
-					] as [string, string, (v: string) => void][]
-				).map(([label, value, setValue]) => (
-					<details
-						key={label}
-						className="group rounded-md border border-border/60 bg-muted/20"
-					>
-						<summary className="flex cursor-pointer select-none items-center gap-2 px-3 py-2 text-xs font-medium">
-							{label}
-						</summary>
-						<div className="border-t border-border/60 px-3 py-2">
-							<Textarea
-								value={value}
-								onChange={(e) => setValue(e.target.value)}
-								rows={6}
-								disabled={!canWrite}
-								className="font-mono text-xs leading-relaxed"
-							/>
-						</div>
-					</details>
-				))}
-			</div>
-
-			<Separator />
-
-			<div>
-				<p className="text-sm font-medium mb-3">
-					{t("agents.detail.overview.capabilities")}
-				</p>
-				<div className="space-y-3">
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-sm">
-								{t("agents.detail.overview.cloneRepositories")}
-							</p>
-							<p className="text-xs text-muted-foreground">
-								{t("agents.detail.overview.cloneRepositoriesHint")}
-							</p>
-						</div>
-						<Switch
-							checked={canClone}
-							onCheckedChange={setCanClone}
-							disabled={!canWrite}
-						/>
-					</div>
-				</div>
 			</div>
 
 			<Separator />
@@ -1082,100 +985,256 @@ function SkillsTab({
 	);
 }
 
+// ── Environment Variables Tab ────────────────────────────────────────────────
+
+const ENV_VAR_KEY_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+function AddEnvVarDialog({
+	projectId,
+	agentId,
+	open,
+	onOpenChange,
+}: {
+	projectId: string;
+	agentId: string;
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+}) {
+	const { t } = useTranslation("projects");
+	const qc = useQueryClient();
+	const [key, setKey] = useState("");
+	const [value, setValue] = useState("");
+
+	const isKeyValid = ENV_VAR_KEY_PATTERN.test(key.trim());
+
+	const addMutation = useMutation({
+		mutationFn: () => addEnvVar(projectId, agentId, { key: key.trim(), value }),
+		onSuccess: () => {
+			qc.invalidateQueries({
+				queryKey: ["projects", projectId, "agents", agentId, "env-vars"],
+			});
+			onOpenChange(false);
+			setKey("");
+			setValue("");
+		},
+	});
+
+	return (
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="max-w-md">
+				<DialogHeader>
+					<DialogTitle className="flex items-center gap-2">
+						<KeyRound className="size-4 text-primary" />
+						{t("agents.detail.envVars.addDialog.title")}
+					</DialogTitle>
+					<DialogDescription>
+						{t("agents.detail.envVars.addDialog.description")}
+					</DialogDescription>
+				</DialogHeader>
+				<div className="space-y-4 py-2">
+					<div className="space-y-1.5">
+						<Label>{t("agents.detail.envVars.addDialog.keyLabel")}</Label>
+						<Input
+							placeholder={t("agents.detail.envVars.addDialog.keyPlaceholder")}
+							className="font-mono"
+							value={key}
+							onChange={(e) => setKey(e.target.value)}
+						/>
+						<p className="text-xs text-muted-foreground">
+							{t("agents.detail.envVars.addDialog.keyHint")}
+						</p>
+					</div>
+					<div className="space-y-1.5">
+						<Label>{t("agents.detail.envVars.addDialog.valueLabel")}</Label>
+						<Input
+							type="password"
+							autoComplete="off"
+							className="font-mono"
+							value={value}
+							onChange={(e) => setValue(e.target.value)}
+						/>
+					</div>
+				</div>
+				<DialogFooter>
+					<Button variant="outline" onClick={() => onOpenChange(false)}>
+						{t("agents.detail.envVars.addDialog.cancel")}
+					</Button>
+					<Button
+						onClick={() => addMutation.mutate()}
+						disabled={!isKeyValid || !value || addMutation.isPending}
+					>
+						{addMutation.isPending ? (
+							<Loader2 className="size-4 animate-spin" />
+						) : (
+							t("agents.detail.envVars.addDialog.addVariable")
+						)}
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	);
+}
+
+function EnvVarsTab({
+	projectId,
+	agentId,
+	canWrite,
+}: {
+	projectId: string;
+	agentId: string;
+	canWrite: boolean;
+}) {
+	const { t } = useTranslation("projects");
+	const qc = useQueryClient();
+	const { data: envVars = [] } = useQuery(
+		agentEnvVarsQueryOptions(projectId, agentId),
+	);
+	const [addOpen, setAddOpen] = useState(false);
+
+	const deleteMutation = useMutation({
+		mutationFn: (id: string) => deleteEnvVar(projectId, agentId, id),
+		onSuccess: () => {
+			qc.invalidateQueries({
+				queryKey: ["projects", projectId, "agents", agentId, "env-vars"],
+			});
+		},
+	});
+
+	return (
+		<div className="space-y-4">
+			<div className="flex items-center justify-between">
+				<p className="text-sm text-muted-foreground">
+					{t("agents.detail.envVars.count", { count: envVars.length })}
+				</p>
+				{canWrite && (
+					<Button size="sm" onClick={() => setAddOpen(true)}>
+						<Plus className="size-4 mr-1.5" />
+						{t("agents.detail.envVars.addVariable")}
+					</Button>
+				)}
+			</div>
+
+			{envVars.length === 0 ? (
+				<div className="flex flex-col items-center justify-center gap-3 py-14 rounded-xl border border-dashed border-border">
+					<KeyRound className="size-8 text-muted-foreground/40" />
+					<p className="text-sm text-muted-foreground">
+						{t("agents.detail.envVars.empty.title")}
+					</p>
+					{canWrite && (
+						<Button
+							size="sm"
+							variant="outline"
+							onClick={() => setAddOpen(true)}
+						>
+							<Plus className="size-3.5 mr-1" />
+							{t("agents.detail.envVars.empty.addFirst")}
+						</Button>
+					)}
+				</div>
+			) : (
+				<div className="space-y-2">
+					{envVars.map((v) => (
+						<div
+							key={v.id}
+							className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-card px-4 py-3"
+						>
+							<div className="flex items-center gap-3 min-w-0">
+								<KeyRound className="size-4 text-muted-foreground shrink-0" />
+								<div className="min-w-0">
+									<p className="text-sm font-medium font-mono truncate">
+										{v.key}
+									</p>
+									<p className="text-xs text-muted-foreground font-mono truncate">
+										{v.value}
+									</p>
+								</div>
+							</div>
+							{canWrite && (
+								<Button
+									variant="ghost"
+									size="icon"
+									className="size-7 text-muted-foreground hover:text-destructive shrink-0"
+									onClick={() => deleteMutation.mutate(v.id)}
+									disabled={deleteMutation.isPending}
+								>
+									<Trash2 className="size-3.5" />
+								</Button>
+							)}
+						</div>
+					))}
+				</div>
+			)}
+
+			<AddEnvVarDialog
+				projectId={projectId}
+				agentId={agentId}
+				open={addOpen}
+				onOpenChange={setAddOpen}
+			/>
+		</div>
+	);
+}
+
 // ── Conversations Tab ─────────────────────────────────────────────────────────
 
 function ConversationRow({
 	conv,
 	projectId,
-	onClick,
 }: {
 	conv: AgentConversation;
 	projectId: string;
-	onClick: () => void;
 }) {
 	const { t } = useTranslation("projects");
 	const statusColor = CONVERSATION_STATUS_COLORS[conv.status];
 	const statusLabel = CONVERSATION_STATUS_LABELS[conv.status];
 
 	return (
-		<div className="w-full flex items-center gap-4 rounded-lg border border-border/60 bg-card px-4 py-3 transition-colors hover:border-border hover:bg-accent/30">
-			<button
-				type="button"
-				onClick={onClick}
-				className="flex flex-col gap-0.5 min-w-0 flex-1 text-left"
-			>
-				<div className="flex items-center gap-2">
-					<span className="text-sm font-medium truncate">
-						{conv.trigger_type === "chat_message"
-							? t("agents.detail.conversations.triggerChat")
-							: conv.trigger_type === "description_write"
-								? t("agents.detail.conversations.triggerWriteDescription")
-								: t("agents.detail.conversations.triggerTask")}{" "}
-						· {conv.id.slice(0, 8)}
+		<Link
+			to="/projects/$projectId/conversations/$conversationId"
+			params={{ projectId, conversationId: conv.id }}
+			className="flex w-full flex-col gap-0.5 rounded-lg border border-border/60 bg-card px-4 py-3 text-left transition-colors hover:border-border hover:bg-accent/30"
+		>
+			<div className="flex items-center gap-2">
+				<span className="text-sm font-medium truncate">
+					{conv.trigger_type === "chat_message"
+						? t("agents.detail.conversations.triggerChat")
+						: conv.trigger_type === "description_write"
+							? t("agents.detail.conversations.triggerWriteDescription")
+							: t("agents.detail.conversations.triggerTask")}{" "}
+					· {conv.id.slice(0, 8)}
+				</span>
+				<Badge
+					variant="outline"
+					className={`text-xs font-semibold shrink-0 ${statusColor}`}
+				>
+					{statusLabel}
+				</Badge>
+			</div>
+			<div className="flex items-center gap-3 text-xs text-muted-foreground">
+				<span className="flex items-center gap-1">
+					<Zap className="size-3" />
+					{t("agents.detail.conversations.iterations", {
+						count: conv.iteration_count,
+					})}
+				</span>
+				{conv.branch_name && (
+					<span className="flex items-center gap-1 truncate">
+						<GitBranch className="size-3" />
+						{conv.branch_name}
 					</span>
-					<Badge
-						variant="outline"
-						className={`text-xs font-semibold shrink-0 ${statusColor}`}
-					>
-						{statusLabel}
-					</Badge>
-				</div>
-				<div className="flex items-center gap-3 text-xs text-muted-foreground">
+				)}
+				{conv.pr_url && (
 					<span className="flex items-center gap-1">
-						<Zap className="size-3" />
-						{t("agents.detail.conversations.iterations", {
-							count: conv.iteration_count,
-						})}
+						<GitPullRequest className="size-3" />
+						{t("agents.detail.conversations.prOpened")}
 					</span>
-					{conv.branch_name && (
-						<span className="flex items-center gap-1 truncate">
-							<GitBranch className="size-3" />
-							{conv.branch_name}
-						</span>
-					)}
-					{conv.pr_url && (
-						<span className="flex items-center gap-1">
-							<GitPullRequest className="size-3" />
-							{t("agents.detail.conversations.prOpened")}
-						</span>
-					)}
-					<span className="flex items-center gap-1 ml-auto">
-						<Clock className="size-3" />
-						{new Date(conv.created_at).toLocaleDateString()}
-					</span>
-				</div>
-			</button>
-			<Link
-				to="/projects/$projectId/conversations/$conversationId"
-				params={{ projectId, conversationId: conv.id }}
-				className="shrink-0 text-xs font-medium text-primary/70 hover:text-primary transition-colors"
-			>
-				{t("agents.detail.conversations.watch")}
-			</Link>
-		</div>
-	);
-}
-
-function ConversationModal({
-	projectId,
-	conversationId,
-	open,
-	onOpenChange,
-}: {
-	projectId: string;
-	conversationId: string;
-	open: boolean;
-	onOpenChange: (open: boolean) => void;
-}) {
-	return (
-		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-3xl sm:max-w-3xl h-[80vh] flex flex-col p-0 gap-0 overflow-hidden">
-				<ConversationView
-					projectId={projectId}
-					conversationId={conversationId}
-				/>
-			</DialogContent>
-		</Dialog>
+				)}
+				<span className="flex items-center gap-1 ml-auto">
+					<Clock className="size-3" />
+					{new Date(conv.created_at).toLocaleDateString()}
+				</span>
+			</div>
+		</Link>
 	);
 }
 
@@ -1190,7 +1249,6 @@ function ConversationsTab({
 	const { data: conversations = [], isLoading } = useQuery(
 		conversationsQueryOptions(projectId, agentId),
 	);
-	const [modalConvId, setModalConvId] = useState<string | null>(null);
 
 	if (isLoading) {
 		return (
@@ -1218,29 +1276,11 @@ function ConversationsTab({
 	}
 
 	return (
-		<>
-			<div className="space-y-2">
-				{conversations.map((conv) => (
-					<ConversationRow
-						key={conv.id}
-						conv={conv}
-						projectId={projectId}
-						onClick={() => setModalConvId(conv.id)}
-					/>
-				))}
-			</div>
-
-			{modalConvId && (
-				<ConversationModal
-					projectId={projectId}
-					conversationId={modalConvId}
-					open
-					onOpenChange={(open) => {
-						if (!open) setModalConvId(null);
-					}}
-				/>
-			)}
-		</>
+		<div className="space-y-2">
+			{conversations.map((conv) => (
+				<ConversationRow key={conv.id} conv={conv} projectId={projectId} />
+			))}
+		</div>
 	);
 }
 
@@ -1254,6 +1294,11 @@ const TABS = [
 		icon: Server,
 	},
 	{ id: "skills", labelKey: "agents.detail.tabs.skills", icon: Wand2 },
+	{
+		id: "env-vars",
+		labelKey: "agents.detail.tabs.envVars",
+		icon: KeyRound,
+	},
 	{
 		id: "conversations",
 		labelKey: "agents.detail.tabs.conversations",
@@ -1272,7 +1317,32 @@ function AgentDetailPage() {
 	const canWrite = hasProjectPermission("agents.write");
 
 	const { data: agent } = useQuery(agentQueryOptions(projectId, agentId));
-	const [activeTab, setActiveTab] = useState<Tab>("overview");
+	const [activeTab, setActiveTab] = useState<Tab>(() => {
+		const hash = window.location.hash.slice(1);
+		if (hash && TABS.map((t) => t.id).includes(hash as Tab)) {
+			return hash as Tab;
+		}
+		return "overview";
+	});
+
+	// Sync tab when hash changes (e.g., back button)
+	useEffect(() => {
+		const handleHashChange = () => {
+			const hash = window.location.hash.slice(1);
+			if (hash && TABS.map((t) => t.id).includes(hash as Tab)) {
+				setActiveTab(hash as Tab);
+			}
+		};
+		window.addEventListener("hashchange", handleHashChange);
+		return () => window.removeEventListener("hashchange", handleHashChange);
+	}, []);
+
+	const handleTabChange = (tab: Tab) => {
+		setActiveTab(tab);
+		const url = new URL(window.location.href);
+		url.hash = tab;
+		window.history.pushState(null, "", url);
+	};
 
 	if (!agent) {
 		return (
@@ -1325,7 +1395,7 @@ function AgentDetailPage() {
 							<button
 								key={tab.id}
 								type="button"
-								onClick={() => setActiveTab(tab.id)}
+								onClick={() => handleTabChange(tab.id)}
 								className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium border-b-2 transition-colors ${
 									isActive
 										? "border-primary text-primary"
@@ -1358,6 +1428,13 @@ function AgentDetailPage() {
 				)}
 				{activeTab === "skills" && (
 					<SkillsTab
+						projectId={projectId}
+						agentId={agentId}
+						canWrite={canWrite}
+					/>
+				)}
+				{activeTab === "env-vars" && (
+					<EnvVarsTab
 						projectId={projectId}
 						agentId={agentId}
 						canWrite={canWrite}

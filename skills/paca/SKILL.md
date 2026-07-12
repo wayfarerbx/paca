@@ -23,6 +23,7 @@ If the request clearly matches one of these, let the user know — they'll get a
 | Execute a task end-to-end | `/paca-do #<number>` |
 | Test or verify a task | `/paca-test #<number>` |
 | Write or update documentation | `/paca-doc #<number>` |
+| Automate a process — auto-assignment, status chaining, task dependencies | `/paca-workflow <goal>` |
 
 If it's a simple or mixed request (e.g. "create a task for X", "what's in the sprint", "mark #7 done"), just handle it directly below.
 
@@ -46,13 +47,13 @@ If a reference is found, fetch that task first, then apply the action the user i
 | What the user wants | Tools to use |
 |---|---|
 | Track work — bug, feature, to-do, ticket, chore | `create_task` / `update_task` / `list_tasks` |
-| Write content — guide, spec, design, BDD, SDD, notes | `create_document` / `update_document` |
+| Write content — guide, spec, design, BDD, SDD, notes | `write_doc` |
 | See status — board, sprint, what's in progress | `list_sprints` + `list_tasks` |
 | Plan an iteration — sprint, milestone | `create_sprint` / `update_sprint` |
 | Comment or annotate an existing task | `add_task_comment` |
 | Close / complete work | `update_task` (set to done status) |
 | Break work into pieces | `create_task` × N, each referencing the parent |
-| Write or update documentation | `create_document` / `update_document` |
+| Write or update documentation | `write_doc` |
 
 ## Step 3 — Get the project if needed
 
@@ -69,7 +70,7 @@ Execute the tool call(s), then report back: task/doc number, title, and any rele
 | User message | What you do |
 |---|---|
 | `fix login redirect bug` | `create_task` titled "Fix login redirect bug" |
-| `write the API authentication design doc` | `create_document` with a structured draft |
+| `write the API authentication design doc` | `write_doc` with a structured draft |
 | `do this task ABC-123` | find project "ABC" → `get_task_by_number(123)` → start/act on task |
 | `close #42` | `get_task_by_number(42)` → `update_task` status: done |
 | `I finished PAC-99, mark it done` | `update_task` #99 → status: done |
@@ -90,7 +91,7 @@ Do not create local files as a fallback.
 ## Tool reference
 
 **Tasks:** `create_task` · `list_tasks` · `get_task` · `get_task_by_number` · `update_task` · `delete_task`  
-**Documents:** `create_document` · `list_documents` · `get_document` · `update_document` · `delete_document`  
+**Documents:** `list_docs` · `read_doc` · `write_doc` · `delete_doc`  
 **Sprints:** `create_sprint` · `list_sprints` · `get_sprint` · `update_sprint` · `complete_sprint`  
 **Projects:** `list_projects` · `get_project` · `create_project` · `update_project`  
 **Comments:** `add_task_comment` · `update_task_comment` · `list_task_activities`

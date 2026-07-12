@@ -117,6 +117,44 @@ func (h *ConversationHandler) StopConversation(w http.ResponseWriter, r *http.Re
 	presenter.OK(w, r, map[string]any{"message": "conversation stopped"})
 }
 
+// PauseConversation handles POST /projects/:projectId/conversations/:conversationId/pause.
+func (h *ConversationHandler) PauseConversation(w http.ResponseWriter, r *http.Request) {
+	projectID, err := parseProjectID(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	convID, err := parseParamUUID(r, "conversationId")
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	if err := h.svc.PauseConversation(r.Context(), projectID, convID); err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	presenter.OK(w, r, map[string]any{"message": "conversation pause requested"})
+}
+
+// Heartbeat handles POST /projects/:projectId/conversations/:conversationId/heartbeat.
+func (h *ConversationHandler) Heartbeat(w http.ResponseWriter, r *http.Request) {
+	projectID, err := parseProjectID(r)
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	convID, err := parseParamUUID(r, "conversationId")
+	if err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	if err := h.svc.Heartbeat(r.Context(), projectID, convID); err != nil {
+		presenter.Error(w, r, err)
+		return
+	}
+	presenter.OK(w, r, map[string]any{"status": "ok"})
+}
+
 // SendConversationMessage handles POST /projects/:projectId/conversations/:conversationId/messages.
 func (h *ConversationHandler) SendConversationMessage(w http.ResponseWriter, r *http.Request) {
 	projectID, err := parseProjectID(r)

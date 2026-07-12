@@ -13,7 +13,7 @@ You are setting priorities for tasks in Paca. Use Paca MCP tools throughout — 
 ## Step 1 — Load project context
 
 1. Resolve task references from the user's message if given (`#42`, `ABC-42` → `get_task_by_number`). If no references, operate on the full backlog.
-2. Call `list_documents` and search for documents titled "roadmap", "goals", "OKR", "strategy", or "release plan". Read the most relevant ones with `get_document`. Priority without a goal to align to is just opinion — the docs anchor your reasoning.
+2. Call `list_docs` and search for documents titled "roadmap", "goals", "OKR", "strategy", or "release plan". Read the most relevant ones with `read_doc`. Priority without a goal to align to is just opinion — the docs anchor your reasoning.
    - **If no strategy docs exist**, ask the user: "What are the top 3 outcomes you're trying to achieve this quarter?" Use their answer as the alignment anchor.
 3. Call `list_tasks` to load the full task set.
 4. Call `list_sprints` to know which tasks are already committed vs. unscheduled.
@@ -56,6 +56,6 @@ Report back: full updated priority list as a table (task number · title · prio
 ## Tool reference
 
 **Tasks:** `get_task` · `get_task_by_number` · `list_tasks` · `update_task`  
-**Documents:** `list_documents` · `get_document`  
+**Documents:** `list_docs` · `read_doc`  
 **Sprints:** `list_sprints`  
 **Projects:** `list_projects`

@@ -47,6 +47,16 @@ const (
 	// ActivityTypeAgentSessionStarted is recorded when an AI agent begins a
 	// conversation session triggered by a task assignment.
 	ActivityTypeAgentSessionStarted ActivityType = "agent.session.started"
+
+	// --- Automation workflow events -------------------------------------------
+
+	// ActivityTypeWorkflowAssigned is recorded when the automation-workflow
+	// engine reassigns a task, either because the task's own status matched
+	// one of its node's rules, or because a predecessor node just finished.
+	// Content carries {workflow_id, workflow_name, reason, old_assignee,
+	// new_assignee} so the activity feed can attribute the change to the
+	// workflow instead of a human actor.
+	ActivityTypeWorkflowAssigned ActivityType = "workflow.assigned"
 )
 
 // Activity is a single entry in a task's activity log.  It represents either

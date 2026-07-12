@@ -11,19 +11,32 @@ import {
 
 // ── Shared test fixtures ───────────────────────────────────────────────────────
 
-const FOLDER_ROOT = { id: "f1", parent_id: null, name: "Architecture", position: 0 };
+const FOLDER_ROOT = {
+	id: "f1",
+	parent_id: null,
+	name: "Architecture",
+	position: 0,
+};
 const FOLDER_NESTED = { id: "f2", parent_id: "f1", name: "API", position: 0 };
 
 const DOC_ROOT = { id: "d1", folder_id: null, title: "README", position: 0 };
-const DOC_IN_FOLDER = { id: "d2", folder_id: "f1", title: "Overview", position: 0 };
-const DOC_IN_NESTED = { id: "d3", folder_id: "f2", title: "Endpoints", position: 0 };
+const DOC_IN_FOLDER = {
+	id: "d2",
+	folder_id: "f1",
+	title: "Overview",
+	position: 0,
+};
+const DOC_IN_NESTED = {
+	id: "d3",
+	folder_id: "f2",
+	title: "Endpoints",
+	position: 0,
+};
 
 /** Create mock API client. Builds tree from folders + docs arrays. */
-function makeApiClient(opts: {
-	folders?: any[];
-	documents?: any[];
-	getDocumentContent?: any;
-} = {}) {
+function makeApiClient(
+	opts: { folders?: any[]; documents?: any[]; getDocumentContent?: any } = {},
+) {
 	const _folders = opts.folders ?? [FOLDER_ROOT, FOLDER_NESTED];
 	const documents = opts.documents ?? [DOC_ROOT, DOC_IN_FOLDER, DOC_IN_NESTED];
 
@@ -47,7 +60,12 @@ function makeDocClient(opts: { folders?: any[] } = {}) {
 	return {
 		listFolders: vi.fn().mockResolvedValue(folders),
 		createFolder: vi.fn().mockImplementation((_pid: string, input: any) =>
-			Promise.resolve({ id: "fnew", name: input.name, parent_id: input.parent_id ?? null, position: 99 }),
+			Promise.resolve({
+				id: "fnew",
+				name: input.name,
+				parent_id: input.parent_id ?? null,
+				position: 99,
+			}),
 		),
 		updateFolder: vi.fn().mockResolvedValue({ id: "f1", name: "Renamed" }),
 		deleteFolder: vi.fn().mockResolvedValue(undefined),
@@ -63,7 +81,13 @@ describe("getFilesystemDocTools", () => {
 
 	it("includes all expected tool names", () => {
 		const names = getFilesystemDocTools().map((t) => t.name);
-		for (const n of ["list_docs", "read_doc", "write_doc", "delete_doc", "move_doc"]) {
+		for (const n of [
+			"list_docs",
+			"read_doc",
+			"write_doc",
+			"delete_doc",
+			"move_doc",
+		]) {
 			expect(names).toContain(n);
 		}
 	});
@@ -208,7 +232,11 @@ describe("handleFilesystemDocTool – write_doc", () => {
 			makeDocClient(),
 		);
 		expect(apiClient.createDocument).toHaveBeenCalledWith(
-			expect.objectContaining({ title: "NewDoc", content: "# Hello", folder_id: null }),
+			expect.objectContaining({
+				title: "NewDoc",
+				content: "# Hello",
+				folder_id: null,
+			}),
 		);
 		expect(result.content[0].text).toContain("Created");
 	});
@@ -221,7 +249,9 @@ describe("handleFilesystemDocTool – write_doc", () => {
 			apiClient,
 			makeDocClient(),
 		);
-		expect(apiClient.updateDocument).toHaveBeenCalledWith("p1", "d1", { content: "# Updated" });
+		expect(apiClient.updateDocument).toHaveBeenCalledWith("p1", "d1", {
+			content: "# Updated",
+		});
 		expect(result.content[0].text).toContain("Updated");
 	});
 
@@ -234,7 +264,10 @@ describe("handleFilesystemDocTool – write_doc", () => {
 			apiClient,
 			docClient,
 		);
-		expect(docClient.createFolder).toHaveBeenCalledWith("p1", expect.objectContaining({ name: "NewFolder" }));
+		expect(docClient.createFolder).toHaveBeenCalledWith(
+			"p1",
+			expect.objectContaining({ name: "NewFolder" }),
+		);
 		expect(result.content[0].text).toContain("Created");
 	});
 
@@ -327,7 +360,11 @@ describe("handleFilesystemDocTool – move_doc", () => {
 		const docClient = makeDocClient();
 		const result = await handleFilesystemDocTool(
 			"move_doc",
-			{ projectId: "p1", sourcePath: "Architecture", destPath: "Docs/Architecture" },
+			{
+				projectId: "p1",
+				sourcePath: "Architecture",
+				destPath: "Docs/Architecture",
+			},
 			makeApiClient(),
 			docClient,
 		);
@@ -366,7 +403,12 @@ describe("handleFilesystemDocTool – move_doc", () => {
 describe("handleFilesystemDocTool – unknown tool", () => {
 	it("throws for an unknown tool name", async () => {
 		await expect(
-			handleFilesystemDocTool("unknown", { projectId: "p1" }, makeApiClient(), makeDocClient()),
+			handleFilesystemDocTool(
+				"unknown",
+				{ projectId: "p1" },
+				makeApiClient(),
+				makeDocClient(),
+			),
 		).rejects.toThrow("Unknown filesystem doc tool");
 	});
 });

@@ -52,8 +52,6 @@
 		"card": {
 			"configure": "구성",
 			"delete": "삭제",
-			"repos": "저장소",
-			"configureAndViewActivity": "구성 및 활동 보기",
 			"deleteDialog": {
 				"title": "{{name}}을(를) 삭제하시겠습니까?",
 				"description": "이 작업은 에이전트를 영구적으로 삭제하고 프로젝트에서 제거합니다. 진행 중인 대화는 중단됩니다.",
@@ -69,15 +67,14 @@
 				"title": "아직 에이전트가 없습니다",
 				"description": "작업 자동화, 코드 리뷰, 문서 작성 등을 위해 AI 에이전트를 추가하세요.",
 				"createFirstAgent": "첫 에이전트 만들기"
-			},
-			"chatShortcutPrefix": "클릭",
-			"chatShortcutSuffix": "하면 모든 에이전트와 채팅하고, 대화를 보고, MCP 서버와 스킬을 관리할 수 있습니다."
+			}
 		},
 		"detail": {
 			"tabs": {
 				"overview": "개요",
 				"mcpServers": "MCP 서버",
 				"skills": "스킬",
+				"envVars": "환경 변수",
 				"conversations": "대화"
 			},
 			"overview": {
@@ -89,17 +86,6 @@
 				"apiKeyUpdateLabel": "API 키 업데이트",
 				"apiKeyUpdateHint": "(현재 값을 유지하려면 비워 두세요)",
 				"baseUrlLabel": "기본 URL",
-				"triggerPrompts": {
-					"title": "자동 추가 트리거 프롬프트",
-					"hint": "에이전트가 호출되는 방식에 따라 런타임에 시스템 프롬프트에 자동으로 추가됩니다.",
-					"taskAssignment": "작업 배정 / 작업 댓글",
-					"docCommentMention": "문서 댓글 @멘션",
-					"directChat": "직접 채팅",
-					"writeDescription": "AI로 작업 설명 작성"
-				},
-				"capabilities": "기능",
-				"cloneRepositories": "저장소 클론",
-				"cloneRepositoriesHint": "에이전트가 로컬에서 저장소를 git clone할 수 있도록 허용",
 				"gitCommitterIdentity": "Git 커미터 신원",
 				"gitCommitterHint": "이 에이전트가 만드는 커밋에 사용되는 이름과 이메일입니다.",
 				"committerNameLabel": "커미터 이름",
@@ -128,6 +114,25 @@
 					"urlLabel": "URL",
 					"cancel": "취소",
 					"addServer": "서버 추가"
+				}
+			},
+			"envVars": {
+				"count_one": "변수 {{count}}개 구성됨",
+				"count_other": "변수 {{count}}개 구성됨",
+				"addVariable": "변수 추가",
+				"empty": {
+					"title": "추가된 환경 변수가 없습니다",
+					"addFirst": "첫 변수 추가"
+				},
+				"addDialog": {
+					"title": "환경 변수 추가",
+					"description": "비밀 값은 저장 시 암호화되며 실행 시 에이전트의 샌드박스에 주입됩니다. 저장 후에는 값을 다시 볼 수 없습니다.",
+					"keyLabel": "키",
+					"keyPlaceholder": "GITHUB_TOKEN",
+					"keyHint": "(영문, 숫자, 밑줄 — 영문 또는 밑줄로 시작해야 함)",
+					"valueLabel": "값",
+					"cancel": "취소",
+					"addVariable": "변수 추가"
 				}
 			},
 			"skills": {
@@ -159,7 +164,6 @@
 				"iterations_one": "{{count}}회 반복",
 				"iterations_other": "{{count}}회 반복",
 				"prOpened": "PR 열림",
-				"watch": "지켜보기",
 				"empty": {
 					"title": "아직 대화가 없습니다",
 					"description": "이 에이전트에게 작업이 배정되거나 누군가 메시지를 보내면 대화가 시작됩니다."
@@ -167,15 +171,63 @@
 			}
 		},
 		"conversationView": {
-			"thinking": "생각 중…",
-			"observation": "관찰",
-			"toolLabel": "도구: {{toolName}}",
 			"stop": "중지",
 			"notFound": "대화를 찾을 수 없습니다",
 			"chatSession": "채팅 세션",
 			"taskSession": "작업 세션",
 			"pr": "PR",
-			"noMessages": "아직 메시지가 없습니다"
+			"conversationEnded": "이 대화가 종료되었습니다.",
+			"textOnlyMessage": "텍스트 메시지만 지원됩니다.",
+			"failed": "대화가 실패했습니다",
+			"noOutput": "에이전트가 출력을 생성하지 않았습니다."
+		},
+		"thread": {
+			"composerPlaceholder": "에이전트에게 메시지…",
+			"welcomeHeading": "오늘은 무엇을 도와드릴까요?",
+			"messageInputAriaLabel": "메시지 입력란",
+			"voiceInput": "음성 입력",
+			"startVoiceInputAriaLabel": "음성 입력 시작",
+			"stopDictation": "음성 입력 중지",
+			"stopVoiceInputAriaLabel": "음성 입력 중지",
+			"sendMessage": "메시지 보내기",
+			"stopGeneratingAriaLabel": "생성 중지",
+			"assistantWorkingAriaLabel": "에이전트가 작업 중입니다",
+			"copy": "복사",
+			"refresh": "새로고침",
+			"more": "더 보기",
+			"edit": "수정",
+			"previous": "이전",
+			"next": "다음",
+			"exportAsMarkdown": "Markdown으로 내보내기",
+			"scrollToBottom": "맨 아래로 스크롤",
+			"cancel": "취소",
+			"update": "업데이트",
+			"reasoning": "추론",
+			"reasoningWithDuration": "추론 ({{duration}}초)",
+			"toolCallCount_one": "도구 호출 {{count}}회",
+			"toolCallCount_other": "도구 호출 {{count}}회",
+			"usedTool": "사용한 도구",
+			"cancelledTool": "취소된 도구",
+			"resultLabel": "결과:",
+			"errorLabel": "오류:",
+			"cancelledReasonLabel": "취소 사유:",
+			"approvedByUser": "사용자가 승인함",
+			"deniedByUser": "사용자가 도구 실행을 거부함",
+			"allow": "허용",
+			"alwaysAllow": "항상 허용",
+			"deny": "거부",
+			"alwaysDeny": "항상 거부",
+			"confirm": "확인",
+			"back": "뒤로",
+			"attachmentPreview": "첨부 파일 미리보기",
+			"attachmentTypeImage": "이미지",
+			"attachmentTypeDocument": "문서",
+			"attachmentTypeFile": "파일",
+			"removeFile": "파일 제거",
+			"imageAttachmentPreviewTitle": "이미지 첨부 파일 미리보기",
+			"attachmentAriaLabel": "{{type}} 첨부 파일",
+			"attachmentAriaLabelError": "{{type}} 첨부 파일, 업로드 실패",
+			"attachmentAriaLabelUploading": "{{type}} 첨부 파일, 업로드 중"
 		}
 	},
 	"docs": {
@@ -295,6 +347,14 @@
 			"agentsWrite": {
 				"label": "에이전트 관리",
 				"description": "AI 에이전트 생성, 구성, 삭제"
+			},
+			"workflowsRead": {
+				"label": "워크플로우 보기",
+				"description": "자동화 워크플로우와 그 구성을 조회합니다"
+			},
+			"workflowsWrite": {
+				"label": "워크플로우 관리",
+				"description": "자동화 워크플로우를 생성, 편집, 활성화 및 삭제합니다"
 			}
 		},
 		"permissionGroups": {
@@ -304,7 +364,8 @@
 			"tasks": "작업",
 			"sprints": "스프린트",
 			"documents": "문서",
-			"aiAgents": "AI 에이전트"
+			"aiAgents": "AI 에이전트",
+			"workflows": "자동화"
 		}
 	},
 	"settings": {
@@ -557,10 +618,7 @@
 		"agentLabel": "에이전트",
 		"noAgentsConfigured": "이 프로젝트에 구성된 에이전트가 없습니다.",
 		"selectAgentPlaceholder": "에이전트를 선택하세요…",
-		"messageLabel": "메시지",
-		"messageHint": "(Enter로 전송, Shift+Enter로 줄바꿈)",
-		"messagePlaceholder": "에이전트가 무엇을 도와드릴까요?",
-		"send": "전송"
+		"selectAgentFirst": "먼저 에이전트를 선택해 주세요."
 	},
 	"taskTypes": {
 		"deleteDialog": {
@@ -669,6 +727,11 @@
 			"openTask": "작업 열기",
 			"removeLink": "링크 제거",
 			"empty": "연결된 작업이 없습니다"
+		},
+		"workflows": {
+			"title": "워크플로우",
+			"open": "워크플로우 열기",
+			"empty": "아직 워크플로우가 없습니다"
 		},
 		"attachments": {
 			"title": "첨부 파일",
@@ -806,15 +869,6 @@
 			"watchSession": "세션 지켜보기",
 			"madeChange": "변경했습니다",
 			"descriptionChangeDiff": "설명 변경 차이"
-		},
-		"timeAgo": {
-			"justNow": "방금 전",
-			"minutes_one": "{{count}}분 전",
-			"minutes_other": "{{count}}분 전",
-			"hours_one": "{{count}}시간 전",
-			"hours_other": "{{count}}시간 전",
-			"days_one": "{{count}}일 전",
-			"days_other": "{{count}}일 전"
 		}
 	},
 	"board": {
@@ -1058,6 +1112,82 @@
 			"startDate": "시작일",
 			"dueDate": "마감일",
 			"created": "생성일"
+		}
+	},
+	"automation": {
+		"list": {
+			"title": "자동화",
+			"subtitle": "작업이 진행됨에 따라 태스크 인계를 자동화하세요",
+			"newWorkflow": "새 워크플로우",
+			"empty": {
+				"title": "아직 워크플로우가 없습니다",
+				"description": "워크플로우를 만들어 작업이 진행됨에 따라 태스크 인계를 자동화하세요.",
+				"createFirstWorkflow": "첫 워크플로우 만들기"
+			},
+			"noDescription": "설명 없음",
+			"updated": "{{time}} 업데이트됨"
+		},
+		"status": {
+			"draft": "초안",
+			"active": "활성",
+			"archived": "보관됨"
+		},
+		"createDialog": {
+			"title": "새 자동화 워크플로우",
+			"nameLabel": "이름",
+			"namePlaceholder": "예: 릴리스 파이프라인",
+			"descriptionLabel": "설명",
+			"descriptionPlaceholder": "이 워크플로우에 대한 선택적 설명…",
+			"cancel": "취소",
+			"create": "생성"
+		},
+		"deleteDialog": {
+			"title": "워크플로우 삭제",
+			"body": "\"{{name}}\"을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+			"cancel": "취소",
+			"confirm": "삭제"
+		},
+		"builder": {
+			"addTask": "태스크 추가",
+			"activate": "활성화",
+			"archive": "보관",
+			"deactivate": "비활성화",
+			"readOnlyNoticeArchived": "이 워크플로우는 보관되어 읽기 전용입니다 — 보관된 워크플로우는 편집할 수 없습니다.",
+			"genericError": "문제가 발생했습니다. 다시 시도해 주세요.",
+			"collapseSidebar": "사이드바 접기",
+			"expandSidebar": "사이드바 펼치기"
+		},
+		"canvas": {
+			"unknownTask": "알 수 없는 태스크",
+			"deleteEdge": "연결 삭제"
+		},
+		"addNodeModal": {
+			"title": "워크플로우에 태스크 추가",
+			"searchPlaceholder": "태스크 검색...",
+			"loadingTasks": "태스크 불러오는 중...",
+			"noTasksFound": "태스크를 찾을 수 없습니다"
+		},
+		"nodePanel": {
+			"title": "태스크",
+			"removeNode": "워크플로우에서 제거",
+			"removeConfirmTitle": "워크플로우에서 태스크 제거",
+			"removeConfirmBody": "이 태스크를 워크플로우 그래프와 관련 연결에서 제거합니다. 태스크 자체는 영향을 받지 않습니다.",
+			"cancel": "취소",
+			"removeConfirmAction": "제거"
+		},
+		"statusRules": {
+			"title": "상태 → 담당자 규칙",
+			"hint": "태스크가 다음 상태 중 하나로 변경될 때마다 자동으로 멤버에게 할당합니다. 이는 이 워크플로우의 모든 태스크에 적용됩니다 — 누군가 태스크의 상태를 직접 변경하거나, 선행 태스크가 완료되어 후속 태스크가 현재 상태로 재평가될 때 모두 해당합니다.",
+			"noRules": "아직 규칙 없음",
+			"statusPlaceholder": "상태",
+			"memberPlaceholder": "담당자"
+		},
+		"statusTransitions": {
+			"title": "상태 워크플로우",
+			"hint": "각 상태에서 작업이 완료되었을 때 다음에 올 상태를 정의합니다. 이는 후속 태스크의 잠금을 해제하고, AI 에이전트 담당자에게 추측 대신 다음에 설정해야 할 상태를 정확히 알려줍니다. 워크플로우 생성 시 프로젝트의 상태로부터 기본 체인이 자동으로 생성됩니다.",
+			"nextStatusLabel": "다음 상태",
+			"terminalOption": "__END__",
+			"ambiguousWarning": "다음 상태가 없는 상태가 정확히 하나여야 합니다(이것이 워크플로우의 __END__ 상태가 됩니다). 현재 {{count}}개 구성됨."
 		}
 	}
 }

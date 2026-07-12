@@ -119,6 +119,16 @@ Plan  →  Act  →  Check  →  Adapt
 
 ---
 
+## What's New in v0.9.0
+
+- **Automation workflows** — build visual, status-driven automation on a canvas: define nodes and edges so tasks auto-assign or reassign as they move through statuses, with AND-join support for gates that wait on multiple predecessors. AI agents can create and edit workflows too, via dedicated MCP tools.
+
+<p align="center">
+  <img src="docs/assets/demo-automation-workflow.png" width="720" alt="Paca v0.9.0 — Automation Workflows" />
+</p>
+
+---
+
 ## What's New in v0.4.0
 
 - **In-app AI chat** — chat with AI agents at the project level to plan work, create or update epics, stories, tasks, and documentation — all in plain English without leaving Paca
@@ -451,7 +461,7 @@ But Paca is built from conviction: human-AI collaboration in a real Scrum team s
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/chart?repos=paca-ai/paca&type=date&legend=top-left)](https://www.star-history.com/?repos=paca-ai%2Fpaca&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/chart?repos=paca-ai/paca&type=date&legend=top-left&sealed_token=Cn9N-NTDpqFBXK-Nbu6-Qf06nwv0s5ENnSj-0iYj0BWNIewkvlx0iMAqSrVurDfUiGg55UWGFAT3l-GceBNP70-Uz_jS0LC6NWIJeuMxOAiGbxjdIMyHYVl6FVfhvVuCTdCp2qpPOGkgIRdpO8P4TcP7cVoAMOxQ3HcKagbCKqazu46V3aFLZWX3RVEH)](https://www.star-history.com/?repos=paca-ai%2Fpaca&type=date&legend=top-left)
 
 ---
 

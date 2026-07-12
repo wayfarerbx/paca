@@ -295,16 +295,10 @@ export interface DocumentActivityListResult {
 }
 
 // ==================== Document Comments ====================
-
-export interface DocumentComment {
-	id: string;
-	document_id: string;
-	user_id: string;
-	user_name: string;
-	content: string;
-	created_at: string;
-	updated_at: string;
-}
+// The API's add/update comment endpoints both respond with the same
+// DocActivityResponse DTO as list-activities (actor_id/actor_name/
+// actor_username, not a separate user_id/user_name shape), so comment
+// methods are typed as DocumentActivity rather than a distinct interface.
 
 // ==================== Project Members ====================
 
@@ -849,6 +843,101 @@ export interface TaskLink {
 export interface CreateTaskLinkInput {
 	target_task_id: string;
 	link_type: LinkType;
+}
+
+// ==================== Automation Workflows ====================
+
+export type WorkflowStatus = "draft" | "active" | "archived";
+
+export interface Workflow {
+	id: string;
+	project_id: string;
+	name: string;
+	description: string;
+	status: WorkflowStatus;
+	created_by?: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface WorkflowStatusRule {
+	id: string;
+	workflow_id: string;
+	status_id: string;
+	assignee_member_id: string;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface WorkflowStatusTransition {
+	id: string;
+	workflow_id: string;
+	status_id: string;
+	next_status_id?: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface WorkflowNode {
+	id: string;
+	workflow_id: string;
+	task_id: string;
+	pos_x: number;
+	pos_y: number;
+	created_at: string;
+	updated_at: string;
+}
+
+export interface WorkflowEdge {
+	id: string;
+	workflow_id: string;
+	source_node_id: string;
+	target_node_id: string;
+	created_at: string;
+}
+
+export interface WorkflowGraph {
+	workflow: Workflow;
+	nodes: WorkflowNode[];
+	edges: WorkflowEdge[];
+	status_rules: WorkflowStatusRule[];
+	status_transitions: WorkflowStatusTransition[];
+}
+
+export interface CreateWorkflowInput {
+	name: string;
+	description?: string;
+}
+
+export interface UpdateWorkflowInput {
+	name?: string;
+	description?: string;
+}
+
+export interface AddWorkflowNodeInput {
+	task_id: string;
+	pos_x?: number;
+	pos_y?: number;
+}
+
+export interface UpdateWorkflowNodeInput {
+	pos_x?: number;
+	pos_y?: number;
+}
+
+export interface SetWorkflowStatusRuleInput {
+	status_id: string;
+	assignee_member_id: string;
+}
+
+export interface SetWorkflowStatusTransitionInput {
+	status_id: string;
+	next_status_id?: string | null;
+}
+
+export interface AddWorkflowEdgeInput {
+	source_node_id: string;
+	target_node_id: string;
 }
 
 // ==================== API Response Helpers ====================

@@ -24,6 +24,7 @@
 		"allProjects": "所有项目",
 		"project": "项目",
 		"agents": "智能体",
+		"automation": "自动化",
 		"team": "团队",
 		"settings": "设置"
 	},
@@ -58,15 +59,6 @@
 		"text": {
 			"assigned": "{{actor}} 将任务 #{{taskNumber}} — {{taskTitle}} 分配给了您",
 			"mentioned": "{{actor}} 在 #{{taskNumber}} — {{taskTitle}} 中提到了您"
-		},
-		"timeAgo": {
-			"justNow": "刚刚",
-			"minutes_one": "{{count}} 分钟前",
-			"minutes_other": "{{count}} 分钟前",
-			"hours_one": "{{count}} 小时前",
-			"hours_other": "{{count}} 小时前",
-			"days_one": "{{count}} 天前",
-			"days_other": "{{count}} 天前"
 		}
 	},
 	"userMenu": {
