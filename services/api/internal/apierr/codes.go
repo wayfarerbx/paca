@@ -153,6 +153,10 @@ const (
 	CodeActivityNotAComment Code = "ACTIVITY_NOT_A_COMMENT"
 	// CodeCommentContentInvalid indicates an empty or invalid comment content.
 	CodeCommentContentInvalid Code = "ACTIVITY_COMMENT_CONTENT_INVALID"
+	// CodeCommentActorUnidentified indicates the caller authenticated with the
+	// shared agent API key but did not supply an X-Agent-ID header, so there is
+	// no project member identity to attribute the comment to.
+	CodeCommentActorUnidentified Code = "ACTIVITY_COMMENT_ACTOR_UNIDENTIFIED"
 
 	// --- Task link errors ------------------------------------------------
 
@@ -189,6 +193,10 @@ const (
 	CodeDocActivityNotAComment Code = "DOC_ACTIVITY_NOT_A_COMMENT"
 	// CodeDocCommentContentInvalid indicates an empty or invalid comment content.
 	CodeDocCommentContentInvalid Code = "DOC_COMMENT_CONTENT_INVALID"
+	// CodeDocCommentActorUnidentified indicates the caller authenticated with
+	// the shared agent API key but did not supply an X-Agent-ID header, so
+	// there is no project member identity to attribute the comment to.
+	CodeDocCommentActorUnidentified Code = "DOC_COMMENT_ACTOR_UNIDENTIFIED"
 
 	// CodeNotificationNotFound indicates the requested notification does not exist
 	// or does not belong to the authenticated user.
