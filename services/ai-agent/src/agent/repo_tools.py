@@ -31,7 +31,12 @@ def _scrub_token(text: str, token: str) -> str:
 
 
 def _is_safe_local_repo_id(repo_id: str) -> bool:
-    return bool(repo_id) and repo_id not in {".", ".."} and "/" not in repo_id and "\\" not in repo_id
+    return (
+        bool(repo_id)
+        and repo_id not in {".", ".."}
+        and "/" not in repo_id
+        and "\\" not in repo_id
+    )
 
 
 # NOTE: do NOT import `from ..config import settings` here.
@@ -362,7 +367,10 @@ class PushBranchExecutor(ToolExecutor[PushBranchAction, PushBranchObservation]):
                 if not branch:
                     br = self.terminal(
                         TerminalAction(
-                            command=f"git -C {shlex.quote(action.repo_dir)} branch --show-current 2>/dev/null || true"
+                            command=(
+                                f"git -C {shlex.quote(action.repo_dir)} "
+                                "branch --show-current 2>/dev/null || true"
+                            )
                         )
                     )
                     branch = br.text.strip()

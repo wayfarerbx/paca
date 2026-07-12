@@ -202,9 +202,7 @@ function CreateAgentDialog({
 		if (preset) {
 			if (preset.defaultLLMProvider) {
 				setProviderSelect(preset.defaultLLMProvider);
-				const nextAuthMode = supportsProSubscription(
-					preset.defaultLLMProvider,
-				)
+				const nextAuthMode = supportsProSubscription(preset.defaultLLMProvider)
 					? "pro_subscription"
 					: "api_key";
 				setAuthMode(nextAuthMode);
