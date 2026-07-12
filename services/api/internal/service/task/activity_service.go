@@ -247,13 +247,14 @@ func (s *ActivitySvc) DeleteComment(ctx context.Context, id uuid.UUID, projectID
 
 // wrapMemberLookupErr replaces ErrMemberNotFound with the clearer
 // taskdom.ErrCommentActorUnidentified when the actor is the system/agent-bot
-// identity (userdom.SystemActorUserID) with no agentID — i.e. the request
-// authenticated with the shared agent API key but omitted X-Agent-ID. That
-// identity is never itself a project member by design, so "member not found"
-// is misleading; the caller instead needs to know to supply X-Agent-ID. Any
-// other lookup failure (a genuine non-member) is returned unchanged.
+// identity with no agentID (see userdom.IsUnidentifiedSystemActor) — i.e. the
+// request authenticated with the shared agent API key but omitted
+// X-Agent-ID. That identity is never itself a project member by design, so
+// "member not found" is misleading; the caller instead needs to know to
+// supply X-Agent-ID. Any other lookup failure (a genuine non-member) is
+// returned unchanged.
 func wrapMemberLookupErr(err error, actorID uuid.UUID, agentID *uuid.UUID) error {
-	if agentID == nil && actorID == userdom.SystemActorUserID && errors.Is(err, projectdom.ErrMemberNotFound) {
+	if errors.Is(err, projectdom.ErrMemberNotFound) && userdom.IsUnidentifiedSystemActor(actorID, agentID) {
 		return taskdom.ErrCommentActorUnidentified
 	}
 	return err
