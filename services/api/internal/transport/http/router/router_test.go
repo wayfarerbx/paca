@@ -29,10 +29,16 @@ func (m *mockAuthSvc) Refresh(context.Context, string) (*domainauth.TokenPair, e
 	return &domainauth.TokenPair{AccessToken: "at2", RefreshToken: "rt2", RefreshTTL: 24 * time.Hour}, nil
 }
 func (m *mockAuthSvc) Logout(context.Context, string) error { return nil }
+func (m *mockAuthSvc) LoginAsUser(context.Context, string, string, string, bool) (*domainauth.TokenPair, error) {
+	return &domainauth.TokenPair{AccessToken: "at3", RefreshToken: "rt3", RefreshTTL: 24 * time.Hour}, nil
+}
 
 type mockUserSvc struct{}
 
 func (m *mockUserSvc) GetByID(context.Context, uuid.UUID) (*userdom.User, error) {
+	return &userdom.User{ID: uuid.New(), Username: "alice", FullName: "Alice", Role: userdom.RoleUser}, nil
+}
+func (m *mockUserSvc) FindByUsername(context.Context, string) (*userdom.User, error) {
 	return &userdom.User{ID: uuid.New(), Username: "alice", FullName: "Alice", Role: userdom.RoleUser}, nil
 }
 func (m *mockUserSvc) List(context.Context, int, int) ([]*userdom.User, int64, error) {
