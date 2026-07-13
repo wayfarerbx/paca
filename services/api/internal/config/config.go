@@ -13,6 +13,7 @@ type Config struct {
 	Admin      AdminConfig
 	Storage    StorageConfig
 	Security   SecurityConfig
+	Keycloak   KeycloakConfig
 	Plugins    PluginsConfig
 	AIAgentURL string // base URL of the ai-agent service, e.g. http://ai-agent:8080
 	Env        string // development | production
@@ -141,6 +142,24 @@ type PluginLimitsConfig struct {
 	// that may be proxied to a plugin route, and of an event payload
 	// dispatched to a plugin. 0 means "no limit".
 	MaxRequestBodyBytes int64
+}
+
+// KeycloakConfig holds settings for the optional Keycloak/OIDC login.
+// Login via Keycloak is disabled (the initiate/callback routes return
+// "not configured") unless Host, Realm, and ClientID are all non-empty.
+type KeycloakConfig struct {
+	Host         string // base URL, e.g. https://auth.example.com
+	Realm        string
+	ClientID     string
+	ClientSecret string
+	// AdminRole is the Keycloak realm role name that maps to Paca's ADMIN
+	// role; any other (or absent) role maps to Paca's default USER role.
+	AdminRole string
+}
+
+// Enabled reports whether Keycloak login has been configured.
+func (k KeycloakConfig) Enabled() bool {
+	return k.Host != "" && k.Realm != "" && k.ClientID != ""
 }
 
 // SecurityConfig holds secrets used by first-party and plugin features.

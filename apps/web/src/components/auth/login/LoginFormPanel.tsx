@@ -190,6 +190,24 @@ export function LoginFormPanel() {
 					</form.Subscribe>
 				</form>
 
+				<div className="my-5 flex items-center gap-3">
+					<div className="h-px flex-1 bg-(--line)" />
+					<span className="text-xs uppercase tracking-wide text-(--sea-ink-soft)">
+						{t("login.orDivider")}
+					</span>
+					<div className="h-px flex-1 bg-(--line)" />
+				</div>
+
+				<a
+					href="/api/v1/auth/keycloak"
+					className={cn(
+						buttonVariants({ variant: "outline", size: "lg" }),
+						"h-11 w-full font-semibold tracking-wide",
+					)}
+				>
+					{t("login.signInWithKeycloak")}
+				</a>
+
 				{/* Divider + admin note */}
 				<div className="mt-6 border-t border-(--line) pt-5">
 					<p className="text-xs leading-relaxed text-(--sea-ink-soft)/70">

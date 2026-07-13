@@ -67,19 +67,32 @@ func (s *Service) Login(ctx context.Context, username, password string, remember
 		return nil, domainauth.ErrInvalidCredentials
 	}
 
+	return s.issueTokenPair(u.ID.String(), u.Username, u.Role, rememberMe, u.MustChangePassword)
+}
+
+// LoginAsUser issues a fresh token pair for a user already authenticated by an
+// external identity provider (e.g. Keycloak/OIDC). No password check is
+// performed; the caller is responsible for having verified the user's
+// identity before calling this method.
+func (s *Service) LoginAsUser(ctx context.Context, userID, username, role string, rememberMe bool) (*domainauth.TokenPair, error) {
+	return s.issueTokenPair(userID, username, role, rememberMe, false)
+}
+
+// issueTokenPair signs a fresh access+refresh token pair for the given
+// (already-authenticated) identity. Shared by Login and LoginAsUser.
+func (s *Service) issueTokenPair(sub, username, role string, rememberMe, mustChangePassword bool) (*domainauth.TokenPair, error) {
 	familyID := uuid.NewString()
-	sub := u.ID.String()
 
 	refreshTTL := s.refreshTTL
 	if !rememberMe {
 		refreshTTL = s.refreshSessionTTL
 	}
 
-	access, err := s.tokens.IssueAccess(sub, u.Username, u.Role, familyID, u.MustChangePassword)
+	access, err := s.tokens.IssueAccess(sub, username, role, familyID, mustChangePassword)
 	if err != nil {
 		return nil, err
 	}
-	refresh, err := s.tokens.IssueRefreshWithTTL(sub, u.Username, u.Role, familyID, rememberMe, refreshTTL)
+	refresh, err := s.tokens.IssueRefreshWithTTL(sub, username, role, familyID, rememberMe, refreshTTL)
 	if err != nil {
 		return nil, err
 	}

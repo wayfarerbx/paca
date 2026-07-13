@@ -195,6 +195,13 @@ func Load() (*Config, error) {
 				MaxRequestBodyBytes: pluginMaxRequestBodyBytes,
 			},
 		},
+		Keycloak: KeycloakConfig{
+			Host:         env("KEYCLOAK_HOST", ""),
+			Realm:        env("KEYCLOAK_REALM", ""),
+			ClientID:     env("KEYCLOAK_CLIENT_ID", ""),
+			ClientSecret: env("KEYCLOAK_CLIENT_SECRET", ""),
+			AdminRole:    env("KEYCLOAK_ADMIN_ROLE", "paca-admin"),
+		},
 		AIAgentURL: env("AI_AGENT_URL", "http://ai-agent:8080"),
 	}, nil
 }

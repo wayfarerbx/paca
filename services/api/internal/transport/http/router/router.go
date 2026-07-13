@@ -62,6 +62,8 @@ func New(deps Deps) http.Handler {
 				r.Post("/login", deps.Auth.Login)
 				r.Post("/refresh", deps.Auth.Refresh)
 				r.With(httpmw.Authn(deps.TokenManager)).Post("/logout", deps.Auth.Logout)
+				r.Get("/keycloak", deps.Auth.KeycloakInitiate)
+				r.Get("/keycloak/callback", deps.Auth.KeycloakCallback)
 			})
 
 			// Users

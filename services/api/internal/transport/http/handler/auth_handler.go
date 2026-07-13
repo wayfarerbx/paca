@@ -5,7 +5,9 @@ import (
 	"time"
 
 	"github.com/Paca-AI/api/internal/apierr"
+	"github.com/Paca-AI/api/internal/config"
 	domainauth "github.com/Paca-AI/api/internal/domain/auth"
+	userdom "github.com/Paca-AI/api/internal/domain/user"
 	"github.com/Paca-AI/api/internal/transport/http/dto"
 	"github.com/Paca-AI/api/internal/transport/http/middleware"
 	"github.com/Paca-AI/api/internal/transport/http/presenter"
@@ -31,11 +33,32 @@ type CookieConfig struct {
 type AuthHandler struct {
 	svc    domainauth.Service
 	cookie CookieConfig
+
+	// users and keycloak are only set when WithKeycloak has been called;
+	// KeycloakInitiate/KeycloakCallback respond with apierr.CodeNotFound
+	// when keycloak.Enabled() is false.
+	users     userdom.Service
+	keycloak  config.KeycloakConfig
+	publicURL string
+	http      *http.Client
 }
 
 // NewAuthHandler returns an AuthHandler wired to the provided auth service.
 func NewAuthHandler(svc domainauth.Service, cookie CookieConfig) *AuthHandler {
 	return &AuthHandler{svc: svc, cookie: cookie}
+}
+
+// WithKeycloak enables the Keycloak/OIDC login routes. users is used to
+// find-or-create the local account for a Keycloak-authenticated identity.
+// publicURL is the externally reachable base URL of this API (used to build
+// the OAuth2 redirect_uri) — it must match a valid redirect URI configured on
+// the Keycloak client.
+func (h *AuthHandler) WithKeycloak(users userdom.Service, kc config.KeycloakConfig, publicURL string) *AuthHandler {
+	h.users = users
+	h.keycloak = kc
+	h.publicURL = publicURL
+	h.http = &http.Client{Timeout: 10 * time.Second}
+	return h
 }
 
 // Login handles POST /auth/login.

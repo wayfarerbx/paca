@@ -53,6 +53,9 @@ func (m *mockAuthSvc) Logout(ctx context.Context, familyID string) error {
 	}
 	return errors.New("mock: logout not configured")
 }
+func (m *mockAuthSvc) LoginAsUser(ctx context.Context, userID, username, role string, rememberMe bool) (*domainauth.TokenPair, error) {
+	return nil, errors.New("mock: loginAsUser not configured")
+}
 
 // verify mock satisfies the interface at compile time
 var _ domainauth.Service = (*mockAuthSvc)(nil)

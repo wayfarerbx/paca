@@ -25,4 +25,8 @@ type Service interface {
 	Refresh(ctx context.Context, refreshToken string) (*TokenPair, error)
 	// Logout revokes the entire token family identified by familyID.
 	Logout(ctx context.Context, familyID string) error
+	// LoginAsUser issues a fresh token pair for a user who has already been
+	// authenticated by an external identity provider (e.g. Keycloak/OIDC), so
+	// no password check is performed here.
+	LoginAsUser(ctx context.Context, userID, username, role string, rememberMe bool) (*TokenPair, error)
 }
