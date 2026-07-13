@@ -32,6 +32,8 @@ type AdminUpdateInput struct {
 // Service defines the user use-case contract.
 type Service interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*User, error)
+	// FindByUsername returns a user by username, or ErrNotFound.
+	FindByUsername(ctx context.Context, username string) (*User, error)
 	// List returns a page of users and the total count.
 	List(ctx context.Context, page, pageSize int) ([]*User, int64, error)
 	ListGlobalPermissions(ctx context.Context, id uuid.UUID) ([]string, error)

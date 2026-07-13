@@ -204,6 +204,12 @@ services:
       PLUGINS_MCP_DIR: /plugins-mcp
       # Pre-shared key matching PACA_API_KEY in the ai-agent service.
       AGENT_API_KEY: ${AGENT_API_KEY:-}
+      # Optional Keycloak/OIDC login. Leave unset to disable.
+      KEYCLOAK_HOST: ${KEYCLOAK_HOST:-}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
+      KEYCLOAK_ADMIN_ROLE: ${KEYCLOAK_ADMIN_ROLE:-paca-admin}
     depends_on:
       postgres:
         condition: service_healthy

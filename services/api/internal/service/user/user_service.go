@@ -56,6 +56,11 @@ func (s *Service) GetByID(ctx context.Context, id uuid.UUID) (*userdom.User, err
 	return s.repo.FindByID(ctx, id)
 }
 
+// FindByUsername returns a user by username, or ErrNotFound.
+func (s *Service) FindByUsername(ctx context.Context, username string) (*userdom.User, error) {
+	return s.repo.FindByUsername(ctx, username)
+}
+
 // List returns a page of users and the total count.
 func (s *Service) List(ctx context.Context, page, pageSize int) ([]*userdom.User, int64, error) {
 	if page < 1 {
