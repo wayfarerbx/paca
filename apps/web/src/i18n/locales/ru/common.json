@@ -18,5 +18,20 @@
 		"newPasswordMustDiffer": "Новый пароль должен отличаться от текущего.",
 		"confirmPasswordRequired": "Подтвердите новый пароль.",
 		"passwordsDoNotMatch": "Пароли не совпадают."
+	},
+	"timeAgo": {
+		"justNow": "только что",
+		"minutes_one": "{{count}} мин. назад",
+		"minutes_few": "{{count}} мин. назад",
+		"minutes_many": "{{count}} мин. назад",
+		"minutes_other": "{{count}} мин. назад",
+		"hours_one": "{{count}} ч назад",
+		"hours_few": "{{count}} ч назад",
+		"hours_many": "{{count}} ч назад",
+		"hours_other": "{{count}} ч назад",
+		"days_one": "{{count}} дн. назад",
+		"days_few": "{{count}} дн. назад",
+		"days_many": "{{count}} дн. назад",
+		"days_other": "{{count}} дн. назад"
 	}
 }

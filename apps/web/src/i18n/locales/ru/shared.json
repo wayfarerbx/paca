@@ -11,21 +11,6 @@
 		"delete": "Удалить",
 		"viewDiff": "Показать diff",
 		"revert": "Откатить",
-		"timeAgo": {
-			"justNow": "только что",
-			"minutes_one": "{{count}} мин. назад",
-			"minutes_few": "{{count}} мин. назад",
-			"minutes_many": "{{count}} мин. назад",
-			"minutes_other": "{{count}} мин. назад",
-			"hours_one": "{{count}} ч назад",
-			"hours_few": "{{count}} ч назад",
-			"hours_many": "{{count}} ч назад",
-			"hours_other": "{{count}} ч назад",
-			"days_one": "{{count}} дн. назад",
-			"days_few": "{{count}} дн. назад",
-			"days_many": "{{count}} дн. назад",
-			"days_other": "{{count}} дн. назад"
-		},
 		"errors": {
 			"revertFailed": "Не удалось откатить. Попробуйте ещё раз."
 		}
