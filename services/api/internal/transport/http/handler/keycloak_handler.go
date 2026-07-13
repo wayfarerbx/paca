@@ -21,8 +21,8 @@ import (
 // and KeycloakCallback. It is short-lived and scoped to the callback path.
 const (
 	keycloakStateCookie = "keycloak_state"
-	keycloakStatePath    = "/api/v1/auth/keycloak"
-	keycloakStateTTL = 5 * time.Minute
+	keycloakStatePath   = "/api/v1/auth/keycloak"
+	keycloakStateTTL    = 5 * time.Minute
 )
 
 // keycloakTokenResponse is the subset of the OIDC token endpoint response we

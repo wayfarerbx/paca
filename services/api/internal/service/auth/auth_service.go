@@ -74,7 +74,7 @@ func (s *Service) Login(ctx context.Context, username, password string, remember
 // external identity provider (e.g. Keycloak/OIDC). No password check is
 // performed; the caller is responsible for having verified the user's
 // identity before calling this method.
-func (s *Service) LoginAsUser(ctx context.Context, userID, username, role string, rememberMe bool) (*domainauth.TokenPair, error) {
+func (s *Service) LoginAsUser(_ context.Context, userID, username, role string, rememberMe bool) (*domainauth.TokenPair, error) {
 	return s.issueTokenPair(userID, username, role, rememberMe, false)
 }
 

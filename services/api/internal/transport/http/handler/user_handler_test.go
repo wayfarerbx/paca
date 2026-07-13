@@ -38,7 +38,7 @@ func (m *mockUserSvc) GetByID(ctx context.Context, id uuid.UUID) (*domainuser.Us
 	return nil, domainuser.ErrNotFound
 }
 
-func (m *mockUserSvc) FindByUsername(ctx context.Context, username string) (*domainuser.User, error) {
+func (m *mockUserSvc) FindByUsername(_ context.Context, _ string) (*domainuser.User, error) {
 	return nil, domainuser.ErrNotFound
 }
 func (m *mockUserSvc) List(ctx context.Context, page, pageSize int) ([]*domainuser.User, int64, error) {

@@ -30,9 +30,10 @@ var testCookieConfig = handler.CookieConfig{
 // ---------------------------------------------------------------------------
 
 type mockAuthSvc struct {
-	login   func(ctx context.Context, username, pass string, rememberMe bool) (*domainauth.TokenPair, error)
-	refresh func(ctx context.Context, token string) (*domainauth.TokenPair, error)
-	logout  func(ctx context.Context, familyID string) error
+	login       func(ctx context.Context, username, pass string, rememberMe bool) (*domainauth.TokenPair, error)
+	refresh     func(ctx context.Context, token string) (*domainauth.TokenPair, error)
+	logout      func(ctx context.Context, familyID string) error
+	loginAsUser func(ctx context.Context, userID, username, role string, rememberMe bool) (*domainauth.TokenPair, error)
 }
 
 func (m *mockAuthSvc) Login(ctx context.Context, username, pass string, rememberMe bool) (*domainauth.TokenPair, error) {
@@ -54,6 +55,9 @@ func (m *mockAuthSvc) Logout(ctx context.Context, familyID string) error {
 	return errors.New("mock: logout not configured")
 }
 func (m *mockAuthSvc) LoginAsUser(ctx context.Context, userID, username, role string, rememberMe bool) (*domainauth.TokenPair, error) {
+	if m.loginAsUser != nil {
+		return m.loginAsUser(ctx, userID, username, role, rememberMe)
+	}
 	return nil, errors.New("mock: loginAsUser not configured")
 }
 
