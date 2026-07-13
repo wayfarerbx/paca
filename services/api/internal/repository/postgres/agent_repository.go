@@ -37,8 +37,6 @@ type agentRecord struct {
 	UpdatedAt         time.Time  `db:"updated_at"`
 	DeletedAt         *time.Time `db:"deleted_at"`
 	MemberID          *string    `db:"member_id"` // populated when joining with project_members
-	ProjectRoleID     *string    `db:"project_role_id"`
-	ProjectRoleName   string     `db:"project_role_name"`
 }
 
 type agentMCPServerRecord struct {
@@ -141,7 +139,7 @@ const agentSelectCols = `a.id, a.project_id, a.name, a.handle, a.avatar_url, a.l
 	a.llm_api_key_secret, a.llm_base_url, a.system_prompt,
 	a.max_iterations, a.timeout_minutes,
 	a.git_committer_name, a.git_committer_email, a.created_by, a.created_at, a.updated_at, a.deleted_at,
-	pm.id AS member_id, pm.project_role_id AS project_role_id, COALESCE(pr.role_name, '') AS project_role_name`
+	pm.id AS member_id`
 
 // -------------------------------------------------------------------------
 // Agents
@@ -154,7 +152,6 @@ func (r *AgentRepository) ListAgents(ctx context.Context, projectID uuid.UUID) (
 		SELECT `+agentSelectCols+`
 		FROM agents a
 		LEFT JOIN project_members pm ON pm.agent_id = a.id AND pm.deleted_at IS NULL
-		LEFT JOIN project_roles pr ON pr.id = pm.project_role_id
 		WHERE a.project_id = $1 AND a.deleted_at IS NULL`, projectID.String())
 	if err != nil {
 		return nil, err
@@ -174,7 +171,6 @@ func (r *AgentRepository) FindAgentByID(ctx context.Context, id uuid.UUID) (*age
 		SELECT `+agentSelectCols+`
 		FROM agents a
 		LEFT JOIN project_members pm ON pm.agent_id = a.id AND pm.deleted_at IS NULL
-		LEFT JOIN project_roles pr ON pr.id = pm.project_role_id
 		WHERE a.id = $1 AND a.deleted_at IS NULL`, id.String())
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, agentdom.ErrAgentNotFound
@@ -209,7 +205,6 @@ func (r *AgentRepository) FindAgentByHandle(ctx context.Context, projectID uuid.
 		SELECT `+agentSelectCols+`
 		FROM agents a
 		LEFT JOIN project_members pm ON pm.agent_id = a.id AND pm.deleted_at IS NULL
-		LEFT JOIN project_roles pr ON pr.id = pm.project_role_id
 		WHERE a.project_id = $1 AND a.handle = $2 AND a.deleted_at IS NULL`,
 		projectID.String(), handle)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -817,11 +812,6 @@ func agentFromReadRow(row agentRecord) *agentdom.Agent {
 	if row.MemberID != nil {
 		mid := mustParseUUID(*row.MemberID)
 		a.MemberID = &mid
-	}
-	if row.ProjectRoleID != nil {
-		rid := mustParseUUID(*row.ProjectRoleID)
-		a.ProjectRoleID = &rid
-		a.ProjectRoleName = row.ProjectRoleName
 	}
 	return a
 }

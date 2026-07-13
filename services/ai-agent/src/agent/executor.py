@@ -6,7 +6,6 @@ import asyncio
 import logging
 import threading
 import time
-from pathlib import Path
 
 import httpx
 from openhands.sdk import Agent, AgentContext, Conversation
@@ -267,39 +266,6 @@ def _gather_repo_sources(trigger: TriggerMessage) -> list[RepoInfoSource]:
     return sources
 
 
-def _local_repos_enabled() -> bool:
-    return bool(settings.local_repos_host_path) and Path(settings.local_repos_host_path).is_dir()
-
-
-def _effective_repo_plugin_ids(repo_plugin_ids: list[str]) -> list[str]:
-    ids = list(repo_plugin_ids)
-    if _local_repos_enabled() and settings.local_repo_plugin_id not in ids:
-        ids.append(settings.local_repo_plugin_id)
-    return ids
-
-
-def _local_repo_infos() -> list[dict]:
-    if not _local_repos_enabled():
-        return []
-
-    root = Path(settings.local_repos_host_path)
-    repos: list[dict] = []
-    for child in sorted(root.iterdir(), key=lambda p: p.name.lower()):
-        if not child.is_dir() or child.name.startswith("."):
-            continue
-        repos.append(
-            {
-                "plugin_id": settings.local_repo_plugin_id,
-                "repo_id": child.name,
-                "full_name": child.name,
-                "owner": "local",
-                "repo_name": child.name,
-                "clone_url": f"file://{settings.local_repos_path.rstrip('/')}/{child.name}",
-            }
-        )
-    return repos
-
-
 # ─── Shared event index ───────────────────────────────────────────────────────
 
 
@@ -549,12 +515,11 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
             "conventions, and prior decisions.\n"
         )
 
-        repo_plugin_ids = _effective_repo_plugin_ids(trigger.repo_plugin_ids)
-        has_repos = len(repo_plugin_ids) > 0
+        has_repos = len(trigger.repo_plugin_ids) > 0
         logger.info(
             "Conversation %s — repo_plugin_ids=%s has_repos=%s",
             trigger.conversation_id,
-            repo_plugin_ids,
+            trigger.repo_plugin_ids,
             has_repos,
         )
         if has_repos:
@@ -565,12 +530,7 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
                 "feature branch before changing anything, commit your work, "
                 "then call `push_branch` — do NOT skip this step. PR "
                 "creation, review, and comments are handled by the "
-                "repository plugin's own tools.\n\n"
-                "Local filesystem repositories (plugin_id `local-fs`) skip "
-                "the branch/push/PR steps entirely — `clone_repository` "
-                "links the local folder directly to /workspace/repo and "
-                "edits are saved immediately to it; just summarize the "
-                "saved changes when done.\n"
+                "repository plugin's own tools.\n"
             )
 
         # Pre-gather repository info for the trigger context suffix. Only
@@ -583,7 +543,7 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
         if resume_state is None and has_repos:
             try:
                 repo_sources = _gather_repo_sources(trigger)
-                all_repos: list[dict] = _local_repo_infos()
+                all_repos: list[dict] = []
                 for source in repo_sources:
                     for repo in source.repositories:
                         all_repos.append(
@@ -628,11 +588,9 @@ async def run_conversation(trigger: TriggerMessage, agent_config: AgentConfig) -
                 if has_repos:
                     agent_kwargs["tools"] = get_default_tools() + make_repository_tool_specs(
                         trigger.project_id,
-                        repo_plugin_ids,
+                        trigger.repo_plugin_ids,
                         api_base_url=settings.api_base_url,
                         api_key=settings.paca_api_key,
-                        local_repos_path=settings.local_repos_path,
-                        local_plugin_id=settings.local_repo_plugin_id,
                     )
 
                 agent = Agent(**agent_kwargs)

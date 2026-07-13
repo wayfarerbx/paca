@@ -1,110 +1,204 @@
-type BlockLike = {
-	type?: string;
-	props?: Record<string, unknown>;
-	content?: unknown;
-	children?: unknown;
-	text?: unknown;
+import { BlockNoteEditor } from "@blocknote/core";
+import { JSDOM } from "jsdom";
+
+// Initialize JSDOM to provide a browser-like environment for BlockNote
+const dom = new JSDOM("");
+const { window } = dom;
+
+const globals = {
+	window,
+	document: window.document,
+	navigator: window.navigator,
+	HTMLElement: window.HTMLElement,
+	Node: window.Node,
 };
 
-function inlineToText(content: unknown): string {
-	if (!content) return "";
-	if (typeof content === "string") return content;
-	if (Array.isArray(content)) return content.map(inlineToText).join("");
-	if (typeof content !== "object") return String(content);
-
-	const item = content as BlockLike;
-	if (item.type === "text" && typeof item.text === "string") return item.text;
-
-	if (item.type === "teamMention") {
-		const name = String(item.props?.name || "Unknown");
-		const id = String(item.props?.id || "");
-		return id ? `@${name} (id: ${id})` : `@${name}`;
-	}
-
-	if (item.type === "taskReference") {
-		const title = String(item.props?.title || "Unknown");
-		const id = String(item.props?.id || "");
-		return id ? `#${title} (id: ${id})` : `#${title}`;
-	}
-
-	if (item.type === "docReference") {
-		const title = String(item.props?.title || "Unknown");
-		const id = String(item.props?.id || "");
-		return id ? `📄 ${title} (id: ${id})` : `📄 ${title}`;
-	}
-
-	if (typeof item.text === "string") return item.text;
-	if (item.content) return inlineToText(item.content);
-	return "";
+for (const [key, value] of Object.entries(globals)) {
+	Object.defineProperty(global, key, {
+		value,
+		writable: true,
+		configurable: true,
+	});
 }
 
-function blockToMarkdown(block: unknown): string {
-	if (!block || typeof block !== "object") return "";
-	const b = block as BlockLike;
-	const text = inlineToText(b.content || b.text);
-	const children = Array.isArray(b.children)
-		? b.children.map(blockToMarkdown).filter(Boolean).join("\n")
-		: "";
+let editor: BlockNoteEditor | null = null;
 
-	let current = text;
-	if (b.type === "heading") {
-		const rawLevel = Number(b.props?.level || 1);
-		const level = Math.min(Math.max(rawLevel || 1, 1), 6);
-		current = `${"#".repeat(level)} ${text}`.trim();
-	} else if (b.type === "bulletListItem") {
-		current = `- ${text}`.trim();
-	} else if (b.type === "numberedListItem") {
-		current = `1. ${text}`.trim();
-	} else if (b.type === "checkListItem") {
-		current = `- [ ] ${text}`.trim();
+function getEditor(): BlockNoteEditor {
+	if (!editor) {
+		editor = BlockNoteEditor.create();
 	}
-
-	return [current, children].filter(Boolean).join("\n");
+	return editor;
 }
 
 /**
- * Converts BlockNote-like JSON blocks to readable Markdown.
- * This intentionally avoids importing @blocknote/core/jsdom so the MCP server
- * can start reliably inside lightweight Linux agent sandboxes.
+ * Recursively converts mentions to text format with IDs in the blocks.
+ * @param content - Inline content array or single content item
+ * @returns Converted content
+ */
+function convertMentionsToText(content: any): any {
+	if (!content) return content;
+
+	if (Array.isArray(content)) {
+		return content.map((item) => convertMentionsToText(item));
+	}
+
+	if (typeof content === "object" && content !== null) {
+		const result = { ...content };
+
+		if (result.type === "teamMention") {
+			const memberName = result.props?.name || "Unknown";
+			const memberId = result.props?.id || "";
+			const text = memberId
+				? `@${memberName} (id: ${memberId})`
+				: `@${memberName}`;
+			return {
+				type: "text",
+				text,
+				styles: {},
+			};
+		}
+
+		if (result.type === "taskReference") {
+			const taskTitle = result.props?.title || "Unknown";
+			const taskId = result.props?.id || "";
+			const text = taskId ? `#${taskTitle} (id: ${taskId})` : `#${taskTitle}`;
+			return {
+				type: "text",
+				text,
+				styles: {},
+			};
+		}
+
+		if (result.type === "docReference") {
+			const docTitle = result.props?.title || "Unknown";
+			const docId = result.props?.id || "";
+			const text = docId ? `📄 ${docTitle} (id: ${docId})` : `📄 ${docTitle}`;
+			return {
+				type: "text",
+				text,
+				styles: {},
+			};
+		}
+
+		if (result.content) {
+			result.content = convertMentionsToText(result.content);
+		}
+
+		if (result.children) {
+			result.children = convertMentionsToText(result.children);
+		}
+
+		return result;
+	}
+
+	return content;
+}
+
+/**
+ * Checks if blocks contain any mention types.
+ * @param blocks - Array of BlockNote block objects
+ * @returns True if mentions are found
+ */
+function hasMentions(blocks: any[] | null): boolean {
+	if (!blocks || blocks.length === 0) return false;
+
+	for (const block of blocks) {
+		if (!block) continue;
+
+		if (
+			block.type === "teamMention" ||
+			block.type === "taskReference" ||
+			block.type === "docReference"
+		) {
+			return true;
+		}
+
+		if (block.content) {
+			if (hasMentionsInContent(block.content)) {
+				return true;
+			}
+		}
+
+		if (block.children) {
+			if (hasMentions(block.children)) {
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+function hasMentionsInContent(content: any): boolean {
+	if (!content) return false;
+
+	if (Array.isArray(content)) {
+		for (const item of content) {
+			if (hasMentionsInContent(item)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	if (typeof content === "object" && content !== null) {
+		if (
+			content.type === "teamMention" ||
+			content.type === "taskReference" ||
+			content.type === "docReference"
+		) {
+			return true;
+		}
+
+		if (content.content && hasMentionsInContent(content.content)) {
+			return true;
+		}
+
+		if (content.children && hasMentions(content.children)) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/**
+ * Converts BlockNote JSON blocks to Markdown string.
+ * @param blocks - Array of BlockNote block objects
+ * @returns Markdown string representation
  */
 export function blocknoteToMarkdown(
-	blocks: unknown[] | { content?: unknown; text?: unknown } | null,
+	blocks: any[] | { content?: unknown; text?: unknown } | null,
 ): string {
 	if (!blocks) return "";
 	if (!Array.isArray(blocks)) {
-		if (typeof blocks.text === "string") return blocks.text;
-		if (!Array.isArray(blocks.content)) return "";
+		if (typeof blocks.text === "string") {
+			return blocks.text;
+		}
+		if (!Array.isArray(blocks.content)) {
+			return "";
+		}
 		blocks = blocks.content;
 	}
 	if (blocks.length === 0) return "";
-	return blocks.map(blockToMarkdown).filter(Boolean).join("\n\n");
+
+	let _blocksToConvert = blocks;
+
+	if (hasMentions(blocks)) {
+		_blocksToConvert = convertMentionsToText(blocks);
+	}
+
+	const e = getEditor();
+	return (e as any)._exportManager.blocksToMarkdownLossy(_blocksToConvert);
 }
 
 /**
- * Converts plain Markdown into simple BlockNote-compatible paragraph/heading
- * blocks. It preserves the text agents write without needing a browser runtime.
+ * Converts Markdown string to BlockNote JSON blocks.
+ * @param markdown - Markdown string
+ * @returns Array of BlockNote block objects
  */
 export function markdownToBlocknote(markdown: string): any[] {
 	if (!markdown || markdown.trim() === "") return [];
-
-	return markdown
-		.split(/\n{2,}/)
-		.map((part) => part.trim())
-		.filter(Boolean)
-		.map((part) => {
-			const heading = /^(#{1,6})\s+(.*)$/.exec(part);
-			if (heading) {
-				return {
-					type: "heading",
-					props: { level: heading[1].length },
-					content: [{ type: "text", text: heading[2], styles: {} }],
-					children: [],
-				};
-			}
-			return {
-				type: "paragraph",
-				content: [{ type: "text", text: part, styles: {} }],
-				children: [],
-			};
-		});
+	const e = getEditor();
+	return (e as any)._exportManager.tryParseMarkdownToBlocks(markdown);
 }

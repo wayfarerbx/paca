@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -144,10 +143,10 @@ func (h *AgentHandler) CreateAgent(w http.ResponseWriter, r *http.Request) {
 	case req.LLMModel == "":
 		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "llm_model is required"))
 		return
-	case req.LLMAPIKey == "" && !usesOpenAISubscription(req.LLMProvider, req.LLMBaseURL):
+	case req.LLMAPIKey == "":
 		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "llm_api_key is required"))
 		return
-	case strings.TrimSpace(req.LLMBaseURL) == "" && requiresLLMBaseURL(req.LLMProvider):
+	case req.LLMBaseURL == "":
 		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "llm_base_url is required"))
 		return
 	case req.ProjectRoleID == uuid.Nil:
@@ -179,14 +178,6 @@ func (h *AgentHandler) CreateAgent(w http.ResponseWriter, r *http.Request) {
 	presenter.Created(w, r, dto.AgentFromEntity(a))
 }
 
-func requiresLLMBaseURL(provider string) bool {
-	return !strings.EqualFold(strings.TrimSpace(provider), "chatgpt")
-}
-
-func usesOpenAISubscription(provider, baseURL string) bool {
-	return strings.EqualFold(strings.TrimSpace(provider), "chatgpt") && strings.TrimSpace(baseURL) == ""
-}
-
 // UpdateAgent handles PATCH /projects/:projectId/agents/:agentId.
 func (h *AgentHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 	projectID, err := parseProjectID(r)
@@ -204,10 +195,6 @@ func (h *AgentHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		presenter.Error(w, r, err)
 		return
 	}
-	if req.ProjectRoleID != nil && *req.ProjectRoleID == uuid.Nil {
-		presenter.Error(w, r, apierr.New(apierr.CodeBadRequest, "project_role_id cannot be empty"))
-		return
-	}
 	a, err := h.svc.UpdateAgent(r.Context(), projectID, agentID, agentdom.UpdateAgentInput{
 		Name:              req.Name,
 		Handle:            req.Handle,
@@ -220,7 +207,6 @@ func (h *AgentHandler) UpdateAgent(w http.ResponseWriter, r *http.Request) {
 		TimeoutMinutes:    req.TimeoutMinutes,
 		GitCommitterName:  req.GitCommitterName,
 		GitCommitterEmail: req.GitCommitterEmail,
-		ProjectRoleID:     req.ProjectRoleID,
 	})
 	if err != nil {
 		presenter.Error(w, r, err)

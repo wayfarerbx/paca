@@ -8,7 +8,6 @@ import type {
 	PacaAPIWorkflowClient,
 } from "../api/index.js";
 import { formatToolError } from "../utils/index.js";
-import { getAgentTools, handleAgentTool } from "./agent-tools.js";
 import {
 	getAttachmentTools,
 	handleAttachmentTool,
@@ -57,7 +56,6 @@ export function getAllTools(): Tool[] {
 		...getFilesystemDocTools(),
 		...getProjectMemberTools(),
 		...getProjectRoleTools(),
-		...getAgentTools(),
 		...getTaskTypeTools(),
 		...getTaskStatusTools(),
 		...getViewTools(),
@@ -158,25 +156,6 @@ export async function handleToolCall(
 			name === "delete_project_role"
 		) {
 			return handleProjectMemberTool(name, args, clients.extendedClient);
-		}
-
-		// Agent tools
-		if (
-			name === "list_agents" ||
-			name === "get_agent" ||
-			name === "create_agent" ||
-			name === "update_agent" ||
-			name === "delete_agent" ||
-			name === "list_agent_mcp_servers" ||
-			name === "add_agent_mcp_server" ||
-			name === "update_agent_mcp_server" ||
-			name === "delete_agent_mcp_server" ||
-			name === "list_agent_skills" ||
-			name === "add_agent_skill" ||
-			name === "update_agent_skill" ||
-			name === "delete_agent_skill"
-		) {
-			return handleAgentTool(name, args, clients.extendedClient);
 		}
 
 		// Task type and status tools

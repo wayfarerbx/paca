@@ -10,7 +10,6 @@ import (
 
 	agentdom "github.com/Paca-AI/api/internal/domain/agent"
 	plugindom "github.com/Paca-AI/api/internal/domain/plugin"
-	projectdom "github.com/Paca-AI/api/internal/domain/project"
 	"github.com/Paca-AI/api/internal/events"
 	"github.com/Paca-AI/api/internal/platform/messaging"
 	"github.com/Paca-AI/api/internal/platform/secret"
@@ -21,7 +20,6 @@ import (
 // member list cache after an agent is added or removed.
 type projectMemberWriter interface {
 	InvalidateMembersCache(ctx context.Context, projectID uuid.UUID) error
-	UpdateMemberRoleByMemberID(ctx context.Context, projectID, memberID uuid.UUID, in projectdom.UpdateMemberRoleInput) (*projectdom.ProjectMember, error)
 }
 
 // pluginFinder is the minimal interface to find VCS plugins.
@@ -145,7 +143,6 @@ func (s *Service) CreateAgent(ctx context.Context, projectID uuid.UUID, in agent
 		return nil, fmt.Errorf("create agent with membership: %w", err)
 	}
 	a.MemberID = &memberID
-	a.ProjectRoleID = &in.ProjectRoleID
 
 	// Best-effort cache invalidation so the new member appears immediately.
 	_ = s.projRepo.InvalidateMembersCache(ctx, projectID)
@@ -218,19 +215,6 @@ func (s *Service) UpdateAgent(ctx context.Context, projectID, agentID uuid.UUID,
 	}
 	if in.GitCommitterEmail != nil {
 		a.GitCommitterEmail = *in.GitCommitterEmail
-	}
-	if in.ProjectRoleID != nil {
-		if a.MemberID == nil {
-			return nil, projectdom.ErrMemberNotFound
-		}
-		member, err := s.projRepo.UpdateMemberRoleByMemberID(ctx, projectID, *a.MemberID, projectdom.UpdateMemberRoleInput{
-			ProjectRoleID: *in.ProjectRoleID,
-		})
-		if err != nil {
-			return nil, err
-		}
-		a.ProjectRoleID = &member.ProjectRoleID
-		a.ProjectRoleName = member.RoleName
 	}
 	a.UpdatedAt = time.Now()
 

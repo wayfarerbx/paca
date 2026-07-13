@@ -6,7 +6,6 @@ import (
 
 	agentdom "github.com/Paca-AI/api/internal/domain/agent"
 	plugindom "github.com/Paca-AI/api/internal/domain/plugin"
-	projectdom "github.com/Paca-AI/api/internal/domain/project"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
@@ -322,23 +321,11 @@ var _ agentdom.Repository = (*mockAgentRepo)(nil)
 
 type mockProjectRepo struct {
 	invalidateMembersCacheCalled bool
-	updateMemberRoleByMemberID   func(ctx context.Context, projectID, memberID uuid.UUID, in projectdom.UpdateMemberRoleInput) (*projectdom.ProjectMember, error)
 }
 
 func (m *mockProjectRepo) InvalidateMembersCache(_ context.Context, _ uuid.UUID) error {
 	m.invalidateMembersCacheCalled = true
 	return nil
-}
-
-func (m *mockProjectRepo) UpdateMemberRoleByMemberID(ctx context.Context, projectID, memberID uuid.UUID, in projectdom.UpdateMemberRoleInput) (*projectdom.ProjectMember, error) {
-	if m.updateMemberRoleByMemberID != nil {
-		return m.updateMemberRoleByMemberID(ctx, projectID, memberID, in)
-	}
-	return &projectdom.ProjectMember{
-		ID:            memberID,
-		ProjectID:     projectID,
-		ProjectRoleID: in.ProjectRoleID,
-	}, nil
 }
 
 var _ projectMemberWriter = (*mockProjectRepo)(nil)
@@ -596,55 +583,6 @@ func TestUpdateAgent_Success(t *testing.T) {
 	assert.Equal(t, newName, result.Name)
 	assert.Equal(t, newHandle, result.Handle)
 	assert.Equal(t, newModel, result.LLMModel)
-}
-
-func TestUpdateAgent_ProjectRoleID(t *testing.T) {
-	projectID := uuid.New()
-	agentID := uuid.New()
-	memberID := uuid.New()
-	oldRoleID := uuid.New()
-	newRoleID := uuid.New()
-	agent := &agentdom.Agent{
-		ID:            agentID,
-		ProjectID:     projectID,
-		Name:          "Agent",
-		Handle:        "agent",
-		MemberID:      &memberID,
-		ProjectRoleID: &oldRoleID,
-	}
-
-	repo := &mockAgentRepo{
-		findAgentByID: func(_ context.Context, _ uuid.UUID) (*agentdom.Agent, error) {
-			return agent, nil
-		},
-		updateAgent: func(_ context.Context, a *agentdom.Agent) error {
-			assert.Equal(t, newRoleID, *a.ProjectRoleID)
-			return nil
-		},
-	}
-	projRepo := &mockProjectRepo{
-		updateMemberRoleByMemberID: func(_ context.Context, gotProjectID, gotMemberID uuid.UUID, in projectdom.UpdateMemberRoleInput) (*projectdom.ProjectMember, error) {
-			assert.Equal(t, projectID, gotProjectID)
-			assert.Equal(t, memberID, gotMemberID)
-			assert.Equal(t, newRoleID, in.ProjectRoleID)
-			return &projectdom.ProjectMember{
-				ID:            memberID,
-				ProjectID:     projectID,
-				ProjectRoleID: newRoleID,
-				RoleName:      "PROJECT_OWNER",
-			}, nil
-		},
-	}
-	pluginRepo := &mockPluginRepo{}
-	svc := New(repo, projRepo, nil, pluginRepo)
-
-	result, err := svc.UpdateAgent(context.Background(), projectID, agentID, agentdom.UpdateAgentInput{
-		ProjectRoleID: &newRoleID,
-	})
-
-	assert.NoError(t, err)
-	assert.Equal(t, newRoleID, *result.ProjectRoleID)
-	assert.Equal(t, "PROJECT_OWNER", result.ProjectRoleName)
 }
 
 func TestUpdateAgent_HandleTaken(t *testing.T) {

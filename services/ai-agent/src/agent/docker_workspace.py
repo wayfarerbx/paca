@@ -61,18 +61,6 @@ def _detect_platform() -> str:
     return "linux/amd64"
 
 
-def _docker_base_url() -> str:
-    docker_socket = settings.docker_socket.strip()
-    if docker_socket.startswith(("unix://", "npipe://", "tcp://", "http://", "https://")):
-        return docker_socket
-    if platform_module.system().lower() == "windows":
-        if docker_socket in {"/var/run/docker.sock", ""}:
-            return "npipe:////./pipe/dockerDesktopLinuxEngine"
-        if docker_socket.startswith(("\\\\.\\pipe\\", "//./pipe/")):
-            return "npipe:////./pipe/" + docker_socket.replace("\\", "/").rsplit("/", 1)[-1]
-    return f"unix://{docker_socket}"
-
-
 def _is_inside_docker() -> bool:
     return os.path.exists("/.dockerenv")
 
@@ -142,83 +130,11 @@ def _wait_for_ready(host: str, timeout: float = 120.0) -> None:
 # ─── Repo tools injection ─────────────────────────────────────────────────────
 
 _REPO_TOOLS_DEST = "/tmp/paca_tools"
-_OPENHANDS_HOME_DEST = "/home/openhands/.openhands"
-_OPENHANDS_HOME_VOLUME = "paca-openhands-home"
 _REPO_TOOLS_FILES = [
     ("src/__init__.py", "paca_tools/src/__init__.py"),
     ("src/agent/__init__.py", "paca_tools/src/agent/__init__.py"),
     ("src/agent/repo_tools.py", "paca_tools/src/agent/repo_tools.py"),
 ]
-
-
-def _openhands_home_host_path() -> str | None:
-    openhands_dir = Path.home() / ".openhands"
-    if not openhands_dir.exists():
-        return None
-    return str(openhands_dir)
-
-
-def _use_openhands_home_volume() -> bool:
-    return platform_module.system().lower() == "windows" and not _is_inside_docker()
-
-
-def _sandbox_bind_dir_for(path: str) -> str | None:
-    if not path.startswith("/"):
-        return None
-    path_parts = Path(path).parts
-    if len(path_parts) < 2:
-        return None
-    return "/" + path_parts[1]
-
-
-def _tar_directory_contents(source: Path) -> bytes:
-    buf = io.BytesIO()
-    with tarfile.open(fileobj=buf, mode="w") as tar:
-        for child in source.rglob("*"):
-            tar.add(str(child), arcname=str(child.relative_to(source)))
-    buf.seek(0)
-    return buf.getvalue()
-
-
-def _ensure_openhands_home_volume(client: docker.DockerClient, host_path: str) -> str:
-    try:
-        client.volumes.get(_OPENHANDS_HOME_VOLUME)
-    except docker.errors.NotFound:
-        client.volumes.create(name=_OPENHANDS_HOME_VOLUME)
-
-    sync_container = None
-    try:
-        sync_container = client.containers.create(
-            image=settings.agent_server_image,
-            command=["-c", "mkdir -p /home/openhands/.openhands && sleep 60"],
-            entrypoint="sh",
-            user="root",
-            detach=True,
-            volumes={
-                _OPENHANDS_HOME_VOLUME: {
-                    "bind": _OPENHANDS_HOME_DEST,
-                    "mode": "rw",
-                }
-            },
-        )
-        sync_container.start()
-        sync_container.put_archive(
-            _OPENHANDS_HOME_DEST,
-            _tar_directory_contents(Path(host_path)),
-        )
-        exit_code, output = sync_container.exec_run(
-            f"chown -R 10001:10001 {_OPENHANDS_HOME_DEST}"
-        )
-        if exit_code != 0:
-            raise RuntimeError(
-                "Failed to prepare OpenHands home volume: "
-                + output.decode(errors="replace")
-            )
-    finally:
-        if sync_container is not None:
-            sync_container.remove(force=True)
-
-    return _OPENHANDS_HOME_VOLUME
 
 
 def _copy_repo_tools_to_container(container: Container) -> bool:
@@ -299,7 +215,7 @@ def start_sandbox(
     call (chat conversations kept alive between turns) must call
     `stop_sandbox()` explicitly when they're actually done with it.
     """
-    client = docker.DockerClient(base_url=_docker_base_url())
+    client = docker.DockerClient(base_url=f"unix://{settings.docker_socket}")
     container: Container | None = None
     host_port: int | None = None
 
@@ -320,16 +236,6 @@ def start_sandbox(
                 "No host bind-mount for /app detected — "
                 "will inject repo_tools into the sandbox container directly."
             )
-
-        openhands_host_path = _openhands_home_host_path()
-        if openhands_host_path:
-            if _use_openhands_home_volume():
-                openhands_volume = _ensure_openhands_home_volume(client, openhands_host_path)
-                volumes[openhands_volume] = {"bind": _OPENHANDS_HOME_DEST, "mode": "rw"}
-                logger.debug("Sharing OpenHands home directory into sandbox via Docker volume.")
-            else:
-                volumes[openhands_host_path] = {"bind": _OPENHANDS_HOME_DEST, "mode": "rw"}
-                logger.debug("Sharing OpenHands home directory into sandbox.")
 
         # When DEV_MCP_PATH is set, the MCP server is a local file on a bind-
         # mounted volume (e.g. /mcp/build/index.js).  The OpenHands runtime
@@ -364,36 +270,6 @@ def start_sandbox(
                 )
 
         # ── Environment ───────────────────────────────────────────────────────
-        if settings.dev_mcp_path and not _is_inside_docker():
-            mcp_bind_dir = _sandbox_bind_dir_for(settings.dev_mcp_path)
-            if mcp_bind_dir and settings.dev_mcp_host_path:
-                mcp_host_path = str(Path(settings.dev_mcp_host_path).resolve())
-                volumes[mcp_host_path] = {"bind": mcp_bind_dir, "mode": "ro"}
-                logger.debug(
-                    "Sharing MCP source into sandbox: host=%s -> container=%s",
-                    mcp_host_path,
-                    mcp_bind_dir,
-                )
-            else:
-                logger.warning(
-                    "DEV_MCP_PATH=%s is set outside Docker, but DEV_MCP_HOST_PATH is empty "
-                    "or DEV_MCP_PATH is not an absolute container path; the MCP server will "
-                    "likely fail to start inside the sandbox.",
-                    settings.dev_mcp_path,
-                )
-
-        if settings.local_repos_host_path:
-            local_repos_host_path = str(Path(settings.local_repos_host_path).resolve())
-            volumes[local_repos_host_path] = {
-                "bind": settings.local_repos_path,
-                "mode": "rw",
-            }
-            logger.debug(
-                "Sharing local repositories into sandbox: host=%s -> container=%s",
-                local_repos_host_path,
-                settings.local_repos_path,
-            )
-
         # User-configured secret env vars are spread first so that the
         # hardcoded infra keys below always win on name collision — a
         # misconfigured agent variable can never shadow sandbox internals.

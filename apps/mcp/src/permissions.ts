@@ -152,21 +152,6 @@ export const TOOL_PERMISSIONS: ToolPermission[] = [
 		requiresProject: true,
 	},
 
-	// Agent tools
-	{ toolName: "list_agents", permissionKey: "agents.read", requiresProject: true },
-	{ toolName: "get_agent", permissionKey: "agents.read", requiresProject: true },
-	{ toolName: "create_agent", permissionKey: "agents.write", requiresProject: true },
-	{ toolName: "update_agent", permissionKey: "agents.write", requiresProject: true },
-	{ toolName: "delete_agent", permissionKey: "agents.write", requiresProject: true },
-	{ toolName: "list_agent_mcp_servers", permissionKey: "agents.read", requiresProject: true },
-	{ toolName: "add_agent_mcp_server", permissionKey: "agents.write", requiresProject: true },
-	{ toolName: "update_agent_mcp_server", permissionKey: "agents.write", requiresProject: true },
-	{ toolName: "delete_agent_mcp_server", permissionKey: "agents.write", requiresProject: true },
-	{ toolName: "list_agent_skills", permissionKey: "agents.read", requiresProject: true },
-	{ toolName: "add_agent_skill", permissionKey: "agents.write", requiresProject: true },
-	{ toolName: "update_agent_skill", permissionKey: "agents.write", requiresProject: true },
-	{ toolName: "delete_agent_skill", permissionKey: "agents.write", requiresProject: true },
-
 	// Task type tools
 	{
 		toolName: "list_task_types",
@@ -498,10 +483,15 @@ export function hasPermission(
 		return true;
 	}
 
-	const globalWildcard = matchingWildcard(global, permissionKey);
-	if (globalWildcard) {
-		console.error(`[permissions] Granting ${permissionKey} via global ${globalWildcard}`);
-		return true;
+	const parts = permissionKey.split(".");
+	if (parts.length >= 2) {
+		const wildcardKey = `${parts[0]}.*`;
+		if (global[wildcardKey] === true) {
+			console.error(
+				`[permissions] Granting ${permissionKey} via global ${wildcardKey}`,
+			);
+			return true;
+		}
 	}
 
 	if (projectId && projects[projectId]) {
@@ -517,10 +507,15 @@ export function hasPermission(
 			);
 			return true;
 		}
-		const projectWildcard = matchingWildcard(projects[projectId], permissionKey);
-		if (projectWildcard) {
-			console.error(`[permissions] Granting ${permissionKey} via project ${projectId} ${projectWildcard}`);
-			return true;
+		const parts = permissionKey.split(".");
+		if (parts.length >= 2) {
+			const wildcardKey = `${parts[0]}.*`;
+			if (projects[projectId][wildcardKey] === true) {
+				console.error(
+					`[permissions] Granting ${permissionKey} via project ${projectId} ${wildcardKey}`,
+				);
+				return true;
+			}
 		}
 		console.error(
 			`[permissions] Denying ${permissionKey} for project ${projectId} - no matching permission`,
@@ -528,18 +523,6 @@ export function hasPermission(
 	}
 
 	return false;
-}
-
-function matchingWildcard(
-	permissions: Record<string, boolean>,
-	permissionKey: string,
-): string | null {
-	for (const [key, granted] of Object.entries(permissions)) {
-		if (!granted || !key.endsWith(".*")) continue;
-		const prefix = key.slice(0, -1);
-		if (permissionKey.startsWith(prefix)) return key;
-	}
-	return null;
 }
 
 export function getToolPermission(toolName: string): ToolPermission | null {

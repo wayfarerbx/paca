@@ -4,13 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.agent.builder import (
-    _sandbox_reachable_url,
-    build_llm,
-    build_mcp_config,
-    build_skills,
-    load_default_skills,
-)
+from src.agent.builder import build_llm, build_mcp_config, build_skills, load_default_skills
 from src.models.agent import AgentConfig, AgentMCPServerRow, AgentSkillRow
 
 # ─── Fixtures / helpers ───────────────────────────────────────────────────────
@@ -138,19 +132,6 @@ def test_no_base_url_uses_raw_provider_string(catalog):
     config = _agent_config(provider="custom", model="some-model", base_url="")
     llm = build_llm(config)
     assert llm.model == "custom/some-model"
-
-
-def test_chatgpt_without_base_url_uses_openai_subscription():
-    runtime_llm = object()
-    with patch(
-        "src.agent.builder._create_openai_subscription_llm",
-        return_value=runtime_llm,
-    ) as create_subscription_llm:
-        config = _agent_config(provider="chatgpt", model="gpt-5.5", base_url="")
-        llm = build_llm(config)
-
-    assert llm is runtime_llm
-    create_subscription_llm.assert_called_once_with("gpt-5.5")
 
 
 def test_llm_uses_configured_base_url_and_stream(catalog):
@@ -298,17 +279,6 @@ def test_paca_server_injected_when_key_set(with_paca_key):
     assert paca["env"]["PACA_API_KEY"] == "test-api-key"
 
 
-def test_paca_server_rewrites_localhost_urls_for_sandbox(with_paca_key):
-    with_paca_key.api_base_url = "http://127.0.0.1:8080"
-    with_paca_key.gateway_base_url = "http://localhost:3000"
-
-    cfg = build_mcp_config([], "agent-99", "proj-42")
-    env = cfg["paca"]["env"]
-
-    assert env["PACA_API_URL"] == "http://host.docker.internal:8080"
-    assert env["PACA_GATEWAY_URL"] == "http://host.docker.internal:3000"
-
-
 def test_paca_server_uses_local_build_when_dev_mcp_path_set(with_paca_key):
     with_paca_key.dev_mcp_path = "/mcp/build/index.js"
     cfg = build_mcp_config([], "agent-99", "proj-42")
@@ -339,7 +309,3 @@ def test_multiple_servers_all_included(no_paca_key):
 def test_empty_servers_returns_empty_dict(no_paca_key):
     cfg = build_mcp_config([], "a", "p")
     assert cfg == {}
-
-
-def test_sandbox_reachable_url_preserves_nonlocal_hosts():
-    assert _sandbox_reachable_url("http://api:8080") == "http://api:8080"

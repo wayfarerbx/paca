@@ -107,7 +107,6 @@ type UpdateAgentInput struct {
 	TimeoutMinutes    *int
 	GitCommitterName  *string
 	GitCommitterEmail *string
-	ProjectRoleID     *uuid.UUID
 }
 
 // AddMCPServerInput carries fields to add an MCP server.
