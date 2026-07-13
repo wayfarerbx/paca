@@ -13,6 +13,12 @@
 </p>
 
 <p align="center">
+  <a href="https://m.do.co/c/cce1c135acd1"><img src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/PoweredByDO/DO_Powered_by_Badge_blue.svg" alt="Powered by DigitalOcean" width="201" /></a>
+  &nbsp;&nbsp;
+  <a href="https://app.virtuals.io/referral?code=rXZ9nf"><img src="https://os.virtuals.io/favicon.png" alt="Sponsored by Virtuals Protocol" width="40" /></a>
+</p>
+
+<p align="center">
   <a href="#getting-started">Getting Started</a>
   ·
   <a href="#mcp-server--connect-any-ai-agent-to-paca">MCP Server</a>
