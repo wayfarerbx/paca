@@ -1,0 +1,118 @@
+name: wayfarer-deploy
+
+# Builds native-arm64 images (no QEMU) for the wayfarerbx.com deployment on
+# every push to main, publishes them to GHCR under this org, then waits for a
+# manual approval on the "production" environment before pulling them on the
+# VPS via a forced-command-restricted deploy key.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "services/api/**"
+      - "apps/web/**"
+      - "services/realtime/**"
+      - "services/ai-agent/**"
+      - "deploy/**"
+      - ".github/workflows/wayfarer-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: wayfarerbx
+
+jobs:
+  build-api:
+    name: Build & push API image
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: services/api
+          platforms: linux/arm64
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/paca-api:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/paca-api:${{ github.sha }}
+
+  build-web:
+    name: Build & push Web image
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: apps/web
+          platforms: linux/arm64
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/paca-web:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/paca-web:${{ github.sha }}
+
+  build-realtime:
+    name: Build & push Realtime image
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: services/realtime
+          platforms: linux/arm64
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/paca-realtime:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/paca-realtime:${{ github.sha }}
+
+  build-ai-agent:
+    name: Build & push AI Agent image
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: services/ai-agent
+          file: services/ai-agent/Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/paca-ai-agent:latest,${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/paca-ai-agent:${{ github.sha }}
+
+  deploy:
+    name: Deploy to wayfarerbx VPS
+    runs-on: ubuntu-latest
+    needs: [build-api, build-web, build-realtime, build-ai-agent]
+    environment: production
+    steps:
+      - name: Pull and restart the stack over SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # The deploy key's forced command (set server-side in
+          # authorized_keys) always runs deploy.sh regardless of what's
+          # requested here, so this just needs to open the connection.
+          ssh -T -o StrictHostKeyChecking=accept-new -i ~/.ssh/deploy_key \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} deploy
+          rm -f ~/.ssh/deploy_key
