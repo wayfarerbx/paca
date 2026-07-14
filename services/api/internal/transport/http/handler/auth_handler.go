@@ -7,10 +7,12 @@ import (
 	"github.com/Paca-AI/api/internal/apierr"
 	"github.com/Paca-AI/api/internal/config"
 	domainauth "github.com/Paca-AI/api/internal/domain/auth"
+	projectdom "github.com/Paca-AI/api/internal/domain/project"
 	userdom "github.com/Paca-AI/api/internal/domain/user"
 	"github.com/Paca-AI/api/internal/transport/http/dto"
 	"github.com/Paca-AI/api/internal/transport/http/middleware"
 	"github.com/Paca-AI/api/internal/transport/http/presenter"
+	"github.com/google/uuid"
 )
 
 const (
@@ -41,6 +43,12 @@ type AuthHandler struct {
 	keycloak  config.KeycloakConfig
 	publicURL string
 	http      *http.Client
+
+	// projects and defaultProjectID are only set when WithDefaultProject has
+	// been called; when set, every Keycloak login ensures the user is a
+	// member of this project (see keycloak_handler.go).
+	projects         projectdom.Service
+	defaultProjectID uuid.UUID
 }
 
 // NewAuthHandler returns an AuthHandler wired to the provided auth service.
@@ -58,6 +66,15 @@ func (h *AuthHandler) WithKeycloak(users userdom.Service, kc config.KeycloakConf
 	h.keycloak = kc
 	h.publicURL = publicURL
 	h.http = &http.Client{Timeout: 10 * time.Second}
+	return h
+}
+
+// WithDefaultProject makes every Keycloak login ensure the authenticated user
+// is a member of projectID, in addition to find-or-create/role-sync. This is
+// a no-op (parsed once, checked at call time) when projectID is empty.
+func (h *AuthHandler) WithDefaultProject(projects projectdom.Service, projectID string) *AuthHandler {
+	h.projects = projects
+	h.defaultProjectID, _ = uuid.Parse(projectID)
 	return h
 }
 

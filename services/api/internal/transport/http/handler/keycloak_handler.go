@@ -7,14 +7,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
 	"github.com/Paca-AI/api/internal/apierr"
+	projectdom "github.com/Paca-AI/api/internal/domain/project"
 	userdom "github.com/Paca-AI/api/internal/domain/user"
 	"github.com/Paca-AI/api/internal/transport/http/presenter"
+	"github.com/google/uuid"
 )
 
 // keycloakStateCookie carries the CSRF state value between InitiateKeycloak
@@ -153,6 +156,8 @@ func (h *AuthHandler) KeycloakCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.ensureDefaultProjectMembership(r.Context(), u)
+
 	pair, err := h.svc.LoginAsUser(r.Context(), u.ID.String(), u.Username, u.Role, true)
 	if err != nil {
 		presenter.Error(w, r, err)
@@ -249,6 +254,48 @@ func (h *AuthHandler) findOrSyncKeycloakUser(ctx context.Context, claims *keyclo
 		return h.users.AdminUpdate(ctx, u.ID, userdom.AdminUpdateInput{Role: role})
 	}
 	return u, nil
+}
+
+// ensureDefaultProjectMembership adds u to h.defaultProjectID (if configured
+// via WithDefaultProject) so every Keycloak login gets automatic access to
+// the shared project, instead of requiring a manual invite. Project-level
+// admins get the "Admin" project role; everyone else gets "Editor". Errors
+// are logged and swallowed — a project-membership hiccup shouldn't block
+// login.
+func (h *AuthHandler) ensureDefaultProjectMembership(ctx context.Context, u *userdom.User) {
+	if h.projects == nil || h.defaultProjectID == uuid.Nil {
+		return
+	}
+
+	roleName := "Editor"
+	if u.Role == userdom.RoleAdmin {
+		roleName = "Admin"
+	}
+
+	roles, err := h.projects.ListRoles(ctx, h.defaultProjectID)
+	if err != nil {
+		slog.Warn("keycloak: failed to list default project roles", "project_id", h.defaultProjectID, "err", err)
+		return
+	}
+	var roleID uuid.UUID
+	for _, r := range roles {
+		if r.RoleName == roleName {
+			roleID = r.ID
+			break
+		}
+	}
+	if roleID == uuid.Nil {
+		slog.Warn("keycloak: default project has no role with this name", "project_id", h.defaultProjectID, "role", roleName)
+		return
+	}
+
+	_, err = h.projects.AddMember(ctx, h.defaultProjectID, projectdom.AddMemberInput{
+		UserID:        u.ID,
+		ProjectRoleID: roleID,
+	})
+	if err != nil && !errors.Is(err, projectdom.ErrMemberAlreadyAdded) {
+		slog.Warn("keycloak: failed to add user to default project", "project_id", h.defaultProjectID, "user_id", u.ID, "err", err)
+	}
 }
 
 // randomState returns a URL-safe random string suitable for OAuth2 state
