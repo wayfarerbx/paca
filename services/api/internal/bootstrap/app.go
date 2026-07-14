@@ -282,14 +282,16 @@ func New(cfg *config.Config) (*App, error) {
 		RefreshSessionTTL: cfg.JWT.RefreshSessionTTL,
 	}
 
+	authHandler := handler.NewAuthHandler(authService, cookieCfg).
+		WithKeycloak(userService, cfg.Keycloak, cfg.Server.PublicURL).
+		WithDefaultProject(projectService, cfg.DefaultProjectID)
+
 	deps := router.Deps{
 		TokenManager:         tokenManager,
 		APIKeyAuth:           apiKeyService,
 		Authorizer:           authorizer,
 		Health:               handler.NewHealthHandler(),
-		Auth: handler.NewAuthHandler(authService, cookieCfg).
-			WithKeycloak(userService, cfg.Keycloak, cfg.Server.PublicURL).
-			WithDefaultProject(projectService, cfg.DefaultProjectID),
+		Auth:                 authHandler,
 		User:                 handler.NewUserHandler(userService, authService),
 		GlobalRole:           handler.NewGlobalRoleHandler(globalRoleService),
 		ProjectVisibilitySvc: projectService,
