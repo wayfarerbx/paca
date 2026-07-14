@@ -202,7 +202,8 @@ func Load() (*Config, error) {
 			ClientSecret: env("KEYCLOAK_CLIENT_SECRET", ""),
 			AdminRole:    env("KEYCLOAK_ADMIN_ROLE", "paca-admin"),
 		},
-		AIAgentURL: env("AI_AGENT_URL", "http://ai-agent:8080"),
+		AIAgentURL:       env("AI_AGENT_URL", "http://ai-agent:8080"),
+		DefaultProjectID: env("PACA_DEFAULT_PROJECT_ID", ""),
 	}, nil
 }
 

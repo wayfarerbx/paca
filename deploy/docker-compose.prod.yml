@@ -210,6 +210,9 @@ services:
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
       KEYCLOAK_ADMIN_ROLE: ${KEYCLOAK_ADMIN_ROLE:-paca-admin}
+      # Optional: every Keycloak login auto-joins this project (UUID). Leave
+      # unset to require manual project invites as usual.
+      PACA_DEFAULT_PROJECT_ID: ${PACA_DEFAULT_PROJECT_ID:-}
     depends_on:
       postgres:
         condition: service_healthy

@@ -17,6 +17,11 @@ type Config struct {
 	Plugins    PluginsConfig
 	AIAgentURL string // base URL of the ai-agent service, e.g. http://ai-agent:8080
 	Env        string // development | production
+
+	// DefaultProjectID, when set, is a project UUID that every Keycloak login
+	// auto-joins the user to (see handler.WithDefaultProject). Empty disables
+	// this behavior.
+	DefaultProjectID string
 }
 
 // ServerConfig holds HTTP server settings.
