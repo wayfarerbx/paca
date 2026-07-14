@@ -255,16 +255,16 @@ services:
         condition: service_healthy
 
   # ── Gateway (Caddy reverse proxy) ───────────────────────────────────────────
+  # TLS termination and public routing are handled by the shared Traefik
+  # instance on wayfarer-net (see traefik.http.routers.paca* labels below), so
+  # this container is not published on the host and stays on plain HTTP.
   gateway:
     image: caddy:2-alpine
     restart: unless-stopped
-    ports:
-      - "${GATEWAY_PORT:-80}:80"
-      - "${GATEWAY_HTTPS_PORT:-443}:443"
+    networks:
+      - default
+      - wayfarer-net
     environment:
-      # A domain name (e.g. paca.example.com) makes Caddy request and renew
-      # a Let's Encrypt certificate automatically. Leave unset (or ":80") for
-      # IP-only / localhost deployments served over plain HTTP.
       SITE_ADDRESS: ${SITE_ADDRESS:-:80}
     volumes:
       # Caddyfile must exist alongside this docker-compose.yml.
@@ -283,6 +283,13 @@ services:
         required: false  # skipped when --scale web=0 (external / CDN-hosted frontend)
       realtime:
         condition: service_started
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=wayfarer-net"
+      - "traefik.http.routers.paca.rule=Host(`${PACA_DOMAIN:-project.wayfarerbx.com}`)"
+      - "traefik.http.routers.paca.entrypoints=websecure"
+      - "traefik.http.routers.paca.tls.certresolver=letsencrypt"
+      - "traefik.http.services.paca.loadbalancer.server.port=80"
 
   # ── AI Agent (optional) ──────────────────────────────────────────────────────
   # Suppress with --scale ai-agent=0 to skip this service.
@@ -330,3 +337,8 @@ volumes:
   mcp_plugins:
   caddy_data:
   caddy_config:
+
+networks:
+  default:
+  wayfarer-net:
+    external: true
