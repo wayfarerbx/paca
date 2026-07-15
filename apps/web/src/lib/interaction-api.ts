@@ -35,7 +35,7 @@ export interface Task {
 	description?: unknown[] | null;
 	importance: number;
 	story_points?: number | null;
-	assignee_id?: string | null;
+	assignee_ids?: string[];
 	reporter_id?: string | null;
 	custom_fields: Record<string, unknown>;
 	start_date?: string | null;
@@ -497,7 +497,7 @@ export async function createTask(
 		status_id?: string | null;
 		sprint_id?: string | null;
 		task_type_id?: string | null;
-		assignee_id?: string | null;
+		assignee_ids?: string[];
 		parent_task_id?: string | null;
 	},
 ): Promise<Task> {
@@ -526,7 +526,7 @@ export async function updateTask(
 		status_id: string | null;
 		sprint_id: string | null;
 		task_type_id: string | null;
-		assignee_id: string | null;
+		assignee_ids: string[];
 		reporter_id: string | null;
 		parent_task_id: string | null;
 		description: unknown[] | null;

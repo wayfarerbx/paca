@@ -103,7 +103,7 @@ export function TaskDetailModal({
 	const status = statuses.find((s) => s.id === task?.status_id);
 	const taskType = taskTypes.find((t) => t.id === task?.task_type_id);
 	const priority = getPriority(task?.importance ?? 0);
-	const assignee = members.find((m) => m.id === task?.assignee_id);
+	const assignees = members.filter((m) => task?.assignee_ids?.includes(m.id));
 	const reporter = members.find((m) => m.id === task?.reporter_id);
 
 	// ── Task role detection ────────────────────────────────────────────────────
@@ -169,6 +169,14 @@ export function TaskDetailModal({
 					const bStr = b ? [...b].sort().join(",") : "";
 					if (aStr !== bStr) {
 						filtered.tags = a;
+					}
+				} else if (key === "assignee_ids") {
+					const a = newValue as string[] | undefined;
+					const b = oldValue as string[] | undefined;
+					const aStr = a ? [...a].sort().join(",") : "";
+					const bStr = b ? [...b].sort().join(",") : "";
+					if (aStr !== bStr) {
+						filtered.assignee_ids = a;
 					}
 				} else if (key === "custom_fields") {
 					const a = newValue as Record<string, unknown> | undefined;
@@ -359,7 +367,7 @@ export function TaskDetailModal({
 								status={status}
 								taskType={taskType}
 								priority={priority}
-								assignee={assignee}
+								assignees={assignees}
 								reporter={reporter}
 								statuses={statuses}
 								taskTypes={taskTypes}

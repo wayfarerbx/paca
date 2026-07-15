@@ -284,7 +284,7 @@ func (r *fakeTaskRepo) ListTasks(_ context.Context, projectID uuid.UUID, filter 
 		if filter.StatusID != nil && (t.StatusID == nil || *t.StatusID != *filter.StatusID) {
 			continue
 		}
-		if filter.AssigneeID != nil && (t.AssigneeID == nil || *t.AssigneeID != *filter.AssigneeID) {
+		if filter.AssigneeID != nil && !slices.Contains(t.AssigneeIDs, *filter.AssigneeID) {
 			continue
 		}
 		if !taskMatchesSearch(t, filter) {
@@ -351,7 +351,7 @@ func (r *fakeTaskRepo) CountTasks(_ context.Context, projectID uuid.UUID, filter
 		if filter.StatusID != nil && (t.StatusID == nil || *t.StatusID != *filter.StatusID) {
 			continue
 		}
-		if filter.AssigneeID != nil && (t.AssigneeID == nil || *t.AssigneeID != *filter.AssigneeID) {
+		if filter.AssigneeID != nil && !slices.Contains(t.AssigneeIDs, *filter.AssigneeID) {
 			continue
 		}
 		if !taskMatchesSearch(t, filter) {
