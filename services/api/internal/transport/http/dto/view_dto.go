@@ -54,15 +54,16 @@ type ViewConfigDTO struct {
 
 // ViewResponse is the public representation of a sprint view.
 type ViewResponse struct {
-	ID        uuid.UUID          `json:"id"`
-	SprintID  *uuid.UUID         `json:"sprint_id,omitempty"`
-	ProjectID uuid.UUID          `json:"project_id"`
-	Name      string             `json:"name"`
-	ViewType  sprintdom.ViewType `json:"view_type"`
-	Config    ViewConfigDTO      `json:"config"`
-	Position  float64            `json:"position"`
-	CreatedAt time.Time          `json:"created_at"`
-	UpdatedAt time.Time          `json:"updated_at"`
+	ID        uuid.UUID             `json:"id"`
+	SprintID  *uuid.UUID            `json:"sprint_id,omitempty"`
+	ProjectID uuid.UUID             `json:"project_id"`
+	Name      string                `json:"name"`
+	ViewType  sprintdom.ViewType    `json:"view_type"`
+	Context   sprintdom.ViewContext `json:"context"`
+	Config    ViewConfigDTO         `json:"config"`
+	Position  float64               `json:"position"`
+	CreatedAt time.Time             `json:"created_at"`
+	UpdatedAt time.Time             `json:"updated_at"`
 }
 
 // ViewFromEntity maps a domain SprintView to a ViewResponse DTO.
@@ -73,6 +74,7 @@ func ViewFromEntity(v *sprintdom.SprintView) ViewResponse {
 		ProjectID: v.ProjectID,
 		Name:      v.Name,
 		ViewType:  v.ViewType,
+		Context:   v.ViewContext,
 		Config: ViewConfigDTO{
 			Fields:           v.Config.Fields,
 			ColumnBy:         v.Config.ColumnBy,
