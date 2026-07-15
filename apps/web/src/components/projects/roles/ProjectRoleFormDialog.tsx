@@ -24,6 +24,7 @@ import {
 } from "@/lib/permissions";
 import {
 	collectPluginCustomPermissions,
+	type Plugin,
 	pluginsQueryOptions,
 } from "@/lib/plugin-api";
 import {
@@ -39,6 +40,12 @@ import {
 	PROJECT_PERMISSION_GROUPS,
 	toPluginKnownPermissions,
 } from "./permissions";
+
+// Stable reference so `allKnownPermissions` doesn't change identity on every
+// render while the plugins query has no data yet (pending/error) — an
+// inline `= []` default creates a new array each render, which re-triggers
+// the effect below in an infinite loop.
+const EMPTY_PLUGINS: Plugin[] = [];
 
 interface ProjectRoleFormDialogProps {
 	projectId: string;
@@ -57,7 +64,7 @@ export function ProjectRoleFormDialog({
 	const queryClient = useQueryClient();
 	const isEdit = !!role;
 
-	const { data: plugins = [] } = useQuery(pluginsQueryOptions);
+	const { data: plugins = EMPTY_PLUGINS } = useQuery(pluginsQueryOptions);
 	const allKnownPermissions = useMemo<KnownPermission[]>(
 		() => [
 			...PROJECT_KNOWN_PERMISSIONS,
