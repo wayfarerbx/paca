@@ -248,7 +248,8 @@
 		"permissionGroups": {
 			"globalRoles": "Глобальные роли",
 			"users": "Пользователи",
-			"projects": "Проекты"
+			"projects": "Проекты",
+			"plugins": "Плагины"
 		}
 	},
 	"plugins": {

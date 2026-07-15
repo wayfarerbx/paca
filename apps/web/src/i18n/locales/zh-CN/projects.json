@@ -365,7 +365,8 @@
 			"sprints": "冲刺",
 			"documents": "文档",
 			"aiAgents": "AI 智能体",
-			"workflows": "自动化"
+			"workflows": "自动化",
+			"plugins": "插件"
 		}
 	},
 	"settings": {

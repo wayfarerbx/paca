@@ -16,6 +16,7 @@ import (
 
 	plugindom "github.com/Paca-AI/api/internal/domain/plugin"
 	"github.com/Paca-AI/api/internal/events"
+	"github.com/Paca-AI/api/internal/platform/authz"
 	"github.com/google/uuid"
 	"github.com/tetratelabs/wazero"
 	"github.com/tetratelabs/wazero/api"
@@ -68,6 +69,11 @@ type HostServices struct {
 	// AllowedOutboundDomains is the allowlist for paca.http_request outbound
 	// calls.  When empty, all outbound HTTP is blocked.
 	AllowedOutboundDomains []string
+	// Authorizer resolves effective permissions (built-in and plugin-declared
+	// custom permissions alike, since both are stored in the same permission
+	// map) for the paca.permission_check host function. May be nil, in which
+	// case permission_check always returns false.
+	Authorizer *authz.Authorizer
 }
 
 // EventPublisher abstracts the messaging.Publisher to avoid a circular import.
@@ -859,6 +865,7 @@ func WithPluginRequest(ctx context.Context, payload *HTTPRequest) context.Contex
 type HTTPRequest struct {
 	Method     string            `json:"method"`
 	Path       string            `json:"path"`
+	Query      map[string]string `json:"query"`
 	ProjectID  string            `json:"project_id"`
 	CallerID   string            `json:"caller_id"`
 	UserID     string            `json:"user_id"`
@@ -916,6 +923,55 @@ func (r *Runtime) registerHTTPFunctions(b wazero.HostModuleBuilder, _ plugindom.
 		WithGoModuleFunction(api.GoModuleFunc(func(_ context.Context, _ api.Module, _ []uint64) {
 		}), []api.ValueType{api.ValueTypeI32, api.ValueTypeI64, api.ValueTypeI64}, nil).
 		Export("http_respond")
+
+	// paca.permission_check(permissionPtr, permissionLen) -> (ok i32)
+	//
+	// Checks whether the current caller (from the request context set by
+	// WithPluginRequest) holds the given permission key, evaluated against the
+	// same effective permission set as requirePermissions route middleware:
+	// built-in permissions, LegacyPermissionsForRole, and any plugin-declared
+	// custom permission granted to the caller's project/global role. Scope
+	// (project vs global) is inferred from whether the request carries a
+	// project_id: project-scoped requests check project-role permissions,
+	// others check global-role permissions only.
+	//
+	// This lets plugin backend code enforce finer-grained authorization
+	// than the single all-or-nothing requirePermissions route gate allows —
+	// e.g. "is caller the record's author OR does caller hold
+	// time_logging.manage_all" — without a second host round-trip per check.
+	b.NewFunctionBuilder().
+		WithGoModuleFunction(api.GoModuleFunc(func(ctx context.Context, m api.Module, stack []uint64) {
+			permission, _ := readString(m, stack[0], stack[1])
+			req, _ := ctx.Value(pluginRequestKey{}).(*HTTPRequest)
+			if req == nil || permission == "" || r.services.Authorizer == nil {
+				stack[0] = 0
+				return
+			}
+
+			userID, err := uuid.Parse(req.UserID)
+			if err != nil {
+				stack[0] = 0
+				return
+			}
+
+			var projectID *uuid.UUID
+			if req.ProjectID != "" {
+				pid, err := uuid.Parse(req.ProjectID)
+				if err != nil {
+					stack[0] = 0
+					return
+				}
+				projectID = &pid
+			}
+
+			granted, err := r.services.Authorizer.HasPermissions(ctx, userID, projectID, req.CallerRole, authz.Permission(permission))
+			if err != nil || !granted {
+				stack[0] = 0
+				return
+			}
+			stack[0] = 1
+		}), []api.ValueType{api.ValueTypeI64, api.ValueTypeI64}, []api.ValueType{api.ValueTypeI32}).
+		Export("permission_check")
 }
 
 // -------------------------------------------------------------------------

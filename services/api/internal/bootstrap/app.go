@@ -224,6 +224,7 @@ func New(cfg *config.Config) (*App, error) {
 		Log:        log,
 		Publisher:  publisher,
 		HTTPClient: &http.Client{Timeout: 30 * time.Second},
+		Authorizer: authorizer,
 		Config: map[string]string{
 			"ENCRYPTION_KEY": cfg.Security.EncryptionKey,
 			"PUBLIC_URL":     cfg.Server.PublicURL,
