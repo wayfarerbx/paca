@@ -464,7 +464,7 @@ func applyTaskFilter(b *queryBuilder, filter taskdom.TaskFilter) {
 			b.args = append(b.args, id.String())
 			b.idx++
 		}
-		b.whereClauses = append(b.whereClauses, "(assignee_id IS NULL OR assignee_id IN ("+strings.Join(placeholders, ",")+")")
+		b.whereClauses = append(b.whereClauses, "(assignee_id IS NULL OR assignee_id IN ("+strings.Join(placeholders, ",")+"))")
 	case filter.AssigneeNull:
 		b.whereClauses = append(b.whereClauses, "assignee_id IS NULL")
 	case len(filter.AssigneeIDs) > 0:
