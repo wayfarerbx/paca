@@ -24,8 +24,13 @@ func openTaskRepoTestDB(t *testing.T) *sqlx.DB {
 		CREATE TABLE tasks (
 			id          TEXT PRIMARY KEY,
 			project_id  TEXT NOT NULL,
-			assignee_id TEXT,
 			deleted_at  DATETIME
+		);
+		CREATE TABLE task_assignees (
+			task_id     TEXT NOT NULL,
+			member_id   TEXT NOT NULL,
+			assigned_at DATETIME,
+			PRIMARY KEY (task_id, member_id)
 		);`
 	if _, err := db.ExecContext(context.Background(), schema); err != nil {
 		t.Fatalf("create schema: %v", err)
@@ -47,9 +52,14 @@ func TestTaskRepository_CountTasks_AssigneeNullWithAssigneeIDs(t *testing.T) {
 	assigneeIn := uuid.New()
 	assigneeOut := uuid.New()
 
-	db.MustExec(`INSERT INTO tasks (id, project_id, assignee_id) VALUES ($1, $2, NULL)`, uuid.New().String(), projectID.String())
-	db.MustExec(`INSERT INTO tasks (id, project_id, assignee_id) VALUES ($1, $2, $3)`, uuid.New().String(), projectID.String(), assigneeIn.String())
-	db.MustExec(`INSERT INTO tasks (id, project_id, assignee_id) VALUES ($1, $2, $3)`, uuid.New().String(), projectID.String(), assigneeOut.String())
+	taskUnassigned := uuid.New().String()
+	taskIn := uuid.New().String()
+	taskOut := uuid.New().String()
+	db.MustExec(`INSERT INTO tasks (id, project_id) VALUES ($1, $2)`, taskUnassigned, projectID.String())
+	db.MustExec(`INSERT INTO tasks (id, project_id) VALUES ($1, $2)`, taskIn, projectID.String())
+	db.MustExec(`INSERT INTO tasks (id, project_id) VALUES ($1, $2)`, taskOut, projectID.String())
+	db.MustExec(`INSERT INTO task_assignees (task_id, member_id) VALUES ($1, $2)`, taskIn, assigneeIn.String())
+	db.MustExec(`INSERT INTO task_assignees (task_id, member_id) VALUES ($1, $2)`, taskOut, assigneeOut.String())
 
 	filter := taskdom.TaskFilter{
 		AssigneeNull: true,

@@ -41,7 +41,7 @@ import type { CustomFieldDef } from "./types";
 type UpdatePayload = Partial<{
 	status_id: string | null;
 	task_type_id: string | null;
-	assignee_id: string | null;
+	assignee_ids: string[];
 	reporter_id: string | null;
 	importance: number;
 	story_points: number | null;
@@ -58,7 +58,7 @@ interface PropertiesPanelProps {
 	status: TaskStatus | undefined;
 	taskType: TaskType | undefined;
 	priority: PriorityMeta;
-	assignee: ProjectMember | undefined;
+	assignees: ProjectMember[];
 	reporter: ProjectMember | undefined;
 	statuses?: TaskStatus[];
 	taskTypes?: TaskType[];
@@ -90,7 +90,7 @@ export function PropertiesPanel({
 	task,
 	status,
 	taskType,
-	assignee,
+	assignees,
 	reporter,
 	statuses = [],
 	taskTypes = [],
@@ -136,7 +136,7 @@ export function PropertiesPanel({
 	];
 
 	const memberUserOptions: UserOption[] = members.map(toUserOption);
-	const assigneeUserOption = assignee ? toUserOption(assignee) : null;
+	const assigneeUserOptions: UserOption[] = assignees.map(toUserOption);
 	const reporterUserOption = reporter ? toUserOption(reporter) : null;
 
 	return (
@@ -196,12 +196,11 @@ export function PropertiesPanel({
 
 				<PropertyField
 					label={t("taskDetail.properties.assignees")}
-					mode="user"
-					userValue={assigneeUserOption}
+					mode="multi-user"
+					userValues={assigneeUserOptions}
 					users={memberUserOptions}
-					onUserChange={(v) => onUpdate?.({ assignee_id: v })}
+					onUsersChange={(v) => onUpdate?.({ assignee_ids: v })}
 					canEdit={canEdit && members.length > 0}
-					showUnassigned
 				/>
 
 				<FieldRow label={t("taskDetail.properties.importance")}>

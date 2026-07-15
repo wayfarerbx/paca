@@ -397,7 +397,7 @@ func (c *WorkflowConsumer) processTaskStatusChange(ctx context.Context, projectI
 // applyNode runs event 1 (this node's own status rule) and, if the node just
 // became done, fans out event 2 to its outgoing edges. task is shared with
 // every other node evaluated for this same event (see cache), and
-// applyStatusRule updates its AssigneeID in place after a successful
+// applyStatusRule updates its AssigneeIDs in place after a successful
 // reassignment so a task wrapped by multiple active-workflow nodes doesn't
 // have a later node's idempotency check read a stale assignee.
 func (c *WorkflowConsumer) applyNode(ctx context.Context, projectID uuid.UUID, node *workflowdom.Node, task *taskdom.Task, cache *evalCache) error {
@@ -527,8 +527,8 @@ func (c *WorkflowConsumer) applyStatusRule(ctx context.Context, projectID uuid.U
 	if rule == nil {
 		return nil
 	}
-	if task.AssigneeID != nil && *task.AssigneeID == rule.AssigneeMemberID {
-		return nil // already assigned — idempotent no-op
+	if len(task.AssigneeIDs) == 1 && task.AssigneeIDs[0] == rule.AssigneeMemberID {
+		return nil // already assigned exactly to the rule's member — idempotent no-op
 	}
 
 	// Fetched fresh (not through evalCache) despite already being read
@@ -548,20 +548,20 @@ func (c *WorkflowConsumer) applyStatusRule(ctx context.Context, projectID uuid.U
 		return nil
 	}
 
-	oldAssignee := task.AssigneeID
+	oldAssignees := task.AssigneeIDs
 	newAssignee := rule.AssigneeMemberID
-	newAssigneePtr := &newAssignee
-	if _, err := c.taskSvc.UpdateTask(ctx, projectID, task.ID, taskdom.UpdateTaskInput{AssigneeID: &newAssigneePtr}); err != nil {
+	newAssigneeIDs := []uuid.UUID{newAssignee}
+	if _, err := c.taskSvc.UpdateTask(ctx, projectID, task.ID, taskdom.UpdateTaskInput{AssigneeIDs: &newAssigneeIDs}); err != nil {
 		return fmt.Errorf("update task assignee: %w", err)
 	}
-	task.AssigneeID = &newAssignee
+	task.AssigneeIDs = newAssigneeIDs
 
 	if c.activityRec != nil {
 		content, _ := json.Marshal(map[string]any{
 			"workflow_id":   workflow.ID,
 			"workflow_name": workflow.Name,
 			"reason":        reason,
-			"old_assignee":  oldAssignee,
+			"old_assignees": oldAssignees,
 			"new_assignee":  newAssignee,
 		})
 		_ = c.activityRec.RecordActivity(ctx, taskdom.RecordActivityInput{
@@ -586,7 +586,7 @@ func (c *WorkflowConsumer) applyStatusRule(ctx context.Context, projectID uuid.U
 			}
 		}
 	}
-	_ = events.PublishAssignmentChanged(ctx, c.publisher, task.ID, projectID, newAssignee, oldAssignee, userdom.SystemActorUserID, extra)
+	_ = events.PublishAssignmentChanged(ctx, c.publisher, task.ID, projectID, newAssignee, nil, userdom.SystemActorUserID, extra)
 
 	return nil
 }

@@ -103,7 +103,7 @@ type TaskFilter struct {
 	StatusIDs    []uuid.UUID // multi-value; takes priority over StatusID
 	AssigneeID   *uuid.UUID  // single-value compat; ignored when AssigneeIDs is non-empty
 	AssigneeIDs  []uuid.UUID // multi-value; takes priority over AssigneeID
-	AssigneeNull bool        // true → only tasks where assignee_id IS NULL
+	AssigneeNull bool        // true → only tasks with no rows in task_assignees
 	ParentTaskID *uuid.UUID  // non-nil → only subtasks of this parent
 	TaskTypeIDs  []uuid.UUID // multi-value; when non-empty, only tasks of these types
 	TaskTypeNull bool        // true → only tasks where task_type_id IS NULL
