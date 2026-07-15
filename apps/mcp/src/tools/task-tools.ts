@@ -105,7 +105,8 @@ export function getTaskTools(): Tool[] {
 					},
 					assigneeId: {
 						type: "string",
-						description: "Filter tasks by assignee user ID.",
+						description:
+							"Filter tasks by assignee's project membership ID (not their user ID). Use list_project_members and read the Membership ID field.",
 					},
 					taskTypeIds: {
 						type: "array",
@@ -199,7 +200,7 @@ export function getTaskTools(): Tool[] {
 					assigneeId: {
 						type: "string",
 						description:
-							"The technical UUID of the user to assign the task to (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_members to get user IDs.",
+							"The technical UUID of the assignee's project membership (not their user ID) (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_members and read the Membership ID field.",
 					},
 					parentTaskId: {
 						type: "string",
@@ -275,7 +276,7 @@ export function getTaskTools(): Tool[] {
 					assigneeId: {
 						type: "string",
 						description:
-							"The technical UUID of the user to assign the task to (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_members to get user IDs.",
+							"The technical UUID of the assignee's project membership (not their user ID) (e.g., '550e8400-e29b-41d4-a716-446655440000'). Use list_project_members and read the Membership ID field.",
 					},
 					parentTaskId: {
 						type: ["string", "null"],

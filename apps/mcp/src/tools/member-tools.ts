@@ -266,6 +266,7 @@ export function getProjectRoleTools(): Tool[] {
 
 function formatProjectMember(member: any): string {
 	return `Member: ${member.username} (${member.full_name})
+Membership ID (use this for assigneeId/reporterId on tasks): ${member.id}
 User ID: ${member.user_id}
 Role: ${member.role_name}
 Role ID: ${member.project_role_id}
