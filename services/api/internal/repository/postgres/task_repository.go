@@ -1049,14 +1049,63 @@ func (r *TaskRepository) UpdateTask(ctx context.Context, t *taskdom.Task) error 
 		if err != nil {
 			return fmt.Errorf("task repo: update: %w", err)
 		}
-		if _, err := tx.ExecContext(ctx, `DELETE FROM task_assignees WHERE task_id=$1`, t.ID.String()); err != nil {
-			return fmt.Errorf("task repo: update: clear assignees: %w", err)
-		}
-		if err := insertTaskAssignees(ctx, tx, t.ID, t.AssigneeIDs); err != nil {
+		if err := syncTaskAssignees(ctx, tx, t.ID, t.AssigneeIDs); err != nil {
 			return err
 		}
 		return nil
 	})
+}
+
+// syncTaskAssignees reconciles task_assignees with wantIDs by removing only
+// members no longer present and inserting only members newly present,
+// leaving unchanged members' rows (and their assigned_at) untouched. A naive
+// delete-all-then-reinsert would reset assigned_at for every assignee on
+// every task update — including ones that don't touch assignees at all —
+// which both loses assignment history and makes the assigned_at-ordered
+// assignee list (used for e.g. "first assignee" swimlane grouping) shuffle
+// nondeterministically after unrelated edits, since a bulk reinsert gives
+// every row the same NOW() timestamp.
+func syncTaskAssignees(ctx context.Context, tx *sqlx.Tx, taskID uuid.UUID, wantIDs []uuid.UUID) error {
+	var currentIDStrs []string
+	if err := tx.SelectContext(ctx, &currentIDStrs, `SELECT member_id FROM task_assignees WHERE task_id=$1`, taskID.String()); err != nil {
+		return fmt.Errorf("task repo: update: read current assignees: %w", err)
+	}
+	current := make(map[string]struct{}, len(currentIDStrs))
+	for _, id := range currentIDStrs {
+		current[id] = struct{}{}
+	}
+	want := make(map[string]struct{}, len(wantIDs))
+	for _, id := range wantIDs {
+		want[id.String()] = struct{}{}
+	}
+
+	var toRemove []string
+	for id := range current {
+		if _, ok := want[id]; !ok {
+			toRemove = append(toRemove, id)
+		}
+	}
+	if len(toRemove) > 0 {
+		placeholders := make([]string, len(toRemove))
+		args := make([]interface{}, 0, len(toRemove)+1)
+		args = append(args, taskID.String())
+		for i, id := range toRemove {
+			placeholders[i] = fmt.Sprintf("$%d", i+2)
+			args = append(args, id)
+		}
+		query := `DELETE FROM task_assignees WHERE task_id=$1 AND member_id IN (` + strings.Join(placeholders, ",") + `)`
+		if _, err := tx.ExecContext(ctx, query, args...); err != nil {
+			return fmt.Errorf("task repo: update: remove assignees: %w", err)
+		}
+	}
+
+	var toAdd []uuid.UUID
+	for _, id := range wantIDs {
+		if _, ok := current[id.String()]; !ok {
+			toAdd = append(toAdd, id)
+		}
+	}
+	return insertTaskAssignees(ctx, tx, taskID, toAdd)
 }
 
 // insertTaskAssignees bulk-inserts task_assignees rows for taskID. No-op when

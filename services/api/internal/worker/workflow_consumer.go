@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -586,7 +587,14 @@ func (c *WorkflowConsumer) applyStatusRule(ctx context.Context, projectID uuid.U
 			}
 		}
 	}
-	_ = events.PublishAssignmentChanged(ctx, c.publisher, task.ID, projectID, newAssignee, nil, userdom.SystemActorUserID, extra)
+	// Only notify for a genuinely new assignment — if newAssignee was already
+	// one of the task's prior assignees (e.g. task had [A, B] and the rule
+	// targets A), the reassignment above still collapses the set down to
+	// [A], but A doesn't need a fresh "you've been assigned" notification.
+	// Mirrors the same dedup the HTTP UpdateTask handler does.
+	if !slices.Contains(oldAssignees, newAssignee) {
+		_ = events.PublishAssignmentChanged(ctx, c.publisher, task.ID, projectID, newAssignee, nil, userdom.SystemActorUserID, extra)
+	}
 
 	return nil
 }

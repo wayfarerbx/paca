@@ -10,6 +10,14 @@
 -- assignee_id would fail to even parse once the column is gone, so
 -- ALTER TABLE ... DROP COLUMN IF EXISTS alone (the pattern used by prior
 -- drop-column migrations in this directory) isn't enough here.
+--
+-- The DO block takes an ACCESS EXCLUSIVE lock on tasks before checking
+-- column existence, so the check-then-drop is atomic across concurrently
+-- starting replicas: without it, two replicas racing this migration on the
+-- same first deploy could both observe "column exists" before either
+-- commits, and the second one's DROP COLUMN would then fail once it
+-- acquires the lock behind the first (the column would already be gone),
+-- failing that replica's startup.
 
 BEGIN;
 
@@ -24,6 +32,7 @@ CREATE INDEX IF NOT EXISTS idx_task_assignees_member ON task_assignees (member_i
 
 DO $$
 BEGIN
+    LOCK TABLE tasks IN ACCESS EXCLUSIVE MODE;
     IF EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_name = 'tasks' AND column_name = 'assignee_id'
