@@ -28,6 +28,18 @@ export function hasAnyPermission(
 	);
 }
 
+/** The part of a permission key before its last dot, e.g. "time_logging" for
+ * "time_logging.view_all". This is the namespace a `.write`-style wildcard
+ * grant actually covers — NOT `PermissionDefinition.domain`, which is only a
+ * UI-grouping label. For built-in permissions the two happen to coincide,
+ * but plugin-declared permissions all share the synthetic "plugins" domain
+ * while each has its own real key prefix, so domain-based wildcard checks
+ * silently fail for them. */
+function keyPrefix(key: string): string {
+	const lastDotIndex = key.lastIndexOf(".");
+	return lastDotIndex === -1 ? key : key.slice(0, lastDotIndex);
+}
+
 export function expandWildcardPermissions(
 	source: PermissionMap | undefined,
 	knownPermissions: PermissionDefinition[],
@@ -38,10 +50,10 @@ export function expandWildcardPermissions(
 	const hasGlobalWildcard = source["*"] === true;
 
 	for (const permission of knownPermissions) {
-		const domainWildcard = `${permission.domain}.*`;
+		const prefixWildcard = `${keyPrefix(permission.key)}.*`;
 		expanded[permission.key] =
 			hasGlobalWildcard ||
-			source[domainWildcard] === true ||
+			source[prefixWildcard] === true ||
 			source[permission.key] === true;
 	}
 
@@ -56,22 +68,14 @@ export function normalizePermissionsToWildcards(
 		return { "*": true };
 	}
 
-	// Group by each permission's own key prefix (the part before its last
-	// dot), NOT by `domain`. `domain` is a UI-grouping label and, for
-	// plugin-declared permissions, multiple unrelated plugins can share the
-	// synthetic "plugins" domain — collapsing by that label would produce a
-	// bogus "plugins.*" key that (a) doesn't match any real permission check
+	// Group by each permission's own key prefix (see `keyPrefix`), NOT by
+	// `domain` — collapsing by the UI-grouping label would produce a bogus
+	// "plugins.*" key that (a) doesn't match any real permission check
 	// (hasPermission only understands `${realPrefix}.*`) and (b) would
 	// over-grant every other plugin's permissions sharing that UI group.
-	// Using the key's real prefix keeps wildcard-collapsing scoped to
-	// permissions that actually share a checkable namespace.
 	const permissionsByPrefix = new Map<string, PermissionDefinition[]>();
 	for (const permission of knownPermissions) {
-		const lastDotIndex = permission.key.lastIndexOf(".");
-		const prefix =
-			lastDotIndex === -1
-				? permission.key
-				: permission.key.slice(0, lastDotIndex);
+		const prefix = keyPrefix(permission.key);
 		const existing = permissionsByPrefix.get(prefix) ?? [];
 		existing.push(permission);
 		permissionsByPrefix.set(prefix, existing);

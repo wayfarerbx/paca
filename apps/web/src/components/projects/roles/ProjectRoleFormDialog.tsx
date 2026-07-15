@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Shield } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
@@ -69,14 +69,24 @@ export function ProjectRoleFormDialog({
 	);
 
 	const [name, setName] = useState(role?.role_name ?? "");
-	const [permissions, setPermissions] = useState<Record<string, boolean>>(
-		expandWildcardPermissions(
-			role?.permissions as Record<string, boolean> | undefined,
-			allKnownPermissions,
-		),
-	);
+	const [permissions, setPermissions] = useState<Record<string, boolean>>({});
 	const [error, setError] = useState<string | null>(null);
 	const [nameError, setNameError] = useState<string | null>(null);
+
+	// Re-derive `permissions` whenever the dialog opens or the known-permission
+	// set changes (e.g. plugin data finishes loading after the dialog already
+	// opened), rather than only at first mount — otherwise plugin-declared
+	// permissions loaded after mount would never make it into the editor and
+	// saving the role would silently drop them.
+	useEffect(() => {
+		if (!open) return;
+		setPermissions(
+			expandWildcardPermissions(
+				role?.permissions as Record<string, boolean> | undefined,
+				allKnownPermissions,
+			),
+		);
+	}, [open, allKnownPermissions, role?.permissions]);
 
 	const reset = () => {
 		setName(role?.role_name ?? "");

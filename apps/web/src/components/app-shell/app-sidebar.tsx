@@ -86,6 +86,7 @@ import {
 	updateFolder,
 } from "@/lib/doc-api";
 import { sprintsQueryOptions, updateTask } from "@/lib/interaction-api";
+import type { PluginNavRegistration } from "@/lib/plugin-api";
 import { ExtensionPoint } from "@/lib/plugins/extension-point";
 import { resolvePluginIcon } from "@/lib/plugins/icon-resolver";
 import { usePluginRegistry } from "@/lib/plugins/registry";
@@ -996,8 +997,12 @@ function ProjectNavItems({
 function PluginProjectPages({ projectId }: { projectId: string }) {
 	const { t } = useTranslation("appShell");
 	const { getNavItems } = usePluginRegistry();
+	const { hasProjectPermission } = useProjectPermissions(projectId);
 	const location = useRouterState({ select: (s) => s.location.pathname });
-	const navItems = getNavItems("project");
+	const navItems = getNavItems("project").filter(
+		(item) =>
+			!item.requiredPermission || hasProjectPermission(item.requiredPermission),
+	);
 	if (navItems.length === 0) return null;
 
 	return (
@@ -1037,10 +1042,11 @@ function PluginProjectPages({ projectId }: { projectId: string }) {
 /** Admin-sidebar nav items for plugin `admin.page` extension points (e.g. a
  * cross-project time-tracking summary), routed to
  * /admin/plugins/:pluginId/:slug. Rendered inline in the existing
- * "Administration" SidebarMenu, so no extra group wrapper here. */
-function PluginAdminPages() {
-	const { getNavItems } = usePluginRegistry();
-	const navItems = getNavItems("admin");
+ * "Administration" SidebarMenu, so no extra group wrapper here. `navItems`
+ * is pre-filtered by the caller (each item's own `requiredPermission`, if
+ * any) so this stays in sync with the `showAdminSection` computation that
+ * decides whether the enclosing group renders at all. */
+function PluginAdminPages({ navItems }: { navItems: PluginNavRegistration[] }) {
 	return (
 		<>
 			{navItems.map((item) => {
@@ -1349,6 +1355,7 @@ export function AppSidebar() {
 	const { resolvedMode } = useThemeMode();
 	const { projectId } = useParams({ strict: false });
 	const { data: user } = useQuery(currentUserOptionalQueryOptions);
+	const { getNavItems } = usePluginRegistry();
 
 	const canAccessGlobalRoles =
 		hasPermission("global_roles.read") || hasPermission("global_roles.write");
@@ -1360,8 +1367,21 @@ export function AppSidebar() {
 
 	const canCreateProject = hasPermission("projects.create");
 
+	// Plugin admin nav items are gated by their own declared
+	// `requiredPermission` (falling back to open access if the plugin didn't
+	// declare one), never by `canAccessPlugins` — a user shouldn't need
+	// `users.write` just to reach a plugin page whose author scoped it to a
+	// narrower, plugin-specific permission.
+	const adminPluginNavItems = getNavItems("admin").filter(
+		(item) =>
+			!item.requiredPermission || hasPermission(item.requiredPermission),
+	);
+
 	const showAdminSection =
-		canAccessGlobalRoles || canAccessUsers || canAccessPlugins;
+		canAccessGlobalRoles ||
+		canAccessUsers ||
+		canAccessPlugins ||
+		adminPluginNavItems.length > 0;
 	const isProjectContext = !!projectId;
 	const isAnonymous = !user;
 
@@ -1473,7 +1493,7 @@ export function AppSidebar() {
 													exact
 												/>
 											) : null}
-											<PluginAdminPages />
+											<PluginAdminPages navItems={adminPluginNavItems} />
 										</SidebarMenu>
 									</SidebarGroupContent>
 								</SidebarGroup>

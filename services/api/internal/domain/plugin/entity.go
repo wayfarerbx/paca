@@ -6,6 +6,8 @@ package plugindom
 
 import (
 	"encoding/json"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -71,6 +73,37 @@ type CustomPermission struct {
 	Scope string `json:"scope,omitempty"`
 }
 
+// pluginKeyNamespace derives the required custom-permission key prefix from a
+// plugin's reverse-DNS ID: its last dot-separated segment, snake_cased (e.g.
+// "com.paca.time-logging" -> "time_logging").
+func pluginKeyNamespace(pluginID string) string {
+	parts := strings.Split(pluginID, ".")
+	last := parts[len(parts)-1]
+	return strings.ReplaceAll(last, "-", "_")
+}
+
+// Validate checks manifest invariants that can't be expressed in the JSON
+// schema alone. In particular, it enforces that every declared custom
+// permission key is namespaced under the plugin's own ID, so a plugin cannot
+// declare a key (e.g. "users.write") that collides with a built-in
+// permission or another plugin's custom permission.
+func (m PluginManifest) Validate() error {
+	namespace := pluginKeyNamespace(m.ID)
+	prefix := namespace + "."
+	for _, perm := range m.CustomPermissions {
+		if perm.Key == "" {
+			return fmt.Errorf("customPermissions: key is required")
+		}
+		if !strings.HasPrefix(perm.Key, prefix) {
+			return fmt.Errorf("customPermissions: key %q must be namespaced under %q (expected prefix %q)", perm.Key, m.ID, prefix)
+		}
+		if perm.Scope != "" && perm.Scope != "project" && perm.Scope != "global" {
+			return fmt.Errorf("customPermissions: key %q has invalid scope %q", perm.Key, perm.Scope)
+		}
+	}
+	return nil
+}
+
 // MCPManifest describes the MCP (Model Context Protocol) side of the plugin.
 // When present, the Paca MCP server loads the module at RemoteEntryURL at
 // startup and merges the exported tools into the server's tool list.
@@ -132,6 +165,14 @@ type NavItem struct {
 	Component string `json:"component"`
 	// Order is the default display order within the sidebar section.
 	Order int `json:"order,omitempty"`
+	// RequiredPermission is the permission key (built-in or a key from this
+	// plugin's own CustomPermissions) the caller must hold to see and access
+	// this nav item's page. Checked with the same dot-wildcard semantics as
+	// requirePermissions, against the caller's global permission map for
+	// Scope "admin" or their project permission map for Scope "project". If
+	// omitted, the page is reachable by anyone who can already reach the
+	// enclosing sidebar section (all project members, or all admins).
+	RequiredPermission string `json:"requiredPermission,omitempty"`
 }
 
 // PluginRoute defines a single HTTP route exposed by the plugin backend.

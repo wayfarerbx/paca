@@ -27,6 +27,15 @@ export interface PluginNavItem {
 	label: string;
 	component: string;
 	icon?: string;
+	/**
+	 * Permission key (built-in, or one of this plugin's own
+	 * `customPermissions`) required to see and access this nav item's page.
+	 * Checked against the caller's global permissions for `scope: "admin"`
+	 * or their project permissions for `scope: "project"`. If omitted, the
+	 * page is reachable by anyone who can reach the enclosing sidebar
+	 * section (all project members, or all admins).
+	 */
+	requiredPermission?: string;
 }
 
 export interface FrontendManifest {
@@ -245,6 +254,8 @@ export interface PluginNavRegistration {
 	slug: string;
 	label: string;
 	icon?: string;
+	/** See `PluginNavItem.requiredPermission`. */
+	requiredPermission?: string;
 	/** The `project.page` / `admin.page` extension point registration this nav item routes to. */
 	registration: PluginRegistration;
 }
@@ -282,6 +293,7 @@ export function buildNavItems(
 				slug: nav.slug,
 				label: nav.label,
 				icon: nav.icon,
+				requiredPermission: nav.requiredPermission,
 				registration,
 			});
 		}
@@ -316,4 +328,43 @@ export function collectPluginCustomPermissions(
 		}
 	}
 	return result;
+}
+
+export interface PluginKnownPermission {
+	key: string;
+	labelKey: string;
+	descriptionKey: string;
+	domain: string;
+	/**
+	 * When set, the role editor renders this literal string instead of
+	 * running `labelKey` through i18n. Used for plugin-declared custom
+	 * permissions, whose label text comes from the plugin manifest (a
+	 * plugin has no access to the host's i18n catalog) rather than a
+	 * translation key.
+	 */
+	rawLabel?: string;
+	/** Same as `rawLabel` but for the description text. */
+	rawDescription?: string;
+}
+
+/**
+ * Convert plugin-declared custom permissions (as returned by
+ * `collectPluginCustomPermissions`) into role-editor-ready entries under the
+ * synthetic "plugins" domain, shared by both the project and global role
+ * editors. Label/description come straight from the plugin manifest
+ * (`rawLabel`/`rawDescription`) since plugins can't contribute host i18n keys.
+ */
+export function toPluginKnownPermissions(
+	pluginPermissions: Array<PluginCustomPermission & { pluginName: string }>,
+): PluginKnownPermission[] {
+	return pluginPermissions.map((perm) => ({
+		key: perm.key,
+		labelKey: "",
+		descriptionKey: "",
+		domain: "plugins",
+		rawLabel: perm.label,
+		rawDescription: perm.description
+			? `${perm.description} (${perm.pluginName})`
+			: perm.pluginName,
+	}));
 }

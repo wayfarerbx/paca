@@ -1,13 +1,41 @@
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { pluginsQueryOptions } from "@/lib/plugin-api";
+import { hasPermission } from "@/lib/permissions";
+import { buildNavItems, pluginsQueryOptions } from "@/lib/plugin-api";
 import { RemoteComponent } from "@/lib/plugins/loader";
 import { usePluginRegistry } from "@/lib/plugins/registry";
+import { myProjectPermissionsQueryOptions } from "@/lib/project-api";
 
 export const Route = createFileRoute(
 	"/_authenticated/projects/$projectId/plugins/$pluginId/$slug",
 )({
+	beforeLoad: async ({
+		context: { queryClient },
+		params: { projectId, pluginId, slug },
+	}) => {
+		const plugins = await queryClient
+			.ensureQueryData(pluginsQueryOptions)
+			.catch(() => []);
+		const navItem = buildNavItems(plugins, "project").find(
+			(item) => item.pluginId === pluginId && item.slug === slug,
+		);
+		// Nav items without a declared `requiredPermission` are reachable by
+		// any project member, matching the pre-existing behavior of embedded
+		// `<ExtensionPoint point="project.page">` fragments.
+		if (!navItem?.requiredPermission) return;
+
+		const permissionsMap = await queryClient
+			.fetchQuery(myProjectPermissionsQueryOptions(projectId))
+			.catch(() => ({}) as Record<string, boolean>);
+		const granted = Object.entries(permissionsMap)
+			.filter(([, v]) => v === true)
+			.map(([k]) => k);
+
+		if (!hasPermission(granted, navItem.requiredPermission)) {
+			throw redirect({ to: "/projects/$projectId", params: { projectId } });
+		}
+	},
 	loader: async ({ context: { queryClient } }) => {
 		await queryClient.ensureQueryData(pluginsQueryOptions);
 	},

@@ -11,24 +11,10 @@ import {
 	Workflow,
 } from "lucide-react";
 
-import type { PluginCustomPermission } from "@/lib/plugin-api";
+import type { PluginKnownPermission } from "@/lib/plugin-api";
 
-export interface KnownPermission {
-	key: string;
-	labelKey: string;
-	descriptionKey: string;
-	domain: string;
-	/**
-	 * When set, the role editor renders this literal string instead of
-	 * running `labelKey` through i18n. Used for plugin-declared custom
-	 * permissions, whose label text comes from the plugin manifest (a
-	 * plugin has no access to the host's i18n catalog) rather than a
-	 * translation key.
-	 */
-	rawLabel?: string;
-	/** Same as `rawLabel` but for the description text. */
-	rawDescription?: string;
-}
+export { toPluginKnownPermissions } from "@/lib/plugin-api";
+export type KnownPermission = PluginKnownPermission;
 
 export const PROJECT_KNOWN_PERMISSIONS = [
 	// projects
@@ -188,26 +174,3 @@ export const PROJECT_PERMISSION_GROUPS = [
 		Icon: Puzzle,
 	},
 ] as const satisfies PermissionGroup[];
-
-/**
- * Convert plugin-declared custom permissions (as returned by
- * `collectPluginCustomPermissions`) into `KnownPermission` entries under the
- * synthetic "plugins" domain, so they render in the role editor alongside
- * built-in permissions using the same `PROJECT_PERMISSION_GROUPS` layout.
- * Label/description come straight from the plugin manifest (`rawLabel`/
- * `rawDescription`) since plugins can't contribute host i18n keys.
- */
-export function toPluginKnownPermissions(
-	pluginPermissions: Array<PluginCustomPermission & { pluginName: string }>,
-): KnownPermission[] {
-	return pluginPermissions.map((perm) => ({
-		key: perm.key,
-		labelKey: "",
-		descriptionKey: "",
-		domain: "plugins",
-		rawLabel: perm.label,
-		rawDescription: perm.description
-			? `${perm.description} (${perm.pluginName})`
-			: perm.pluginName,
-	}));
-}

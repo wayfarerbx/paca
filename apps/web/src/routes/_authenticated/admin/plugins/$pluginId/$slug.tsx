@@ -3,19 +3,33 @@ import { AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { myPermissionsQueryOptions } from "@/lib/admin-api";
 import { hasPermission } from "@/lib/permissions";
-import { pluginsQueryOptions } from "@/lib/plugin-api";
+import { buildNavItems, pluginsQueryOptions } from "@/lib/plugin-api";
 import { RemoteComponent } from "@/lib/plugins/loader";
 import { usePluginRegistry } from "@/lib/plugins/registry";
 
 export const Route = createFileRoute(
 	"/_authenticated/admin/plugins/$pluginId/$slug",
 )({
-	beforeLoad: async ({ context: { queryClient } }) => {
-		const permissions = await queryClient
-			.fetchQuery(myPermissionsQueryOptions)
-			.catch(() => [] as string[]);
+	beforeLoad: async ({
+		context: { queryClient },
+		params: { pluginId, slug },
+	}) => {
+		const [permissions, plugins] = await Promise.all([
+			queryClient
+				.fetchQuery(myPermissionsQueryOptions)
+				.catch(() => [] as string[]),
+			queryClient.ensureQueryData(pluginsQueryOptions).catch(() => []),
+		]);
 
-		if (!hasPermission(permissions, "users.write")) {
+		const navItem = buildNavItems(plugins, "admin").find(
+			(item) => item.pluginId === pluginId && item.slug === slug,
+		);
+		// Nav items without a declared `requiredPermission` fall back to
+		// `users.write`, matching the blanket gate the built-in "Plugins"
+		// admin nav item (and this route, previously) already use.
+		const requiredPermission = navItem?.requiredPermission ?? "users.write";
+
+		if (!hasPermission(permissions, requiredPermission)) {
 			throw redirect({ to: "/home" });
 		}
 	},
