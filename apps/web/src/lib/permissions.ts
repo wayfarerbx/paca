@@ -56,22 +56,34 @@ export function normalizePermissionsToWildcards(
 		return { "*": true };
 	}
 
-	const permissionsByDomain = new Map<string, PermissionDefinition[]>();
+	// Group by each permission's own key prefix (the part before its last
+	// dot), NOT by `domain`. `domain` is a UI-grouping label and, for
+	// plugin-declared permissions, multiple unrelated plugins can share the
+	// synthetic "plugins" domain — collapsing by that label would produce a
+	// bogus "plugins.*" key that (a) doesn't match any real permission check
+	// (hasPermission only understands `${realPrefix}.*`) and (b) would
+	// over-grant every other plugin's permissions sharing that UI group.
+	// Using the key's real prefix keeps wildcard-collapsing scoped to
+	// permissions that actually share a checkable namespace.
+	const permissionsByPrefix = new Map<string, PermissionDefinition[]>();
 	for (const permission of knownPermissions) {
-		const existing = permissionsByDomain.get(permission.domain) ?? [];
+		const lastDotIndex = permission.key.lastIndexOf(".");
+		const prefix =
+			lastDotIndex === -1 ? permission.key : permission.key.slice(0, lastDotIndex);
+		const existing = permissionsByPrefix.get(prefix) ?? [];
 		existing.push(permission);
-		permissionsByDomain.set(permission.domain, existing);
+		permissionsByPrefix.set(prefix, existing);
 	}
 
 	const normalized: PermissionMap = {};
-	for (const [domain, domainPermissions] of permissionsByDomain) {
-		const enabledPermissions = domainPermissions.filter(
+	for (const [prefix, prefixPermissions] of permissionsByPrefix) {
+		const enabledPermissions = prefixPermissions.filter(
 			(permission) => source[permission.key] === true,
 		);
 		if (enabledPermissions.length === 0) continue;
 
-		if (enabledPermissions.length === domainPermissions.length) {
-			normalized[`${domain}.*`] = true;
+		if (enabledPermissions.length === prefixPermissions.length) {
+			normalized[`${prefix}.*`] = true;
 			continue;
 		}
 

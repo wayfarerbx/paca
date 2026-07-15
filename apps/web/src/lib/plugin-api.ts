@@ -21,9 +21,18 @@ export interface ExtensionPointRegistration {
 	order?: number;
 }
 
+export interface PluginNavItem {
+	scope: "project" | "admin";
+	slug: string;
+	label: string;
+	component: string;
+	icon?: string;
+}
+
 export interface FrontendManifest {
 	remoteEntryUrl?: string;
 	extensionPoints?: ExtensionPointRegistration[];
+	navItems?: PluginNavItem[];
 }
 
 export interface PluginManifest {
@@ -34,6 +43,23 @@ export interface PluginManifest {
 	backend?: BackendManifest;
 	frontend?: FrontendManifest;
 	permissions?: string[];
+	customPermissions?: PluginCustomPermission[];
+}
+
+/**
+ * A permission key a plugin declares beyond the host's built-in permission
+ * set (e.g. "time_logging.manage_all"). The host stores grants for these in
+ * the same JSONB permission map as built-in permissions, so declaring one
+ * here only makes it discoverable — it shows up in the project/global role
+ * editor and can be checked via requirePermissions or the plugin backend's
+ * CheckPermission host function.
+ */
+export interface PluginCustomPermission {
+	key: string;
+	label: string;
+	description?: string;
+	/** Which role editor this permission appears in. Defaults to "project". */
+	scope?: "project" | "global";
 }
 
 export interface Plugin {
@@ -148,7 +174,9 @@ export type ExtensionPointId =
 	| "sidebar.project.section"
 	| "task.detail.section"
 	| "project.settings.tab"
-	| "view";
+	| "view"
+	| "project.page"
+	| "admin.page";
 
 export interface PluginRegistration {
 	pluginUUID: string; // The database UUID for API calls
@@ -206,4 +234,86 @@ export function buildRegistryMap(
 	}
 
 	return map;
+}
+
+// ── Nav item helpers ──────────────────────────────────────────────────────────
+
+export interface PluginNavRegistration {
+	pluginId: string; // reverse-DNS identifier, e.g. "com.paca.time-logging"
+	pluginName: string;
+	scope: "project" | "admin";
+	slug: string;
+	label: string;
+	icon?: string;
+	/** The `project.page` / `admin.page` extension point registration this nav item routes to. */
+	registration: PluginRegistration;
+}
+
+/**
+ * Build the list of sidebar nav items contributed by enabled plugins for the
+ * given scope ("project" or "admin"). Each nav item must reference a
+ * component also registered at the matching `project.page`/`admin.page`
+ * extension point — nav items without a matching registration are skipped.
+ */
+export function buildNavItems(
+	plugins: Plugin[],
+	scope: "project" | "admin",
+): PluginNavRegistration[] {
+	const point: ExtensionPointId =
+		scope === "project" ? "project.page" : "admin.page";
+	const registryMap = buildRegistryMap(plugins);
+	const pageRegs = registryMap.get(point) ?? [];
+
+	const items: PluginNavRegistration[] = [];
+	for (const plugin of plugins) {
+		if (!plugin.enabled) continue;
+		const navItems = plugin.manifest.frontend?.navItems ?? [];
+		for (const nav of navItems) {
+			if (nav.scope !== scope) continue;
+			const registration = pageRegs.find(
+				(r) =>
+					r.pluginId === plugin.manifest.id && r.component === nav.component,
+			);
+			if (!registration) continue;
+			items.push({
+				pluginId: plugin.manifest.id,
+				pluginName: plugin.manifest.displayName,
+				scope: nav.scope,
+				slug: nav.slug,
+				label: nav.label,
+				icon: nav.icon,
+				registration,
+			});
+		}
+	}
+	return items;
+}
+
+// ── Custom permission helpers ─────────────────────────────────────────────────
+
+/**
+ * Collect plugin-declared custom permissions for a given scope ("project" or
+ * "global") from all enabled plugins. Used to extend the built-in
+ * PROJECT_KNOWN_PERMISSIONS / KNOWN_PERMISSIONS sets shown in the role
+ * editors so admins can grant plugin permissions to roles.
+ */
+export function collectPluginCustomPermissions(
+	plugins: Plugin[],
+	scope: "project" | "global",
+): Array<PluginCustomPermission & { pluginId: string; pluginName: string }> {
+	const result: Array<
+		PluginCustomPermission & { pluginId: string; pluginName: string }
+	> = [];
+	for (const plugin of plugins) {
+		if (!plugin.enabled) continue;
+		for (const perm of plugin.manifest.customPermissions ?? []) {
+			if ((perm.scope ?? "project") !== scope) continue;
+			result.push({
+				...perm,
+				pluginId: plugin.manifest.id,
+				pluginName: plugin.manifest.displayName,
+			});
+		}
+	}
+	return result;
 }

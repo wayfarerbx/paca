@@ -365,7 +365,8 @@
 			"sprints": "Sprints",
 			"documents": "Documents",
 			"aiAgents": "Agents IA",
-			"workflows": "Automatisation"
+			"workflows": "Automatisation",
+			"plugins": "Plugins"
 		}
 	},
 	"settings": {

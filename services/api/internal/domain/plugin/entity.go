@@ -43,6 +43,32 @@ type PluginManifest struct {
 	MCP *MCPManifest `json:"mcp,omitempty"`
 	// Permissions lists the host function scopes the plugin requires.
 	Permissions []string `json:"permissions,omitempty"`
+	// CustomPermissions lists project/global-scoped permission keys the
+	// plugin declares. Declared keys become checkable via requirePermissions
+	// and appear in the project/global role editor UI so admins can grant
+	// them to specific roles (e.g. "time_logging.manage_all").
+	CustomPermissions []CustomPermission `json:"customPermissions,omitempty"`
+}
+
+// CustomPermission describes a permission key a plugin declares beyond the
+// host's built-in permission set. The host stores grants for these keys in
+// the same JSONB permission map as built-in permissions (e.g.
+// project_roles.permissions), so no schema change is needed to persist them
+// — only to know they exist so the role editor can expose them and plugin
+// route/backend checks can reference them by name.
+type CustomPermission struct {
+	// Key is the permission's stable identifier, e.g. "time_logging.manage_all".
+	// Must be namespaced under the plugin's domain to avoid collisions with
+	// built-in permissions and other plugins.
+	Key string `json:"key"`
+	// Label is the human-readable name shown in the role editor.
+	Label string `json:"label"`
+	// Description explains what the permission grants.
+	Description string `json:"description,omitempty"`
+	// Scope determines which role editor the permission appears in:
+	// "project" (per-project roles) or "global" (global roles). Defaults to
+	// "project" when omitted.
+	Scope string `json:"scope,omitempty"`
 }
 
 // MCPManifest describes the MCP (Model Context Protocol) side of the plugin.
@@ -80,6 +106,32 @@ type FrontendManifest struct {
 	RemoteEntryURL string `json:"remoteEntryUrl,omitempty"`
 	// ExtensionPoints is the list of extension points the plugin registers into.
 	ExtensionPoints []ExtensionPointRegistration `json:"extensionPoints,omitempty"`
+	// NavItems is the list of sidebar nav items the plugin registers. Each nav
+	// item routes to a full-page component registered at the "project.page" or
+	// "admin.page" extension point (see NavItem.Point).
+	NavItems []NavItem `json:"navItems,omitempty"`
+}
+
+// NavItem describes a sidebar navigation entry contributed by the plugin. It
+// routes to a full-page plugin component instead of an embedded fragment.
+type NavItem struct {
+	// Scope determines which sidebar section the item appears in:
+	// "project" (per-project sidebar) or "admin" (admin sidebar).
+	Scope string `json:"scope"`
+	// Slug is the URL segment identifying this page, unique per plugin+scope,
+	// e.g. "time-tracking". Combined with the plugin ID to form the route:
+	// /projects/:projectId/plugins/:pluginId/:slug or
+	// /admin/plugins/:pluginId/:slug.
+	Slug string `json:"slug"`
+	// Label is the human-readable sidebar link text.
+	Label string `json:"label"`
+	// Icon is a lucide-react icon name (PascalCase), e.g. "Clock".
+	Icon string `json:"icon,omitempty"`
+	// Component is the exported React component name from the remote entry,
+	// registered at the "project.page" or "admin.page" extension point.
+	Component string `json:"component"`
+	// Order is the default display order within the sidebar section.
+	Order int `json:"order,omitempty"`
 }
 
 // PluginRoute defines a single HTTP route exposed by the plugin backend.

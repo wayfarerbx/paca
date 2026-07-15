@@ -377,7 +377,8 @@
 			"sprints": "Спринты",
 			"documents": "Документы",
 			"aiAgents": "AI-агенты",
-			"workflows": "Автоматизация"
+			"workflows": "Автоматизация",
+			"plugins": "Плагины"
 		}
 	},
 	"settings": {
