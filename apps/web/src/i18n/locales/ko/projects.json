@@ -365,7 +365,8 @@
 			"sprints": "스프린트",
 			"documents": "문서",
 			"aiAgents": "AI 에이전트",
-			"workflows": "자동화"
+			"workflows": "자동화",
+			"plugins": "플러그인"
 		}
 	},
 	"settings": {

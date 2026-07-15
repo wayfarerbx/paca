@@ -11,6 +11,7 @@ export const SUPPORTED_LANGUAGES = [
 	"ja",
 	"es",
 	"fr",
+	"ru",
 	"pt-BR",
 ] as const;
 
@@ -24,6 +25,7 @@ export const LOCALE_LABELS: Record<SupportedLanguage, string> = {
 	ja: "日本語",
 	es: "Español",
 	fr: "Français",
+	ru: "Русский",
 	"pt-BR": "Português (Brasil)",
 };
 

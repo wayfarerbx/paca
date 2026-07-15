@@ -365,7 +365,8 @@
 			"sprints": "Sprint",
 			"documents": "Tài liệu",
 			"aiAgents": "AI Agent",
-			"workflows": "Tự động hóa"
+			"workflows": "Tự động hóa",
+			"plugins": "Plugin"
 		}
 	},
 	"settings": {

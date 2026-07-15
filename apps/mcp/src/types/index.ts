@@ -81,7 +81,7 @@ export interface Task {
 	description?: unknown[] | null;
 	importance: number;
 	story_points?: number | null;
-	assignee_id?: string | null;
+	assignee_ids?: string[];
 	reporter_id?: string | null;
 	custom_fields: Record<string, unknown>;
 	start_date?: string | null;

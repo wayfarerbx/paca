@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -624,7 +625,7 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 		Description:  req.NormalizedDescription(),
 		Importance:   req.Importance,
 		StoryPoints:  req.StoryPoints,
-		AssigneeID:   req.AssigneeID,
+		AssigneeIDs:  req.AssigneeIDs,
 		ReporterID:   req.ReporterID,
 		CustomFields: req.CustomFields,
 		StartDate:    req.StartDate,
@@ -653,10 +654,10 @@ func (h *TaskHandler) CreateTask(w http.ResponseWriter, r *http.Request) {
 			Content:      content,
 		})
 
-		// Enqueue an assignment event so the NotificationConsumer can create
-		// the in-app notification asynchronously (best-effort).
-		if req.AssigneeID != nil {
-			_ = events.PublishAssignmentChanged(r.Context(), h.publisher, t.ID, projectID, *req.AssigneeID, nil, actorID, nil)
+		// Enqueue one assignment event per assignee so the NotificationConsumer
+		// can create the in-app notification asynchronously (best-effort).
+		for _, memberID := range req.AssigneeIDs {
+			_ = events.PublishAssignmentChanged(r.Context(), h.publisher, t.ID, projectID, memberID, nil, actorID, nil)
 		}
 	}
 
@@ -699,7 +700,7 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 		Description:  req.Description.Ptr(),
 		Importance:   req.Importance,
 		StoryPoints:  req.StoryPoints.Ptr(),
-		AssigneeID:   req.AssigneeID.Ptr(),
+		AssigneeIDs:  req.AssigneeIDs.Ptr(),
 		ReporterID:   req.ReporterID.Ptr(),
 		CustomFields: req.CustomFields,
 		StartDate:    req.StartDate.Ptr(),
@@ -731,12 +732,20 @@ func (h *TaskHandler) UpdateTask(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 
-		// Enqueue an assignment event when the assignee changed so the
-		// NotificationConsumer can create the in-app notification asynchronously.
-		if req.AssigneeID.Set && req.AssigneeID.Value != nil {
-			assigneeChanged := oldTask.AssigneeID == nil || *oldTask.AssigneeID != *req.AssigneeID.Value
-			if assigneeChanged {
-				_ = events.PublishAssignmentChanged(r.Context(), h.publisher, taskID, projectID, *req.AssigneeID.Value, oldTask.AssigneeID, actorID, nil)
+		// Enqueue an assignment event for each newly-added assignee so the
+		// NotificationConsumer can create the in-app notification
+		// asynchronously. Members already assigned before this update don't
+		// get a duplicate event — only genuinely new assignments notify.
+		if req.AssigneeIDs.Set {
+			oldSet := make(map[uuid.UUID]struct{}, len(oldTask.AssigneeIDs))
+			for _, id := range oldTask.AssigneeIDs {
+				oldSet[id] = struct{}{}
+			}
+			for _, memberID := range req.AssigneeIDs.Value {
+				if _, alreadyAssigned := oldSet[memberID]; alreadyAssigned {
+					continue
+				}
+				_ = events.PublishAssignmentChanged(r.Context(), h.publisher, taskID, projectID, memberID, nil, actorID, nil)
 			}
 		}
 	}
@@ -784,10 +793,10 @@ func (h *TaskHandler) taskChangedFields(ctx context.Context, old *taskdom.Task, 
 		}
 	}
 
-	if req.AssigneeID.Set {
-		oldVal := uuidPtrToStr(old.AssigneeID)
-		newVal := uuidPtrToStr(req.AssigneeID.Value)
-		if oldVal != newVal {
+	if req.AssigneeIDs.Set {
+		oldVal := uuidSliceToStrs(old.AssigneeIDs)
+		newVal := uuidSliceToStrs(req.AssigneeIDs.Value)
+		if !equalStrSets(oldVal, newVal) {
 			changes = append(changes, taskdom.FieldChange{Field: "assignee", Old: oldVal, New: newVal})
 		}
 	}
@@ -881,6 +890,30 @@ func uuidPtrToStr(id *uuid.UUID) string {
 		return ""
 	}
 	return id.String()
+}
+
+// uuidSliceToStrs converts a UUID slice to a sorted string slice, for
+// order-insensitive set comparison and stable activity-log rendering.
+func uuidSliceToStrs(ids []uuid.UUID) []string {
+	out := make([]string, len(ids))
+	for i, id := range ids {
+		out[i] = id.String()
+	}
+	sort.Strings(out)
+	return out
+}
+
+// equalStrSets reports whether a and b (both already sorted) contain the same elements.
+func equalStrSets(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // timePtrToStr formats a *time.Time as a date string (empty string for nil).

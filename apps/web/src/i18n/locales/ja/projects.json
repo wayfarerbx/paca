@@ -365,7 +365,8 @@
 			"sprints": "スプリント",
 			"documents": "ドキュメント",
 			"aiAgents": "AIエージェント",
-			"workflows": "自動化"
+			"workflows": "自動化",
+			"plugins": "プラグイン"
 		}
 	},
 	"settings": {
