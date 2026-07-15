@@ -69,7 +69,9 @@ export function normalizePermissionsToWildcards(
 	for (const permission of knownPermissions) {
 		const lastDotIndex = permission.key.lastIndexOf(".");
 		const prefix =
-			lastDotIndex === -1 ? permission.key : permission.key.slice(0, lastDotIndex);
+			lastDotIndex === -1
+				? permission.key
+				: permission.key.slice(0, lastDotIndex);
 		const existing = permissionsByPrefix.get(prefix) ?? [];
 		existing.push(permission);
 		permissionsByPrefix.set(prefix, existing);

@@ -1,12 +1,11 @@
 import { createFileRoute, notFound, redirect } from "@tanstack/react-router";
 import { AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
-
+import { myPermissionsQueryOptions } from "@/lib/admin-api";
+import { hasPermission } from "@/lib/permissions";
+import { pluginsQueryOptions } from "@/lib/plugin-api";
 import { RemoteComponent } from "@/lib/plugins/loader";
 import { usePluginRegistry } from "@/lib/plugins/registry";
-import { myPermissionsQueryOptions } from "@/lib/admin-api";
-import { pluginsQueryOptions } from "@/lib/plugin-api";
-import { hasPermission } from "@/lib/permissions";
 
 export const Route = createFileRoute(
 	"/_authenticated/admin/plugins/$pluginId/$slug",
@@ -56,7 +55,8 @@ function AdminPluginPage() {
 						<AlertCircle className="size-3.5 shrink-0" />
 						<span>
 							{t("pluginLoadFailedPrefix")}{" "}
-							<strong>{navItem.pluginName}</strong> {t("pluginLoadFailedSuffix")}
+							<strong>{navItem.pluginName}</strong>{" "}
+							{t("pluginLoadFailedSuffix")}
 						</span>
 					</div>
 				}

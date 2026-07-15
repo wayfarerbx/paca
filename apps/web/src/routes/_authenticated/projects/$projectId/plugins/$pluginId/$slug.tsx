@@ -1,10 +1,9 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
-
+import { pluginsQueryOptions } from "@/lib/plugin-api";
 import { RemoteComponent } from "@/lib/plugins/loader";
 import { usePluginRegistry } from "@/lib/plugins/registry";
-import { pluginsQueryOptions } from "@/lib/plugin-api";
 
 export const Route = createFileRoute(
 	"/_authenticated/projects/$projectId/plugins/$pluginId/$slug",
@@ -47,7 +46,8 @@ function ProjectPluginPage() {
 						<AlertCircle className="size-3.5 shrink-0" />
 						<span>
 							{t("pluginLoadFailedPrefix")}{" "}
-							<strong>{navItem.pluginName}</strong> {t("pluginLoadFailedSuffix")}
+							<strong>{navItem.pluginName}</strong>{" "}
+							{t("pluginLoadFailedSuffix")}
 						</span>
 					</div>
 				}
