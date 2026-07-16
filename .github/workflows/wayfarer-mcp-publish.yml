@@ -1,0 +1,87 @@
+name: wayfarer-mcp-publish
+
+# Publishes the MCP server as a private package to GitHub Packages under the
+# wayfarerbx org, so internal tooling (e.g. `npx @wayfarerbx/paca-mcp`) picks
+# up fork-local fixes without depending on the upstream Paca-AI/paca release
+# cadence or their @paca-ai npm scope (which this fork has no publish rights
+# to). Runs on every push to main that touches apps/mcp, plus manual dispatch.
+#
+# The package name is patched at publish time only (not in the committed
+# package.json) so this fork keeps tracking upstream's package.json cleanly
+# on future `Merge Paca-AI:master into main` syncs.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/mcp/**"
+      - ".github/workflows/wayfarer-mcp-publish.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    name: Publish @wayfarerbx/paca-mcp to GitHub Packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: apps/mcp
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.2.23"
+
+      - name: Cache Bun packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-mcp-${{ hashFiles('apps/mcp/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-mcp-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run Biome lint
+        run: bun run lint
+
+      - name: Typecheck and build (pre-patch, to verify unmodified source)
+        run: bun run build
+
+      # Rescope to our own private org namespace and stamp a version derived
+      # from the base package.json version + this run number, so every push
+      # produces a unique, monotonically increasing semver the registry will
+      # accept. Done after the verification build above, before the real
+      # build below, so build/package.json ends up with the patched values.
+      - name: Patch package name and version for private publish
+        run: |
+          BASE_VERSION=$(node -p "require('./package.json').version")
+          npm pkg set name="@wayfarerbx/paca-mcp"
+          npm pkg set publishConfig.registry="https://npm.pkg.github.com"
+          npm version "${BASE_VERSION}-wayfarer.${{ github.run_number }}" --no-git-tag-version --allow-same-version
+
+      - name: Build
+        run: bun run build
+
+      - name: Setup Node.js with GitHub Packages registry
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: "https://npm.pkg.github.com"
+          scope: "@wayfarerbx"
+
+      - name: Publish to GitHub Packages
+        working-directory: apps/mcp/build
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
