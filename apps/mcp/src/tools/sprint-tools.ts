@@ -17,6 +17,7 @@ const CreateSprintSchema = z.object({
 	name: z.string(),
 	startDate: z.string(),
 	endDate: z.string(),
+	goal: z.string().optional(),
 });
 
 const UpdateSprintSchema = z.object({
@@ -25,6 +26,7 @@ const UpdateSprintSchema = z.object({
 	name: z.string().optional(),
 	startDate: z.string().optional(),
 	endDate: z.string().optional(),
+	goal: z.string().optional(),
 });
 
 const DeleteSprintSchema = z.object({
@@ -101,6 +103,10 @@ export function getSprintTools(): Tool[] {
 						type: "string",
 						description: "The end date (ISO 8601 format)",
 					},
+					goal: {
+						type: "string",
+						description: "The sprint goal (a short statement of intent)",
+					},
 				},
 				required: ["projectId", "name", "startDate", "endDate"],
 			},
@@ -132,6 +138,10 @@ export function getSprintTools(): Tool[] {
 					endDate: {
 						type: "string",
 						description: "The new end date (ISO 8601 format)",
+					},
+					goal: {
+						type: "string",
+						description: "The new sprint goal (a short statement of intent)",
 					},
 				},
 				required: ["projectId", "sprintId"],
@@ -221,13 +231,14 @@ export async function handleSprintTool(
 		}
 
 		case "create_sprint": {
-			const { projectId, name, startDate, endDate } =
+			const { projectId, name, startDate, endDate, goal } =
 				CreateSprintSchema.parse(args);
 			const sprint = await client.createSprint({
 				project_id: projectId,
 				name,
 				start_date: startDate,
 				end_date: endDate,
+				goal,
 			});
 			return {
 				content: [
@@ -240,12 +251,13 @@ export async function handleSprintTool(
 		}
 
 		case "update_sprint": {
-			const { projectId, sprintId, name, startDate, endDate } =
+			const { projectId, sprintId, name, startDate, endDate, goal } =
 				UpdateSprintSchema.parse(args);
 			const sprint = await client.updateSprint(projectId, sprintId, {
 				name,
 				start_date: startDate,
 				end_date: endDate,
+				goal,
 			});
 			return {
 				content: [
