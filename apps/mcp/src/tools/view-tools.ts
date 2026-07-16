@@ -15,6 +15,7 @@ const CreateViewSchema = z.object({
 	context: z.string(),
 	viewType: z.string(),
 	sprintId: z.string().optional(),
+	config: z.record(z.string(), z.any()).optional(),
 });
 
 const ReorderViewsSchema = z.object({
@@ -36,6 +37,7 @@ const UpdateViewSchema = z.object({
 	context: z.string().optional(),
 	viewType: z.string().optional(),
 	sprintId: z.string().optional(),
+	config: z.record(z.string(), z.any()).optional(),
 });
 
 const DeleteViewSchema = z.object({
@@ -153,6 +155,11 @@ export function getViewTools(): Tool[] {
 						type: "string",
 						description: "The sprint ID (required for sprint context)",
 					},
+					config: {
+						type: "object",
+						description:
+							"View display config, forwarded as-is to the API. Recognized snake_case keys: fields (string[]), column_by (string), swimlanes (string), sort_by (string), field_sum (string), slice_by (string), filters (object with task_types/statuses/assignees/sprints, each a FilterConfig: {all: boolean, items?: {[id]: boolean}} -- items maps an entity ID or virtual group name like \"normal\" to true=include/false=exclude; when all=true everything is included except items explicitly set to false, when all=false only items explicitly set to true are included). Example to show only Epics on a roadmap: {\"filters\": {\"task_types\": {\"all\": false, \"items\": {\"<epicTypeId>\": true}}}}.",
+					},
 				},
 				required: ["projectId", "name", "context", "viewType"],
 			},
@@ -232,6 +239,11 @@ export function getViewTools(): Tool[] {
 					sprintId: {
 						type: "string",
 						description: "The new sprint ID",
+					},
+					config: {
+						type: "object",
+						description:
+							"View display config, forwarded as-is to the API. Recognized snake_case keys: fields (string[]), column_by (string), swimlanes (string), sort_by (string), field_sum (string), slice_by (string), filters (object with task_types/statuses/assignees/sprints, each a FilterConfig: {all: boolean, items?: {[id]: boolean}} -- items maps an entity ID or virtual group name like \"normal\" to true=include/false=exclude; when all=true everything is included except items explicitly set to false, when all=false only items explicitly set to true are included). Example to show only Epics on a roadmap: {\"filters\": {\"task_types\": {\"all\": false, \"items\": {\"<epicTypeId>\": true}}}}.",
 					},
 				},
 				required: ["projectId", "viewId"],
@@ -479,6 +491,7 @@ ID: ${view.id}
 Context: ${view.context}
 Sprint ID: ${view.sprint_id || "None"}
 Position: ${view.position}
+Config: ${view.config && Object.keys(view.config).length > 0 ? JSON.stringify(view.config) : "None"}
 Created: ${view.created_at}`;
 }
 
@@ -522,7 +535,7 @@ export async function handleViewTool(
 		}
 
 		case "create_view": {
-			const { projectId, name, context, viewType, sprintId } =
+			const { projectId, name, context, viewType, sprintId, config } =
 				CreateViewSchema.parse(args);
 			const view = await client.createView(
 				projectId,
@@ -531,6 +544,7 @@ export async function handleViewTool(
 					context,
 					view_type: viewType as any,
 					sprint_id: sprintId ?? null,
+					config: config as any,
 				},
 				context,
 				sprintId,
@@ -578,13 +592,14 @@ export async function handleViewTool(
 		}
 
 		case "update_view": {
-			const { projectId, viewId, name, context, viewType, sprintId } =
+			const { projectId, viewId, name, context, viewType, sprintId, config } =
 				UpdateViewSchema.parse(args);
 			const view = await client.updateView(projectId, viewId, {
 				name,
 				context,
 				view_type: viewType as any,
 				sprint_id: sprintId ?? null,
+				config: config as any,
 			});
 			return {
 				content: [
