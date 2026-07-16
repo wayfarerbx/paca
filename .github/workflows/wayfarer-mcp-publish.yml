@@ -82,6 +82,9 @@ jobs:
 
       - name: Publish to GitHub Packages
         working-directory: apps/mcp/build
-        run: npm publish
+        # --tag latest is required: npm refuses to infer a dist-tag for a
+        # prerelease-shaped version (our -wayfarer.N suffix), and without an
+        # explicit tag `npx @wayfarerbx/paca-mcp` wouldn't resolve to it.
+        run: npm publish --tag latest
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
